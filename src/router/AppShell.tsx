@@ -1,13 +1,15 @@
 import { Suspense } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { BottomNav } from '@/components/common/BottomNav';
 import { Chatbot } from '@/components/common/Chatbot';
 import { Button } from '@/components/ui/button';
+import { LogIn } from 'lucide-react';
 import LogoRZ from '@/assets/LogoRZWithSlogan.png';
 
 export default function AppShell() {
   const location = useLocation();
+  const navigate = useNavigate();
   
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -28,19 +30,20 @@ export default function AppShell() {
     <div className="min-h-screen bg-background">
       {/* Top Navigation - Desktop */}
       <header className="sticky top-0 bg-white dark:bg-slate-900 border-b border-border z-50 hidden md:block">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-2.5">
           <div className="flex items-center justify-between">
-            <a href="/" className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
-              <img src={LogoRZ} alt="RoomZ Logo" className="h-30 w-30" />
+            <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+              <img src={LogoRZ} alt="RoomZ Logo" className="h-10 w-auto" />
             </a>
 
-            <nav className="flex items-center gap-2">
+            <nav className="flex items-center gap-1.5">
               {navItems.map((item) => (
                 <Button
                   key={item.path}
                   variant="ghost"
-                  onClick={() => window.location.href = item.path}
-                  className={`rounded-full transition-colors ${
+                  size="sm"
+                  onClick={() => navigate(item.path)}
+                  className={`rounded-full transition-colors text-sm ${
                     isActive(item.path)
                       ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
                       : 'hover:bg-primary/10 hover:text-primary'
@@ -49,6 +52,14 @@ export default function AppShell() {
                   {item.label}
                 </Button>
               ))}
+              <Button
+                onClick={() => navigate('/login')}
+                size="sm"
+                className="rounded-full ml-2 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-sm"
+              >
+                <LogIn className="w-3.5 h-3.5 mr-1.5" />
+                Đăng nhập
+              </Button>
             </nav>
           </div>
         </div>
@@ -56,10 +67,18 @@ export default function AppShell() {
 
       {/* Mobile Header */}
       <header className=" top-0 bg-white dark:bg-slate-900 border-b border-border z-50 md:hidden">
-        <div className="px-4 py-3 flex items-center justify-between">
+        <div className="px-4 py-2 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-            <img src={LogoRZ} alt="RoomZ Logo" className="h-30 w-30" />
+            <img src={LogoRZ} alt="RoomZ Logo" className="h-9 w-auto" />
           </a>
+          <Button
+            onClick={() => navigate('/login')}
+            size="sm"
+            className="rounded-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-xs"
+          >
+            <LogIn className="w-3.5 h-3.5 mr-1" />
+            Đăng nhập
+          </Button>
         </div>
       </header>
 
