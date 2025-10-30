@@ -64,19 +64,24 @@ export function BottomNav() {
             <div className="grid grid-cols-2 gap-6 mb-8">
               {expandedMenuItems.map((item) => {
                 const Icon = item.icon;
+                const active = isActive(item.path);
                 return (
                   <Link
                     key={item.id}
                     to={item.path}
                     onClick={() => setIsExpanded(false)}
-                    className="flex flex-col items-center gap-3 p-4 rounded-2xl hover:bg-gray-50 transition-all active:scale-95"
+                    className={`flex flex-col items-center gap-3 p-4 rounded-2xl transition-all active:scale-95 ${
+                      active ? 'bg-primary/10' : 'hover:bg-gray-50'
+                    }`}
                   >
                     <div
-                      className={`w-14 h-14 ${item.color} rounded-2xl flex items-center justify-center`}
+                      className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
+                        active ? 'bg-primary' : item.color
+                      }`}
                     >
-                      <Icon className="w-6 h-6 text-primary" />
+                      <Icon className={`w-6 h-6 ${active ? 'text-white' : 'text-primary'}`} />
                     </div>
-                    <span className="text-sm">{item.label}</span>
+                    <span className={`text-sm ${active ? 'text-primary font-medium' : ''}`}>{item.label}</span>
                   </Link>
                 );
               })}

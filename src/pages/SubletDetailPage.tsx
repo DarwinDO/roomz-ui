@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import type { FC } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -20,33 +20,31 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-// Mock sublet data
-const mockSublet = {
-  id: "1",
-  title: "Modern Studio Available for Sublet",
-  location: "University District, Seattle",
-  price: 950,
-  distance: "0.2 mi from campus",
-  verified: true,
-  image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw2fHxtb2Rlcm4lMjBiZWRyb29tJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYwNjM2NDM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-};
+export interface SubletDetailPageProps {
+  onBack: () => void;
+  onBookSublet: () => void;
+  onMessageHost: () => void;
+  sublet: {
+    id: string;
+    title: string;
+    location: string;
+    price: number;
+    distance: string;
+    verified: boolean;
+    image: string;
+    available?: boolean;
+    matchPercentage?: number;
+  };
+}
 
-export default function SubletDetailPage() {
-  const navigate = useNavigate();
+const SubletDetailPage: FC<SubletDetailPageProps> = ({
+  onBack,
+  onBookSublet,
+  onMessageHost,
+  sublet,
+}) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
-  
-  const sublet = mockSublet;
-  
-  const onBack = () => navigate(-1);
-  const onBookSublet = () => {
-    // Navigate to booking or show modal
-    console.log("Book sublet");
-  };
-  const onMessageHost = () => {
-    // Navigate to messages
-    console.log("Message host");
-  };
 
   const images = [
     sublet.image,
@@ -253,23 +251,23 @@ export default function SubletDetailPage() {
         </div>
       </div>
 
-      {/* Sticky Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg px-4 py-3 md:px-6 z-10 safe-area-bottom">
+      {/* Sticky Bottom CTA - với padding cho mobile để không bị che bởi BottomNav */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg px-4 py-3 md:px-6 z-50 mb-16 md:mb-0">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col xs:flex-row gap-3">
             <Button
               onClick={onMessageHost}
               variant="outline"
-              className="flex-1 rounded-full h-11 sm:h-12"
+              className="flex-1 rounded-full h-12 border-2 border-primary text-primary hover:bg-primary/10"
             >
-              <MessageCircle className="w-4 h-4 mr-2" />
+              <MessageCircle className="w-5 h-5 mr-2" />
               Message Host
             </Button>
             <Button
               onClick={onBookSublet}
-              className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-11 sm:h-12"
+              className="flex-1 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-12 text-white shadow-md"
             >
-              <Calendar className="w-4 h-4 mr-2" />
+              <Calendar className="w-5 h-5 mr-2" />
               Book Sublet
             </Button>
           </div>
@@ -277,4 +275,6 @@ export default function SubletDetailPage() {
       </div>
     </div>
   );
-}
+};
+
+export default SubletDetailPage;

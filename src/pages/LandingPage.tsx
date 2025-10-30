@@ -51,17 +51,17 @@ export default function LandingPage() {
           </div>
 
           {/* Quick Filters */}
-          <div className="flex flex-wrap gap-2 justify-center mt-4">
-            <Badge variant="secondary" className="bg-white hover:bg-gray-50 cursor-pointer">
+          <div className="flex flex-wrap gap-3 justify-center mt-4">
+            <Badge variant="secondary" className="px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-sm dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-200/90 dark:hover:bg-slate-700/90">
               Verified Only
             </Badge>
-            <Badge variant="secondary" className="bg-white hover:bg-gray-50 cursor-pointer">
+            <Badge variant="secondary" className="px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-sm dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-200/90 dark:hover:bg-slate-700/90">
               $500-$1000
             </Badge>
-            <Badge variant="secondary" className="bg-white hover:bg-gray-50 cursor-pointer">
+            <Badge variant="secondary" className="px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-sm dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-200/90 dark:hover:bg-slate-700/90">
               Private Room
             </Badge>
-            <Badge variant="secondary" className="bg-white hover:bg-gray-50 cursor-pointer">
+            <Badge variant="secondary" className="px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-sm dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-200/90 dark:hover:bg-slate-700/90">
               Pet Friendly
             </Badge>
           </div>

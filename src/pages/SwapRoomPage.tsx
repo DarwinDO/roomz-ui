@@ -138,10 +138,10 @@ export default function SwapRoomPage() {
                     Find verified sublets from students traveling for internships, study
                     abroad, or summer break.
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="bg-white">1-3 months</Badge>
-                    <Badge variant="secondary" className="bg-white">Flexible dates</Badge>
-                    <Badge variant="secondary" className="bg-white">No long-term commitment</Badge>
+                  <div className="flex flex-wrap gap-3">
+                    <Badge variant="secondary" className="px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-sm dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200">1-3 months</Badge>
+                    <Badge variant="secondary" className="px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-sm dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200">Flexible dates</Badge>
+                    <Badge variant="secondary" className="px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-sm dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200">No long-term commitment</Badge>
                   </div>
                 </div>
               </div>

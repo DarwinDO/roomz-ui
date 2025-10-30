@@ -1,95 +1,64 @@
 import { Suspense } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { BottomNav } from '@/components/common/BottomNav';
 import { Chatbot } from '@/components/common/Chatbot';
-import { Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import LogoRZ from '@/assets/LogoRZWithSlogan.png';
 
 export default function AppShell() {
+  const location = useLocation();
+  
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
+  const navItems = [
+    { path: '/search', label: 'Find a Room' },
+    { path: '/roommates', label: 'Find Roommates' },
+    { path: '/swap', label: 'SwapRoom' },
+    { path: '/verification', label: 'Get Verified' },
+    { path: '/support-services', label: 'Services' },
+    { path: '/community', label: 'Community' },
+    { path: '/local-passport', label: 'Perks' },
+    { path: '/profile', label: 'Profile' },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navigation - Desktop */}
-      <header className="sticky top-0 bg-white border-b border-border z-50 hidden md:block">
+      <header className="sticky top-0 bg-white dark:bg-slate-900 border-b border-border z-50 hidden md:block">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <a href="/" className="flex items-center gap-3 cursor-pointer">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                <Home className="w-6 h-6 text-white" />
-              </div>
-              <h2 className="text-2xl">RoomZ</h2>
+            <a href="/" className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+              <img src={LogoRZ} alt="RoomZ Logo" className="h-30 w-30" />
             </a>
 
-            <nav className="flex items-center gap-6">
-              <Button
-                variant="ghost"
-                onClick={() => window.location.href = '/search'}
-                className="rounded-full"
-              >
-                Find a Room
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => window.location.href = '/roommates'}
-                className="rounded-full"
-              >
-                Find Roommates
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => window.location.href = '/swap'}
-                className="rounded-full"
-              >
-                SwapRoom
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => window.location.href = '/verification'}
-                className="rounded-full"
-              >
-                Get Verified
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => window.location.href = '/support-services'}
-                className="rounded-full"
-              >
-                Services
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => window.location.href = '/community'}
-                className="rounded-full"
-              >
-                Community
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => window.location.href = '/local-passport'}
-                className="rounded-full"
-              >
-                Perks
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => window.location.href = '/profile'}
-                className="rounded-full"
-              >
-                Profile
-              </Button>
+            <nav className="flex items-center gap-2">
+              {navItems.map((item) => (
+                <Button
+                  key={item.path}
+                  variant="ghost"
+                  onClick={() => window.location.href = item.path}
+                  className={`rounded-full transition-colors ${
+                    isActive(item.path)
+                      ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                      : 'hover:bg-primary/10 hover:text-primary'
+                  }`}
+                >
+                  {item.label}
+                </Button>
+              ))}
             </nav>
           </div>
         </div>
       </header>
 
       {/* Mobile Header */}
-      <header className="sticky top-0 bg-white border-b border-border z-50 md:hidden">
+      <header className=" top-0 bg-white dark:bg-slate-900 border-b border-border z-50 md:hidden">
         <div className="px-4 py-3 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2 cursor-pointer">
-            <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
-              <Home className="w-5 h-5 text-white" />
-            </div>
-            <h3>RoomZ</h3>
+          <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+            <img src={LogoRZ} alt="RoomZ Logo" className="h-30 w-30" />
           </a>
         </div>
       </header>

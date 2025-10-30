@@ -56,7 +56,7 @@ export function ShopDetailModal({ isOpen, onClose, shop }: ShopDetailModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0" aria-describedby={undefined}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 [&>button]:hidden" aria-describedby={undefined}>
         <VisuallyHidden>
           <DialogTitle>{shop.name} - Shop Details</DialogTitle>
           <DialogDescription>
@@ -76,9 +76,9 @@ export function ShopDetailModal({ isOpen, onClose, shop }: ShopDetailModalProps)
               onClick={handleClose}
               size="icon"
               variant="secondary"
-              className="rounded-full bg-white/90 hover:bg-white"
+              className="rounded-full bg-white/90 hover:bg-white shadow-md"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 text-primary" />
             </Button>
           </div>
           <div className="absolute bottom-4 left-4 right-4">
