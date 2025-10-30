@@ -14,14 +14,14 @@ export default function AppShell() {
   };
 
   const navItems = [
-    { path: '/search', label: 'Find a Room' },
-    { path: '/roommates', label: 'Find Roommates' },
+    { path: '/search', label: 'Tìm phòng' },
+    { path: '/roommates', label: 'Tìm bạn cùng phòng' },
     { path: '/swap', label: 'SwapRoom' },
-    { path: '/verification', label: 'Get Verified' },
-    { path: '/support-services', label: 'Services' },
-    { path: '/community', label: 'Community' },
-    { path: '/local-passport', label: 'Perks' },
-    { path: '/profile', label: 'Profile' },
+    { path: '/verification', label: 'Xác thực' },
+    { path: '/support-services', label: 'Dịch vụ' },
+    { path: '/community', label: 'Cộng đồng' },
+    { path: '/local-passport', label: 'Ưu đãi' },
+    { path: '/profile', label: 'Hồ sơ' },
   ];
 
   return (

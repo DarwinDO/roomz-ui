@@ -8,20 +8,20 @@ export function BottomNav() {
   const location = useLocation();
 
   const mainNavItems = [
-    { id: "home", label: "Home", icon: Home, path: "/" },
-    { id: "search", label: "Search", icon: Search, path: "/search" },
+    { id: "home", label: "Trang chủ", icon: Home, path: "/" },
+    { id: "search", label: "Tìm kiếm", icon: Search, path: "/search" },
   ];
 
   const rightNavItems = [
-    { id: "messages", label: "Messages", icon: MessageCircle, path: "/messages" },
-    { id: "profile", label: "Profile", icon: User, path: "/profile" },
+    { id: "messages", label: "Tin nhắn", icon: MessageCircle, path: "/messages" },
+    { id: "profile", label: "Hồ sơ", icon: User, path: "/profile" },
   ];
 
   const expandedMenuItems = [
-    { id: "community", label: "Community", icon: Users, color: "bg-blue-50", path: "/community" },
+    { id: "community", label: "Cộng đồng", icon: Users, color: "bg-blue-50", path: "/community" },
     { id: "swap", label: "SwapRoom", icon: RefreshCw, color: "bg-green-50", path: "/swap" },
-    { id: "local-passport", label: "Perks", icon: Gift, color: "bg-purple-50", path: "/local-passport" },
-    { id: "settings", label: "Settings", icon: Settings, color: "bg-gray-50", path: "/settings" },
+    { id: "local-passport", label: "Ưu đãi", icon: Gift, color: "bg-purple-50", path: "/local-passport" },
+    { id: "settings", label: "Cài đặt", icon: Settings, color: "bg-gray-50", path: "/settings" },
   ];
 
   const isActive = (path: string) => {
@@ -58,7 +58,7 @@ export function BottomNav() {
             <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6" />
 
             {/* Menu Title */}
-            <h3 className="mb-6 text-center">Quick Actions</h3>
+            <h3 className="mb-6 text-center">Truy cập nhanh</h3>
 
             {/* Menu Grid */}
             <div className="grid grid-cols-2 gap-6 mb-8">
@@ -93,7 +93,7 @@ export function BottomNav() {
               variant="outline"
               className="w-full h-12 rounded-full text-gray-600 border-gray-300"
             >
-              Cancel
+              Hủy
             </Button>
           </div>
         </div>

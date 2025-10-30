@@ -57,9 +57,9 @@ export function GalleryModal({ isOpen, onClose, images, initialIndex = 0 }: Gall
       <DialogContent className="max-w-[95vw] w-full h-[95vh] p-0 bg-black/95 backdrop-blur-xl border-0 rounded-3xl overflow-hidden" aria-describedby={undefined}>
         {/* Accessibility - Hidden Title and Description */}
         <VisuallyHidden>
-          <DialogTitle>Image Gallery</DialogTitle>
+          <DialogTitle>Thư viện ảnh</DialogTitle>
           <DialogDescription>
-            View room images. Use arrow keys or buttons to navigate between images. Image {currentIndex + 1} of {images.length}.
+            Xem ảnh phòng. Sử dụng phím mũi tên hoặc nút để chuyển ảnh. Ảnh {currentIndex + 1} / {images.length}.
           </DialogDescription>
         </VisuallyHidden>
 
@@ -73,7 +73,7 @@ export function GalleryModal({ isOpen, onClose, images, initialIndex = 0 }: Gall
               {is360View && (
                 <Badge className="bg-primary/90 text-white backdrop-blur-sm border-0">
                   <Eye className="w-3 h-3 mr-1" />
-                  360° View Active
+                  Chế độ 360° đang bật
                 </Badge>
               )}
             </div>
@@ -134,7 +134,7 @@ export function GalleryModal({ isOpen, onClose, images, initialIndex = 0 }: Gall
               }`}
             >
               <Eye className="w-4 h-4 mr-2" />
-              360° View
+              Xem 360°
             </Button>
             <Button
               variant="secondary"
@@ -142,7 +142,7 @@ export function GalleryModal({ isOpen, onClose, images, initialIndex = 0 }: Gall
               className="rounded-full bg-white/90 hover:bg-white text-foreground backdrop-blur-sm"
             >
               <Maximize2 className="w-4 h-4 mr-2" />
-              Fullscreen
+              Toàn màn hình
             </Button>
           </div>
 
@@ -172,7 +172,7 @@ export function GalleryModal({ isOpen, onClose, images, initialIndex = 0 }: Gall
 
         {/* Keyboard Navigation Hint */}
         <div className="absolute bottom-4 left-4 text-white/60 text-xs hidden md:block">
-          Use ← → arrow keys to navigate
+          Dùng phím ← → để chuyển ảnh
         </div>
       </DialogContent>
     </Dialog>

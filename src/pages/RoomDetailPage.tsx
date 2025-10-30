@@ -97,20 +97,20 @@ export default function RoomDetailPage() {
   ];
 
   const amenities = [
-    { icon: Wifi, label: "High-Speed WiFi" },
-    { icon: ParkingCircle, label: "Parking" },
-    { icon: UtensilsCrossed, label: "Shared Kitchen" },
-    { icon: WashingMachine, label: "Laundry" },
+    { icon: Wifi, label: "WiFi tốc độ cao" },
+    { icon: ParkingCircle, label: "Chỗ đỗ xe" },
+    { icon: UtensilsCrossed, label: "Bếp chung" },
+    { icon: WashingMachine, label: "Giặt là" },
     { icon: Tv, label: "Smart TV" },
-    { icon: AirVent, label: "Air Conditioning" },
-    { icon: Bed, label: "Furnished" },
-    { icon: Sofa, label: "Living Room" },
+    { icon: AirVent, label: "Điều hòa" },
+    { icon: Bed, label: "Có nội thất" },
+    { icon: Sofa, label: "Phòng khách" },
   ];
 
   const roommates = [
-    { name: "Alex Chen", match: 92, avatar: "", role: "Computer Science, Year 3" },
-    { name: "Jordan Kim", match: 88, avatar: "", role: "Business Major, Year 2" },
-    { name: "Taylor Swift", match: 85, avatar: "", role: "Engineering, Graduate" },
+    { name: "Minh Tuấn", match: 92, avatar: "", role: "CNTT, Năm 3" },
+    { name: "Hương Giang", match: 88, avatar: "", role: "Kinh tế, Năm 2" },
+    { name: "Đức Anh", match: 85, avatar: "", role: "Kỹ thuật, Cao học" },
   ];
 
   return (
@@ -139,7 +139,7 @@ export default function RoomDetailPage() {
         <div className="relative w-full aspect-[4/3] md:aspect-video">
           <ImageWithFallback
             src={images[currentImageIndex]}
-            alt="Room"
+            alt="Phòng"
             className="w-full h-full object-cover"
           />
           
@@ -147,11 +147,11 @@ export default function RoomDetailPage() {
           <div className="absolute top-4 left-4 flex flex-col gap-2">
             <Badge className="bg-white/95 text-primary backdrop-blur-sm border-0">
               <Camera className="w-3.5 h-3.5 mr-1.5" />
-              Verified Photo
+              Ảnh đã xác thực
             </Badge>
             <Badge className="bg-primary/95 text-white backdrop-blur-sm border-0">
               <Eye className="w-3.5 h-3.5 mr-1.5" />
-              360° View
+              Xem 360°
             </Badge>
           </div>
 
@@ -169,7 +169,7 @@ export default function RoomDetailPage() {
               className="rounded-full bg-white/95 hover:bg-white backdrop-blur-sm text-foreground shadow-lg min-h-[44px]"
             >
               <Images className="w-4 h-4 mr-2" />
-              View Gallery
+              Xem thư viện
             </Button>
             <Button
               size="sm"
@@ -177,7 +177,7 @@ export default function RoomDetailPage() {
               className="rounded-full bg-primary hover:bg-primary/90 shadow-lg min-h-[44px]"
             >
               <CalendarCheck className="w-4 h-4 mr-2" />
-              Book Viewing
+              Đặt lịch xem
             </Button>
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function RoomDetailPage() {
             <button
               key={index}
               onClick={() => setCurrentImageIndex(index)}
-              aria-label={`View image ${index + 1}`}
+              aria-label={`Xem ảnh ${index + 1}`}
               className={`relative aspect-video overflow-hidden rounded-lg transition-all ${
                 index === currentImageIndex
                   ? "ring-2 ring-primary ring-offset-2 ring-offset-black"
@@ -197,7 +197,7 @@ export default function RoomDetailPage() {
             >
               <ImageWithFallback
                 src={image}
-                alt={`Room view ${index + 1}`}
+                alt={`Góc nhìn phòng ${index + 1}`}
                 className="w-full h-full object-cover"
               />
               {index === currentImageIndex && (
@@ -214,17 +214,17 @@ export default function RoomDetailPage() {
           <div className="md:col-span-2 space-y-6">
             {/* Title & Location */}
             <div>
-              <h1 className="mb-3">Cozy Private Room near Campus</h1>
+              <h1 className="mb-3">Phòng riêng ấm cúng gần trường</h1>
               <div className="flex items-center gap-2 text-gray-600 mb-4">
                 <MapPin className="w-4 h-4" />
-                <span>123 University Ave, University District</span>
+                <span>123 Đại học, Quận 1, TP.HCM</span>
                 <Button
                   variant="outline"
                   size="sm"
                   className="ml-2 rounded-full h-8"
                 >
                   <Map className="w-3.5 h-3.5 mr-1.5" />
-                  View on Map
+                  Xem bản đồ
                 </Button>
               </div>
             </div>
@@ -234,42 +234,42 @@ export default function RoomDetailPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1.5 mb-1 text-primary">
-                    <span className="text-2xl">$850</span>
+                    <span className="text-2xl">3.5tr</span>
                   </div>
-                  <p className="text-xs text-gray-600">per month</p>
+                  <p className="text-xs text-gray-600">/tháng</p>
                 </div>
                 <div className="text-center border-l border-r border-border">
                   <div className="flex items-center justify-center gap-1.5 mb-1">
                     <Calendar className="w-4 h-4 text-secondary" />
-                    <span>Nov 1, 2025</span>
+                    <span>01/11/2025</span>
                   </div>
-                  <p className="text-xs text-gray-600">Available from</p>
+                  <p className="text-xs text-gray-600">Có thể thuê từ</p>
                 </div>
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1.5 mb-1">
                     <ShieldCheck className="w-4 h-4 text-green-600" />
-                    <span className="text-green-600">Verified</span>
+                    <span className="text-green-600">Đã xác thực</span>
                   </div>
-                  <p className="text-xs text-gray-600">ID + Photos</p>
+                  <p className="text-xs text-gray-600">Giấy tờ + Ảnh</p>
                 </div>
               </div>
             </div>
 
             {/* Description */}
             <div>
-              <h3 className="mb-3">About this room</h3>
+              <h3 className="mb-3">Về phòng này</h3>
               <p className="text-gray-700 leading-relaxed">
-                Beautiful private room in a modern 3-bedroom apartment. Perfect for students
-                and young professionals. Located just 5 minutes walk from campus with easy
-                access to public transportation. The room is fully furnished with a
-                comfortable bed, desk, and closet space. You'll share a spacious kitchen and
-                living room with two friendly roommates.
+                Phòng riêng đẹp trong căn hộ 3 phòng ngủ hiện đại. Hoàn hảo cho sinh viên
+                và người đi làm trẻ tuổi. Chỉ cách trường 5 phút đi bộ với giao thông công cộng
+                thuận tiện. Phòng được trang bị đầy đủ nội thất bao gồm giường thoải mái, bàn
+                làm việc và tủ quần áo. Bạn sẽ chia sẻ bếp rộng rãi và phòng khách với hai bạn
+                cùng phòng thân thiện.
               </p>
             </div>
 
             {/* Amenities */}
             <div>
-              <h3 className="mb-4">Amenities</h3>
+              <h3 className="mb-4">Tiện nghi</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {amenities.map((amenity, index) => {
                   const Icon = amenity.icon;
@@ -296,17 +296,17 @@ export default function RoomDetailPage() {
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <p>John Doe</p>
+                    <p>Nguyễn Văn Minh</p>
                     <Badge variant="outline" className="text-xs border-green-500 text-green-600">
                       <CheckCircle className="w-3 h-3 mr-1" />
-                      Verified Host
+                      Chủ nhà xác thực
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-500">Landlord since 2022</p>
+                  <p className="text-sm text-gray-500">Chủ nhà từ 2022</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm text-gray-600">Trust Score:</span>
+                <span className="text-sm text-gray-600">Điểm tin cậy:</span>
                 <Progress value={95} className="flex-1" />
                 <span className="text-sm">95%</span>
               </div>
@@ -322,23 +322,23 @@ export default function RoomDetailPage() {
                 className="w-full bg-primary hover:bg-primary/90 rounded-full h-12 min-h-[44px]"
               >
                 <CalendarCheck className="w-4 h-4 mr-2" />
-                Book Viewing
+                Đặt lịch xem
               </Button>
               <Button
                 onClick={openContactLandlordModal}
                 variant="outline"
                 className="w-full rounded-full h-12 min-h-[44px]"
               >
-                Contact Landlord
+                Nhắn tin cho chủ nhà
               </Button>
             </div>
 
             {/* Roommate Matching */}
             <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10">
               <div className="flex items-center justify-between mb-4">
-                <h3>Potential Roommates</h3>
+                <h3>Bạn cùng phòng tiềm năng</h3>
                 <Badge variant="outline" className="bg-white">
-                  3 matches
+                  3 kết quả
                 </Badge>
               </div>
               <div className="space-y-3">
@@ -368,14 +368,14 @@ export default function RoomDetailPage() {
                         onClick={() => openRoommateProfileModal(roommate)}
                         className="rounded-full text-xs"
                       >
-                        View Profile
+                        Xem hồ sơ
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => openChatDrawer(roommate)}
                         className="rounded-full bg-primary hover:bg-primary/90 text-xs"
                       >
-                        Message
+                        Nhắn tin
                       </Button>
                     </div>
                   </div>
@@ -386,7 +386,7 @@ export default function RoomDetailPage() {
                 variant="outline"
                 className="w-full mt-4 rounded-full border-primary text-primary hover:bg-primary hover:text-white min-h-[44px]"
               >
-                View All Matches
+                Xem tất cả
               </Button>
             </div>
 
@@ -395,9 +395,9 @@ export default function RoomDetailPage() {
               <div className="flex gap-3">
                 <ShieldCheck className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm mb-1">Safety First</p>
+                  <p className="text-sm mb-1">An toàn trên hết</p>
                   <p className="text-xs text-gray-600">
-                    Always meet in person and verify the property before making any payments.
+                    Luôn gặp trực tiếp và xác minh tài sản trước khi thanh toán bất kỳ khoản nào.
                   </p>
                 </div>
               </div>
@@ -455,14 +455,14 @@ export default function RoomDetailPage() {
               className="flex-1 rounded-full h-12 border-primary text-primary hover:bg-primary hover:text-white"
             >
               <MessageCircle className="w-4 h-4 mr-2" />
-              Message Host
+              Nhắn chủ nhà
             </Button>
             <Button
               onClick={openBookViewingModal}
               className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
             >
               <CalendarCheck className="w-4 h-4 mr-2" />
-              Book Viewing
+              Đặt lịch xem
             </Button>
           </div>
         </div>

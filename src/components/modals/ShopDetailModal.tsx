@@ -41,17 +41,17 @@ export function ShopDetailModal({ isOpen, onClose, shop }: ShopDetailModalProps)
 
   const shopDetails = {
     description:
-      shop.category === "Café"
-        ? "A cozy neighborhood café perfect for students. Great coffee, comfortable seating, and free WiFi. Ideal for studying or catching up with friends."
-        : shop.category === "Gym"
-        ? "Modern fitness center with state-of-the-art equipment. Offering group classes, personal training, and flexible membership options for students."
-        : shop.category === "Laundry"
-        ? "Professional laundry and dry cleaning service with same-day pickup and delivery. Special student rates available for weekly subscriptions."
-        : "Delicious food served fresh daily. Popular student hangout with late-night hours and delivery options available.",
-    hours: "Mon-Fri: 7:00 AM - 10:00 PM | Sat-Sun: 9:00 AM - 11:00 PM",
-    phone: "+1 (555) 123-4567",
-    email: "contact@" + shop.name.toLowerCase().replace(/\s+/g, "") + ".com",
-    address: "123 Main Street, Downtown Area",
+      shop.category === "Cà phê"
+        ? "Quán cà phê ấm cúng với góc học bài yên tĩnh, Wifi mạnh và ổ cắm đầy đủ. Rất phù hợp cho sinh viên học nhóm hoặc gặp gỡ bạn bè."
+        : shop.category === "Phòng gym"
+        ? "Phòng gym hiện đại với đầy đủ máy móc, lớp nhóm và huấn luyện viên cá nhân. Có gói linh hoạt ưu đãi dành cho sinh viên."
+        : shop.category === "Giặt ủi"
+        ? "Dịch vụ giặt ủi và giặt khô chuyên nghiệp, giao nhận trong ngày. Nhiều gói theo tuần với giá ưu đãi cho sinh viên."
+        : "Không gian ẩm thực phục vụ món ngon mỗi ngày, mở cửa tới khuya và có dịch vụ giao hàng.",
+    hours: "Thứ 2 - Thứ 6: 07:00 - 22:00 | Thứ 7 - CN: 09:00 - 23:00",
+    phone: "090 123 4567",
+    email: "contact@roomz.vn",
+    address: "25 Nguyễn Văn Bình, Đa Kao, Quận 1, TP.HCM",
   };
 
   return (
@@ -110,7 +110,7 @@ export function ShopDetailModal({ isOpen, onClose, shop }: ShopDetailModalProps)
                 <Gift className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-1">Exclusive RoomZ Offer</p>
+                <p className="text-sm text-gray-600 mb-1">Ưu đãi dành riêng cho thành viên RoomZ</p>
                 <h2 className="text-primary">{shop.discount}</h2>
               </div>
             </div>
@@ -118,7 +118,7 @@ export function ShopDetailModal({ isOpen, onClose, shop }: ShopDetailModalProps)
 
           {/* Description */}
           <div>
-            <h3 className="mb-2">About {shop.name}</h3>
+            <h3 className="mb-2">Về {shop.name}</h3>
             <p className="text-sm text-gray-600">{shopDetails.description}</p>
           </div>
 
@@ -126,19 +126,19 @@ export function ShopDetailModal({ isOpen, onClose, shop }: ShopDetailModalProps)
 
           {/* Contact Information */}
           <div className="space-y-3">
-            <h3>Contact & Location</h3>
+            <h3>Liên hệ & địa chỉ</h3>
             <div className="space-y-2">
               <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50">
                 <Clock className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Opening Hours</p>
+                  <p className="text-sm font-medium">Giờ mở cửa</p>
                   <p className="text-xs text-gray-600">{shopDetails.hours}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50">
                 <Phone className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">Phone</p>
+                  <p className="text-sm font-medium">Điện thoại</p>
                   <p className="text-xs text-gray-600">{shopDetails.phone}</p>
                 </div>
               </div>
@@ -152,12 +152,12 @@ export function ShopDetailModal({ isOpen, onClose, shop }: ShopDetailModalProps)
               <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50">
                 <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium">Address</p>
+                  <p className="text-sm font-medium">Địa chỉ</p>
                   <p className="text-xs text-gray-600">{shopDetails.address}</p>
                 </div>
                 <Button variant="ghost" size="sm" className="rounded-full">
                   <Navigation className="w-4 h-4 mr-1" />
-                  Directions
+                  Chỉ đường
                 </Button>
               </div>
             </div>
@@ -167,14 +167,14 @@ export function ShopDetailModal({ isOpen, onClose, shop }: ShopDetailModalProps)
 
           {/* Voucher Section */}
           <div className="space-y-4">
-            <h3>Get Your Discount Voucher</h3>
+            <h3>Nhận voucher ưu đãi</h3>
             {!showVoucher ? (
               <Button
                 onClick={() => setShowVoucher(true)}
                 className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-12"
               >
                 <QrCode className="w-5 h-5 mr-2" />
-                Generate Voucher
+                Tạo mã voucher
               </Button>
             ) : (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -184,25 +184,25 @@ export function ShopDetailModal({ isOpen, onClose, shop }: ShopDetailModalProps)
                     <QrCode className="w-24 h-24 text-gray-400" />
                   </div>
                   <p className="text-xs text-center text-gray-600">
-                    Scan this code at {shop.name}
+                    Quét mã này tại {shop.name}
                   </p>
                 </div>
 
                 {/* Instructions */}
                 <div className="bg-gradient-to-br from-secondary/5 to-primary/5 rounded-xl p-4 space-y-2">
-                  <p className="text-sm mb-2">How to Redeem:</p>
+                  <p className="text-sm mb-2">Cách sử dụng:</p>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2 text-xs">
                       <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                      <span>Show this QR code to the cashier before payment</span>
+                      <span>Đưa mã QR cho nhân viên trước khi thanh toán</span>
                     </div>
                     <div className="flex items-start gap-2 text-xs">
                       <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                      <span>Present your student ID if required</span>
+                      <span>Xuất trình thẻ sinh viên khi được yêu cầu</span>
                     </div>
                     <div className="flex items-start gap-2 text-xs">
                       <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                      <span>Discount will be applied automatically</span>
+                      <span>Ưu đãi sẽ được áp dụng trực tiếp vào hóa đơn</span>
                     </div>
                   </div>
                 </div>
@@ -210,7 +210,7 @@ export function ShopDetailModal({ isOpen, onClose, shop }: ShopDetailModalProps)
                 {/* Validity */}
                 <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-center">
                   <p className="text-xs text-gray-700">
-                    ⏰ Valid until: December 31, 2025
+                    ⏰ Hiệu lực đến: 31/12/2025
                   </p>
                 </div>
               </div>
@@ -224,11 +224,11 @@ export function ShopDetailModal({ isOpen, onClose, shop }: ShopDetailModalProps)
               className="flex-1 rounded-full h-12"
               onClick={handleClose}
             >
-              Close
+              Đóng
             </Button>
             <Button className="flex-1 rounded-full h-12 bg-primary hover:bg-primary/90">
               <Navigation className="w-4 h-4 mr-2" />
-              Get Directions
+              Chỉ đường
             </Button>
           </div>
         </div>

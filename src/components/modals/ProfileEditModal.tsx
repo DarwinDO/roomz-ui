@@ -15,11 +15,11 @@ interface ProfileEditModalProps {
 
 export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalProps) {
   const [profileData, setProfileData] = useState({
-    name: "Sarah Johnson",
-    email: "sarah.johnson@university.edu",
-    major: "Computer Science",
-    year: "Junior (3rd Year)",
-    bio: "Love coffee, yoga, and staying organized. Looking for a clean, quiet roommate who shares similar interests!",
+    name: "Nguyễn Văn A",
+    email: "nguyenvana@university.edu",
+    major: "Khoa học máy tính",
+    year: "Năm 3",
+    bio: "Thích cà phê, yoga và giữ gìn trật tự. Đang tìm bạn cùng phòng ngăn nắp, yên tĩnh có sở thích tương đồng!",
   });
 
   const handleSave = () => {
@@ -31,9 +31,9 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Profile</DialogTitle>
+          <DialogTitle>Chỉnh sửa hồ sơ</DialogTitle>
           <DialogDescription>
-            Update your profile information and preferences
+            Cập nhật thông tin và tùy chọn của bạn
           </DialogDescription>
         </DialogHeader>
 
@@ -46,7 +46,7 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
             </Avatar>
             <Button variant="outline" className="rounded-full" size="sm">
               <Upload className="w-4 h-4 mr-2" />
-              Change Photo
+              Thay đổi ảnh
             </Button>
           </div>
 
@@ -54,7 +54,7 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
           <div className="space-y-2">
             <Label htmlFor="edit-name" className="flex items-center gap-2">
               <User className="w-4 h-4 text-primary" />
-              Full Name
+              Họ và tên
             </Label>
             <Input
               id="edit-name"
@@ -70,7 +70,7 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
           <div className="space-y-2">
             <Label htmlFor="edit-email" className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" />
-              Email Address
+              Địa chỉ email
             </Label>
             <Input
               id="edit-email"
@@ -88,7 +88,7 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
             <div className="space-y-2">
               <Label htmlFor="edit-major" className="flex items-center gap-2">
                 <GraduationCap className="w-4 h-4 text-primary" />
-                Major
+                Ngành học
               </Label>
               <Input
                 id="edit-major"
@@ -102,7 +102,7 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
             <div className="space-y-2">
               <Label htmlFor="edit-year" className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-primary" />
-                Year
+                Năm học
               </Label>
               <select
                 id="edit-year"
@@ -112,18 +112,18 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
                 }
                 className="w-full px-3 py-2 rounded-xl border border-input bg-background"
               >
-                <option>Freshman (1st Year)</option>
-                <option>Sophomore (2nd Year)</option>
-                <option>Junior (3rd Year)</option>
-                <option>Senior (4th Year)</option>
-                <option>Graduate Student</option>
+                <option>Năm 1</option>
+                <option>Năm 2</option>
+                <option>Năm 3</option>
+                <option>Năm 4</option>
+                <option>Cao học</option>
               </select>
             </div>
           </div>
 
           {/* Bio */}
           <div className="space-y-2">
-            <Label htmlFor="edit-bio">Bio</Label>
+            <Label htmlFor="edit-bio">Giới thiệu</Label>
             <Textarea
               id="edit-bio"
               value={profileData.bio}
@@ -131,19 +131,19 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
                 setProfileData({ ...profileData, bio: e.target.value })
               }
               className="rounded-xl min-h-32"
-              placeholder="Tell others about yourself..."
+              placeholder="Kể về bản thân bạn..."
             />
             <p className="text-xs text-gray-500">
-              {profileData.bio.length}/500 characters
+              {profileData.bio.length}/500 ký tự
             </p>
           </div>
 
           {/* University */}
           <div className="space-y-2">
-            <Label htmlFor="edit-university">University</Label>
+            <Label htmlFor="edit-university">Trường học</Label>
             <Input
               id="edit-university"
-              defaultValue="State University"
+              defaultValue="Đại học Bách Khoa"
               className="rounded-xl"
             />
           </div>
@@ -151,8 +151,8 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
           {/* Info Note */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <p className="text-xs text-gray-700">
-              💡 Your profile information helps others find compatible roommates. Keep
-              it accurate and up-to-date!
+              💡 Thông tin hồ sơ giúp người khác tìm bạn cùng phòng phù hợp. Hãy giữ
+              cho chúng chính xác và cập nhật!
             </p>
           </div>
 
@@ -163,13 +163,13 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
               variant="outline"
               className="flex-1 rounded-full h-12"
             >
-              Cancel
+              Hủy
             </Button>
             <Button
               onClick={handleSave}
               className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
             >
-              Save Changes
+              Lưu thay đổi
             </Button>
           </div>
         </div>

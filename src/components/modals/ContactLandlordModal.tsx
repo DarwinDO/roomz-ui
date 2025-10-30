@@ -24,7 +24,7 @@ export function ContactLandlordModal({ isOpen, onClose }: ContactLandlordModalPr
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "Hi, I'm John Doe — how can I help you with this property?",
+      text: "Xin chào, tôi là Nguyễn Văn Minh — tôi có thể giúp gì cho bạn về căn phòng này?",
       sender: "landlord",
       timestamp: new Date(),
     },
@@ -58,18 +58,18 @@ export function ContactLandlordModal({ isOpen, onClose }: ContactLandlordModalPr
   const getLandlordResponse = (userInput: string): string => {
     const input = userInput.toLowerCase();
 
-    if (input.includes("available") || input.includes("when")) {
-      return "The room is available from November 1st, 2025. Would you like to schedule a viewing?";
-    } else if (input.includes("price") || input.includes("rent") || input.includes("cost")) {
-      return "The rent is $850 per month, which includes utilities. There's also a one-time security deposit of $850.";
-    } else if (input.includes("viewing") || input.includes("visit") || input.includes("see")) {
-      return "I'd be happy to show you the room! I'm usually available on weekdays after 5 PM and weekends. What works best for you?";
-    } else if (input.includes("pet") || input.includes("dog") || input.includes("cat")) {
-      return "Unfortunately, we have a no-pets policy in this building. I apologize for any inconvenience.";
-    } else if (input.includes("furnished") || input.includes("furniture")) {
-      return "Yes, the room comes fully furnished with a bed, desk, chair, and closet. The common areas also have all necessary furniture.";
+    if (input.includes("available") || input.includes("when") || input.includes("khi nào") || input.includes("còn trống")) {
+      return "Phòng còn trống từ ngày 1 tháng 11 năm 2025. Bạn có muốn đặt lịch xem phòng không?";
+    } else if (input.includes("price") || input.includes("rent") || input.includes("cost") || input.includes("giá") || input.includes("thuê")) {
+      return "Giá thuê là 3.5 triệu đồng mỗi tháng, đã bao gồm tiện ích. Còn có tiền đặt cọc một lần là 3.5 triệu đồng.";
+    } else if (input.includes("viewing") || input.includes("visit") || input.includes("see") || input.includes("xem") || input.includes("gặp")) {
+      return "Tôi rất sẵn lòng cho bạn xem phòng! Tôi thường rảnh vào các ngày trong tuần sau 5 giờ chiều và cuối tuần. Thời gian nào thuận tiện cho bạn?";
+    } else if (input.includes("pet") || input.includes("dog") || input.includes("cat") || input.includes("thú cưng") || input.includes("chó") || input.includes("mèo")) {
+      return "Rất tiếc, tòa nhà này có chính sách không cho phép nuôi thú cưng. Tôi xin lỗi vì sự bất tiện này.";
+    } else if (input.includes("furnished") || input.includes("furniture") || input.includes("nội thất") || input.includes("đồ đạc")) {
+      return "Có, phòng được trang bị đầy đủ nội thất gồm giường, bàn làm việc, ghế và tủ quần áo. Khu vực chung cũng có đầy đủ nội thất cần thiết.";
     } else {
-      return "Thanks for your question! I'll get back to you with more details shortly. Feel free to ask anything else!";
+      return "Cảm ơn câu hỏi của bạn! Tôi sẽ trả lời chi tiết hơn trong thời gian tới. Cứ thoải mái hỏi thêm!";
     }
   };
 
@@ -85,26 +85,26 @@ export function ContactLandlordModal({ isOpen, onClose }: ContactLandlordModalPr
       <DialogContent className="sm:max-w-[450px] rounded-3xl p-0 h-[600px] flex flex-col" aria-describedby={undefined}>
         <DialogHeader className="p-5 pb-4 border-b border-border shrink-0">
           <VisuallyHidden>
-            <DialogTitle>Contact Landlord</DialogTitle>
-            <DialogDescription>Chat with the property landlord</DialogDescription>
+            <DialogTitle>Liên hệ chủ nhà</DialogTitle>
+            <DialogDescription>Trò chuyện với chủ nhà</DialogDescription>
           </VisuallyHidden>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="w-12 h-12 bg-gradient-to-br from-primary/20 to-secondary/20">
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarFallback>NM</AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-base">John Doe</p>
+                <p className="text-base">Nguyễn Văn Minh</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-xs text-muted-foreground">Active now</span>
+                  <span className="text-xs text-muted-foreground">Đang hoạt động</span>
                 </div>
               </div>
             </div>
           </div>
           <Badge variant="outline" className="mt-3 w-fit text-xs">
             <Clock className="w-3 h-3 mr-1" />
-            Usually replies within 1 hour
+            Thường trả lời trong vòng 1 giờ
           </Badge>
         </DialogHeader>
 
@@ -127,7 +127,7 @@ export function ContactLandlordModal({ isOpen, onClose }: ContactLandlordModalPr
                   }
                 >
                   {message.sender === "landlord" ? (
-                    "JD"
+                    "NM"
                   ) : (
                     <User className="w-4 h-4" />
                   )}
@@ -164,7 +164,7 @@ export function ContactLandlordModal({ isOpen, onClose }: ContactLandlordModalPr
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="Type your message..."
+              placeholder="Nhập tin nhắn của bạn..."
               className="flex-1 rounded-full border-2 focus-visible:ring-primary"
             />
             <Button

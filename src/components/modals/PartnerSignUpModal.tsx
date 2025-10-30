@@ -32,9 +32,9 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Become a RoomZ Partner</DialogTitle>
+          <DialogTitle>Đăng ký trở thành đối tác RoomZ</DialogTitle>
           <DialogDescription>
-            Join our Local Passport program and reach thousands of students
+            Tham gia Local Passport để tiếp cận hàng nghìn sinh viên khu vực bạn
           </DialogDescription>
         </DialogHeader>
 
@@ -43,30 +43,30 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
           <div className="space-y-2">
             <Label htmlFor="business-name" className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-primary" />
-              Business Name
+              Tên doanh nghiệp
             </Label>
             <Input
               id="business-name"
-              placeholder="e.g., Café 89°"
+              placeholder="Ví dụ: Café 89°"
               className="rounded-xl"
             />
           </div>
 
           {/* Business Type */}
           <div className="space-y-2">
-            <Label htmlFor="business-type">Business Type</Label>
+            <Label htmlFor="business-type">Loại hình kinh doanh</Label>
             <Select>
               <SelectTrigger className="rounded-xl">
-                <SelectValue placeholder="Select business type" />
+                <SelectValue placeholder="Chọn loại hình" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="cafe">Café / Coffee Shop</SelectItem>
-                <SelectItem value="restaurant">Restaurant / Food</SelectItem>
-                <SelectItem value="gym">Gym / Fitness Studio</SelectItem>
-                <SelectItem value="laundry">Laundry Service</SelectItem>
-                <SelectItem value="retail">Retail / Shopping</SelectItem>
-                <SelectItem value="salon">Salon / Beauty</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="cafe">Cà phê / Đồ uống</SelectItem>
+                <SelectItem value="restaurant">Nhà hàng / Ăn uống</SelectItem>
+                <SelectItem value="gym">Gym / Fitness</SelectItem>
+                <SelectItem value="laundry">Giặt ủi</SelectItem>
+                <SelectItem value="retail">Bán lẻ / Mua sắm</SelectItem>
+                <SelectItem value="salon">Salon / Làm đẹp</SelectItem>
+                <SelectItem value="other">Khác</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -76,18 +76,18 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
             <div className="space-y-2">
               <Label htmlFor="contact-person" className="flex items-center gap-2">
                 <User className="w-4 h-4 text-primary" />
-                Contact Person
+                Người liên hệ
               </Label>
               <Input
                 id="contact-person"
-                placeholder="Full Name"
+                placeholder="Họ và tên"
                 className="rounded-xl"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="contact-email" className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-primary" />
-                Email
+                Email liên hệ
               </Label>
               <Input
                 id="contact-email"
@@ -102,11 +102,11 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
           <div className="space-y-2">
             <Label htmlFor="business-address" className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-primary" />
-              Business Address
+              Địa chỉ kinh doanh
             </Label>
             <Input
               id="business-address"
-              placeholder="e.g., 123 Main Street"
+              placeholder="Ví dụ: 25 Nguyễn Văn Bình, Quận 1"
               className="rounded-xl"
             />
           </div>
@@ -115,24 +115,24 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
           <div className="space-y-2">
             <Label htmlFor="offer-details" className="flex items-center gap-2">
               <Gift className="w-4 h-4 text-secondary" />
-              Offer / Discount Details
+              Thông tin ưu đãi cung cấp
             </Label>
             <Textarea
               id="offer-details"
-              placeholder="e.g., 20% off for all RoomZ members, Free coffee with any meal purchase, etc."
+              placeholder="Ví dụ: Giảm 20% cho thành viên RoomZ, Tặng cà phê khi gọi món..."
               className="rounded-xl min-h-24"
             />
           </div>
 
           {/* Benefits Banner */}
           <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10">
-            <h3 className="mb-3 text-sm">Partnership Benefits:</h3>
+            <h3 className="mb-3 text-sm">Quyền lợi đối tác:</h3>
             <ul className="space-y-2 text-xs text-gray-700">
-              <li>✓ Reach 10,000+ active students in your area</li>
-              <li>✓ Featured listing in RoomZ Local Passport</li>
-              <li>✓ Free marketing and promotion on our platform</li>
-              <li>✓ Analytics dashboard to track customer visits</li>
-              <li>✓ No upfront fees - only pay when students visit</li>
+              <li>✓ Tiếp cận hơn 10.000 sinh viên đang hoạt động tại khu vực</li>
+              <li>✓ Được ưu tiên hiển thị trên RoomZ Local Passport</li>
+              <li>✓ Hỗ trợ truyền thông miễn phí trên các kênh RoomZ</li>
+              <li>✓ Bảng thống kê lượt sử dụng ưu đãi theo thời gian thực</li>
+              <li>✓ Không thu phí ban đầu – chỉ trả khi có sinh viên sử dụng</li>
             </ul>
           </div>
 
@@ -149,9 +149,9 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
                   htmlFor="agree-terms"
                   className="text-sm cursor-pointer"
                 >
-                  I agree to the{" "}
-                  <span className="text-primary underline">RoomZ Partner Terms & Conditions</span>{" "}
-                  and understand that my business information will be displayed to RoomZ members.
+                  Tôi đồng ý với{" "}
+                  <span className="text-primary underline">Điều khoản đối tác RoomZ</span>{" "}
+                  và hiểu rằng thông tin doanh nghiệp sẽ hiển thị cho thành viên RoomZ.
                 </label>
               </div>
             </div>
@@ -164,14 +164,14 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
               variant="outline"
               className="flex-1 rounded-full h-12"
             >
-              Cancel
+              Hủy
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={!agreedToTerms}
               className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
             >
-              Submit Application
+              Gửi đăng ký
             </Button>
           </div>
         </div>

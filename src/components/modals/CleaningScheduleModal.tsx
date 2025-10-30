@@ -21,16 +21,18 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
     trash: false,
   });
 
+  const formatCurrency = (value: number) => `${value.toLocaleString("vi-VN")}₫`;
+
   const cleaningTypes = [
-    { id: "move-in", label: "Move-in Cleaning", price: 80 },
-    { id: "move-out", label: "Move-out Cleaning", price: 90 },
-    { id: "weekly", label: "Weekly Cleaning", price: 60 },
+    { id: "move-in", label: "Vệ sinh nhận phòng", price: 900_000 },
+    { id: "move-out", label: "Vệ sinh trả phòng", price: 1_000_000 },
+    { id: "weekly", label: "Vệ sinh định kỳ", price: 650_000 },
   ];
 
   const addOnOptions = [
-    { id: "aircon", label: "Aircon cleaning", price: 25 },
-    { id: "laundry", label: "Laundry service", price: 15 },
-    { id: "trash", label: "Trash removal", price: 10 },
+    { id: "aircon", label: "Vệ sinh máy lạnh", price: 250_000 },
+    { id: "laundry", label: "Giặt sấy chăn ga", price: 180_000 },
+    { id: "trash", label: "Thu gom & xử lý rác", price: 120_000 },
   ];
 
   const basePrice = cleaningTypes.find((t) => t.id === selectedType)?.price || 0;
@@ -52,9 +54,9 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Schedule Cleaning Service</DialogTitle>
+          <DialogTitle>Đặt lịch vệ sinh phòng</DialogTitle>
           <DialogDescription>
-            Professional deep cleaning for your room or apartment
+            Dịch vụ vệ sinh tổng quát chuyên nghiệp cho phòng hoặc căn hộ của bạn
           </DialogDescription>
         </DialogHeader>
 
@@ -63,11 +65,11 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
           <div className="space-y-2">
             <Label htmlFor="cleaning-address" className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-primary" />
-              Address / Room ID
+              Địa chỉ / Mã phòng
             </Label>
             <Input
               id="cleaning-address"
-              placeholder="e.g., 123 Main Street, Apt 4B"
+              placeholder="Ví dụ: Căn A203, The Sun Avenue, Quận 2"
               className="rounded-xl"
             />
           </div>
@@ -76,7 +78,7 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-secondary" />
-              Cleaning Type
+              Loại hình vệ sinh
             </Label>
             <div className="grid grid-cols-3 gap-2">
               {cleaningTypes.map((type) => (
@@ -92,7 +94,7 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
                 >
                   <div className="flex flex-col gap-1">
                     <span className="text-xs">{type.label}</span>
-                    <span className="text-xs opacity-80">${type.price}</span>
+                    <span className="text-xs opacity-80">{formatCurrency(type.price)}</span>
                   </div>
                 </Badge>
               ))}
@@ -104,7 +106,7 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
             <div className="space-y-2">
               <Label htmlFor="cleaning-date" className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-primary" />
-                Date
+                Ngày
               </Label>
               <Input
                 id="cleaning-date"
@@ -113,21 +115,21 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cleaning-time">Time Slot</Label>
+              <Label htmlFor="cleaning-time">Khung giờ</Label>
               <select
                 id="cleaning-time"
                 className="w-full px-3 py-2 rounded-xl border border-input bg-background"
               >
-                <option>9:00 AM - 12:00 PM</option>
-                <option>12:00 PM - 3:00 PM</option>
-                <option>3:00 PM - 6:00 PM</option>
+                <option>08:00 - 11:00</option>
+                <option>12:30 - 15:30</option>
+                <option>16:00 - 19:00</option>
               </select>
             </div>
           </div>
 
           {/* Add-ons */}
           <div className="space-y-3">
-            <Label>Add-ons (Optional)</Label>
+            <Label>Dịch vụ bổ sung (tùy chọn)</Label>
             <div className="space-y-2">
               {addOnOptions.map((addOn) => (
                 <div
@@ -145,11 +147,11 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
                     <label
                       htmlFor={addOn.id}
                       className="text-sm cursor-pointer"
-                    >
-                      {addOn.label}
-                    </label>
-                  </div>
-                  <span className="text-sm text-gray-600">+${addOn.price}</span>
+                  >
+                    {addOn.label}
+                  </label>
+                </div>
+                  <span className="text-sm text-gray-600">+{formatCurrency(addOn.price)}</span>
                 </div>
               ))}
             </div>
@@ -158,19 +160,19 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
           {/* Price Summary */}
           <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10 space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Base cleaning</span>
-              <span>${basePrice}</span>
+              <span className="text-gray-600">Gói vệ sinh chính</span>
+              <span>{formatCurrency(basePrice)}</span>
             </div>
             {addOnPrice > 0 && (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Add-ons</span>
-                <span>+${addOnPrice}</span>
+                <span className="text-gray-600">Dịch vụ bổ sung</span>
+                <span>+{formatCurrency(addOnPrice)}</span>
               </div>
             )}
             <div className="pt-3 border-t border-primary/20">
               <div className="flex items-center justify-between">
-                <span className="font-medium">Total</span>
-                <span className="text-2xl text-primary">${totalPrice}</span>
+                <span className="font-medium">Tổng cộng</span>
+                <span className="text-2xl text-primary">{formatCurrency(totalPrice)}</span>
               </div>
             </div>
           </div>
@@ -178,7 +180,7 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
           {/* Student Discount */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
             <p className="text-sm text-amber-800">
-              🎓 Student discount (15%) will be applied at checkout
+              🎓 Giảm 15% cho sinh viên sẽ được áp dụng khi thanh toán
             </p>
           </div>
 
@@ -189,13 +191,13 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
               variant="outline"
               className="flex-1 rounded-full h-12"
             >
-              Cancel
+              Hủy
             </Button>
             <Button
               onClick={handleConfirm}
               className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
             >
-              Confirm Booking
+              Xác nhận đặt lịch
             </Button>
           </div>
         </div>

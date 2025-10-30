@@ -66,7 +66,7 @@ export function RoomCard({
         )}
         {matchPercentage && (
           <Badge className="absolute bottom-3 right-3 bg-secondary text-white">
-            {matchPercentage}% Match
+            {matchPercentage}% phù hợp
           </Badge>
         )}
       </div>
@@ -79,12 +79,12 @@ export function RoomCard({
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-primary">${price}</span>
-            <span className="text-sm text-gray-500">/month</span>
+            <span className="text-primary">{(price/1000).toFixed(1)}tr</span>
+            <span className="text-sm text-gray-500">/tháng</span>
           </div>
           {available && (
             <Badge variant="outline" className="border-green-500 text-green-600">
-              Available
+              Còn trống
             </Badge>
           )}
         </div>

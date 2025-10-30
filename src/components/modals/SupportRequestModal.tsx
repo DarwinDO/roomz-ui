@@ -22,9 +22,9 @@ export function SupportRequestModal({ isOpen, onClose, onSubmit }: SupportReques
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Support Request</DialogTitle>
+          <DialogTitle>Yêu cầu hỗ trợ</DialogTitle>
           <DialogDescription>
-            Our support team will get back to you within 24 hours
+            Đội ngũ RoomZ sẽ phản hồi cho bạn trong vòng 24 giờ
           </DialogDescription>
         </DialogHeader>
 
@@ -33,11 +33,11 @@ export function SupportRequestModal({ isOpen, onClose, onSubmit }: SupportReques
           <div className="space-y-2">
             <Label htmlFor="support-name" className="flex items-center gap-2">
               <User className="w-4 h-4 text-primary" />
-              Your Name
+              Họ và tên
             </Label>
             <Input
               id="support-name"
-              placeholder="e.g., Jane Doe"
+              placeholder="Ví dụ: Nguyễn Minh Anh"
               className="rounded-xl"
             />
           </div>
@@ -46,12 +46,12 @@ export function SupportRequestModal({ isOpen, onClose, onSubmit }: SupportReques
           <div className="space-y-2">
             <Label htmlFor="support-email" className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-primary" />
-              Email Address
+              Email liên hệ
             </Label>
             <Input
               id="support-email"
               type="email"
-              placeholder="e.g., jane@example.com"
+              placeholder="Ví dụ: minh.anh@roomz.vn"
               className="rounded-xl"
             />
           </div>
@@ -60,29 +60,29 @@ export function SupportRequestModal({ isOpen, onClose, onSubmit }: SupportReques
           <div className="space-y-2">
             <Label htmlFor="issue-type" className="flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-primary" />
-              Issue Type
+              Loại vấn đề
             </Label>
             <Select>
               <SelectTrigger className="rounded-xl">
-                <SelectValue placeholder="Select issue type" />
+                <SelectValue placeholder="Chọn loại yêu cầu" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="moving">Moving Service</SelectItem>
-                <SelectItem value="cleaning">Cleaning Service</SelectItem>
-                <SelectItem value="setup">Setup & Assembly</SelectItem>
-                <SelectItem value="booking">Booking Issue</SelectItem>
-                <SelectItem value="payment">Payment Issue</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="moving">Dịch vụ chuyển phòng</SelectItem>
+                <SelectItem value="cleaning">Dịch vụ vệ sinh</SelectItem>
+                <SelectItem value="setup">Lắp đặt & sắp xếp</SelectItem>
+                <SelectItem value="booking">Sự cố đặt dịch vụ</SelectItem>
+                <SelectItem value="payment">Thanh toán</SelectItem>
+                <SelectItem value="other">Khác</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Message */}
           <div className="space-y-2">
-            <Label htmlFor="support-message">Message</Label>
+            <Label htmlFor="support-message">Nội dung hỗ trợ</Label>
             <Textarea
               id="support-message"
-              placeholder="Describe your issue or request..."
+              placeholder="Mô tả vấn đề hoặc nhu cầu của bạn..."
               className="rounded-xl min-h-32"
             />
           </div>
@@ -90,8 +90,8 @@ export function SupportRequestModal({ isOpen, onClose, onSubmit }: SupportReques
           {/* Info Note */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <p className="text-xs text-gray-700">
-              💡 For urgent issues, please call our support hotline at{" "}
-              <span className="text-primary font-medium">1-800-ROOMZ-24</span>
+              💡 Trường hợp khẩn cấp, vui lòng gọi hotline{" "}
+              <span className="text-primary font-medium">1900 6868 79</span>
             </p>
           </div>
 
@@ -102,13 +102,13 @@ export function SupportRequestModal({ isOpen, onClose, onSubmit }: SupportReques
               variant="outline"
               className="flex-1 rounded-full h-12"
             >
-              Cancel
+              Hủy
             </Button>
             <Button
               onClick={handleSubmit}
               className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
             >
-              Submit Request
+              Gửi yêu cầu
             </Button>
           </div>
         </div>

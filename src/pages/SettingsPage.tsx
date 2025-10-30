@@ -28,29 +28,29 @@ export default function SettingsPage() {
 
   const settingsSections = [
     {
-      title: "Account",
+      title: "Tài khoản",
       items: [
-        { icon: UserCheck, label: "Verification Status", hasArrow: true },
-        { icon: Lock, label: "Privacy & Security", hasArrow: true },
-        { icon: CreditCard, label: "Payment Methods", hasArrow: true },
+        { icon: UserCheck, label: "Trạng thái xác thực", hasArrow: true },
+        { icon: Lock, label: "Quyền riêng tư & Bảo mật", hasArrow: true },
+        { icon: CreditCard, label: "Phương thức thanh toán", hasArrow: true },
       ],
     },
     {
-      title: "Preferences",
+      title: "Tùy chỉnh",
       items: [
-        { icon: Globe, label: "Language", value: "English", hasArrow: true },
-        { icon: Bell, label: "Push Notifications", toggle: true, value: pushNotifications, onChange: setPushNotifications },
-        { icon: Bell, label: "Email Notifications", toggle: true, value: emailNotifications, onChange: setEmailNotifications },
-        { icon: Moon, label: "Dark Mode", toggle: true, value: darkMode, onChange: setDarkMode },
+        { icon: Globe, label: "Ngôn ngữ", value: "Tiếng Việt", hasArrow: true },
+        { icon: Bell, label: "Thông báo đẩy", toggle: true, value: pushNotifications, onChange: setPushNotifications },
+        { icon: Bell, label: "Thông báo email", toggle: true, value: emailNotifications, onChange: setEmailNotifications },
+        { icon: Moon, label: "Chế độ tối", toggle: true, value: darkMode, onChange: setDarkMode },
       ],
     },
     {
-      title: "Support & Legal",
+      title: "Hỗ trợ & Pháp lý",
       items: [
-        { icon: HelpCircle, label: "Help Center", hasArrow: true },
-        { icon: Shield, label: "Safety Guidelines", hasArrow: true },
-        { icon: FileText, label: "Terms of Service", hasArrow: true },
-        { icon: FileText, label: "Privacy Policy", hasArrow: true },
+        { icon: HelpCircle, label: "Trung tâm trợ giúp", hasArrow: true },
+        { icon: Shield, label: "Hướng dẫn an toàn", hasArrow: true },
+        { icon: FileText, label: "Điều khoản dịch vụ", hasArrow: true },
+        { icon: FileText, label: "Chính sách bảo mật", hasArrow: true },
       ],
     },
   ];
@@ -60,9 +60,9 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="bg-gradient-to-br from-primary/10 to-secondary/10 px-6 py-8 border-b">
         <div className="max-w-4xl mx-auto">
-          <h1 className="mb-2">Settings</h1>
+          <h1 className="mb-2">Cài đặt</h1>
           <p className="text-gray-600">
-            Manage your account preferences and app settings
+            Quản lý tùy chỉnh tài khoản và cài đặt ứng dụng
           </p>
         </div>
       </div>
@@ -75,19 +75,19 @@ export default function SettingsPage() {
               JD
             </div>
             <div className="flex-1">
-              <h3 className="mb-1">John Doe</h3>
-              <p className="text-sm text-gray-500">john.doe@example.com</p>
+              <h3 className="mb-1">Nguyễn Văn A</h3>
+              <p className="text-sm text-gray-500">nguyenvana@example.com</p>
               <div className="flex items-center gap-2 mt-2">
                 <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">
-                  Verified Student
+                  Sinh viên đã xác thực
                 </div>
                 <div className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-xs">
-                  RoomZ+ Member
+                  Thành viên RoomZ+
                 </div>
               </div>
             </div>
             <Button variant="outline" className="rounded-full">
-              Edit
+              Chỉnh sửa
             </Button>
           </div>
         </Card>
@@ -142,9 +142,9 @@ export default function SettingsPage() {
               <span className="text-2xl text-white">R</span>
             </div>
             <h4 className="mb-1">RoomZ</h4>
-            <p className="text-sm text-gray-500 mb-4">Version 2.1.0</p>
+            <p className="text-sm text-gray-500 mb-4">Phiên bản 2.1.0</p>
             <p className="text-xs text-gray-400">
-              © 2025 RoomZ. All rights reserved.
+              © 2025 RoomZ. Đã đăng ký bản quyền.
             </p>
           </div>
         </Card>
@@ -155,7 +155,7 @@ export default function SettingsPage() {
           className="w-full h-12 rounded-full text-red-600 border-red-200 hover:bg-red-50"
         >
           <LogOut className="w-5 h-5 mr-2" />
-          Log Out
+          Đăng xuất
         </Button>
       </div>
     </div>

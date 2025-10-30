@@ -22,13 +22,13 @@ export function UpgradeRoomZPlusModal({
   const [isProcessing, setIsProcessing] = useState(false);
 
   const benefits = [
-    "Priority placement in search results",
-    "Advanced compatibility matching algorithm",
-    "Access to exclusive local perks and discounts",
-    "No booking fees on all reservations",
-    "Verified+ badge on your profile",
-    "24/7 priority customer support",
-    "Early access to new features",
+    "Ưu tiên hiển thị trong kết quả tìm kiếm",
+    "Thuật toán phù hợp nâng cao",
+    "Truy cập ưu đãi và giảm giá độc quyền",
+    "Không phí đặt phòng cho tất cả đặt chỗ",
+    "Huy hiệu Verified+ trên hồ sơ của bạn",
+    "Hỗ trợ khách hàng ưu tiên 24/7",
+    "Truy cập sớm các tính năng mới",
   ];
 
   const handleUpgrade = () => {
@@ -52,10 +52,10 @@ export function UpgradeRoomZPlusModal({
             <Crown className="w-8 h-8 text-white" />
           </div>
           <DialogTitle className="text-white text-center text-2xl">
-            Unlock RoomZ+ Premium
+            Mở khóa RoomZ+ cao cấp
           </DialogTitle>
           <DialogDescription className="text-white/90 text-center">
-            Get the best housing experience with exclusive benefits
+            Trải nghiệm thuê nhà tốt nhất với lợi ích độc quyền
           </DialogDescription>
         </DialogHeader>
 
@@ -63,12 +63,12 @@ export function UpgradeRoomZPlusModal({
           {/* Pricing */}
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="text-3xl text-primary">$9.89</span>
-              <span className="text-gray-600">/month</span>
+              <span className="text-3xl text-primary">200k</span>
+              <span className="text-gray-600">/tháng</span>
             </div>
             <Badge className="bg-secondary/10 text-secondary border-0">
               <Sparkles className="w-3 h-3 mr-1" />
-              First month 50% off - Only $4.95!
+              Giảm 50% tháng đầu - Chỉ 100k!
             </Badge>
           </div>
 
@@ -76,7 +76,7 @@ export function UpgradeRoomZPlusModal({
 
           {/* Benefits */}
           <div>
-            <h3 className="mb-4">Premium Benefits</h3>
+            <h3 className="mb-4">Lợi ích cao cấp</h3>
             <div className="space-y-3">
               {benefits.map((benefit, index) => (
                 <div
@@ -96,7 +96,7 @@ export function UpgradeRoomZPlusModal({
 
           {/* Payment Method */}
           <div className="space-y-3">
-            <h3>Payment Method</h3>
+            <h3>Phương thức thanh toán</h3>
             <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
               <div className="space-y-2">
                 {/* Credit/Debit Card */}
@@ -115,9 +115,9 @@ export function UpgradeRoomZPlusModal({
                         <CreditCard className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium">Credit / Debit Card</p>
+                        <p className="font-medium">Thẻ tín dụng / Ghi nợ</p>
                         <p className="text-xs text-gray-600">
-                          Visa, Mastercard, Amex accepted
+                          Chấp nhận Visa, Mastercard, Amex
                         </p>
                       </div>
                     </div>
@@ -140,8 +140,8 @@ export function UpgradeRoomZPlusModal({
                         <Wallet className="w-5 h-5 text-secondary" />
                       </div>
                       <div>
-                        <p className="font-medium">Student Wallet</p>
-                        <p className="text-xs text-gray-600">Balance: $125.50</p>
+                        <p className="font-medium">Ví sinh viên</p>
+                        <p className="text-xs text-gray-600">Số dư: 2.500.000đ</p>
                       </div>
                     </div>
                   </Label>
@@ -153,8 +153,8 @@ export function UpgradeRoomZPlusModal({
           {/* Info Note */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <p className="text-xs text-gray-700">
-              💡 <strong>Cancel anytime.</strong> No commitment required. You can
-              downgrade or cancel your subscription from your account settings at any time.
+              💡 <strong>Hủy bất cứ lúc nào.</strong> Không cam kết. Bạn có thể
+              hạ cấp hoặc hủy đăng ký từ cài đặt tài khoản bất cứ lúc nào.
             </p>
           </div>
 
@@ -166,7 +166,7 @@ export function UpgradeRoomZPlusModal({
               className="flex-1 rounded-full h-12"
               disabled={isProcessing}
             >
-              Maybe Later
+              Để sau
             </Button>
             <Button
               onClick={handleUpgrade}
@@ -176,12 +176,12 @@ export function UpgradeRoomZPlusModal({
               {isProcessing ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  Processing...
+                  Đang xử lý...
                 </>
               ) : (
                 <>
                   <Crown className="w-4 h-4 mr-2" />
-                  Confirm Upgrade
+                  Xác nhận nâng cấp
                 </>
               )}
             </Button>

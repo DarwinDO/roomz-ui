@@ -19,9 +19,9 @@ export function VoucherModal({ isOpen, onClose, partner }: VoucherModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>RoomZ Perk Voucher</DialogTitle>
+          <DialogTitle>Voucher ưu đãi RoomZ</DialogTitle>
           <DialogDescription>
-            Show this QR code at checkout to claim your discount
+            Quét mã QR này khi thanh toán để áp dụng ưu đãi thành viên
           </DialogDescription>
         </DialogHeader>
 
@@ -39,9 +39,9 @@ export function VoucherModal({ isOpen, onClose, partner }: VoucherModalProps) {
 
           {/* Discount Badge */}
           <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl p-5 text-center border-2 border-primary/20">
-            <p className="text-sm text-gray-600 mb-2">Your Exclusive Offer</p>
+            <p className="text-sm text-gray-600 mb-2">Ưu đãi dành riêng cho bạn</p>
             <h1 className="text-primary mb-1">{partner.discount}</h1>
-            <p className="text-xs text-gray-600">Valid for RoomZ members only</p>
+            <p className="text-xs text-gray-600">Áp dụng cho thành viên RoomZ</p>
           </div>
 
           {/* QR Code */}
@@ -50,7 +50,7 @@ export function VoucherModal({ isOpen, onClose, partner }: VoucherModalProps) {
               <QrCode className="w-24 h-24 text-gray-400" />
             </div>
             <p className="text-xs text-center text-gray-600">
-              Scan this code at {partner.name}
+              Quét mã này tại {partner.name}
             </p>
           </div>
 
@@ -62,19 +62,19 @@ export function VoucherModal({ isOpen, onClose, partner }: VoucherModalProps) {
 
           {/* Instructions */}
           <div className="bg-gradient-to-br from-secondary/5 to-primary/5 rounded-xl p-4 space-y-2">
-            <p className="text-sm mb-2">How to Redeem:</p>
+            <p className="text-sm mb-2">Cách sử dụng:</p>
             <div className="space-y-2">
               <div className="flex items-start gap-2 text-xs">
                 <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                <span>Show this QR code to the cashier before payment</span>
+                <span>Đưa mã QR cho nhân viên trước khi thanh toán</span>
               </div>
               <div className="flex items-start gap-2 text-xs">
                 <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                <span>Present your student ID if required</span>
+                <span>Xuất trình thẻ sinh viên khi được yêu cầu</span>
               </div>
               <div className="flex items-start gap-2 text-xs">
                 <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                <span>Discount will be applied automatically</span>
+                <span>Ưu đãi sẽ được áp dụng trực tiếp vào hóa đơn</span>
               </div>
             </div>
           </div>
@@ -82,7 +82,7 @@ export function VoucherModal({ isOpen, onClose, partner }: VoucherModalProps) {
           {/* Validity */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-center">
             <p className="text-xs text-gray-700">
-              ⏰ Valid until: December 31, 2025
+              ⏰ Hiệu lực đến: 31/12/2025
             </p>
           </div>
 
@@ -91,7 +91,7 @@ export function VoucherModal({ isOpen, onClose, partner }: VoucherModalProps) {
             onClick={onClose}
             className="w-full bg-primary hover:bg-primary/90 rounded-full h-12"
           >
-            Close
+            Đóng
           </Button>
         </div>
       </DialogContent>

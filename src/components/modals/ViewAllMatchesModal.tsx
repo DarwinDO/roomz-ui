@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -39,87 +39,85 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
   const roommates: Roommate[] = [
     {
       id: 1,
-      name: "Alex Chen",
+      name: "Nguyễn Minh Tuấn",
       match: 92,
       avatar: "",
-      role: "Computer Science",
-      major: "Computer Science",
-      year: "Year 3",
-      bio: "Tech enthusiast, clean and organized, love cooking!",
-      interests: ["Gaming", "Coding", "Cooking"],
-      distance: "0.5 mi",
+      role: "Công nghệ thông tin",
+      major: "Công nghệ thông tin",
+      year: "Năm 3",
+      bio: "Yêu công nghệ, sống ngăn nắp và thích nấu ăn cuối tuần.",
+      interests: ["Game", "Lập trình", "Nấu ăn"],
+      distance: "0.5 km",
     },
     {
       id: 2,
-      name: "Jordan Kim",
+      name: "Phạm Gia Hân",
       match: 88,
       avatar: "",
-      role: "Business Major",
-      major: "Business Administration",
-      year: "Year 2",
-      bio: "Early bird, non-smoker, enjoy quiet study time.",
-      interests: ["Reading", "Gym", "Coffee"],
-      distance: "0.3 mi",
+      role: "Kinh doanh",
+      major: "Quản trị kinh doanh",
+      year: "Năm 2",
+      bio: "Thức dậy sớm, không hút thuốc, thích không gian yên tĩnh.",
+      interests: ["Đọc sách", "Gym", "Cà phê"],
+      distance: "0.3 km",
     },
     {
       id: 3,
-      name: "Taylor Swift",
+      name: "Trần Khánh Ly",
       match: 85,
       avatar: "",
-      role: "Engineering",
-      major: "Mechanical Engineering",
-      year: "Graduate",
-      bio: "Music lover, respectful of space, weekend hiker.",
-      interests: ["Music", "Hiking", "Photography"],
-      distance: "0.8 mi",
+      role: "Kỹ thuật",
+      major: "Kỹ thuật cơ khí",
+      year: "Cao học",
+      bio: "Đam mê âm nhạc, tôn trọng không gian chung, thích leo núi cuối tuần.",
+      interests: ["Âm nhạc", "Leo núi", "Chụp ảnh"],
+      distance: "0.8 km",
     },
     {
       id: 4,
-      name: "Morgan Lee",
+      name: "Võ Bảo Nam",
       match: 82,
       avatar: "",
-      role: "Psychology",
-      major: "Psychology",
-      year: "Year 4",
-      bio: "Friendly and social, love hosting movie nights!",
-      interests: ["Movies", "Psychology", "Yoga"],
-      distance: "1.2 mi",
+      role: "Tâm lý",
+      major: "Tâm lý học",
+      year: "Năm 4",
+      bio: "Thân thiện, cởi mở, thích tổ chức xem phim cùng bạn bè.",
+      interests: ["Phim ảnh", "Tâm lý", "Yoga"],
+      distance: "1.2 km",
     },
     {
       id: 5,
-      name: "Casey Brown",
+      name: "Lê Hồng Phúc",
       match: 79,
       avatar: "",
-      role: "Graphic Design",
-      major: "Graphic Design",
-      year: "Year 3",
-      bio: "Creative soul, night owl, plant parent 🌱",
-      interests: ["Art", "Design", "Plants"],
-      distance: "0.6 mi",
+      role: "Thiết kế",
+      major: "Thiết kế đồ họa",
+      year: "Năm 3",
+      bio: "Sáng tạo, hay thức khuya và rất mê chăm cây 🌱",
+      interests: ["Art", "Thiết kế", "Cây cảnh"],
+      distance: "0.6 km",
     },
     {
       id: 6,
-      name: "Riley Davis",
+      name: "Đặng Thu Uyên",
       match: 76,
       avatar: "",
-      role: "Biology",
-      major: "Biology",
-      year: "Year 2",
-      bio: "Science nerd, clean freak, early sleeper.",
-      interests: ["Science", "Running", "Podcasts"],
-      distance: "1.0 mi",
+      role: "Sinh học",
+      major: "Công nghệ sinh học",
+      year: "Năm 2",
+      bio: "Đam mê khoa học, giữ phòng sạch sẽ, ngủ sớm mỗi ngày.",
+      interests: ["Khoa học", "Chạy bộ", "Podcast"],
+      distance: "1.0 km",
     },
   ];
 
   const sortedRoommates = [...roommates].sort((a, b) => {
     if (sortBy === "compatibility") {
       return b.match - a.match;
-    } else {
-      // Sort by distance
-      const distA = parseFloat(a.distance);
-      const distB = parseFloat(b.distance);
-      return distA - distB;
     }
+    const distA = parseFloat(a.distance);
+    const distB = parseFloat(b.distance);
+    return distA - distB;
   });
 
   return (
@@ -129,33 +127,31 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
           <div className="flex items-center justify-between mb-2">
             <DialogTitle className="flex items-center gap-2">
               <Users className="w-6 h-6 text-primary" />
-              Roommate Matches
+              Danh sách bạn cùng phòng phù hợp
             </DialogTitle>
             <Badge className="bg-secondary text-white">
-              {roommates.length} matches
+              {roommates.length} đề xuất
             </Badge>
           </div>
           <DialogDescription>
-            Students interested in this room based on compatibility
+            Những người có lối sống tương đồng và sẵn sàng ghép phòng với bạn
           </DialogDescription>
 
-          {/* Sort Options */}
           <div className="flex items-center gap-2 mt-4">
             <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Sort by:</span>
+            <span className="text-sm text-muted-foreground">Sắp xếp theo:</span>
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-[180px] h-9 rounded-full">
-                <SelectValue />
+                <SelectValue placeholder="Mức độ tương hợp" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="compatibility">Compatibility</SelectItem>
-                <SelectItem value="proximity">Proximity</SelectItem>
+                <SelectItem value="compatibility">Mức độ tương hợp</SelectItem>
+                <SelectItem value="proximity">Khoảng cách</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </DialogHeader>
 
-        {/* Roommate List */}
         <div className="overflow-y-auto p-6 space-y-4">
           {sortedRoommates.map((roommate) => (
             <div
@@ -163,7 +159,6 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
               className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-5 border border-border hover:shadow-lg transition-all"
             >
               <div className="flex items-start gap-4">
-                {/* Avatar */}
                 <Avatar className="w-16 h-16 shrink-0 bg-gradient-to-br from-primary/20 to-secondary/20">
                   <AvatarFallback className="bg-transparent text-lg">
                     {roommate.name
@@ -173,7 +168,6 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
                   </AvatarFallback>
                 </Avatar>
 
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between mb-2">
                     <div>
@@ -183,21 +177,15 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
                       </p>
                     </div>
                     <Badge className="bg-secondary text-white ml-2 shrink-0">
-                      {roommate.match}% match
+                      {roommate.match}% phù hợp
                     </Badge>
                   </div>
 
-                  {/* Bio */}
                   <p className="text-sm text-gray-600 mb-3">{roommate.bio}</p>
 
-                  {/* Interests */}
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {roommate.interests.map((interest, index) => (
-                      <Badge
-                        key={index}
-                        variant="outline"
-                        className="text-xs rounded-full"
-                      >
+                      <Badge key={index} variant="outline" className="text-xs rounded-full">
                         {interest}
                       </Badge>
                     ))}
@@ -206,23 +194,14 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
                     </Badge>
                   </div>
 
-                  {/* Compatibility Bar */}
                   <div className="mb-3">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-muted-foreground">
-                        Compatibility Score
-                      </span>
-                      <span className="text-xs text-primary">
-                        {roommate.match}%
-                      </span>
+                      <span className="text-xs text-muted-foreground">Điểm tương hợp</span>
+                      <span className="text-xs text-primary">{roommate.match}%</span>
                     </div>
-                    <Progress
-                      value={roommate.match}
-                      className="h-1.5"
-                    />
+                    <Progress value={roommate.match} className="h-1.5" />
                   </div>
 
-                  {/* Actions */}
                   <div className="flex gap-2">
                     <Button
                       size="sm"
@@ -233,7 +212,7 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
                       }}
                     >
                       <Eye className="w-3.5 h-3.5 mr-1.5" />
-                      View Profile
+                      Xem hồ sơ
                     </Button>
                     <Button
                       size="sm"
@@ -245,13 +224,9 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
                       }}
                     >
                       <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
-                      Message
+                      Nhắn tin
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="rounded-full h-9 px-3"
-                    >
+                    <Button size="sm" variant="ghost" className="rounded-full h-9 px-3">
                       <Heart className="w-4 h-4" />
                     </Button>
                   </div>
@@ -261,10 +236,9 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
           ))}
         </div>
 
-        {/* Footer */}
         <div className="border-t border-border p-4 bg-muted/30 shrink-0">
           <p className="text-xs text-center text-muted-foreground">
-            💡 Tip: Higher compatibility means similar lifestyle preferences and schedules
+            💡 Mẹo: Điểm tương hợp cao đồng nghĩa với lối sống và thói quen sinh hoạt gần nhau
           </p>
         </div>
       </DialogContent>

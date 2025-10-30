@@ -16,8 +16,10 @@ interface ConfirmBookingModalProps {
 }
 
 export function ConfirmBookingModal({ isOpen, onClose, sublet }: ConfirmBookingModalProps) {
+  const formatCurrency = (value: number) => `${value.toLocaleString("vi-VN")}₫`;
+
   const handleConfirm = () => {
-    toast.success("Booking request sent to host!");
+    toast.success("Đã gửi yêu cầu đặt phòng tới chủ nhà!");
     onClose();
   };
 
@@ -25,7 +27,7 @@ export function ConfirmBookingModal({ isOpen, onClose, sublet }: ConfirmBookingM
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md rounded-2xl">
         <DialogHeader>
-          <DialogTitle>Confirm Your Sublet</DialogTitle>
+          <DialogTitle>Kiểm tra lại thông tin đặt phòng</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -45,16 +47,16 @@ export function ConfirmBookingModal({ isOpen, onClose, sublet }: ConfirmBookingM
 
             <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
               <DollarSign className="w-5 h-5 text-primary" />
-              <span className="text-primary">${sublet.price}</span>
-              <span className="text-sm text-gray-600">/month</span>
+              <span className="text-primary">{formatCurrency(sublet.price)}</span>
+              <span className="text-sm text-gray-600">/tháng</span>
             </div>
           </div>
 
           {/* Booking Details */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <p className="text-sm text-gray-700">
-              <strong>Note:</strong> This booking request will be sent to the host for approval. 
-              You'll receive a notification once they respond.
+              <strong>Lưu ý:</strong> Yêu cầu đặt phòng của bạn sẽ được gửi tới chủ nhà để xác nhận.
+              Bạn sẽ nhận thông báo ngay khi họ phản hồi.
             </p>
           </div>
 
@@ -65,13 +67,13 @@ export function ConfirmBookingModal({ isOpen, onClose, sublet }: ConfirmBookingM
               onClick={onClose}
               className="flex-1 rounded-full"
             >
-              Cancel
+              Hủy
             </Button>
             <Button
               onClick={handleConfirm}
               className="flex-1 bg-primary hover:bg-primary/90 rounded-full"
             >
-              Confirm Booking
+              Gửi yêu cầu
             </Button>
           </div>
         </div>

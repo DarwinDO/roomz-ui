@@ -21,20 +21,20 @@ interface RoommateProfileModalProps {
 }
 
 export function RoommateProfileModal({ isOpen, onClose, onMessageClick, roommate }: RoommateProfileModalProps) {
-  const interests = ["Music", "Cooking", "Hiking", "Gaming", "Reading", "Yoga"];
+  const interests = ["Âm nhạc", "Nấu ăn", "Leo núi", "Chơi game", "Đọc sách", "Yoga"];
   const lifestylePrefs = [
-    { icon: Moon, label: "Sleep Schedule", value: "Early Bird (10 PM - 6 AM)" },
-    { icon: Sparkles, label: "Cleanliness", value: "Very tidy" },
-    { icon: Book, label: "Study Habits", value: "Quiet study, library preferred" },
-    { icon: Volume2, label: "Noise Tolerance", value: "Prefers quiet environment" },
+    { icon: Moon, label: "Lịch ngủ", value: "Ngủ sớm (10 giờ tối - 6 giờ sáng)" },
+    { icon: Sparkles, label: "Mức độ sạch sẽ", value: "Rất ngăn nắp" },
+    { icon: Book, label: "Thói quen học tập", value: "Học yên tĩnh, thích thư viện" },
+    { icon: Volume2, label: "Độ chịu đựng tiếng ồn", value: "Thích môi trường yên tĩnh" },
   ];
 
   const compatibilityBreakdown = [
-    { category: "Communication", score: 95 },
-    { category: "Cleanliness", score: 92 },
-    { category: "Study Habits", score: 88 },
-    { category: "Social Life", score: 85 },
-    { category: "Sleep Schedule", score: 90 },
+    { category: "Giao tiếp", score: 95 },
+    { category: "Sạch sẽ", score: 92 },
+    { category: "Học tập", score: 88 },
+    { category: "Đời sống xã hội", score: 85 },
+    { category: "Lịch ngủ", score: 90 },
   ];
 
   return (
@@ -44,9 +44,9 @@ export function RoommateProfileModal({ isOpen, onClose, onMessageClick, roommate
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Roommate Profile</DialogTitle>
+          <DialogTitle>Hồ sơ bạn cùng phòng</DialogTitle>
           <DialogDescription>
-            View detailed compatibility information and lifestyle preferences
+            Xem thông tin phù hợp chi tiết và sở thích lối sống
           </DialogDescription>
         </DialogHeader>
 
@@ -69,7 +69,7 @@ export function RoommateProfileModal({ isOpen, onClose, onMessageClick, roommate
               <p className="text-sm text-gray-500 mb-2">{roommate.major}</p>
             )}
             <Badge className="bg-gradient-to-r from-secondary to-primary text-white px-4 py-1 shadow-md">
-              {roommate.match}% Match
+              {roommate.match}% phù hợp
             </Badge>
           </div>
 
@@ -77,18 +77,18 @@ export function RoommateProfileModal({ isOpen, onClose, onMessageClick, roommate
           <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10">
             <h3 className="mb-3 flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-primary" />
-              About
+              Giới thiệu
             </h3>
             <p className="text-sm text-gray-700 leading-relaxed">
-              {roommate.bio || `Hey! I'm a ${roommate.role.toLowerCase()} looking for a clean, respectful roommate who values
-              communication and shared living space. I love staying organized and believe in creating
-              a comfortable home environment where we can both thrive academically and socially.`}
+              {roommate.bio || `Xin chào! Mình là ${roommate.role.toLowerCase()} đang tìm bạn cùng phòng sạch sẽ, tôn trọng,
+              coi trọng giao tiếp và không gian chung. Mình thích sự ngăn nắp và tin vào việc tạo ra
+              môi trường sống thoải mái để cả hai có thể phát triển cả về học tập và đời sống xã hội.`}
             </p>
           </div>
 
           {/* Interests */}
           <div>
-            <h3 className="mb-3">Interests</h3>
+            <h3 className="mb-3">Sở thích</h3>
             <div className="flex flex-wrap gap-2">
               {interests.map((interest, index) => (
                 <Badge
@@ -104,7 +104,7 @@ export function RoommateProfileModal({ isOpen, onClose, onMessageClick, roommate
 
           {/* Lifestyle Preferences */}
           <div className="bg-white rounded-2xl border border-border p-5">
-            <h3 className="mb-4">Lifestyle Preferences</h3>
+            <h3 className="mb-4">Sở thích lối sống</h3>
             <div className="space-y-4">
               {lifestylePrefs.map((pref, index) => {
                 const Icon = pref.icon;
@@ -125,7 +125,7 @@ export function RoommateProfileModal({ isOpen, onClose, onMessageClick, roommate
 
           {/* Compatibility Breakdown */}
           <div className="bg-gradient-to-br from-secondary/5 to-primary/5 rounded-2xl p-5 border border-primary/10">
-            <h3 className="mb-4">Compatibility Breakdown</h3>
+            <h3 className="mb-4">Chi tiết độ phù hợp</h3>
             <div className="space-y-4">
               {compatibilityBreakdown.map((item, index) => (
                 <div key={index}>
@@ -149,7 +149,7 @@ export function RoommateProfileModal({ isOpen, onClose, onMessageClick, roommate
               className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
             >
               <MessageCircle className="w-4 h-4 mr-2" />
-              Message
+              Nhắn tin
             </Button>
             <Button
               onClick={onClose}
@@ -157,7 +157,7 @@ export function RoommateProfileModal({ isOpen, onClose, onMessageClick, roommate
               className="flex-1 rounded-full h-12"
             >
               <X className="w-4 h-4 mr-2" />
-              Close
+              Đóng
             </Button>
           </div>
         </div>

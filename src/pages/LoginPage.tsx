@@ -24,13 +24,12 @@ export default function LoginPage() {
 
           <div>
             <h2 className="text-3xl md:text-4xl mb-4">
-              Find your next safe
+              Tìm ngôi nhà an toàn
               <br />
-              and friendly home.
+              và thân thiện tiếp theo.
             </h2>
             <p className="text-gray-600 text-lg">
-              Verified rooms, compatible roommates, flexible subletting — all in one
-              platform.
+              Phòng đã xác thực, bạn cùng phòng phù hợp, thuê linh hoạt — tất cả trong một nền tảng.
             </p>
           </div>
 
@@ -41,8 +40,8 @@ export default function LoginPage() {
                 <ShieldCheck className="w-5 h-5 text-primary" />
               </div>
               <div className="text-left">
-                <p className="text-sm">Verified Rooms & Hosts</p>
-                <p className="text-xs text-gray-500">Every listing is verified for safety</p>
+                <p className="text-sm">Phòng & Chủ nhà được xác thực</p>
+                <p className="text-xs text-gray-500">Mọi tin đăng được xác thực để đảm bảo an toàn</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -50,8 +49,8 @@ export default function LoginPage() {
                 <Users className="w-5 h-5 text-secondary" />
               </div>
               <div className="text-left">
-                <p className="text-sm">Smart Compatibility Matching</p>
-                <p className="text-xs text-gray-500">Find roommates who match your lifestyle</p>
+                <p className="text-sm">Kết nối thông minh</p>
+                <p className="text-xs text-gray-500">Tìm bạn cùng phòng phù hợp với lối sống của bạn</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -59,8 +58,8 @@ export default function LoginPage() {
                 <RefreshCw className="w-5 h-5 text-primary" />
               </div>
               <div className="text-left">
-                <p className="text-sm">Flexible SwapRoom</p>
-                <p className="text-xs text-gray-500">Short-term subletting made easy</p>
+                <p className="text-sm">SwapRoom linh hoạt</p>
+                <p className="text-xs text-gray-500">Cho thuê ngắn hạn dễ dàng</p>
               </div>
             </div>
           </div>
@@ -70,8 +69,8 @@ export default function LoginPage() {
         <Card className="p-8 rounded-3xl shadow-2xl border-0 bg-white">
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Log In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsTrigger value="login">Đăng nhập</TabsTrigger>
+              <TabsTrigger value="signup">Đăng ký</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login" className="space-y-4">
@@ -80,13 +79,13 @@ export default function LoginPage() {
                 <Input
                   id="login-email"
                   type="email"
-                  placeholder="you@university.edu"
+                  placeholder="email@example.com"
                   className="rounded-xl h-12"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="login-password">Password</Label>
+                <Label htmlFor="login-password">Mật khẩu</Label>
                 <Input
                   id="login-password"
                   type="password"
@@ -98,10 +97,10 @@ export default function LoginPage() {
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" className="rounded" />
-                  <span>Remember me</span>
+                  <span>Ghi nhớ đăng nhập</span>
                 </label>
                 <a href="#" className="text-primary hover:underline">
-                  Forgot password?
+                  Quên mật khẩu?
                 </a>
               </div>
 
@@ -109,13 +108,13 @@ export default function LoginPage() {
                 onClick={onLogin}
                 className="w-full h-12 bg-primary hover:bg-primary/90 rounded-full"
               >
-                Log In
+                Đăng nhập
               </Button>
 
               <div className="relative my-6">
                 <Separator />
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 text-sm text-gray-500">
-                  or continue with
+                  hoặc tiếp tục với
                 </span>
               </div>
 
@@ -151,18 +150,18 @@ export default function LoginPage() {
                   onClick={onLogin}
                 >
                   <Mail className="w-5 h-5 mr-2" />
-                  Student ID
+                  Mã SV
                 </Button>
               </div>
             </TabsContent>
 
             <TabsContent value="signup" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="signup-name">Full Name</Label>
+                <Label htmlFor="signup-name">Họ và tên</Label>
                 <Input
                   id="signup-name"
                   type="text"
-                  placeholder="John Doe"
+                  placeholder="Nguyễn Văn A"
                   className="rounded-xl h-12"
                 />
               </div>
@@ -172,13 +171,13 @@ export default function LoginPage() {
                 <Input
                   id="signup-email"
                   type="email"
-                  placeholder="you@university.edu"
+                  placeholder="email@example.com"
                   className="rounded-xl h-12"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="signup-password">Password</Label>
+                <Label htmlFor="signup-password">Mật khẩu</Label>
                 <Input
                   id="signup-password"
                   type="password"
@@ -190,14 +189,15 @@ export default function LoginPage() {
               <div className="flex items-start gap-2 text-sm">
                 <input type="checkbox" className="rounded mt-1" />
                 <span className="text-gray-600">
-                  I agree to RoomZ's{" "}
+                  Tôi đồng ý với{" "}
                   <a href="#" className="text-primary hover:underline">
-                    Terms of Service
+                    Điều khoản dịch vụ
                   </a>{" "}
-                  and{" "}
+                  và{" "}
                   <a href="#" className="text-primary hover:underline">
-                    Privacy Policy
-                  </a>
+                    Chính sách bảo mật
+                  </a>{" "}
+                  của RoomZ
                 </span>
               </div>
 
@@ -205,13 +205,13 @@ export default function LoginPage() {
                 onClick={onLogin}
                 className="w-full h-12 bg-primary hover:bg-primary/90 rounded-full"
               >
-                Create Account
+                Tạo tài khoản
               </Button>
 
               <div className="relative my-6">
                 <Separator />
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 text-sm text-gray-500">
-                  or sign up with
+                  hoặc đăng ký với
                 </span>
               </div>
 
@@ -247,7 +247,7 @@ export default function LoginPage() {
                   onClick={onLogin}
                 >
                   <Mail className="w-5 h-5 mr-2" />
-                  Student ID
+                  Mã SV
                 </Button>
               </div>
             </TabsContent>

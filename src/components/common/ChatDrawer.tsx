@@ -18,25 +18,25 @@ export function ChatDrawer({ isOpen, onClose, recipientName, recipientRole, comp
   const [message, setMessage] = useState("");
 
   const quickMessages = [
-    "Hey! You seem like a great match!",
-    "I'd love to learn more about your lifestyle!",
-    "When would you like to meet?",
+    "Chào bạn! Mình thấy chúng ta khá phù hợp!",
+    "Mình muốn tìm hiểu thêm về lối sống của bạn!",
+    "Bạn muốn gặp lúc nào?",
   ];
 
   const exampleMessages = [
     {
       sender: "them",
-      text: "Hi! Thanks for reaching out. I'd love to chat about being roommates!",
+      text: "Chào bạn! Cảm ơn bạn đã liên hệ. Mình rất muốn nói chuyện về việc ở cùng!",
       time: "2:30 PM",
     },
     {
       sender: "you",
-      text: "Great! I saw we have a 92% compatibility match. When would be a good time to meet?",
+      text: "Tuyệt! Mình thấy chúng ta có 92% độ phù hợp. Khi nào thì tiện để gặp nhỉ?",
       time: "2:32 PM",
     },
     {
       sender: "them",
-      text: "I'm free this weekend. How about Saturday afternoon?",
+      text: "Mình rảnh cuối tuần này. Chiều thứ Bảy nhé?",
       time: "2:35 PM",
     },
   ];
@@ -82,7 +82,7 @@ export function ChatDrawer({ isOpen, onClose, recipientName, recipientRole, comp
 
         {/* Quick Message Suggestions */}
         <div className="px-6 py-4 bg-gradient-to-br from-primary/5 to-secondary/5 border-b">
-          <p className="text-xs text-gray-600 mb-2">Quick messages:</p>
+          <p className="text-xs text-gray-600 mb-2">Tin nhắn nhanh:</p>
           <div className="flex flex-wrap gap-2">
             {quickMessages.map((quickMsg, index) => (
               <Badge
@@ -130,7 +130,7 @@ export function ChatDrawer({ isOpen, onClose, recipientName, recipientRole, comp
             <Input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type your message…"
+              placeholder="Nhập tin nhắn..."
               className="rounded-full flex-1"
               onKeyPress={(e) => {
                 if (e.key === "Enter") {
