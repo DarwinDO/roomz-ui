@@ -18,7 +18,7 @@ export function MessagesList({ messages, onMessageClick }: MessagesListProps) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
-          <p className="text-gray-600">Your messages will appear here.</p>
+          <p className="text-gray-600">Tin nhắn của bạn sẽ hiển thị ở đây.</p>
         </div>
       </div>
     );

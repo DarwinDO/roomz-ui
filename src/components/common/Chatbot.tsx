@@ -19,16 +19,16 @@ export function Chatbot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "Hi there! 👋 I'm your RoomZ Assistant. How can I help you today?",
+      text: "Xin chào! 👋 Tôi là trợ lý RoomZ. Tôi có thể giúp gì cho bạn?",
       sender: "bot",
       timestamp: new Date(),
     },
   ]);
 
   const suggestedQuestions = [
-    "Find verified rooms near me",
-    "How do I list my room?",
-    "Tell me about RoomZ+",
+    "Tìm phòng đã xác thực gần tôi",
+    "Làm sao để đăng tin phòng?",
+    "Cho tôi biết về RoomZ+",
   ];
 
   const handleSendMessage = () => {
@@ -64,20 +64,20 @@ export function Chatbot() {
   const getBotResponse = (userInput: string): string => {
     const input = userInput.toLowerCase();
 
-    if (input.includes("verified") || input.includes("find") || input.includes("room")) {
-      return "Great! I can help you find verified rooms. All our listings are verified with ID checks and 360° photos. You can start searching by location, price range, or use our compatibility matching to find the perfect roommate. Would you like me to take you to the search page?";
-    } else if (input.includes("list") || input.includes("my room")) {
-      return "To list your room on RoomZ, you'll need to get verified first. Click on 'Get Verified' in the menu, complete the ID verification, and then you can list your room with photos and details. Verified listings get 3x more views! 🏠";
-    } else if (input.includes("roomz+") || input.includes("plus") || input.includes("upgrade")) {
-      return "RoomZ+ is our premium membership at $9.99/mo! Benefits include:\n\n✅ Priority in search results\n✅ Advanced compatibility matching\n✅ No booking fees\n✅ Exclusive perks & discounts\n\nWould you like to upgrade?";
-    } else if (input.includes("swap") || input.includes("sublet")) {
-      return "SwapRoom is our flexible subletting feature! You can list your room for short-term stays or swap with other students. It's perfect for summer internships, semester abroad, or temporary relocations. Check out the SwapRoom tab to get started! 🔄";
-    } else if (input.includes("services") || input.includes("moving") || input.includes("cleaning")) {
-      return "We offer trusted partner services including moving assistance, room cleaning, and setup help. All partners are verified and offer 15% student discounts! Visit the 'Services' section to book. 📦";
-    } else if (input.includes("perks") || input.includes("discount") || input.includes("passport")) {
-      return "Your Local Passport gives you exclusive student deals at cafés, gyms, laundromats, and restaurants near you! Get up to 30% off at partner locations. Check out the 'Perks' section to explore deals nearby! 🎁";
+    if (input.includes("verified") || input.includes("find") || input.includes("room") || input.includes("xác thực") || input.includes("tìm") || input.includes("phòng")) {
+      return "Tuyệt vời! Tôi có thể giúp bạn tìm phòng đã xác thực. Tất cả tin đăng đều được xác thực bằng giấy tờ và ảnh 360°. Bạn có thể tìm kiếm theo địa điểm, giá, hoặc sử dụng tính năng phù hợp để tìm bạn cùng phòng hoàn hảo. Bạn có muốn tôi đưa bạn đến trang tìm kiếm không?";
+    } else if (input.includes("list") || input.includes("my room") || input.includes("đăng") || input.includes("phòng của tôi")) {
+      return "Để đăng tin phòng trên RoomZ, bạn cần xác thực tài khoản trước. Nhấn 'Xác thực' trong menu, hoàn thành xác thực giấy tờ, sau đó bạn có thể đăng phòng kèm ảnh và chi tiết. Tin đăng đã xác thực có lượt xem gấp 3 lần! 🏠";
+    } else if (input.includes("roomz+") || input.includes("plus") || input.includes("upgrade") || input.includes("nâng cấp")) {
+      return "RoomZ+ là gói thành viên cao cấp với giá 200.000đ/tháng! Lợi ích bao gồm:\n\n✅ Ưu tiên hiển thị kết quả tìm kiếm\n✅ Phù hợp nâng cao\n✅ Không phí đặt phòng\n✅ Ưu đãi và giảm giá độc quyền\n\nBạn có muốn nâng cấp không?";
+    } else if (input.includes("swap") || input.includes("sublet") || input.includes("thuê lại") || input.includes("hoán đổi")) {
+      return "SwapRoom là tính năng cho thuê linh hoạt! Bạn có thể đăng phòng cho thuê ngắn hạn hoặc hoán đổi với sinh viên khác. Hoàn hảo cho thực tập hè, du học, hoặc chuyển chỗ tạm thời. Xem mục SwapRoom để bắt đầu! 🔄";
+    } else if (input.includes("services") || input.includes("moving") || input.includes("cleaning") || input.includes("dịch vụ") || input.includes("chuyển nhà") || input.includes("dọn dẹp")) {
+      return "Chúng tôi cung cấp dịch vụ đối tác tin cậy bao gồm hỗ trợ chuyển nhà, dọn phòng và thiết lập. Tất cả đối tác đều được xác thực và giảm giá 15% cho sinh viên! Truy cập mục 'Dịch vụ' để đặt lịch. 📦";
+    } else if (input.includes("perks") || input.includes("discount") || input.includes("passport") || input.includes("ưu đãi") || input.includes("giảm giá")) {
+      return "Thẻ Ưu đãi của bạn mang lại các deal độc quyền dành cho sinh viên tại quán cà phê, phòng gym, giặt là và nhà hàng gần bạn! Giảm giá lên đến 30% tại các địa điểm đối tác. Xem mục 'Ưu đãi' để khám phá! 🎁";
     } else {
-      return "I'm here to help! You can ask me about:\n\n🏠 Finding verified rooms\n🤝 Roommate matching\n💎 RoomZ+ benefits\n🔄 SwapRoom subletting\n📦 Moving & cleaning services\n🎁 Local student perks\n\nWhat would you like to know more about?";
+      return "Tôi ở đây để giúp bạn! Bạn có thể hỏi tôi về:\n\n🏠 Tìm phòng đã xác thực\n🤝 Tìm bạn cùng phòng phù hợp\n💎 Lợi ích RoomZ+\n🔄 Cho thuê lại SwapRoom\n📦 Dịch vụ chuyển nhà & dọn dẹp\n🎁 Ưu đãi địa phương cho sinh viên\n\nBạn muốn biết thêm về gì?";
     }
   };
 
@@ -113,9 +113,9 @@ export function Chatbot() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <SheetTitle className="text-left">RoomZ Assistant 🤖</SheetTitle>
+                <SheetTitle className="text-left">Trợ lý RoomZ 🤖</SheetTitle>
                 <SheetDescription className="text-left text-xs">
-                  Ask anything about finding rooms or student life
+                  Hỏi bất cứ điều gì về tìm phòng hoặc đời sống sinh viên
                 </SheetDescription>
               </div>
             </div>
@@ -128,7 +128,7 @@ export function Chatbot() {
               {messages.length <= 1 && (
                 <div className="space-y-2 mb-4">
                   <p className="text-xs text-muted-foreground text-center">
-                    Quick suggestions:
+                    Gợi ý nhanh:
                   </p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     {suggestedQuestions.map((question, index) => (
@@ -200,7 +200,7 @@ export function Chatbot() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                  placeholder="Type your question..."
+                  placeholder="Nhập câu hỏi của bạn..."
                   className="flex-1 rounded-full border-2 focus-visible:ring-primary bg-muted/50"
                 />
                 <Button

@@ -26,9 +26,9 @@ export function VerifyLandlordModal({ isOpen, onClose, onComplete }: VerifyLandl
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Verify Landlord Information</DialogTitle>
+          <DialogTitle>Xác minh thông tin chủ nhà</DialogTitle>
           <DialogDescription>
-            Provide your landlord's details to complete this verification step
+            Cung cấp thông tin người cho thuê để hoàn tất bước xác thực hồ sơ của bạn
           </DialogDescription>
         </DialogHeader>
 
@@ -37,11 +37,11 @@ export function VerifyLandlordModal({ isOpen, onClose, onComplete }: VerifyLandl
           <div className="space-y-2">
             <Label htmlFor="landlord-name" className="flex items-center gap-2">
               <User className="w-4 h-4 text-primary" />
-              Landlord Full Name
+              Họ tên chủ nhà
             </Label>
             <Input
               id="landlord-name"
-              placeholder="e.g., John Smith"
+              placeholder="Ví dụ: Trần Thanh Bình"
               className="rounded-xl"
             />
           </div>
@@ -50,12 +50,12 @@ export function VerifyLandlordModal({ isOpen, onClose, onComplete }: VerifyLandl
           <div className="space-y-2">
             <Label htmlFor="landlord-phone" className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-primary" />
-              Contact Number
+              Số điện thoại liên hệ
             </Label>
             <Input
               id="landlord-phone"
               type="tel"
-              placeholder="e.g., +1 (555) 123-4567"
+              placeholder="Ví dụ: 0901 234 567"
               className="rounded-xl"
             />
           </div>
@@ -64,11 +64,11 @@ export function VerifyLandlordModal({ isOpen, onClose, onComplete }: VerifyLandl
           <div className="space-y-2">
             <Label htmlFor="property-address" className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-primary" />
-              Property Address
+              Địa chỉ bất động sản
             </Label>
             <Input
               id="property-address"
-              placeholder="e.g., 123 Main Street, Apt 4B"
+              placeholder="Ví dụ: 25 Nguyễn Văn Cừ, P.5, Quận 5"
               className="rounded-xl"
             />
           </div>
@@ -77,15 +77,15 @@ export function VerifyLandlordModal({ isOpen, onClose, onComplete }: VerifyLandl
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-primary" />
-              Ownership Document
+              Tài liệu chứng minh sở hữu
             </Label>
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-primary transition-colors cursor-pointer">
               <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3">
                 <Upload className="w-6 h-6 text-primary" />
               </div>
-              <p className="text-sm mb-1">Click to upload document</p>
+              <p className="text-sm mb-1">Nhấn để tải lên tài liệu</p>
               <p className="text-xs text-gray-500">
-                Lease agreement, property deed, or owner authorization (PDF, max 5MB)
+                Hợp đồng thuê, sổ hồng hoặc giấy ủy quyền (định dạng PDF, tối đa 5MB)
               </p>
             </div>
           </div>
@@ -103,8 +103,8 @@ export function VerifyLandlordModal({ isOpen, onClose, onComplete }: VerifyLandl
                   htmlFor="confirm-accuracy"
                   className="text-sm cursor-pointer"
                 >
-                  I confirm that the information provided is accurate and I have permission
-                  to share these details for verification purposes.
+                  Tôi cam kết thông tin cung cấp là chính xác và đã được sự đồng ý của chủ nhà
+                  để chia sẻ cho mục đích xác minh.
                 </label>
               </div>
             </div>
@@ -113,9 +113,8 @@ export function VerifyLandlordModal({ isOpen, onClose, onComplete }: VerifyLandl
           {/* Info Note */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <p className="text-xs text-gray-700">
-              <strong>Privacy Notice:</strong> Your landlord's information will be kept
-              confidential and only used for verification purposes. We may contact them
-              to confirm the details.
+              <strong>Bảo mật thông tin:</strong> RoomZ chỉ sử dụng dữ liệu này cho mục đích xác minh
+              và sẽ bảo mật hoàn toàn thông tin chủ nhà. Chúng tôi có thể liên hệ để xác nhận chi tiết khi cần.
             </p>
           </div>
 
@@ -126,14 +125,14 @@ export function VerifyLandlordModal({ isOpen, onClose, onComplete }: VerifyLandl
               variant="outline"
               className="flex-1 rounded-full h-12"
             >
-              Cancel
+              Hủy
             </Button>
             <Button
               onClick={handleSubmit}
               disabled={!isConfirmed}
               className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
             >
-              Submit Verification
+              Gửi xác minh
             </Button>
           </div>
         </div>

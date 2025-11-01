@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -17,23 +18,25 @@ import {
 import { VoucherModal } from "@/components/modals/VoucherModal";
 import { PartnerSignUpModal } from "@/components/modals/PartnerSignUpModal";
 import { ShopDetailModal } from "@/components/modals/ShopDetailModal";
+import { HowToRedeemModal } from "@/components/modals/HowToRedeemModal";
 import { toast } from "sonner";
 
-export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
+export default function LocalPassportPage() {
+  const navigate = useNavigate();
   const [selectedPerk, setSelectedPerk] = useState<any | null>(null);
-  const [isVoucherOpen, setIsVoucherOpen] = useState(false);
   const [isPartnerSignUpOpen, setIsPartnerSignUpOpen] = useState(false);
   const [isShopDetailOpen, setIsShopDetailOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [isHowToRedeemOpen, setIsHowToRedeemOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const howToRedeemRef = useRef<HTMLDivElement>(null);
   const perksGridRef = useRef<HTMLDivElement>(null);
   const perks = [
     {
       id: 1,
       name: "Café 89°",
-      category: "Café",
-      discount: "-20% for RoomZ members",
-      distance: "300m away",
+      category: "Cà phê",
+      discount: "Giảm 20% cho thành viên RoomZ",
+      distance: "Cách 300 m",
       image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=300&fit=crop",
       icon: Coffee,
       color: "bg-amber-100 text-amber-700",
@@ -41,9 +44,9 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
     {
       id: 2,
       name: "CleanMe Laundry",
-      category: "Laundry",
-      discount: "-15% on first service",
-      distance: "450m away",
+      category: "Giặt ủi",
+      discount: "Giảm 15% cho đơn đầu tiên",
+      distance: "Cách 450 m",
       image: "https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=400&h=300&fit=crop",
       icon: Shirt,
       color: "bg-blue-100 text-blue-700",
@@ -51,9 +54,9 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
     {
       id: 3,
       name: "GymZone Fitness",
-      category: "Gym",
-      discount: "First month free",
-      distance: "600m away",
+      category: "Phòng gym",
+      discount: "Miễn phí tháng đầu tiên",
+      distance: "Cách 600 m",
       image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop",
       icon: Dumbbell,
       color: "bg-red-100 text-red-700",
@@ -61,9 +64,9 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
     {
       id: 4,
       name: "Pizza Corner",
-      category: "Food",
-      discount: "-25% after 9 PM",
-      distance: "200m away",
+      category: "Ăn uống",
+      discount: "Giảm 25% sau 21h",
+      distance: "Cách 200 m",
       image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&h=300&fit=crop",
       icon: Pizza,
       color: "bg-orange-100 text-orange-700",
@@ -71,9 +74,9 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
     {
       id: 5,
       name: "BookNest Café",
-      category: "Café",
-      discount: "Buy 2 get 1 free",
-      distance: "350m away",
+      category: "Cà phê",
+      discount: "Mua 2 tặng 1 đồ uống",
+      distance: "Cách 350 m",
       image: "https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=400&h=300&fit=crop",
       icon: Coffee,
       color: "bg-amber-100 text-amber-700",
@@ -81,9 +84,9 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
     {
       id: 6,
       name: "FlexFit Studio",
-      category: "Gym",
-      discount: "-30% for students",
-      distance: "800m away",
+      category: "Phòng gym",
+      discount: "Giảm 30% cho sinh viên",
+      distance: "Cách 800 m",
       image: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=400&h=300&fit=crop",
       icon: Dumbbell,
       color: "bg-red-100 text-red-700",
@@ -112,28 +115,23 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
   };
 
   const handleLearnMore = () => {
-    howToRedeemRef.current?.scrollIntoView({ behavior: "smooth" });
-    // Add a subtle highlight effect
-    howToRedeemRef.current?.classList.add("ring-2", "ring-primary", "ring-offset-4");
-    setTimeout(() => {
-      howToRedeemRef.current?.classList.remove("ring-2", "ring-primary", "ring-offset-4");
-    }, 2000);
+    setIsHowToRedeemOpen(true);
   };
 
   const handlePartnerSubmit = () => {
-    toast.success("Thanks for joining RoomZ Passport! Our team will reach out soon.");
+    toast.success("Cảm ơn bạn đã tham gia RoomZ Passport! Đội ngũ RoomZ sẽ liên hệ sớm nhất.");
   };
 
-  const filteredPerks = selectedCategory === "All"
+  const filteredPerks = selectedCategory === "Tất cả"
     ? perks
     : perks.filter((perk) => perk.category === selectedCategory);
 
   const categories = [
-    { name: "All", count: perks.length },
-    { name: "Café", count: 2 },
-    { name: "Gym", count: 2 },
-    { name: "Food", count: 1 },
-    { name: "Laundry", count: 1 },
+    { name: "Tất cả", count: perks.length },
+    { name: "Cà phê", count: 2 },
+    { name: "Phòng gym", count: 2 },
+    { name: "Ăn uống", count: 1 },
+    { name: "Giặt ủi", count: 1 },
   ];
 
   return (
@@ -141,20 +139,18 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
       {/* Header */}
       <div className="bg-white border-b border-border sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          {onBack && (
             <Button
               variant="ghost"
-              onClick={onBack}
+              onClick={() => navigate(-1)}
               className="mb-2 rounded-full"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-          )}
           <div className="space-y-1">
-            <h1>Your Local Passport</h1>
+            <h1>RoomZ Local Passport</h1>
             <p className="text-muted-foreground">
-              Discover exclusive student deals near your area.
+              Khám phá ưu đãi dành riêng cho sinh viên quanh khu bạn ở.
             </p>
           </div>
         </div>
@@ -167,10 +163,10 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
           <div className="relative h-48 md:h-64 bg-gradient-to-br from-blue-100 to-secondary/20 flex items-center justify-center">
             <div className="text-center space-y-2">
               <Map className="w-12 h-12 text-primary mx-auto" />
-              <p className="text-muted-foreground">Interactive Map Coming Soon</p>
+              <p className="text-muted-foreground">Bản đồ tương tác sẽ ra mắt sớm</p>
               <Button variant="outline" className="rounded-full">
                 <MapPin className="mr-2 w-4 h-4" />
-                View Map
+                Xem bản đồ
               </Button>
             </div>
           </div>
@@ -206,9 +202,9 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
         {/* Header CTA */}
         <div className="flex items-center justify-between">
           <div>
-            <h2>Available Perks Near You</h2>
+            <h2>Ưu đãi đang mở quanh bạn</h2>
             <p className="text-sm text-muted-foreground">
-              {filteredPerks.length} exclusive deals within 1 km
+              {filteredPerks.length} ưu đãi trong bán kính 1 km
             </p>
           </div>
           <Button
@@ -216,7 +212,7 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
             variant="ghost"
             className="rounded-full text-primary hidden md:flex"
           >
-            See All Perks
+            Xem tất cả ưu đãi
             <ExternalLink className="ml-2 w-4 h-4" />
           </Button>
         </div>
@@ -272,7 +268,7 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
                   className="w-full rounded-full"
                 >
                   <QrCode className="mr-2 w-4 h-4" />
-                  Get Voucher
+                  Nhận voucher
                 </Button>
               </div>
             </Card>
@@ -285,7 +281,7 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
           variant="ghost"
           className="w-full rounded-full text-primary md:hidden"
         >
-          See All Perks Near You
+          Xem tất cả ưu đãi gần bạn
           <ExternalLink className="ml-2 w-4 h-4" />
         </Button>
 
@@ -297,10 +293,9 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
                 <Gift className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1 space-y-1">
-                <h3>How to Redeem Perks</h3>
+                <h3>Cách sử dụng ưu đãi</h3>
                 <p className="text-muted-foreground text-sm">
-                  Click "Get Voucher" to generate a QR code. Show it to the
-                  partner at checkout to claim your student discount.
+                  Nhấn "Nhận voucher" để tạo mã QR và xuất trình cho nhân viên quầy khi thanh toán để áp dụng ưu đãi sinh viên.
                 </p>
               </div>
               <Button
@@ -308,7 +303,7 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
                 variant="outline"
                 className="rounded-full shrink-0"
               >
-                Learn More
+                Tìm hiểu thêm
               </Button>
             </div>
           </Card>
@@ -317,17 +312,16 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
         {/* Bottom CTA */}
         <Card className="p-8 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white shadow-lg border-0">
           <div className="text-center space-y-4">
-            <h2 className="text-white">Partner with RoomZ</h2>
+            <h2 className="text-white">Trở thành đối tác của RoomZ</h2>
             <p className="text-white/90 max-w-2xl mx-auto">
-              Are you a local business? Join our Local Passport program and
-              connect with thousands of students in your area.
+              Bạn là doanh nghiệp địa phương? Tham gia Local Passport để kết nối với hàng nghìn sinh viên quanh khu vực.
             </p>
             <Button
               onClick={() => setIsPartnerSignUpOpen(true)}
               variant="secondary"
               className="rounded-full bg-white text-primary hover:bg-white/90"
             >
-              Become a Partner
+              Đăng ký đối tác
             </Button>
           </div>
         </Card>
@@ -346,6 +340,11 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
         onClose={() => setIsPartnerSignUpOpen(false)}
         onSubmit={handlePartnerSubmit}
       />
+      <HowToRedeemModal
+        isOpen={isHowToRedeemOpen}
+        onClose={() => setIsHowToRedeemOpen(false)}
+      />
     </div>
   );
 }
+

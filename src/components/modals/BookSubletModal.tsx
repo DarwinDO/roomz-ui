@@ -17,6 +17,7 @@ interface BookSubletModalProps {
 
 export function BookSubletModal({ isOpen, onClose, sublet }: BookSubletModalProps) {
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const formatCurrency = (value: number) => `${value.toLocaleString("vi-VN")}₫`;
 
   const handleConfirm = () => {
     setIsConfirmed(true);
@@ -34,9 +35,9 @@ export function BookSubletModal({ isOpen, onClose, sublet }: BookSubletModalProp
         {!isConfirmed ? (
           <>
             <DialogHeader>
-              <DialogTitle>Confirm Sublet Booking</DialogTitle>
+              <DialogTitle>Xác nhận đặt phòng sublet</DialogTitle>
               <DialogDescription>
-                Review the details before confirming your booking
+                Vui lòng kiểm tra thông tin trước khi gửi yêu cầu đặt phòng
               </DialogDescription>
             </DialogHeader>
 
@@ -44,7 +45,7 @@ export function BookSubletModal({ isOpen, onClose, sublet }: BookSubletModalProp
               {/* Booking Summary */}
               <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10 space-y-4">
                 <div>
-                  <p className="text-xs text-gray-600 mb-1">Room</p>
+                  <p className="text-xs text-gray-600 mb-1">Phòng</p>
                   <p className="font-medium">{sublet.title}</p>
                 </div>
 
@@ -63,7 +64,7 @@ export function BookSubletModal({ isOpen, onClose, sublet }: BookSubletModalProp
                     <span className="text-sm text-gray-600">Monthly Price</span>
                     <div className="flex items-center gap-1">
                       <DollarSign className="w-4 h-4 text-primary" />
-                      <span className="text-xl text-primary">{sublet.price}</span>
+                      <span className="text-xl text-primary">{formatCurrency(sublet.price)}</span>
                     </div>
                   </div>
                 </div>
@@ -72,8 +73,8 @@ export function BookSubletModal({ isOpen, onClose, sublet }: BookSubletModalProp
               {/* Important Notice */}
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                 <p className="text-sm text-gray-700">
-                  <strong>Next steps:</strong> The host will receive your booking request and will
-                  contact you to finalize the details. Payment will be processed securely through RoomZ.
+                  <strong>Bước tiếp theo:</strong> Chủ phòng sẽ nhận được yêu cầu của bạn và liên hệ để trao đổi chi tiết.
+                  Thanh toán sẽ được thực hiện an toàn qua nền tảng RoomZ.
                 </p>
               </div>
 
@@ -84,13 +85,13 @@ export function BookSubletModal({ isOpen, onClose, sublet }: BookSubletModalProp
                   variant="outline"
                   className="flex-1 rounded-full h-12"
                 >
-                  Cancel
+                  Hủy
                 </Button>
                 <Button
                   onClick={handleConfirm}
                   className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
                 >
-                  Confirm Booking
+                  Gửi yêu cầu đặt
                 </Button>
               </div>
             </div>
@@ -104,29 +105,29 @@ export function BookSubletModal({ isOpen, onClose, sublet }: BookSubletModalProp
               </div>
 
               <div>
-                <DialogTitle className="text-center mb-2">Booking Confirmed!</DialogTitle>
+                <DialogTitle className="text-center mb-2">Đã gửi yêu cầu thành công!</DialogTitle>
                 <DialogDescription className="text-center">
-                  You'll receive a message from the host soon to finalize the details.
+                  Chủ phòng sẽ nhắn tin cho bạn trong thời gian sớm nhất để hoàn tất chi tiết.
                 </DialogDescription>
               </div>
 
               {/* Confirmation Details */}
               <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10 text-left">
                 <p className="text-sm mb-3">
-                  <strong>What's next?</strong>
+                  <strong>Bạn sẽ nhận được:</strong>
                 </p>
                 <ul className="space-y-2 text-sm text-gray-700">
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                    <span>The host will review your request</span>
+                    <span>Chủ phòng kiểm tra và phê duyệt yêu cầu</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                    <span>You'll receive a message to discuss details</span>
+                    <span>Bạn sẽ nhận được tin nhắn trao đổi chi tiết</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                    <span>Secure payment through RoomZ platform</span>
+                    <span>Thanh toán an toàn qua nền tảng RoomZ</span>
                   </li>
                 </ul>
               </div>
@@ -136,7 +137,7 @@ export function BookSubletModal({ isOpen, onClose, sublet }: BookSubletModalProp
                 onClick={handleClose}
                 className="w-full bg-primary hover:bg-primary/90 rounded-full h-12"
               >
-                Done
+                Đóng
               </Button>
             </div>
           </>

@@ -1,19 +1,17 @@
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Truck, Gift, ArrowRight } from "lucide-react";
 
-interface ServicesBannerProps {
-  onNavigate?: (screen: string) => void;
-}
-
-export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
+export function ServicesBanner() {
+  const navigate = useNavigate();
   return (
     <div className="space-y-4">
       {/* Section Header */}
       <div>
-        <h2>RoomZ Services</h2>
+        <h2>Dịch vụ RoomZ</h2>
         <p className="text-muted-foreground">
-          Make your move easier with our trusted partners
+          Làm cho việc chuyển nhà dễ dàng hơn với đối tác tin cậy của chúng tôi
         </p>
       </div>
 
@@ -22,7 +20,7 @@ export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
         {/* Moving & Support */}
         <Card
           className="p-6 rounded-2xl shadow-sm hover:shadow-md transition-all border-border cursor-pointer group"
-          onClick={() => onNavigate?.("support-services")}
+          onClick={() => navigate("/support-services")}
         >
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -31,9 +29,9 @@ export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
             <div className="flex-1 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <h4>Moving Made Easy</h4>
+                  <h4>Chuyển nhà dễ dàng</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Moving, cleaning & setup services
+                    Dịch vụ chuyển nhà, dọn dẹp & thiết lập
                   </p>
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
@@ -41,9 +39,9 @@ export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
               <Button
                 variant="outline"
                 className="rounded-full text-sm h-9"
-                onClick={() => onNavigate?.("support-services")}
+                onClick={(e) => { e.stopPropagation(); navigate("/support-services"); }}
               >
-                Explore Services
+                Khám phá dịch vụ
               </Button>
             </div>
           </div>
@@ -52,7 +50,7 @@ export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
         {/* Local Passport */}
         <Card
           className="p-6 rounded-2xl shadow-sm hover:shadow-md transition-all border-border cursor-pointer group"
-          onClick={() => onNavigate?.("local-passport")}
+          onClick={() => navigate("/local-passport")}
         >
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 bg-secondary/10 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-secondary/20 transition-colors">
@@ -61,9 +59,9 @@ export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
             <div className="flex-1 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <h4>Local Passport</h4>
+                  <h4>Thẻ ưu đãi địa phương</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Exclusive student deals nearby
+                    Ưu đãi độc quyền cho sinh viên gần bạn
                   </p>
                 </div>
                 <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-secondary transition-colors shrink-0" />
@@ -71,9 +69,9 @@ export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
               <Button
                 variant="outline"
                 className="rounded-full text-sm h-9"
-                onClick={() => onNavigate?.("local-passport")}
+                onClick={(e) => { e.stopPropagation(); navigate("/local-passport"); }}
               >
-                View Perks
+                Xem ưu đãi
               </Button>
             </div>
           </div>

@@ -12,7 +12,10 @@ interface BookMovingModalProps {
 }
 
 export function BookMovingModal({ isOpen, onClose, onConfirm }: BookMovingModalProps) {
-  const [estimatedPrice, setEstimatedPrice] = useState(150);
+  const [estimatedPrice] = useState(3_500_000);
+  const discountRate = 0.15;
+
+  const formatCurrency = (value: number) => `${value.toLocaleString("vi-VN")}₫`;
 
   const handleConfirm = () => {
     onConfirm();
@@ -23,9 +26,9 @@ export function BookMovingModal({ isOpen, onClose, onConfirm }: BookMovingModalP
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Book Moving Service</DialogTitle>
+          <DialogTitle>Đặt dịch vụ chuyển phòng</DialogTitle>
           <DialogDescription>
-            Professional movers to help you relocate safely and quickly
+            Đội ngũ chuyển nhà chuyên nghiệp hỗ trợ bạn dọn phòng an toàn, nhanh chóng
           </DialogDescription>
         </DialogHeader>
 
@@ -34,11 +37,11 @@ export function BookMovingModal({ isOpen, onClose, onConfirm }: BookMovingModalP
           <div className="space-y-2">
             <Label htmlFor="pickup-address" className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-primary" />
-              Pickup Address
+              Địa chỉ lấy đồ
             </Label>
             <Input
               id="pickup-address"
-              placeholder="e.g., 123 Main Street, Apt 4B"
+              placeholder="Ví dụ: 123 Nguyễn Thị Minh Khai, Quận 1"
               className="rounded-xl"
             />
           </div>
@@ -47,11 +50,11 @@ export function BookMovingModal({ isOpen, onClose, onConfirm }: BookMovingModalP
           <div className="space-y-2">
             <Label htmlFor="destination-address" className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-secondary" />
-              Destination Address
+              Địa chỉ đến
             </Label>
             <Input
               id="destination-address"
-              placeholder="e.g., 456 Oak Avenue, Unit 2C"
+              placeholder="Ví dụ: 45 Phan Xích Long, Phú Nhuận"
               className="rounded-xl"
             />
           </div>
@@ -61,7 +64,7 @@ export function BookMovingModal({ isOpen, onClose, onConfirm }: BookMovingModalP
             <div className="space-y-2">
               <Label htmlFor="move-date" className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-primary" />
-                Date
+                Ngày chuyển
               </Label>
               <Input
                 id="move-date"
@@ -70,7 +73,7 @@ export function BookMovingModal({ isOpen, onClose, onConfirm }: BookMovingModalP
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="move-time">Time</Label>
+              <Label htmlFor="move-time">Giờ chuyển</Label>
               <Input
                 id="move-time"
                 type="time"
@@ -83,18 +86,18 @@ export function BookMovingModal({ isOpen, onClose, onConfirm }: BookMovingModalP
           <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Estimated Price</p>
+                <p className="text-sm text-gray-600 mb-1">Chi phí ước tính</p>
                 <div className="flex items-center gap-2">
                   <Truck className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-gray-600">Standard Moving (2 movers)</span>
+                  <span className="text-sm text-gray-600">Gói chuyển phòng tiêu chuẩn (2 nhân sự)</span>
                 </div>
               </div>
               <div className="text-right">
                 <div className="flex items-center gap-1">
                   <DollarSign className="w-5 h-5 text-primary" />
-                  <span className="text-2xl text-primary">{estimatedPrice}</span>
+                  <span className="text-2xl text-primary">{formatCurrency(estimatedPrice)}</span>
                 </div>
-                <p className="text-xs text-gray-500">Base rate</p>
+                <p className="text-xs text-gray-500">Giá gốc tham khảo</p>
               </div>
             </div>
           </div>
@@ -105,17 +108,17 @@ export function BookMovingModal({ isOpen, onClose, onConfirm }: BookMovingModalP
               🎓
             </div>
             <div className="flex-1">
-              <p className="text-sm">Student Discount Applied!</p>
-              <p className="text-xs text-gray-600">Save 15% on your booking</p>
+              <p className="text-sm">Đã áp dụng ưu đãi sinh viên</p>
+              <p className="text-xs text-gray-600">Giảm 15% cho đơn đặt dịch vụ</p>
             </div>
-            <span className="text-amber-700">-$22.50</span>
+            <span className="text-amber-700">-{formatCurrency(Math.round(estimatedPrice * discountRate))}</span>
           </div>
 
           {/* Final Price */}
           <div className="pt-2 border-t border-border">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Total Price</span>
-              <span className="text-xl text-primary">${(estimatedPrice * 0.85).toFixed(2)}</span>
+              <span className="text-sm text-gray-600">Tổng thanh toán</span>
+              <span className="text-xl text-primary">{formatCurrency(Math.round(estimatedPrice * (1 - discountRate)))}</span>
             </div>
           </div>
 
@@ -126,13 +129,13 @@ export function BookMovingModal({ isOpen, onClose, onConfirm }: BookMovingModalP
               variant="outline"
               className="flex-1 rounded-full h-12"
             >
-              Cancel
+              Hủy
             </Button>
             <Button
               onClick={handleConfirm}
               className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
             >
-              Confirm Booking
+              Xác nhận đặt dịch vụ
             </Button>
           </div>
         </div>

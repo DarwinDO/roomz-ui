@@ -1,0 +1,9 @@
+node_modules
+.git
+.vscode
+.idea
+*.log
+*.md
+docs
+
+

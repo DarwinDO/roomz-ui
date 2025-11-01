@@ -30,12 +30,12 @@ export default function VerificationPage() {
   });
   const handlePhotoComplete = () => {
     setCompletedSteps({ ...completedSteps, photo: true });
-    toast.success("Photos uploaded successfully!");
+    toast.success("Đã tải ảnh 360° thành công!");
   };
 
   const handleLandlordComplete = () => {
     setCompletedSteps({ ...completedSteps, landlord: true });
-    toast.success("Landlord verification submitted!");
+    toast.success("Đã gửi thông tin chủ nhà để xác minh!");
   };
 
   const getStepStatus = (stepId: string) => {
@@ -54,33 +54,33 @@ export default function VerificationPage() {
   const verificationSteps = [
     {
       id: "id",
-      title: "ID Verification",
-      description: "Upload a government-issued ID",
+      title: "Xác thực giấy tờ",
+      description: "Tải lên CCCD/CMND hoặc hộ chiếu",
       icon: FileText,
       status: getStepStatus("id"),
     },
     {
       id: "photo",
-      title: "360° Room Photos",
-      description: "Capture all angles of your room",
+      title: "Ảnh phòng 360°",
+      description: "Chụp đầy đủ các góc phòng của bạn",
       icon: Camera,
       status: getStepStatus("photo"),
     },
     {
       id: "landlord",
-      title: "Landlord Information",
-      description: "Verify property ownership",
+      title: "Thông tin chủ nhà",
+      description: "Xác minh quyền sở hữu/chủ cho thuê",
       icon: User,
       status: getStepStatus("landlord"),
     },
   ];
 
   const benefits = [
-    "Higher visibility in search results",
-    "Build trust with potential roommates",
-    "Faster booking confirmations",
-    "Access to Verified+ listings only filter",
-    "Premium badge on your profile",
+    "Được ưu tiên hiển thị khi người khác tìm kiếm",
+    "Tăng độ tin cậy với người thuê/bạn cùng phòng",
+    "Xác nhận đặt phòng nhanh hơn",
+    "Kích hoạt bộ lọc chỉ hiện tin Verified+",
+    "Nhận badge nổi bật trên hồ sơ cá nhân",
   ];
 
   return (
@@ -91,7 +91,7 @@ export default function VerificationPage() {
           <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full">
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h3 className="ml-3">Verified+ Certification</h3>
+          <h3 className="ml-3">Chứng nhận Verified+</h3>
         </div>
       </div>
 
@@ -101,21 +101,21 @@ export default function VerificationPage() {
           <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center mx-auto mb-4">
             <ShieldCheck className="w-10 h-10 text-white" />
           </div>
-          <h1 className="mb-3">Get Verified+</h1>
+          <h1 className="mb-3">Nhận huy hiệu Verified+</h1>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-            Stand out from the crowd and build trust with verified credentials. Verified+
-            members get 3x more responses and book 50% faster.
+            Tạo ấn tượng chuyên nghiệp và tăng độ tin cậy với hồ sơ đã xác thực. Người dùng Verified+
+            nhận được nhiều phản hồi hơn gấp 3 lần và đặt phòng nhanh hơn 50%.
           </p>
           <Badge className="bg-primary text-white px-4 py-2 text-base">
-            Free for Students • $29 for Others
+            Miễn phí cho sinh viên • 700k cho người dùng khác
           </Badge>
         </Card>
 
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h3>Verification Progress</h3>
-            <span className="text-sm text-gray-600">{calculateProgress()}% Complete</span>
+            <h3>Tiến độ xác thực</h3>
+            <span className="text-sm text-gray-600">{calculateProgress()}% hoàn thành</span>
           </div>
           <Progress value={calculateProgress()} className="h-3" />
         </div>
@@ -160,12 +160,12 @@ export default function VerificationPage() {
                       <h3 className="text-lg">{step.title}</h3>
                       {step.status === "completed" && (
                         <Badge className="bg-green-100 text-green-700 border-0">
-                          Completed
+                          Hoàn tất
                         </Badge>
                       )}
                       {step.status === "in-progress" && (
                         <Badge className="bg-primary/10 text-primary border-0">
-                          In Progress
+                          Đang thực hiện
                         </Badge>
                       )}
                     </div>
@@ -185,7 +185,7 @@ export default function VerificationPage() {
                         size="sm"
                       >
                         <Upload className="w-4 h-4 mr-2" />
-                        {step.status === "in-progress" ? "Continue" : "Start"}
+                        {step.status === "in-progress" ? "Tiếp tục" : "Bắt đầu"}
                       </Button>
                     )}
                   </div>
@@ -197,7 +197,7 @@ export default function VerificationPage() {
 
         {/* Benefits */}
         <Card className="p-8 rounded-3xl bg-gradient-to-br from-secondary/10 to-primary/10 border-0">
-          <h3 className="mb-6 text-center">Verified+ Benefits</h3>
+          <h3 className="mb-6 text-center">Quyền lợi khi Verified+</h3>
           <div className="grid md:grid-cols-2 gap-4">
             {benefits.map((benefit, index) => (
               <div key={index} className="flex items-start gap-3">
@@ -211,8 +211,8 @@ export default function VerificationPage() {
         {/* CTA */}
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-600 mb-4">
-            Questions about verification? Check our{" "}
-            <span className="text-primary cursor-pointer underline">Help Center</span>
+            Có thắc mắc về quy trình xác thực? Xem{" "}
+            <span className="text-primary cursor-pointer underline">Trung tâm trợ giúp</span>
           </p>
         </div>
       </div>

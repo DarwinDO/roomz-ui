@@ -15,6 +15,7 @@ import {
 import { BookMovingModal } from "@/components/modals/BookMovingModal";
 import { CleaningScheduleModal } from "@/components/modals/CleaningScheduleModal";
 import { SupportRequestModal } from "@/components/modals/SupportRequestModal";
+import { PartnerDetailModal } from "@/components/modals/PartnerDetailModal";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { toast } from "sonner";
 
@@ -26,6 +27,8 @@ export default function SupportServicesPage() {
   const [isCleaningModalOpen, setIsCleaningModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [isPartnerDetailOpen, setIsPartnerDetailOpen] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState<any>(null);
   const handleServiceClick = (serviceId: number) => {
     if (serviceId === 1) setIsMovingModalOpen(true);
     if (serviceId === 2) setIsCleaningModalOpen(true);
@@ -33,42 +36,51 @@ export default function SupportServicesPage() {
   };
 
   const handleMovingConfirm = () => {
-    toast.success("Your moving service has been scheduled!");
+    toast.success("Đã đặt lịch chuyển phòng thành công!");
   };
 
   const handleCleaningConfirm = () => {
-    toast.success("Cleaning service booked successfully!");
+    toast.success("Đã đặt dịch vụ vệ sinh thành công!");
   };
 
   const handleSupportSubmit = () => {
-    toast.success("Thanks! Our support team will contact you soon.");
+    toast.success("Cảm ơn bạn! Đội hỗ trợ sẽ liên hệ sớm nhất.");
+  };
+
+  const handlePartnerClick = (partner: any) => {
+    setSelectedPartner(partner);
+    setIsPartnerDetailOpen(true);
+  };
+
+  const handleViewAllPartners = () => {
+    navigate('/partners');
   };
 
   const services = [
     {
       id: 1,
-      title: "Moving Service",
-      description: "Professional movers to help you relocate safely and quickly",
+      title: "Dịch vụ chuyển phòng",
+      description: "Đội ngũ chuyên nghiệp hỗ trợ chuyển phòng an toàn, nhanh chóng",
       icon: Truck,
-      buttonText: "Book Now",
+      buttonText: "Đặt dịch vụ",
       color: "bg-blue-50",
       iconColor: "text-primary",
     },
     {
       id: 2,
-      title: "Room Cleaning",
-      description: "Deep cleaning service for move-in or move-out",
+      title: "Vệ sinh phòng",
+      description: "Vệ sinh tổng quát trước khi nhận phòng hoặc trả phòng",
       icon: Sparkles,
-      buttonText: "Schedule Cleaning",
+      buttonText: "Đặt lịch dọn dẹp",
       color: "bg-secondary/10",
       iconColor: "text-secondary",
     },
     {
       id: 3,
-      title: "Package & Setup Help",
-      description: "Assistance with furniture assembly and room organization",
+      title: "Đóng gói & lắp đặt",
+      description: "Giúp lắp ráp nội thất và sắp xếp không gian gọn gàng",
       icon: Package,
-      buttonText: "Contact Partner",
+      buttonText: "Liên hệ đối tác",
       color: "bg-purple-50",
       iconColor: "text-purple-600",
     },
@@ -76,25 +88,25 @@ export default function SupportServicesPage() {
 
   const partners = [
     {
-      name: "QuickMove Express",
+      name: "NhanhMove Express",
       rating: 4.9,
       reviews: 342,
-      specialization: "Moving",
-      discount: "Student Discount 15%",
+      specialization: "Chuyển nhà",
+      discount: "Giảm 15% cho sinh viên",
     },
     {
-      name: "CleanMe Pro",
+      name: "SạchPlus",
       rating: 4.8,
       reviews: 267,
-      specialization: "Cleaning",
-      discount: "Student Discount 15%",
+      specialization: "Vệ sinh",
+      discount: "Giảm 15% cho sinh viên",
     },
     {
-      name: "SetupMasters",
+      name: "SetupCare",
       rating: 4.7,
       reviews: 198,
-      specialization: "Setup & Assembly",
-      discount: "Student Discount 15%",
+      specialization: "Lắp đặt & bố trí",
+      discount: "Giảm 15% cho sinh viên",
     },
   ];
 
@@ -110,13 +122,13 @@ export default function SupportServicesPage() {
               className="mb-2 rounded-full"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
+              Quay lại
             </Button>
           )}
           <div className="space-y-1">
-            <h1>Moving Made Easy</h1>
+            <h1>Chuyển phòng nhàn tênh</h1>
             <p className="text-muted-foreground">
-              Book trusted partners for moving, cleaning, and room setup.
+              Đặt đối tác uy tín cho dịch vụ chuyển phòng, vệ sinh và sắp xếp không gian.
             </p>
           </div>
         </div>
@@ -154,14 +166,14 @@ export default function SupportServicesPage() {
                     className="rounded-full bg-green-50 text-green-700 hover:bg-green-100"
                   >
                     <ShieldCheck className="w-3 h-3 mr-1" />
-                    Verified Partner
+                    Đối tác đã xác thực
                   </Badge>
                   <Badge
                     variant="secondary"
                     className="rounded-full bg-amber-50 text-amber-700 hover:bg-amber-100"
                   >
                     <Percent className="w-3 h-3 mr-1" />
-                    Student Discount 15%
+                    Giảm 15% cho sinh viên
                   </Badge>
                 </div>
 
@@ -180,9 +192,13 @@ export default function SupportServicesPage() {
         {/* All Partners Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2>Our Trusted Partners</h2>
-            <Button variant="ghost" className="rounded-full text-primary">
-              View All
+            <h2>Đối tác RoomZ đề xuất</h2>
+            <Button 
+              onClick={handleViewAllPartners}
+              variant="ghost" 
+              className="rounded-full text-primary"
+            >
+              Xem tất cả
               <ExternalLink className="ml-2 w-4 h-4" />
             </Button>
           </div>
@@ -191,6 +207,7 @@ export default function SupportServicesPage() {
             {partners.map((partner, idx) => (
               <Card
                 key={idx}
+                onClick={() => handlePartnerClick(partner)}
                 className="p-5 rounded-2xl shadow-sm hover:shadow-md transition-all border-border cursor-pointer"
               >
                 <div className="space-y-3">
@@ -207,7 +224,7 @@ export default function SupportServicesPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">
-                      {partner.reviews} reviews
+                      {partner.reviews} đánh giá
                     </span>
                     <Badge
                       variant="secondary"
@@ -226,9 +243,9 @@ export default function SupportServicesPage() {
         <Card className="p-8 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white shadow-lg border-0">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="space-y-2 text-center md:text-left">
-              <h2 className="text-white">Need Custom Support?</h2>
+              <h2 className="text-white">Cần hỗ trợ theo nhu cầu?</h2>
               <p className="text-white/90">
-                Contact us for personalized moving and setup assistance
+                Liên hệ RoomZ để được hỗ trợ chuyển phòng và sắp xếp riêng cho bạn
               </p>
             </div>
             <Button
@@ -236,7 +253,7 @@ export default function SupportServicesPage() {
               variant="secondary"
               className="rounded-full bg-white text-primary hover:bg-white/90 shrink-0"
             >
-              Contact Support
+              Liên hệ hỗ trợ
             </Button>
           </div>
         </Card>
@@ -256,14 +273,21 @@ export default function SupportServicesPage() {
       <ChatDrawer
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
-        recipientName="SetupMasters"
-        recipientRole="Partner - Setup & Assembly"
+        recipientName="SetupCare"
+        recipientRole="Đối tác - Lắp đặt & sắp xếp"
       />
       <SupportRequestModal
         isOpen={isSupportModalOpen}
         onClose={() => setIsSupportModalOpen(false)}
         onSubmit={handleSupportSubmit}
       />
+      {selectedPartner && (
+        <PartnerDetailModal
+          isOpen={isPartnerDetailOpen}
+          onClose={() => setIsPartnerDetailOpen(false)}
+          partner={selectedPartner}
+        />
+      )}
     </div>
   );
 }

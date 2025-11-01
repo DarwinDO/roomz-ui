@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Heart, MapPin } from "lucide-react";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
 import { useState } from "react";
+import { formatPriceInMillions } from "@/utils/format";
 
 interface RoomCardProps {
   id: string;
@@ -66,7 +67,7 @@ export function RoomCard({
         )}
         {matchPercentage && (
           <Badge className="absolute bottom-3 right-3 bg-secondary text-white">
-            {matchPercentage}% Match
+            {matchPercentage}% phù hợp
           </Badge>
         )}
       </div>
@@ -79,12 +80,12 @@ export function RoomCard({
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-primary">${price}</span>
-            <span className="text-sm text-gray-500">/month</span>
+            <span className="text-primary">{formatPriceInMillions(price)}tr</span>
+            <span className="text-sm text-gray-500">/tháng</span>
           </div>
           {available && (
             <Badge variant="outline" className="border-green-500 text-green-600">
-              Available
+              Còn trống
             </Badge>
           )}
         </div>

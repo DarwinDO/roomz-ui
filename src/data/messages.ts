@@ -1,22 +1,21 @@
 export const messagesData = [
   {
-    name: "John Doe",
-    lastMessage: "Is the room still available?",
-    time: "2h ago",
+    name: "Minh Tuấn",
+    lastMessage: "Phòng còn trống chứ?",
+    time: "2 giờ trước",
     unread: true,
   },
   {
-    name: "Sarah Chen",
-    lastMessage: "Thanks for the info!",
-    time: "1d ago",
+    name: "Thảo Linh",
+    lastMessage: "Cảm ơn bạn đã chia sẻ nhé!",
+    time: "1 ngày trước",
     unread: false,
   },
   {
-    name: "Mike Johnson",
-    lastMessage: "Can we schedule a viewing?",
-    time: "2d ago",
+    name: "Đức Anh",
+    lastMessage: "Mình đặt lịch xem phòng được không?",
+    time: "2 ngày trước",
     unread: false,
   },
 ];
-
 

@@ -1,9 +1,12 @@
 import { useState } from "react";
-import type { FC } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
+import { ChatDrawer } from "@/components/common/ChatDrawer";
+import { BookingModal } from "@/components/modals/BookingModal";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Heart,
@@ -20,31 +23,26 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-export interface SubletDetailPageProps {
-  onBack: () => void;
-  onBookSublet: () => void;
-  onMessageHost: () => void;
-  sublet: {
-    id: string;
-    title: string;
-    location: string;
-    price: number;
-    distance: string;
-    verified: boolean;
-    image: string;
-    available?: boolean;
-    matchPercentage?: number;
+const SubletDetailPage = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  
+  // Mock data - trong thực tế sẽ fetch từ API dựa trên id
+  const sublet = {
+    id: id || "1",
+    title: "Phòng trọ cho thuê ngắn hạn - Gần trường",
+    location: "Cầu Giấy, Hà Nội",
+    price: 2500000,
+    distance: "3 tháng",
+    verified: true,
+    image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWRyb29tJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYwNjM4MzA3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+    available: true,
+    matchPercentage: 85,
   };
-}
-
-const SubletDetailPage: FC<SubletDetailPageProps> = ({
-  onBack,
-  onBookSublet,
-  onMessageHost,
-  sublet,
-}) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
 
   const images = [
     sublet.image,
@@ -53,18 +51,37 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
   ];
 
   const amenities = [
-    { icon: Wifi, label: "High-speed WiFi" },
-    { icon: Utensils, label: "Full Kitchen" },
+    { icon: Wifi, label: "WiFi tốc độ cao" },
+    { icon: Utensils, label: "Bếp đầy đủ dụng cụ" },
     { icon: Tv, label: "Smart TV" },
-    { icon: Wind, label: "A/C & Heating" },
+    { icon: Wind, label: "Điều hòa & máy sưởi" },
   ];
 
   const hostInfo = {
-    name: "Sarah Chen",
+    name: "Mai Chi",
     rating: 4.9,
     reviews: 28,
     trustScore: 98,
-    role: "Junior, Computer Science",
+    role: "Sinh viên năm 3, Kinh tế",
+  };
+
+  const formatMonthlyPrice = (price: number) => {
+    if (price >= 1_000_000) {
+      return `${(price / 1_000_000).toFixed(1)}tr`;
+    }
+    return `${Math.round(price / 1_000)}k`;
+  };
+
+  const handleBack = () => navigate(-1);
+  const handleBookSublet = () => {
+    setIsBookingOpen(true);
+  };
+  const handleMessageHost = () => {
+    setIsChatOpen(true);
+  };
+  
+  const handleBookingConfirm = () => {
+    toast.success("Đã gửi yêu cầu đặt chỗ! Chủ nhà sẽ liên hệ lại với bạn sớm.");
   };
 
   return (
@@ -75,7 +92,7 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onBack}
+            onClick={handleBack}
             className="rounded-full"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -126,6 +143,7 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
               <button
                 key={index}
                 onClick={() => setCurrentImageIndex(index)}
+                aria-label={`Xem ảnh ${index + 1}`}
                 className={`relative aspect-video overflow-hidden rounded-lg transition-all ${
                   index === currentImageIndex
                     ? "ring-2 ring-primary ring-offset-2 ring-offset-black"
@@ -134,7 +152,7 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
               >
                 <ImageWithFallback
                   src={image}
-                  alt={`View ${index + 1}`}
+                  alt={`Góc nhìn ${index + 1}`}
                   className="w-full h-full object-cover"
                 />
               </button>
@@ -157,7 +175,7 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
               {sublet.verified && (
                 <Badge className="bg-primary/10 text-primary border-0">
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                  Verified
+                  Đã xác thực
                 </Badge>
               )}
             </div>
@@ -165,30 +183,30 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
             {/* Price and Availability */}
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
-                <h2 className="text-primary">${sublet.price}</h2>
-                <span className="text-gray-600">/month</span>
+                <h2 className="text-primary">{formatMonthlyPrice(sublet.price)}</h2>
+                <span className="text-gray-600">/tháng</span>
               </div>
               <Badge variant="outline" className="bg-gradient-to-br from-primary/5 to-secondary/5">
                 <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                {sublet.distance}
+                Lịch trống: {sublet.distance}
               </Badge>
             </div>
           </div>
 
           {/* Description */}
           <div className="bg-gray-50 rounded-2xl p-5">
-            <h3 className="mb-3">About this sublet</h3>
+            <h3 className="mb-3">Giới thiệu về chỗ ở</h3>
             <p className="text-sm text-gray-700 leading-relaxed">
-              Perfect short-term stay in a vibrant neighborhood! This cozy room offers everything you need
-              for a comfortable stay during your internship or summer program. Walking distance to campus,
-              public transit, grocery stores, and great cafes. The apartment is shared with friendly,
-              respectful roommates who are also students.
+              Không gian lý tưởng cho kỳ thực tập hoặc học hè! Phòng riêng ấm cúng này có đủ mọi tiện nghi
+              cho thời gian lưu trú ngắn hạn: giường rộng rãi, bàn làm việc và tủ quần áo. Chỉ mất vài phút đi bộ
+              tới khuôn viên trường, trạm xe buýt, siêu thị và những quán cà phê yêu thích. Bạn sẽ ở cùng hai bạn
+              sinh viên thân thiện, tôn trọng nếp sinh hoạt chung.
             </p>
           </div>
 
           {/* Amenities */}
           <div>
-            <h3 className="mb-4">Amenities</h3>
+            <h3 className="mb-4">Tiện nghi nổi bật</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {amenities.map((amenity, index) => {
                 const Icon = amenity.icon;
@@ -209,7 +227,7 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
 
           {/* Host Information */}
           <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10">
-            <h3 className="mb-4">Hosted by</h3>
+            <h3 className="mb-4">Chủ nhà</h3>
             <div className="flex items-start gap-4">
               <Avatar className="w-16 h-16">
                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-xl">
@@ -221,7 +239,7 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
                   <p className="font-medium">{hostInfo.name}</p>
                   <Badge className="bg-secondary text-white text-xs">
                     <ShieldCheck className="w-3 h-3 mr-1" />
-                    {hostInfo.trustScore}% Trust
+                    {hostInfo.trustScore}% tin cậy
                   </Badge>
                 </div>
                 <p className="text-sm text-gray-600 mb-2">{hostInfo.role}</p>
@@ -230,7 +248,7 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     <span>{hostInfo.rating}</span>
                   </div>
-                  <span className="text-gray-500">{hostInfo.reviews} reviews</span>
+                  <span className="text-gray-500">{hostInfo.reviews} đánh giá</span>
                 </div>
               </div>
             </div>
@@ -241,9 +259,10 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
             <div className="flex gap-3">
               <ShieldCheck className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm mb-1">Safety First</p>
+                <p className="text-sm mb-1">An toàn trên hết</p>
                 <p className="text-xs text-gray-700">
-                  Always meet in person before booking. RoomZ offers secure payment protection for verified sublets.
+                  Hãy gặp trực tiếp và kiểm tra giấy tờ trước khi thanh toán. RoomZ hỗ trợ quy trình thanh toán
+                  an toàn cho các tin đăng đã được xác thực.
                 </p>
               </div>
             </div>
@@ -256,23 +275,44 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col xs:flex-row gap-3">
             <Button
-              onClick={onMessageHost}
+              onClick={handleMessageHost}
               variant="outline"
               className="flex-1 rounded-full h-12 border-2 border-primary text-primary hover:bg-primary/10"
             >
               <MessageCircle className="w-5 h-5 mr-2" />
-              Message Host
+              Nhắn chủ nhà
             </Button>
             <Button
-              onClick={onBookSublet}
+              onClick={handleBookSublet}
               className="flex-1 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-12 text-white shadow-md"
             >
               <Calendar className="w-5 h-5 mr-2" />
-              Book Sublet
+              Đặt chỗ
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Chat Drawer */}
+      <ChatDrawer
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        recipientName={hostInfo.name}
+        recipientRole={hostInfo.role}
+      />
+
+      {/* Booking Modal */}
+      <BookingModal
+        isOpen={isBookingOpen}
+        onClose={() => setIsBookingOpen(false)}
+        onConfirm={handleBookingConfirm}
+        subletInfo={{
+          title: sublet.title,
+          price: sublet.price,
+          location: sublet.location,
+          duration: sublet.distance,
+        }}
+      />
     </div>
   );
 };

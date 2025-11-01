@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -41,18 +41,20 @@ interface Post {
 export default function CommunityPage() {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [posts, setPosts] = useState<Post[]>([
+    const [posts, setPosts] = useState<Post[]>([
     {
       id: "1",
       author: {
-        name: "Sarah Chen",
-        role: "Student • Computer Science",
+        name: "Nguyễn Hoàng Linh",
+        role: "Sinh viên • Khoa Công nghệ thông tin",
         verified: true,
       },
       type: "story",
-      title: "My First Month Living Off-Campus",
-      preview: "Moving into my first apartment was both exciting and terrifying! Here's what I learned about budgeting, cooking, and making new friends...",
-      content: "Moving into my first apartment was both exciting and terrifying! Here's what I learned about budgeting, cooking, and making new friends in the neighborhood. The transition from dorm life to independent living taught me so much about responsibility and self-care. I'd love to share my tips with other students making this transition!",
+      title: "Tháng đầu tiên sống ngoài ký túc xá",
+      preview:
+        "Chuyển ra ở riêng vừa háo hức vừa hơi choáng. Mình học cách tự cân đối chi phí, nấu ăn và giữ phòng gọn gàng hơn thế nào...",
+      content:
+        "Sau một tháng sống ngoài ký túc xá, mình đã quen với việc lập bảng chi tiêu, chuẩn bị các bữa ăn đơn giản và phân chia việc nhà với bạn cùng phòng. Hy vọng những kinh nghiệm nhỏ này sẽ giúp các bạn chuẩn bị sớm khi ra ở riêng.",
       images: [
         "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800",
         "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800",
@@ -60,58 +62,62 @@ export default function CommunityPage() {
       likes: 124,
       comments: 18,
       shares: 5,
-      timestamp: "2 hours ago",
+      timestamp: "2 giờ trước",
       liked: false,
     },
     {
       id: "2",
       author: {
-        name: "Michael Torres",
-        role: "Host • Property Manager",
+        name: "Trần Minh Tuấn",
+        role: "Chủ nhà • Quản lý căn hộ",
         verified: true,
       },
       type: "offer",
-      title: "🏠 Cozy Room Available Near Campus - Special Student Rate!",
-      preview: "Fully furnished private room in a modern 3-bedroom apartment. $750/month including utilities. Available from November 1st...",
-      content: "Fully furnished private room in a modern 3-bedroom apartment. $750/month including utilities. Available from November 1st. Perfect for students - quiet building, great wifi, close to bus stops. Current roommates are friendly grad students. First month gets 15% off!",
-      images: [
-        "https://images.unsplash.com/photo-1668089677938-b52086753f77?w=800",
-      ],
+      title: "Phòng riêng full nội thất gần ĐH Bách Khoa",
+      preview:
+        "Phòng 18m² trong căn hộ 3 phòng ngủ, 7.5tr/tháng đã bao gồm điện nước và wifi. Có thể vào ở từ 01/11...",
+      content:
+        "Phòng riêng rộng 18m², đầy đủ nội thất, tủ lạnh mini và bàn học. Giá 7.500.000đ/tháng đã bao gồm điện nước, wifi. Căn hộ có thang máy, bảo vệ 24/7, cách cổng trường 5 phút đi bộ. Giảm 10% cho sinh viên thanh toán 3 tháng/lần.",
+      images: ["https://images.unsplash.com/photo-1668089677938-b52086753f77?w=800"],
       likes: 89,
       comments: 23,
       shares: 12,
-      timestamp: "5 hours ago",
+      timestamp: "5 giờ trước",
       liked: false,
     },
     {
       id: "3",
       author: {
-        name: "Alex Kim",
-        role: "Student • Business Major",
+        name: "Phạm Thu Hà",
+        role: "Sinh viên • Khoa Kinh tế",
         verified: false,
       },
       type: "qa",
-      title: "How to Split Utilities Fairly?",
-      preview: "My roommates and I are having trouble deciding how to split electricity bills. Should we split evenly or based on usage? What's the standard practice?",
-      content: "My roommates and I are having trouble deciding how to split electricity bills. Should we split evenly or based on usage? What's the standard practice? We have 3 people in a 2-bedroom apartment and one person works from home. Any advice would be appreciated!",
+      title: "Chia tiền điện nước sao cho công bằng?",
+      preview:
+        "Nhà mình có 3 người, 1 bạn làm việc ở nhà nên dùng điện nhiều hơn. Mọi người thường chia tiền như thế nào cho hợp lý?",
+      content:
+        "Nhà mình có 3 người ở chung. Hai bạn đi học cả ngày, một bạn làm việc tại nhà nên dùng điều hòa và máy tính nhiều hơn. Mọi người thường chia tiền điện nước theo đầu người hay theo mức sử dụng? Có mẹo nào theo dõi chỉ số định kỳ không?",
       images: [],
       likes: 45,
       comments: 31,
       shares: 2,
-      timestamp: "1 day ago",
+      timestamp: "1 ngày trước",
       liked: true,
     },
     {
       id: "4",
       author: {
-        name: "Emma Wilson",
-        role: "Student • Engineering",
+        name: "Lê Khánh Vy",
+        role: "Sinh viên • Kỹ thuật môi trường",
         verified: false,
       },
       type: "story",
-      title: "Best Study Spots Near University District",
-      preview: "I've explored every café and library in the area - here are my top 5 places for productive studying with great coffee and wifi...",
-      content: "I've explored every café and library in the area - here are my top 5 places for productive studying with great coffee and wifi. From quiet corners to collaborative spaces, I've got recommendations for every study style. Plus, some of these places offer student discounts!",
+      title: "5 quán cà phê học bài yêu thích ở Quận 3",
+      preview:
+        "Mình đã đi thử gần hết các quán cà phê quanh trường. Đây là 5 địa điểm học bài có ổ cắm, wifi mạnh và nhạc chill nhất...",
+      content:
+        "Nếu bạn đang tìm địa điểm học bài cuối tuần, đây là 5 quán cà phê mình thích nhất: có ổ cắm đầy đủ, wifi khỏe, không gian yên tĩnh và đồ uống dưới 60k. Một vài quán còn có ưu đãi giảm giá cho sinh viên nữa!",
       images: [
         "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800",
         "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800",
@@ -120,30 +126,30 @@ export default function CommunityPage() {
       likes: 156,
       comments: 42,
       shares: 28,
-      timestamp: "2 days ago",
+      timestamp: "2 ngày trước",
       liked: false,
     },
   ]);
 
   const topPosts = [
-    { title: "Moving checklist for students", likes: 342 },
-    { title: "How I saved $500/month on rent", likes: 289 },
-    { title: "Roommate agreement template", likes: 234 },
+    { title: "Checklist chuyển phòng cho sinh viên", likes: 342 },
+    { title: "Bí kíp giảm 2 triệu tiền nhà mỗi tháng", likes: 289 },
+    { title: "Mẫu thỏa thuận ở ghép rõ ràng", likes: 234 },
   ];
 
   const suggestedTopics = [
-    "#RoommateTips",
-    "#ForRent",
-    "#CampusLife",
-    "#StudentDeals",
-    "#ApartmentHunting",
-    "#MovingAdvice",
+    "#MeoRoommate",
+    "#PhongChoThue",
+    "#DoiSongSinhVien",
+    "#UuDaiSinhVien",
+    "#SanPhongGiaTot",
+    "#BiKipChuyenNha",
   ];
 
   const followedHosts = [
-    { name: "John Davis", properties: 5 },
-    { name: "Lisa Park", properties: 8 },
-    { name: "Robert Lee", properties: 3 },
+    { name: "Ngô Minh Phúc", properties: 5 },
+    { name: "Vũ Hải Yến", properties: 8 },
+    { name: "Đặng Quốc Bảo", properties: 3 },
   ];
 
   const handleLike = (postId: string) => {
@@ -161,7 +167,7 @@ export default function CommunityPage() {
       likes: 0,
       comments: 0,
       shares: 0,
-      timestamp: "Just now",
+      timestamp: "Vừa đăng",
     };
     setPosts([post, ...posts]);
   };
@@ -186,11 +192,11 @@ export default function CommunityPage() {
   const getTypeLabel = (type: string) => {
     switch (type) {
       case "story":
-        return "Story";
+        return "Chia sẻ";
       case "offer":
-        return "Offer";
+        return "Ưu đãi";
       case "qa":
-        return "Q&A";
+        return "Hỏi đáp";
       default:
         return type;
     }
@@ -203,9 +209,9 @@ export default function CommunityPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="mb-2">RoomZ Community</h1>
+              <h1 className="mb-2">Cộng đồng RoomZ</h1>
               <p className="text-gray-600">
-                Share stories, find offers, and connect with the community
+                Chia sẻ trải nghiệm, săn tin ưu đãi và kết nối với mọi người
               </p>
             </div>
             <Button
@@ -213,7 +219,7 @@ export default function CommunityPage() {
               className="bg-primary hover:bg-primary/90 rounded-full hidden md:flex"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Create Post
+              Viết bài
             </Button>
           </div>
         </div>
@@ -226,10 +232,10 @@ export default function CommunityPage() {
             {/* Filter Tabs */}
             <Tabs defaultValue="all" className="w-full">
               <TabsList className="grid w-full grid-cols-4 mb-6">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="stories">Stories</TabsTrigger>
-                <TabsTrigger value="offers">Offers</TabsTrigger>
-                <TabsTrigger value="qa">Q&A</TabsTrigger>
+                <TabsTrigger value="all">Tất cả</TabsTrigger>
+                <TabsTrigger value="stories">Chia sẻ</TabsTrigger>
+                <TabsTrigger value="offers">Ưu đãi</TabsTrigger>
+                <TabsTrigger value="qa">Hỏi đáp</TabsTrigger>
               </TabsList>
 
               <TabsContent value="all" className="space-y-4">
@@ -296,7 +302,7 @@ export default function CommunityPage() {
             <Card className="p-5 rounded-2xl">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                <h3>Top Posts This Week</h3>
+                <h3>Bài viết nổi bật trong tuần</h3>
               </div>
               <div className="space-y-3">
                 {topPosts.map((post, index) => (
@@ -306,7 +312,7 @@ export default function CommunityPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm line-clamp-2">{post.title}</p>
-                      <p className="text-xs text-gray-500 mt-1">{post.likes} likes</p>
+                      <p className="text-xs text-gray-500 mt-1">{post.likes} lượt thích</p>
                     </div>
                   </div>
                 ))}
@@ -317,7 +323,7 @@ export default function CommunityPage() {
             <Card className="p-5 rounded-2xl">
               <div className="flex items-center gap-2 mb-4">
                 <Hash className="w-5 h-5 text-primary" />
-                <h3>Suggested Topics</h3>
+                <h3>Chủ đề gợi ý</h3>
               </div>
               <div className="flex flex-wrap gap-2">
                 {suggestedTopics.map((topic, index) => (
@@ -336,7 +342,7 @@ export default function CommunityPage() {
             <Card className="p-5 rounded-2xl">
               <div className="flex items-center gap-2 mb-4">
                 <UserCheck className="w-5 h-5 text-primary" />
-                <h3>Followed Hosts</h3>
+                <h3>Chủ nhà đang theo dõi</h3>
               </div>
               <div className="space-y-3">
                 {followedHosts.map((host, index) => (
@@ -348,7 +354,7 @@ export default function CommunityPage() {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm truncate">{host.name}</p>
-                      <p className="text-xs text-gray-500">{host.properties} properties</p>
+                      <p className="text-xs text-gray-500">{host.properties} tin đang mở</p>
                     </div>
                   </div>
                 ))}
@@ -362,7 +368,7 @@ export default function CommunityPage() {
       <Button
         onClick={() => setIsCreatePostOpen(true)}
         className="md:hidden fixed bottom-20 right-4 w-14 h-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg z-40"
-        size="icon"
+        size="icon" aria-label="Viết bài mới"
       >
         <Plus className="w-6 h-6" />
       </Button>
@@ -450,7 +456,7 @@ function PostCard({ post, onLike, onClick, getTimeAgo, getTypeColor, getTypeLabe
                 <div key={index} className="relative aspect-video overflow-hidden rounded-xl">
                   <ImageWithFallback
                     src={image}
-                    alt={`Post image ${index + 1}`}
+                    alt={`Ảnh bài viết ${index + 1}`}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -499,3 +505,4 @@ function PostCard({ post, onLike, onClick, getTimeAgo, getTypeColor, getTypeLabe
     </Card>
   );
 }
+

@@ -44,108 +44,108 @@ export default function CompatibilityPage() {
   const questions = [
     {
       id: 1,
-      question: "What's your ideal sleep schedule?",
+      question: "Lịch ngủ lý tưởng của bạn?",
       icon: Moon,
       options: [
-        { label: "Early bird (before 10 PM)", value: "early" },
-        { label: "Night owl (after midnight)", value: "late" },
-        { label: "Flexible", value: "flexible" },
+        { label: "Ngủ sớm (trước 10 giờ tối)", value: "early" },
+        { label: "Ngủ muộn (sau nửa đêm)", value: "late" },
+        { label: "Linh hoạt", value: "flexible" },
       ],
     },
     {
       id: 2,
-      question: "How often do you have guests over?",
+      question: "Bạn có khách đến thăm thường xuyên không?",
       icon: Users,
       options: [
-        { label: "Rarely", value: "rarely" },
-        { label: "Sometimes", value: "sometimes" },
-        { label: "Frequently", value: "frequently" },
+        { label: "Hiếm khi", value: "rarely" },
+        { label: "Thỉnh thoảng", value: "sometimes" },
+        { label: "Thường xuyên", value: "frequently" },
       ],
     },
     {
       id: 3,
-      question: "What's your noise preference?",
+      question: "Bạn thích môi trường như thế nào?",
       icon: Music,
       options: [
-        { label: "Quiet environment", value: "quiet" },
-        { label: "Moderate noise okay", value: "moderate" },
-        { label: "Don't mind noise", value: "noisy" },
+        { label: "Yên tĩnh", value: "quiet" },
+        { label: "Ồn vừa phải được", value: "moderate" },
+        { label: "Không ngại ồn", value: "noisy" },
       ],
     },
     {
       id: 4,
-      question: "How do you like to spend weekends?",
+      question: "Bạn thường làm gì vào cuối tuần?",
       icon: Coffee,
       options: [
-        { label: "Relaxing at home", value: "home" },
-        { label: "Going out", value: "out" },
-        { label: "Mix of both", value: "mix" },
+        { label: "Thư giãn tại nhà", value: "home" },
+        { label: "Đi chơi bên ngoài", value: "out" },
+        { label: "Kết hợp cả hai", value: "mix" },
       ],
     },
     {
       id: 5,
-      question: "What's your cleanliness style?",
+      question: "Phong cách sống của bạn?",
       icon: CheckCircle,
       options: [
-        { label: "Very organized", value: "organized" },
-        { label: "Moderately tidy", value: "moderate" },
-        { label: "Relaxed", value: "relaxed" },
+        { label: "Rất ngăn nắp", value: "organized" },
+        { label: "Vừa phải", value: "moderate" },
+        { label: "Thoải mái", value: "relaxed" },
       ],
     },
   ];
 
   const matches = [
     {
-      name: "Alex Chen",
+      name: "Minh Tuấn",
       age: 23,
-      university: "Stanford University",
-      major: "Computer Science",
-      school: "Computer Science, Stanford",
+      university: "ĐH Bách Khoa TP.HCM",
+      major: "Khoa học máy tính",
+      school: "KHMT, ĐH Bách Khoa",
       match: 92,
-      distance: "0.3 mi",
-      personalityTags: ["Early bird", "Introverted"],
-      lifestyleTags: ["Organized", "Quiet"],
-      hobbyTags: ["Gym enthusiast", "Cooking", "Hiking"],
-      bio: "CS grad student who loves coding, hiking, and cooking. Looking for a quiet study buddy!",
+      distance: "0.5 km",
+      personalityTags: ["Ngủ sớm", "Hướng nội"],
+      lifestyleTags: ["Ngăn nắp", "Yên tĩnh"],
+      hobbyTags: ["Tập gym", "Nấu ăn", "Leo núi"],
+      bio: "Sinh viên cao học CNTT, thích code, leo núi và nấu ăn. Tìm bạn cùng phòng yên tĩnh để học tập!",
     },
     {
-      name: "Jordan Kim",
+      name: "Hương Giang",
       age: 22,
-      university: "UC Berkeley",
-      major: "Business Administration",
-      school: "Business, UC Berkeley",
+      university: "ĐH Kinh tế TP.HCM",
+      major: "Quản trị kinh doanh",
+      school: "Kinh tế, ĐH Kinh tế",
       match: 88,
-      distance: "1.2 mi",
-      personalityTags: ["Flexible", "Extroverted"],
-      lifestyleTags: ["Social", "Clean"],
-      hobbyTags: ["Foodie", "Weekend explorer"],
-      bio: "Business major, coffee addict, weekend explorer. Let's find great food spots together!",
+      distance: "2 km",
+      personalityTags: ["Linh hoạt", "Hướng ngoại"],
+      lifestyleTags: ["Hòa đồng", "Sạch sẽ"],
+      hobbyTags: ["Ẩm thực", "Khám phá"],
+      bio: "Sinh viên kinh tế, mê cà phê, thích khám phá. Cùng tìm những quán ăn ngon nhé!",
     },
     {
-      name: "Sam Rivera",
+      name: "Đức Anh",
       age: 24,
-      university: "MIT",
-      major: "Engineering",
-      school: "Engineering, MIT",
+      university: "ĐH Quốc Gia",
+      major: "Kỹ thuật",
+      school: "Kỹ thuật, ĐHQG",
       match: 85,
-      distance: "0.8 mi",
-      personalityTags: ["Night owl", "Creative"],
-      lifestyleTags: ["Moderate", "Active"],
-      hobbyTags: ["Music lover", "Gaming", "Concerts"],
-      bio: "Engineering student and part-time musician. Always up for game nights!",
+      distance: "1.3 km",
+      personalityTags: ["Ngủ muộn", "Sáng tạo"],
+      lifestyleTags: ["Vừa phải", "Năng động"],
+      hobbyTags: ["Mê nhạc", "Game", "Concert"],
+      bio: "Sinh viên kỹ thuật kiêm nhạc sĩ bán thời gian. Luôn sẵn sàng chơi game cùng!",
     },
     {
-      name: "Taylor Martinez",
+      name: "Thanh Tâm",
       age: 21,
-      university: "UCLA",
-      major: "Psychology",
-      school: "Psychology, UCLA",
+      university: "ĐH Khoa học Xã hội",
+      major: "Tâm lý học",
+      school: "Tâm lý, ĐHKHXH",
       match: 82,
-      distance: "2.1 mi",
-      personalityTags: ["Early bird", "Thoughtful"],
-      lifestyleTags: ["Quiet", "Minimalist"],
-      hobbyTags: ["Bookworm", "Yoga", "Meditation"],
-      bio: "Psychology student who loves reading, yoga, and deep conversations.",
+      distance: "3.5 km",
+      personalityTags: ["Ngủ sớm", "Chu đáo"],
+      lifestyleTags: ["Yên tĩnh", "Tối giản"],
+      hobbyTags: ["Đọc sách", "Yoga", "Thiền"],
+      bio: "Sinh viên tâm lý học, yêu đọc sách, yoga và trò chuyện sâu.",
     },
   ];
 
@@ -159,7 +159,7 @@ export default function CompatibilityPage() {
   const handleInviteToChat = (match: any) => {
     setChatRecipient({ name: match.name, role: match.school, match: match.match });
     setIsChatDrawerOpen(true);
-    toast.success("Invitation sent to " + match.name + "!");
+    toast.success("Đã gửi lời mời cho " + match.name + "!");
   };
 
   const handleViewProfile = (match: any) => {
@@ -184,7 +184,7 @@ export default function CompatibilityPage() {
         <div className="mb-8">
           <Progress value={((currentQuestion + 1) / questions.length) * 100} className="mb-2" />
           <p className="text-sm text-gray-600 text-center">
-            Question {currentQuestion + 1} of {questions.length}
+            Câu hỏi {currentQuestion + 1} / {questions.length}
           </p>
         </div>
 
@@ -215,7 +215,7 @@ export default function CompatibilityPage() {
               onClick={() => setCurrentQuestion(currentQuestion - 1)}
               className="rounded-full"
             >
-              Back
+              Quay lại
             </Button>
           )}
           <Button
@@ -223,7 +223,7 @@ export default function CompatibilityPage() {
             onClick={() => setCurrentStep("results")}
             className="ml-auto rounded-full"
           >
-            Skip Quiz
+            Bỏ qua
           </Button>
         </div>
       </div>
@@ -236,27 +236,27 @@ export default function CompatibilityPage() {
         <div className="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="w-10 h-10 text-white" />
         </div>
-        <h1 className="mb-2">Your Perfect Matches</h1>
+        <h1 className="mb-2">Kết quả phù hợp</h1>
         <p className="text-gray-600">
-          We found {matches.length} compatible roommates based on your preferences
+          Chúng tôi tìm thấy {matches.length} bạn cùng phòng phù hợp dựa trên sở thích của bạn
         </p>
       </div>
 
       {/* Sort Dropdown */}
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-gray-600">
-          Showing {sortedMatches.length} matches
+          Hiển thị {sortedMatches.length} kết quả
         </p>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Sort by:</span>
+          <span className="text-sm text-gray-600">Sắp xếp:</span>
           <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
             <SelectTrigger className="w-[180px] rounded-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="compatibility">Compatibility</SelectItem>
-              <SelectItem value="distance">Distance</SelectItem>
-              <SelectItem value="major">Major</SelectItem>
+              <SelectItem value="compatibility">Độ phù hợp</SelectItem>
+              <SelectItem value="distance">Khoảng cách</SelectItem>
+              <SelectItem value="major">Ngành học</SelectItem>
             </SelectContent>
           </Select>
         </div>

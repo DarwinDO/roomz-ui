@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RoomCard } from "@/components/common/RoomCard";
+import { formatPriceInMillions } from "@/utils/format";
 import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, UtensilsCrossed, PawPrint, Armchair, CheckCircle2, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -20,7 +21,7 @@ export default function SearchPage() {
   const onRoomClick = (id: string) => {
     navigate(`/room/${id}`);
   };
-  const [priceRange, setPriceRange] = useState([500, 1500]);
+  const [priceRange, setPriceRange] = useState([2000000, 6000000]);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
@@ -33,10 +34,10 @@ export default function SearchPage() {
     {
       id: "1",
       image: "https://images.unsplash.com/photo-1668089677938-b52086753f77?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBiZWRyb29tJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYwNjM2NDM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Cozy Private Room near Campus",
-      location: "University District",
-      price: 850,
-      distance: "0.3 mi",
+      title: "Phòng riêng ấm cúng gần trường",
+      location: "Quận 1, TP.HCM",
+      price: 3500000,
+      distance: "0.5 km",
       verified: true,
       available: true,
       matchPercentage: 92,
@@ -44,10 +45,10 @@ export default function SearchPage() {
     {
       id: "2",
       image: "https://images.unsplash.com/photo-1617325247661-675ab4b64ae2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwYmVkcm9vbXxlbnwxfHx8fDE3NjA2MzgzMDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Modern Studio with City View",
-      location: "Downtown",
-      price: 1250,
-      distance: "1.2 mi",
+      title: "Căn studio hiện đại view thành phố",
+      location: "Quận 3, TP.HCM",
+      price: 5000000,
+      distance: "2 km",
       verified: true,
       available: true,
       matchPercentage: 85,
@@ -55,10 +56,10 @@ export default function SearchPage() {
     {
       id: "3",
       image: "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcGFydG1lbnQlMjBsaXZpbmclMjByb29tfGVufDF8fHx8MTc2MDY3MzE2NXww&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Shared Apartment with Great Amenities",
-      location: "Midtown",
-      price: 650,
-      distance: "0.7 mi",
+      title: "Căn hộ chung tiện nghi đầy đủ",
+      location: "Bình Thạnh, TP.HCM",
+      price: 2500000,
+      distance: "1 km",
       verified: false,
       available: true,
       matchPercentage: 78,
@@ -66,10 +67,10 @@ export default function SearchPage() {
     {
       id: "4",
       image: "https://images.unsplash.com/photo-1579632151052-92f741fb9b79?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3p5JTIwc3R1ZGVudCUyMHJvb218ZW58MXx8fHwxNzYwNjA0MDMzfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Bright Room in Student Housing",
-      location: "College Town",
-      price: 720,
-      distance: "0.5 mi",
+      title: "Phòng sáng trong khu nhà sinh viên",
+      location: "Thủ Đức, TP.HCM",
+      price: 3000000,
+      distance: "0.8 km",
       verified: true,
       available: true,
       matchPercentage: 88,
@@ -77,10 +78,10 @@ export default function SearchPage() {
     {
       id: "5",
       image: "https://images.unsplash.com/photo-1691126223630-ac10cb81f1f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXR5JTIwYXBhcnRtZW50JTIwdmlld3xlbnwxfHx8fDE3NjA2MDc2MzJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Luxury Apartment with Rooftop",
-      location: "Financial District",
-      price: 1600,
-      distance: "2.1 mi",
+      title: "Căn hộ cao cấp có sân thượng",
+      location: "Quận 7, TP.HCM",
+      price: 6500000,
+      distance: "3.5 km",
       verified: true,
       available: true,
       matchPercentage: 72,
@@ -88,25 +89,25 @@ export default function SearchPage() {
     {
       id: "6",
       image: "https://images.unsplash.com/photo-1758523417133-41f21fb9f058?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGFyZWQlMjBraXRjaGVuJTIwYXBhcnRtZW50fGVufDF8fHx8MTc2MDY3MzE2Nnww&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Spacious Room with Kitchen Access",
-      location: "West End",
-      price: 790,
-      distance: "1.5 mi",
+      title: "Phòng rộng rãi có bếp riêng",
+      location: "Quận 10, TP.HCM",
+      price: 3200000,
+      distance: "2.5 km",
       verified: false,
       available: true,
       matchPercentage: 81,
     },
   ];
 
-  const roomTypes = ["Private Room", "Shared Room", "Studio", "Entire Place"];
+  const roomTypes = ["Phòng riêng", "Phòng chung", "Căn studio", "Nguyên căn"];
   
   const amenities = [
     { id: "wifi", label: "WiFi", icon: Wifi },
-    { id: "parking", label: "Parking", icon: Car },
-    { id: "laundry", label: "Laundry", icon: WashingMachine },
-    { id: "kitchen", label: "Kitchen", icon: UtensilsCrossed },
-    { id: "pet", label: "Pet Friendly", icon: PawPrint },
-    { id: "furnished", label: "Furnished", icon: Armchair },
+    { id: "parking", label: "Chỗ đỗ xe", icon: Car },
+    { id: "laundry", label: "Giặt là", icon: WashingMachine },
+    { id: "kitchen", label: "Bếp", icon: UtensilsCrossed },
+    { id: "pet", label: "Cho phép thú cưng", icon: PawPrint },
+    { id: "furnished", label: "Có nội thất", icon: Armchair },
   ];
 
   const toggleRoomType = (type: string) => {
@@ -127,7 +128,7 @@ export default function SearchPage() {
     setSelectedRoomTypes([]);
     setSelectedAmenities([]);
     setShowVerifiedCheck(false);
-    toast.success("Filters reset");
+    toast.success("Đã đặt lại bộ lọc");
   };
 
   const handleApplyFilters = async () => {
@@ -136,7 +137,7 @@ export default function SearchPage() {
     await new Promise(resolve => setTimeout(resolve, 800));
     setIsApplyingFilters(false);
     setIsFiltersOpen(false);
-    toast.success("Filters applied");
+    toast.success("Đã áp dụng bộ lọc");
   };
 
   const filteredRooms = mockRooms.filter((room) => {
@@ -154,7 +155,7 @@ export default function SearchPage() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <Input
-                placeholder="Search location..."
+                placeholder="Tìm kiếm địa điểm..."
                 className="pl-10 rounded-full border-gray-200"
               />
             </div>
@@ -166,35 +167,35 @@ export default function SearchPage() {
               </SheetTrigger>
               <SheetContent className="w-full sm:max-w-md flex flex-col p-0">
                 <SheetHeader className="px-6 pt-6 pb-4">
-                  <SheetTitle>Filters</SheetTitle>
+                  <SheetTitle>Bộ lọc</SheetTitle>
                 </SheetHeader>
                 
                 {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
                   {/* Price Range Section */}
                   <div className="bg-white rounded-xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
-                    <Label className="mb-3 block text-base">Price Range</Label>
+                    <Label className="mb-3 block text-base">Khoảng giá</Label>
                     <div className="flex justify-between items-center mb-4">
                       <span className="text-sm px-3 py-1.5 bg-primary/10 text-primary rounded-full">
-                        ${priceRange[0]}
+                        {priceRange[0].toLocaleString('vi-VN')}đ
                       </span>
-                      <span className="text-xs text-gray-400">to</span>
+                      <span className="text-xs text-gray-400">đến</span>
                       <span className="text-sm px-3 py-1.5 bg-primary/10 text-primary rounded-full">
-                        ${priceRange[1]}
+                        {priceRange[1].toLocaleString('vi-VN')}đ
                       </span>
                     </div>
                     <div className="px-1">
                       <Slider
                         min={0}
-                        max={3000}
-                        step={50}
+                        max={10000000}
+                        step={100000}
                         value={priceRange}
                         onValueChange={setPriceRange}
                         className="mb-2"
                       />
                       <div className="flex justify-between text-xs text-gray-400 mt-2">
-                        <span>$0</span>
-                        <span>$3000</span>
+                        <span>0đ</span>
+                        <span>10tr</span>
                       </div>
                     </div>
                   </div>
@@ -204,7 +205,7 @@ export default function SearchPage() {
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <Label htmlFor="verified-toggle" className="text-base cursor-pointer">
-                          Verified Only
+                          Chỉ phòng đã xác thực
                         </Label>
                         <AnimatePresence>
                           {showVerifiedCheck && (
@@ -233,12 +234,12 @@ export default function SearchPage() {
                         }}
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Show only verified listings</p>
+                    <p className="text-xs text-gray-500 mt-1">Chỉ hiển thị tin đăng đã xác thực</p>
                   </div>
 
                   {/* Room Type Section */}
                   <div className="bg-white rounded-xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
-                    <Label className="mb-3 block text-base">Room Type</Label>
+                    <Label className="mb-3 block text-base">Loại phòng</Label>
                     <div className="flex flex-wrap gap-2">
                       {roomTypes.map((type) => (
                         <button
@@ -258,7 +259,7 @@ export default function SearchPage() {
 
                   {/* Amenities Section */}
                   <div className="bg-white rounded-xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
-                    <Label className="mb-3 block text-base">Amenities</Label>
+                    <Label className="mb-3 block text-base">Tiện nghi</Label>
                     <div className="space-y-3">
                       {amenities.map((amenity) => {
                         const Icon = amenity.icon;
@@ -293,7 +294,7 @@ export default function SearchPage() {
                       onClick={handleResetFilters}
                       className="flex-1 rounded-full border-gray-300 hover:bg-gray-50 h-11"
                     >
-                      Reset Filters
+                      Đặt lại
                     </Button>
                     <Button
                       onClick={handleApplyFilters}
@@ -303,10 +304,10 @@ export default function SearchPage() {
                       {isApplyingFilters ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Applying...
+                          Đang áp dụng...
                         </>
                       ) : (
-                        "Apply Filters"
+                        "Áp dụng"
                       )}
                     </Button>
                   </div>
@@ -318,7 +319,7 @@ export default function SearchPage() {
           {/* View Toggle & Results Count */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-600">
-              {filteredRooms.length} rooms available
+              {filteredRooms.length} phòng còn trống
             </p>
             <div className="flex gap-2">
               <Button
@@ -343,21 +344,21 @@ export default function SearchPage() {
       </div>
 
       {/* Active Filters */}
-      {(verifiedOnly || priceRange[0] > 0 || priceRange[1] < 2500) && (
+      {(verifiedOnly || priceRange[0] > 0 || priceRange[1] < 10000000) && (
         <div className="px-4 py-3 bg-gray-50 border-b border-border">
           <div className="max-w-6xl mx-auto flex flex-wrap gap-2">
             {verifiedOnly && (
               <Badge className="bg-primary text-white gap-1">
-                Verified Only
+                Đã xác thực
                 <X className="w-3 h-3 cursor-pointer" onClick={() => setVerifiedOnly(false)} />
               </Badge>
             )}
-            {(priceRange[0] > 0 || priceRange[1] < 2500) && (
+            {(priceRange[0] > 0 || priceRange[1] < 10000000) && (
               <Badge className="bg-primary text-white gap-1">
-                ${priceRange[0]} - ${priceRange[1]}
+                {formatPriceInMillions(priceRange[0])}tr - {formatPriceInMillions(priceRange[1])}tr
                 <X
                   className="w-3 h-3 cursor-pointer"
-                  onClick={() => setPriceRange([0, 2500])}
+                  onClick={() => setPriceRange([0, 10000000])}
                 />
               </Badge>
             )}
@@ -377,7 +378,7 @@ export default function SearchPage() {
           <div className="bg-gray-100 rounded-2xl h-[600px] flex items-center justify-center">
             <div className="text-center">
               <Map className="w-16 h-16 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">Map view coming soon</p>
+              <p className="text-gray-600">Chế độ xem bản đồ sắp ra mắt</p>
             </div>
           </div>
         )}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,9 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Shield, Users, RefreshCw, Star, CheckCircle } from "lucide-react";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
 import { ServicesBanner } from "@/components/common/ServicesBanner";
+import { PostListingModal } from "@/components/modals/PostListingModal";
+import { toast } from "sonner";
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [isPostListingOpen, setIsPostListingOpen] = useState(false);
 
   const onNavigate = (screen: string) => {
     const routeMap: Record<string, string> = {
@@ -19,6 +23,10 @@ export default function LandingPage() {
     };
     navigate(routeMap[screen] || `/${screen}`);
   };
+
+  const handlePostListingSubmit = () => {
+    toast.success("Đã gửi tin đăng! Tin của bạn sẽ được xem xét trong vòng 24 giờ.");
+  };
   return (
     <div className="pb-20 md:pb-8">
       {/* Hero Section */}
@@ -26,12 +34,12 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl mb-4">
-              Find your perfect room
+              Tìm phòng và bạn cùng phòng
               <br />
-              and roommate.
+              hoàn hảo của bạn.
             </h1>
             <p className="text-gray-600 text-lg">
-              Verified rooms, compatible matches, flexible subletting
+              Phòng đã xác thực, kết nối phù hợp, thuê linh hoạt
             </p>
           </div>
 
@@ -39,30 +47,30 @@ export default function LandingPage() {
           <div className="bg-white rounded-full shadow-lg p-2 flex items-center gap-2 max-w-2xl mx-auto">
             <Search className="w-5 h-5 text-gray-400 ml-4" />
             <Input
-              placeholder="City, University, or Neighborhood..."
+              placeholder="Thành phố, Trường học, hoặc Khu vực..."
               className="border-0 bg-transparent focus-visible:ring-0"
             />
             <Button
               onClick={() => onNavigate("search")}
               className="rounded-full bg-primary hover:bg-primary/90 px-8"
             >
-              Search
+              Tìm kiếm
             </Button>
           </div>
 
           {/* Quick Filters */}
           <div className="flex flex-wrap gap-3 justify-center mt-4">
             <Badge variant="secondary" className="px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-sm dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-200/90 dark:hover:bg-slate-700/90">
-              Verified Only
+              Chỉ phòng đã xác thực
             </Badge>
             <Badge variant="secondary" className="px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-sm dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-200/90 dark:hover:bg-slate-700/90">
-              $500-$1000
+              2-4 triệu
             </Badge>
             <Badge variant="secondary" className="px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-sm dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-200/90 dark:hover:bg-slate-700/90">
-              Private Room
+              Phòng riêng
             </Badge>
             <Badge variant="secondary" className="px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200 text-slate-700 text-xs font-medium shadow-sm dark:bg-slate-800/70 dark:border-slate-700 dark:text-slate-200 cursor-pointer hover:bg-slate-200/90 dark:hover:bg-slate-700/90">
-              Pet Friendly
+              Cho phép thú cưng
             </Badge>
           </div>
         </div>
@@ -77,14 +85,15 @@ export default function LandingPage() {
             className="bg-primary hover:bg-primary/90 rounded-2xl h-14"
           >
             <Search className="w-5 h-5 mr-2" />
-            Find a Room
+            Tìm phòng
           </Button>
           <Button
+            onClick={() => setIsPostListingOpen(true)}
             size="lg"
             variant="outline"
             className="border-2 border-primary text-primary hover:bg-primary/5 rounded-2xl h-14"
           >
-            List a Room
+            Đăng tin cho thuê
           </Button>
         </div>
       </div>
@@ -92,7 +101,7 @@ export default function LandingPage() {
       {/* Key Features */}
       <div className="px-6 py-12 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-center mb-8">Why choose RoomZ?</h2>
+          <h2 className="text-center mb-8">Tại sao chọn RoomZ?</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white rounded-2xl p-6 text-center shadow-sm">
               <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -100,7 +109,7 @@ export default function LandingPage() {
               </div>
               <h3 className="mb-2">Verified+</h3>
               <p className="text-gray-600 text-sm">
-                Every room and landlord verified with ID checks and 360° photos
+                Mọi phòng và chủ nhà được xác thực với kiểm tra giấy tờ và ảnh 360°
               </p>
             </div>
 
@@ -108,9 +117,9 @@ export default function LandingPage() {
               <div className="w-14 h-14 bg-secondary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Users className="w-7 h-7 text-secondary" />
               </div>
-              <h3 className="mb-2">Compatibility Match</h3>
+              <h3 className="mb-2">Kết nối phù hợp</h3>
               <p className="text-gray-600 text-sm">
-                Find roommates who match your lifestyle and preferences
+                Tìm bạn cùng phòng phù hợp với lối sống và sở thích của bạn
               </p>
             </div>
 
@@ -120,7 +129,7 @@ export default function LandingPage() {
               </div>
               <h3 className="mb-2">SwapRoom</h3>
               <p className="text-gray-600 text-sm">
-                Flexible subletting for short-term stays and room swaps
+                Thuê linh hoạt ngắn hạn và hoán đổi phòng dễ dàng
               </p>
             </div>
           </div>
@@ -129,28 +138,28 @@ export default function LandingPage() {
 
       {/* Services Banner */}
       <div className="px-6 py-12 max-w-6xl mx-auto">
-        <ServicesBanner onNavigate={onNavigate} />
+        <ServicesBanner />
       </div>
 
       {/* Testimonials */}
       <div className="px-6 py-12 max-w-6xl mx-auto">
-        <h2 className="text-center mb-8">Trusted by thousands of students</h2>
+        <h2 className="text-center mb-8">Được tin dùng bởi hàng nghìn sinh viên</h2>
         <div className="grid md:grid-cols-3 gap-6">
           {[
             {
-              name: "Sarah Chen",
-              role: "Graduate Student",
-              text: "Found my perfect roommate in just 2 days! The compatibility match is incredibly accurate.",
+              name: "Minh Anh",
+              role: "Sinh viên Cao học",
+              text: "Tìm được bạn cùng phòng hoàn hảo chỉ trong 2 ngày! Độ phù hợp cực kỳ chính xác.",
             },
             {
-              name: "Marcus Johnson",
-              role: "Young Professional",
-              text: "Verified+ gave me peace of mind. No more scam listings or fake photos!",
+              name: "Tuấn Kiệt",
+              role: "Nhân viên văn phòng",
+              text: "Verified+ cho tôi sự yên tâm tuyệt đối. Không còn lo lừa đảo hay ảnh giả!",
             },
             {
-              name: "Emily Rodriguez",
-              role: "Undergraduate",
-              text: "SwapRoom saved me when I needed to sublet for summer internship. So convenient!",
+              name: "Hương Giang",
+              role: "Sinh viên Đại học",
+              text: "SwapRoom cứu tôi khi cần cho thuê lại phòng trong mùa hè thực tập. Quá tiện lợi!",
             },
           ].map((testimonial, index) => (
             <div key={index} className="bg-white rounded-2xl p-6 shadow-sm">
@@ -175,19 +184,26 @@ export default function LandingPage() {
           <div className="flex flex-wrap items-center justify-center gap-8">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-primary" />
-              <span className="text-sm">10,000+ Verified Rooms</span>
+              <span className="text-sm">10,000+ Phòng đã xác thực</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-primary" />
-              <span className="text-sm">50,000+ Happy Renters</span>
+              <span className="text-sm">50,000+ Người thuê hài lòng</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-primary" />
-              <span className="text-sm">Trusted & Safe</span>
+              <span className="text-sm">Đáng tin cậy & An toàn</span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Post Listing Modal */}
+      <PostListingModal
+        isOpen={isPostListingOpen}
+        onClose={() => setIsPostListingOpen(false)}
+        onSubmit={handlePostListingSubmit}
+      />
     </div>
   );
 }

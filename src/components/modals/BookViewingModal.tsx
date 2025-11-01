@@ -20,9 +20,9 @@ export function BookViewingModal({ isOpen, onClose }: BookViewingModalProps) {
   const [isConfirmed, setIsConfirmed] = useState(false);
 
   const timeSlots = [
-    { id: "morning", label: "Morning", time: "9:00 AM - 12:00 PM" },
-    { id: "afternoon", label: "Afternoon", time: "12:00 PM - 5:00 PM" },
-    { id: "evening", label: "Evening", time: "5:00 PM - 8:00 PM" },
+    { id: "morning", label: "Buổi sáng", time: "9:00 - 12:00" },
+    { id: "afternoon", label: "Buổi chiều", time: "12:00 - 17:00" },
+    { id: "evening", label: "Buổi tối", time: "17:00 - 20:00" },
   ];
 
   const handleConfirmBooking = () => {
@@ -54,17 +54,17 @@ export function BookViewingModal({ isOpen, onClose }: BookViewingModalProps) {
             <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-primary/5 to-secondary/5">
               <DialogTitle className="flex items-center gap-2 text-xl">
                 <CalendarCheck className="w-6 h-6 text-primary" />
-                Book a Viewing
+                Đặt lịch xem phòng
               </DialogTitle>
               <DialogDescription>
-                Choose your preferred date and time
+                Chọn ngày và giờ bạn muốn
               </DialogDescription>
             </DialogHeader>
 
             <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
               {/* Date Picker */}
               <div>
-                <Label className="mb-3 block">Select Date</Label>
+                <Label className="mb-3 block">Chọn ngày</Label>
                 <div className="flex justify-center border rounded-2xl p-4 bg-muted/30">
                   <Calendar
                     mode="single"
@@ -78,7 +78,7 @@ export function BookViewingModal({ isOpen, onClose }: BookViewingModalProps) {
 
               {/* Time Slot Selector */}
               <div>
-                <Label className="mb-3 block">Preferred Time Slot</Label>
+                <Label className="mb-3 block">Chọn khung giờ</Label>
                 <div className="grid gap-3">
                   {timeSlots.map((slot) => (
                     <button
@@ -116,13 +116,13 @@ export function BookViewingModal({ isOpen, onClose }: BookViewingModalProps) {
               {/* Notes */}
               <div>
                 <Label htmlFor="notes" className="mb-3 block">
-                  Notes for Landlord <span className="text-muted-foreground">(optional)</span>
+                  Ghi chú cho chủ nhà <span className="text-muted-foreground">(không bắt buộc)</span>
                 </Label>
                 <Textarea
                   id="notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any specific questions or requirements?"
+                  placeholder="Câu hỏi hoặc yêu cầu cụ thể của bạn?"
                   className="rounded-xl min-h-[100px] resize-none"
                 />
               </div>
@@ -135,14 +135,14 @@ export function BookViewingModal({ isOpen, onClose }: BookViewingModalProps) {
                 onClick={handleClose}
                 className="flex-1 rounded-full h-12"
               >
-                Cancel
+                Hủy
               </Button>
               <Button
                 onClick={handleConfirmBooking}
                 disabled={!date || !timeSlot}
                 className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
               >
-                Confirm Booking
+                Xác nhận
               </Button>
             </div>
           </>
@@ -150,21 +150,21 @@ export function BookViewingModal({ isOpen, onClose }: BookViewingModalProps) {
           // Confirmation State
           <>
             <VisuallyHidden>
-              <DialogTitle>Booking Confirmed</DialogTitle>
+              <DialogTitle>Đặt lịch thành công</DialogTitle>
               <DialogDescription>
-                Your viewing has been successfully booked
+                Lịch xem phòng đã được đặt thành công
               </DialogDescription>
             </VisuallyHidden>
             <div className="p-12 text-center">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-10 h-10 text-green-600" />
               </div>
-              <h3 className="mb-2">Viewing Booked!</h3>
+              <h3 className="mb-2">Đặt lịch thành công!</h3>
               <p className="text-muted-foreground mb-4">
-                Your viewing has been successfully booked. The landlord will contact you soon.
+                Lịch xem phòng đã được đặt thành công. Chủ nhà sẽ liên hệ với bạn sớm.
               </p>
               <Badge className="bg-green-100 text-green-700 border-green-300">
-                Confirmation sent to your email
+                Xác nhận đã gửi đến email của bạn
               </Badge>
             </div>
           </>

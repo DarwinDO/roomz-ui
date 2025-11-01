@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -14,7 +15,6 @@ import { ServicesBanner } from "@/components/common/ServicesBanner";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { UpgradeRoomZPlusModal } from "@/components/modals/UpgradeRoomZPlusModal";
 import { ProfileEditModal } from "@/components/modals/ProfileEditModal";
-import RoomDetailPage from "@/pages/RoomDetailPage";
 import { MessagesList } from "@/components/common/MessagesList";
 import { messagesData } from "../data/messages";
 import { toast } from "sonner";
@@ -33,7 +33,8 @@ import {
   Eye,
 } from "lucide-react";
 
-export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
+export default function ProfilePage() {
+  const navigate = useNavigate();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedChatPerson, setSelectedChatPerson] = useState<any>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -44,10 +45,10 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
     {
       id: "saved-1",
       image: "https://images.unsplash.com/photo-1668089677938-b52086753f77?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBiZWRyb29tJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYwNjM2NDM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Cozy Private Room near Campus",
-      location: "University District",
-      price: 850,
-      distance: "0.3 mi",
+      title: "Phòng riêng ấm cúng gần trường",
+      location: "Khu Đại học, TP.HCM",
+      price: 3500000,
+      distance: "0.5 km",
       verified: true,
       available: true,
       matchPercentage: 92,
@@ -55,10 +56,10 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
     {
       id: "saved-2",
       image: "https://images.unsplash.com/photo-1617325247661-675ab4b64ae2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwYmVkcm9vbXxlbnwxfHx8fDE3NjA2MzgzMDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Modern Studio with City View",
-      location: "Downtown",
-      price: 1250,
-      distance: "1.2 mi",
+      title: "Căn studio hiện đại nhìn ra thành phố",
+      location: "Quận 3, TP.HCM",
+      price: 5000000,
+      distance: "2 km",
       verified: true,
       available: true,
       matchPercentage: 85,
@@ -73,20 +74,20 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
   };
 
   const handleUpgradeSuccess = () => {
-    toast.success("Success! RoomZ+ is now active on your account.");
+    toast.success("Thành công! RoomZ+ đã được kích hoạt trên tài khoản của bạn.");
   };
 
   const handleProfileSave = () => {
-    toast.success("Profile updated successfully!");
+    toast.success("Cập nhật hồ sơ thành công!");
   };
 
   const handleRoomClick = (room: any) => {
-    setSelectedRoom(room);
+    navigate(`/room/${room.id}`);
   };
 
   const handleRemoveFavorite = (roomId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    toast.success("Removed from favorites");
+    toast.success("Đã xóa khỏi yêu thích");
   };
 
   const toggleSettingsSection = (section: string) => {
@@ -94,17 +95,8 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
   };
 
   const handleSaveSettings = () => {
-    toast.success("Settings saved successfully!");
+    toast.success("Đã lưu cài đặt thành công!");
   };
-
-  if (selectedRoom) {
-    return (
-      <RoomDetailPage
-        onBack={() => setSelectedRoom(null)}
-        roomId={selectedRoom.id}
-      />
-    );
-  }
 
   return (
     <div className="pb-20 md:pb-8">
@@ -122,13 +114,13 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h2 className="text-lg sm:text-2xl">Jessica Davis</h2>
+                    <h2 className="text-lg sm:text-2xl">Nguyễn Thảo Linh</h2>
                     <Badge className="bg-primary text-white text-xs sm:text-sm px-2 py-0.5 sm:px-3 sm:py-1">
                       <ShieldCheck className="w-3 h-3 mr-1" />
-                      Verified
+                      Đã xác thực
                     </Badge>
                   </div>
-                  <p className="text-sm sm:text-base text-gray-600">Computer Science, Stanford University</p>
+                  <p className="text-sm sm:text-base text-gray-600">Khoa học máy tính, ĐH Bách Khoa TP.HCM</p>
                 </div>
                 <Button
                   onClick={() => setIsEditProfileOpen(true)}
@@ -137,8 +129,8 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                   className="rounded-full shrink-0 min-w-[90px] text-sm"
                 >
                   <Edit className="w-4 h-4 mr-1 sm:mr-2" />
-                  <span className="hidden xs:inline">Edit Profile</span>
-                  <span className="xs:hidden">Edit</span>
+                  <span className="hidden xs:inline">Chỉnh sửa hồ sơ</span>
+                  <span className="xs:hidden">Sửa</span>
                 </Button>
               </div>
               <div className="flex items-center gap-3 sm:gap-6 mt-3 sm:mt-4">
@@ -147,17 +139,17 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                     <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-base sm:text-lg">4.9</span>
                   </div>
-                  <p className="text-xs text-gray-500">Rating</p>
+                  <p className="text-xs text-gray-500">Đánh giá</p>
                 </div>
                 <div className="h-6 sm:h-8 w-px bg-gray-300"></div>
                 <div>
                   <p className="text-base sm:text-lg">12</p>
-                  <p className="text-xs text-gray-500">Reviews</p>
+                  <p className="text-xs text-gray-500">Nhận xét</p>
                 </div>
                 <div className="h-6 sm:h-8 w-px bg-gray-300"></div>
                 <div>
                   <p className="text-base sm:text-lg">95%</p>
-                  <p className="text-xs text-gray-500">Trust Score</p>
+                  <p className="text-xs text-gray-500">Điểm tin cậy</p>
                 </div>
               </div>
             </div>
@@ -168,7 +160,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-primary" />
-                <span>Trust Score</span>
+                <span>Điểm tin cậy</span>
               </div>
               <span className="text-primary">95%</span>
             </div>
@@ -176,15 +168,15 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="bg-green-100 text-green-700">
                 <ShieldCheck className="w-3 h-3 mr-1" />
-                ID Verified
+                Đã xác thực CMND
               </Badge>
               <Badge variant="secondary" className="bg-green-100 text-green-700">
                 <ShieldCheck className="w-3 h-3 mr-1" />
-                Email Verified
+                Đã xác thực Email
               </Badge>
               <Badge variant="secondary" className="bg-green-100 text-green-700">
                 <ShieldCheck className="w-3 h-3 mr-1" />
-                Student ID Verified
+                Đã xác thực thẻ SV
               </Badge>
             </div>
           </Card>
@@ -199,29 +191,29 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
               <Crown className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="mb-1">Upgrade to RoomZ+</h3>
+              <h3 className="mb-1">Nâng cấp lên RoomZ+</h3>
               <p className="text-sm text-gray-700 mb-3">
-                Get priority listings, advanced matching, and exclusive perks
+                Nhận ưu tiên hiển thị, phù hợp nâng cao và ưu đãi độc quyền
               </p>
               <ul className="space-y-1 mb-4 text-sm">
                 <li className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-primary" />
-                  Priority in search results
+                  Ưu tiên trong kết quả tìm kiếm
                 </li>
                 <li className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-primary" />
-                  Advanced compatibility matching
+                  Phù hợp nâng cao
                 </li>
                 <li className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-primary" />
-                  No booking fees
+                  Không phí đặt phòng
                 </li>
               </ul>
               <Button
                 onClick={() => setIsUpgradeModalOpen(true)}
                 className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-white rounded-full"
               >
-                Upgrade Now - $9.89/mo
+                Nâng cấp ngay - 200k/tháng
               </Button>
             </div>
           </div>
@@ -234,26 +226,24 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="favorites">
               <Heart className="w-4 h-4 mr-2" />
-              Favorites
+              Yêu thích
             </TabsTrigger>
             <TabsTrigger value="messages">
               <MessageCircle className="w-4 h-4 mr-2" />
-              Messages
+              Tin nhắn
             </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="w-4 h-4 mr-2" />
-              Settings
+              Cài đặt
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="favorites">
             <div className="space-y-8">
-              {onNavigate && (
-                <ServicesBanner onNavigate={onNavigate} />
-              )}
+              <ServicesBanner />
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3>Saved Rooms ({savedRooms.length})</h3>
+                  <h3>Phòng đã lưu ({savedRooms.length})</h3>
                 </div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {savedRooms.map((room) => (
@@ -296,7 +286,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
           <TabsContent value="settings">
             <div className="space-y-6">
               <Card className="p-6 rounded-2xl">
-                <h3 className="mb-4">Account Settings</h3>
+                <h3 className="mb-4">Cài đặt tài khoản</h3>
                 <div className="space-y-3">
                   {/* Edit Profile Information */}
                   <Collapsible
@@ -310,7 +300,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                       >
                         <div className="flex items-center">
                           <User className="w-4 h-4 mr-3" />
-                          Edit Profile Information
+                          Chỉnh sửa thông tin hồ sơ
                         </div>
                         <ChevronDown
                           className={`w-4 h-4 transition-transform ${
@@ -321,26 +311,26 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                     </CollapsibleTrigger>
                     <CollapsibleContent className="mt-3 p-4 bg-gray-50 rounded-xl space-y-3">
                       <div className="space-y-2">
-                        <Label htmlFor="profile-name">Full Name</Label>
+                        <Label htmlFor="profile-name">Họ và tên</Label>
                         <Input
                           id="profile-name"
-                          defaultValue="Jessica Davis"
+                          defaultValue="Nguyễn Thảo Linh"
                           className="rounded-xl"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="profile-major">Major</Label>
+                        <Label htmlFor="profile-major">Ngành học</Label>
                         <Input
                           id="profile-major"
-                          defaultValue="Computer Science"
+                          defaultValue="Khoa học máy tính"
                           className="rounded-xl"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="profile-university">University</Label>
+                        <Label htmlFor="profile-university">Trường học</Label>
                         <Input
                           id="profile-university"
-                          defaultValue="Stanford University"
+                          defaultValue="ĐH Bách Khoa TP.HCM"
                           className="rounded-xl"
                         />
                       </div>
@@ -348,7 +338,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                         onClick={handleSaveSettings}
                         className="w-full rounded-full bg-primary"
                       >
-                        Save Changes
+                        Lưu thay đổi
                       </Button>
                     </CollapsibleContent>
                   </Collapsible>
@@ -365,7 +355,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                       >
                         <div className="flex items-center">
                           <ShieldCheck className="w-4 h-4 mr-3" />
-                          Verification Status
+                          Trạng thái xác thực
                         </div>
                         <ChevronDown
                           className={`w-4 h-4 transition-transform ${
@@ -379,28 +369,28 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <ShieldCheck className="w-4 h-4 text-green-600" />
-                            <span className="text-sm">ID Verified</span>
+                            <span className="text-sm">Đã xác thực CMND</span>
                           </div>
                           <Badge className="bg-green-100 text-green-700 border-0">
-                            ✓ Verified
+                            ✓ Đã xác thực
                           </Badge>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <ShieldCheck className="w-4 h-4 text-green-600" />
-                            <span className="text-sm">Email Verified</span>
+                            <span className="text-sm">Đã xác thực Email</span>
                           </div>
                           <Badge className="bg-green-100 text-green-700 border-0">
-                            ✓ Verified
+                            ✓ Đã xác thực
                           </Badge>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <ShieldCheck className="w-4 h-4 text-green-600" />
-                            <span className="text-sm">Student ID Verified</span>
+                            <span className="text-sm">Đã xác thực thẻ SV</span>
                           </div>
                           <Badge className="bg-green-100 text-green-700 border-0">
-                            ✓ Verified
+                            ✓ Đã xác thực
                           </Badge>
                         </div>
                       </div>
@@ -419,7 +409,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                       >
                         <div className="flex items-center">
                           <Award className="w-4 h-4 mr-3" />
-                          Preferences & Matching
+                          Tùy chọn & Phù hợp
                         </div>
                         <ChevronDown
                           className={`w-4 h-4 transition-transform ${
@@ -431,19 +421,19 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                     <CollapsibleContent className="mt-3 p-4 bg-gray-50 rounded-xl space-y-3">
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">Quiet roommate preferred</span>
+                          <span className="text-sm">Bạn cùng phòng yên tĩnh</span>
                           <Switch defaultChecked />
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">Non-smoker only</span>
+                          <span className="text-sm">Không hút thuốc</span>
                           <Switch defaultChecked />
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">Pet friendly</span>
+                          <span className="text-sm">Cho phép thú cưng</span>
                           <Switch />
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">Early bird (6-9 AM wake up)</span>
+                          <span className="text-sm">Ngủ sớm (dậy 6-9h sáng)</span>
                           <Switch />
                         </div>
                       </div>
@@ -451,7 +441,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                         onClick={handleSaveSettings}
                         className="w-full rounded-full bg-primary"
                       >
-                        Save Preferences
+                        Lưu tùy chọn
                       </Button>
                     </CollapsibleContent>
                   </Collapsible>
@@ -468,7 +458,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                       >
                         <div className="flex items-center">
                           <Settings className="w-4 h-4 mr-3" />
-                          Privacy & Security
+                          Quyền riêng tư & Bảo mật
                         </div>
                         <ChevronDown
                           className={`w-4 h-4 transition-transform ${
@@ -480,7 +470,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                     <CollapsibleContent className="mt-3 p-4 bg-gray-50 rounded-xl space-y-3">
                       <div className="space-y-3">
                         <div className="space-y-2">
-                          <Label htmlFor="current-password">Current Password</Label>
+                          <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
                           <Input
                             id="current-password"
                             type="password"
@@ -488,7 +478,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="new-password">New Password</Label>
+                          <Label htmlFor="new-password">Mật khẩu mới</Label>
                           <Input
                             id="new-password"
                             type="password"
@@ -496,15 +486,15 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                           />
                         </div>
                         <div className="flex items-center justify-between pt-2">
-                          <span className="text-sm">Enable 2FA</span>
+                          <span className="text-sm">Bật xác thực 2 bước</span>
                           <Switch />
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm">Profile visibility</span>
+                          <span className="text-sm">Hiển thị hồ sơ</span>
                           <select className="px-3 py-1 rounded-lg border text-sm">
-                            <option>Public</option>
-                            <option>Friends Only</option>
-                            <option>Private</option>
+                            <option>Công khai</option>
+                            <option>Chỉ bạn bè</option>
+                            <option>Riêng tư</option>
                           </select>
                         </div>
                       </div>
@@ -512,7 +502,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
                         onClick={handleSaveSettings}
                         className="w-full rounded-full bg-primary"
                       >
-                        Update Security
+                        Cập nhật bảo mật
                       </Button>
                     </CollapsibleContent>
                   </Collapsible>
@@ -520,13 +510,13 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
               </Card>
 
               <Card className="p-6 rounded-2xl">
-                <h3 className="mb-4">Notifications</h3>
+                <h3 className="mb-4">Thông báo</h3>
                 <div className="space-y-4">
                   {[
-                    "New room matches",
-                    "Messages",
-                    "Booking updates",
-                    "SwapRoom suggestions",
+                    "Phòng phù hợp mới",
+                    "Tin nhắn",
+                    "Cập nhật đặt phòng",
+                    "Gợi ý SwapRoom",
                   ].map((item, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <span className="text-sm">{item}</span>
@@ -537,7 +527,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
               </Card>
 
               <Button variant="outline" className="w-full text-red-600 hover:text-red-700 rounded-xl">
-                Log Out
+                Đăng xuất
               </Button>
             </div>
           </TabsContent>
@@ -556,12 +546,12 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
         onSave={handleProfileSave}
       />
       {selectedChatPerson && (
-        <ChatDrawer
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          recipientName={selectedChatPerson.name}
-          recipientRole="Roommate Seeker"
-        />
+      <ChatDrawer
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        recipientName={selectedChatPerson.name}
+        recipientRole="Người tìm bạn cùng phòng"
+      />
       )}
     </div>
   );
