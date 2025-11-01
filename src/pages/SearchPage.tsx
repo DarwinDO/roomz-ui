@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RoomCard } from "@/components/common/RoomCard";
+import { formatPriceInMillions } from "@/utils/format";
 import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, UtensilsCrossed, PawPrint, Armchair, CheckCircle2, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -354,7 +355,7 @@ export default function SearchPage() {
             )}
             {(priceRange[0] > 0 || priceRange[1] < 10000000) && (
               <Badge className="bg-primary text-white gap-1">
-                {(priceRange[0]/1000).toFixed(0)}tr - {(priceRange[1]/1000).toFixed(0)}tr
+                {formatPriceInMillions(priceRange[0])}tr - {formatPriceInMillions(priceRange[1])}tr
                 <X
                   className="w-3 h-3 cursor-pointer"
                   onClick={() => setPriceRange([0, 10000000])}

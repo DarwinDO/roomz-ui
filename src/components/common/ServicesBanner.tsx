@@ -1,12 +1,10 @@
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Truck, Gift, ArrowRight } from "lucide-react";
 
-interface ServicesBannerProps {
-  onNavigate?: (screen: string) => void;
-}
-
-export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
+export function ServicesBanner() {
+  const navigate = useNavigate();
   return (
     <div className="space-y-4">
       {/* Section Header */}
@@ -22,7 +20,7 @@ export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
         {/* Moving & Support */}
         <Card
           className="p-6 rounded-2xl shadow-sm hover:shadow-md transition-all border-border cursor-pointer group"
-          onClick={() => onNavigate?.("support-services")}
+          onClick={() => navigate("/support-services")}
         >
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
@@ -41,7 +39,7 @@ export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
               <Button
                 variant="outline"
                 className="rounded-full text-sm h-9"
-                onClick={() => onNavigate?.("support-services")}
+                onClick={(e) => { e.stopPropagation(); navigate("/support-services"); }}
               >
                 Khám phá dịch vụ
               </Button>
@@ -52,7 +50,7 @@ export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
         {/* Local Passport */}
         <Card
           className="p-6 rounded-2xl shadow-sm hover:shadow-md transition-all border-border cursor-pointer group"
-          onClick={() => onNavigate?.("local-passport")}
+          onClick={() => navigate("/local-passport")}
         >
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 bg-secondary/10 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-secondary/20 transition-colors">
@@ -71,7 +69,7 @@ export function ServicesBanner({ onNavigate }: ServicesBannerProps) {
               <Button
                 variant="outline"
                 className="rounded-full text-sm h-9"
-                onClick={() => onNavigate?.("local-passport")}
+                onClick={(e) => { e.stopPropagation(); navigate("/local-passport"); }}
               >
                 Xem ưu đãi
               </Button>

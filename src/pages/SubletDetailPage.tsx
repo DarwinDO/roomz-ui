@@ -1,9 +1,12 @@
 import { useState } from "react";
-import type { FC } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
+import { ChatDrawer } from "@/components/common/ChatDrawer";
+import { BookingModal } from "@/components/modals/BookingModal";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Heart,
@@ -20,31 +23,26 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-export interface SubletDetailPageProps {
-  onBack: () => void;
-  onBookSublet: () => void;
-  onMessageHost: () => void;
-  sublet: {
-    id: string;
-    title: string;
-    location: string;
-    price: number;
-    distance: string;
-    verified: boolean;
-    image: string;
-    available?: boolean;
-    matchPercentage?: number;
+const SubletDetailPage = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+  
+  // Mock data - trong thực tế sẽ fetch từ API dựa trên id
+  const sublet = {
+    id: id || "1",
+    title: "Phòng trọ cho thuê ngắn hạn - Gần trường",
+    location: "Cầu Giấy, Hà Nội",
+    price: 2500000,
+    distance: "3 tháng",
+    verified: true,
+    image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWRyb29tJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYwNjM4MzA3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+    available: true,
+    matchPercentage: 85,
   };
-}
-
-const SubletDetailPage: FC<SubletDetailPageProps> = ({
-  onBack,
-  onBookSublet,
-  onMessageHost,
-  sublet,
-}) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
 
   const images = [
     sublet.image,
@@ -74,6 +72,18 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
     return `${Math.round(price / 1_000)}k`;
   };
 
+  const handleBack = () => navigate(-1);
+  const handleBookSublet = () => {
+    setIsBookingOpen(true);
+  };
+  const handleMessageHost = () => {
+    setIsChatOpen(true);
+  };
+  
+  const handleBookingConfirm = () => {
+    toast.success("Đã gửi yêu cầu đặt chỗ! Chủ nhà sẽ liên hệ lại với bạn sớm.");
+  };
+
   return (
     <div className="min-h-screen bg-white pb-24 md:pb-24">
       {/* Header with Back, Favorite, Share */}
@@ -82,7 +92,7 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onBack}
+            onClick={handleBack}
             className="rounded-full"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -265,7 +275,7 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col xs:flex-row gap-3">
             <Button
-              onClick={onMessageHost}
+              onClick={handleMessageHost}
               variant="outline"
               className="flex-1 rounded-full h-12 border-2 border-primary text-primary hover:bg-primary/10"
             >
@@ -273,7 +283,7 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
               Nhắn chủ nhà
             </Button>
             <Button
-              onClick={onBookSublet}
+              onClick={handleBookSublet}
               className="flex-1 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-12 text-white shadow-md"
             >
               <Calendar className="w-5 h-5 mr-2" />
@@ -282,6 +292,27 @@ const SubletDetailPage: FC<SubletDetailPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Chat Drawer */}
+      <ChatDrawer
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        recipientName={hostInfo.name}
+        recipientRole={hostInfo.role}
+      />
+
+      {/* Booking Modal */}
+      <BookingModal
+        isOpen={isBookingOpen}
+        onClose={() => setIsBookingOpen(false)}
+        onConfirm={handleBookingConfirm}
+        subletInfo={{
+          title: sublet.title,
+          price: sublet.price,
+          location: sublet.location,
+          duration: sublet.distance,
+        }}
+      />
     </div>
   );
 };

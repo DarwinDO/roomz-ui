@@ -17,6 +17,7 @@ const SupportServicesPage = lazy(() => import('@/pages/SupportServicesPage'));
 const LocalPassportPage = lazy(() => import('@/pages/LocalPassportPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const SubletDetailPage = lazy(() => import('@/pages/SubletDetailPage'));
+const PartnersListPage = lazy(() => import('@/pages/PartnersListPage'));
 
 // Admin pages
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
@@ -91,6 +92,10 @@ export const router = createBrowserRouter([
       {
         path: 'sublet/:id',
         element: <SubletDetailPage />,
+      },
+      {
+        path: 'partners',
+        element: <PartnersListPage />,
       },
     ],
   },

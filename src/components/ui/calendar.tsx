@@ -51,7 +51,7 @@ function Calendar({
           defaultClassNames.button_next,
         ),
         chevron: cn("size-4", defaultClassNames.chevron),
-        table: cn("w-full border-collapse", defaultClassNames.table),
+        table: "w-full border-collapse",
         weekdays: cn("w-full", defaultClassNames.weekdays),
         weekday: cn(
           "text-muted-foreground rounded-md font-normal text-[0.8rem] text-center",

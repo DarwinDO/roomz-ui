@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,9 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Shield, Users, RefreshCw, Star, CheckCircle } from "lucide-react";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
 import { ServicesBanner } from "@/components/common/ServicesBanner";
+import { PostListingModal } from "@/components/modals/PostListingModal";
+import { toast } from "sonner";
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [isPostListingOpen, setIsPostListingOpen] = useState(false);
 
   const onNavigate = (screen: string) => {
     const routeMap: Record<string, string> = {
@@ -18,6 +22,10 @@ export default function LandingPage() {
       'community': '/community',
     };
     navigate(routeMap[screen] || `/${screen}`);
+  };
+
+  const handlePostListingSubmit = () => {
+    toast.success("Đã gửi tin đăng! Tin của bạn sẽ được xem xét trong vòng 24 giờ.");
   };
   return (
     <div className="pb-20 md:pb-8">
@@ -80,6 +88,7 @@ export default function LandingPage() {
             Tìm phòng
           </Button>
           <Button
+            onClick={() => setIsPostListingOpen(true)}
             size="lg"
             variant="outline"
             className="border-2 border-primary text-primary hover:bg-primary/5 rounded-2xl h-14"
@@ -129,7 +138,7 @@ export default function LandingPage() {
 
       {/* Services Banner */}
       <div className="px-6 py-12 max-w-6xl mx-auto">
-        <ServicesBanner onNavigate={onNavigate} />
+        <ServicesBanner />
       </div>
 
       {/* Testimonials */}
@@ -188,6 +197,13 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
+
+      {/* Post Listing Modal */}
+      <PostListingModal
+        isOpen={isPostListingOpen}
+        onClose={() => setIsPostListingOpen(false)}
+        onSubmit={handlePostListingSubmit}
+      />
     </div>
   );
 }

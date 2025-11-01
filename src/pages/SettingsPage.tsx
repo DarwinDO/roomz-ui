@@ -104,7 +104,7 @@ export default function SettingsPage() {
                     <button
                       className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
                       onClick={() => {
-                        if (!item.toggle) {
+                        if (!('toggle' in item)) {
                           // Handle navigation
                         }
                       }}
@@ -112,12 +112,12 @@ export default function SettingsPage() {
                       <Icon className="w-5 h-5 text-gray-600" />
                       <span className="flex-1 text-left">{item.label}</span>
                       
-                      {item.toggle ? (
+                      {'toggle' in item && item.toggle ? (
                         <Switch
                           checked={item.value as boolean}
                           onCheckedChange={item.onChange}
                         />
-                      ) : item.value ? (
+                      ) : 'value' in item && item.value ? (
                         <span className="text-sm text-gray-500">{item.value}</span>
                       ) : null}
                       

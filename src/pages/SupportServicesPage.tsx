@@ -15,6 +15,7 @@ import {
 import { BookMovingModal } from "@/components/modals/BookMovingModal";
 import { CleaningScheduleModal } from "@/components/modals/CleaningScheduleModal";
 import { SupportRequestModal } from "@/components/modals/SupportRequestModal";
+import { PartnerDetailModal } from "@/components/modals/PartnerDetailModal";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { toast } from "sonner";
 
@@ -26,6 +27,8 @@ export default function SupportServicesPage() {
   const [isCleaningModalOpen, setIsCleaningModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [isPartnerDetailOpen, setIsPartnerDetailOpen] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState<any>(null);
   const handleServiceClick = (serviceId: number) => {
     if (serviceId === 1) setIsMovingModalOpen(true);
     if (serviceId === 2) setIsCleaningModalOpen(true);
@@ -42,6 +45,15 @@ export default function SupportServicesPage() {
 
   const handleSupportSubmit = () => {
     toast.success("Cảm ơn bạn! Đội hỗ trợ sẽ liên hệ sớm nhất.");
+  };
+
+  const handlePartnerClick = (partner: any) => {
+    setSelectedPartner(partner);
+    setIsPartnerDetailOpen(true);
+  };
+
+  const handleViewAllPartners = () => {
+    navigate('/partners');
   };
 
   const services = [
@@ -181,7 +193,11 @@ export default function SupportServicesPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2>Đối tác RoomZ đề xuất</h2>
-            <Button variant="ghost" className="rounded-full text-primary">
+            <Button 
+              onClick={handleViewAllPartners}
+              variant="ghost" 
+              className="rounded-full text-primary"
+            >
               Xem tất cả
               <ExternalLink className="ml-2 w-4 h-4" />
             </Button>
@@ -191,6 +207,7 @@ export default function SupportServicesPage() {
             {partners.map((partner, idx) => (
               <Card
                 key={idx}
+                onClick={() => handlePartnerClick(partner)}
                 className="p-5 rounded-2xl shadow-sm hover:shadow-md transition-all border-border cursor-pointer"
               >
                 <div className="space-y-3">
@@ -264,6 +281,13 @@ export default function SupportServicesPage() {
         onClose={() => setIsSupportModalOpen(false)}
         onSubmit={handleSupportSubmit}
       />
+      {selectedPartner && (
+        <PartnerDetailModal
+          isOpen={isPartnerDetailOpen}
+          onClose={() => setIsPartnerDetailOpen(false)}
+          partner={selectedPartner}
+        />
+      )}
     </div>
   );
 }

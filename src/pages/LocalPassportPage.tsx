@@ -1,4 +1,5 @@
 ﻿import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -17,13 +18,15 @@ import {
 import { VoucherModal } from "@/components/modals/VoucherModal";
 import { PartnerSignUpModal } from "@/components/modals/PartnerSignUpModal";
 import { ShopDetailModal } from "@/components/modals/ShopDetailModal";
+import { HowToRedeemModal } from "@/components/modals/HowToRedeemModal";
 import { toast } from "sonner";
 
-export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
+export default function LocalPassportPage() {
+  const navigate = useNavigate();
   const [selectedPerk, setSelectedPerk] = useState<any | null>(null);
-  const [isVoucherOpen, setIsVoucherOpen] = useState(false);
   const [isPartnerSignUpOpen, setIsPartnerSignUpOpen] = useState(false);
   const [isShopDetailOpen, setIsShopDetailOpen] = useState(false);
+  const [isHowToRedeemOpen, setIsHowToRedeemOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const howToRedeemRef = useRef<HTMLDivElement>(null);
   const perksGridRef = useRef<HTMLDivElement>(null);
@@ -112,12 +115,7 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
   };
 
   const handleLearnMore = () => {
-    howToRedeemRef.current?.scrollIntoView({ behavior: "smooth" });
-    // Add a subtle highlight effect
-    howToRedeemRef.current?.classList.add("ring-2", "ring-primary", "ring-offset-4");
-    setTimeout(() => {
-      howToRedeemRef.current?.classList.remove("ring-2", "ring-primary", "ring-offset-4");
-    }, 2000);
+    setIsHowToRedeemOpen(true);
   };
 
   const handlePartnerSubmit = () => {
@@ -141,16 +139,14 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
       {/* Header */}
       <div className="bg-white border-b border-border sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          {onBack && (
             <Button
               variant="ghost"
-              onClick={onBack}
+              onClick={() => navigate(-1)}
               className="mb-2 rounded-full"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-          )}
           <div className="space-y-1">
             <h1>RoomZ Local Passport</h1>
             <p className="text-muted-foreground">
@@ -343,6 +339,10 @@ export default function LocalPassportPage({ onBack }: LocalPassportPageProps) {
         isOpen={isPartnerSignUpOpen}
         onClose={() => setIsPartnerSignUpOpen(false)}
         onSubmit={handlePartnerSubmit}
+      />
+      <HowToRedeemModal
+        isOpen={isHowToRedeemOpen}
+        onClose={() => setIsHowToRedeemOpen(false)}
       />
     </div>
   );

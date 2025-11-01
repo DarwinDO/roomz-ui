@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,12 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RoomCard } from "@/components/common/RoomCard";
 import { RefreshCw, Plus, Calendar, DollarSign, Home } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import SubletDetailPage from "@/pages/SubletDetailPage";
-import { ConfirmBookingModal } from "@/components/modals/ConfirmBookingModal";
-import { ChatDrawer } from "@/components/common/ChatDrawer";
 
 export default function SwapRoomPage() {
-  const [selectedSublet, setSelectedSublet] = useState<any | null>(null);
+  const navigate = useNavigate();
   const [isBookSubletOpen, setIsBookSubletOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -68,44 +66,8 @@ export default function SwapRoomPage() {
   ];
 
   const handleSubletClick = (sublet: any) => {
-    setSelectedSublet(sublet);
+    navigate(`/sublet/${sublet.id}`);
   };
-
-  const handleBack = () => {
-    setSelectedSublet(null);
-  };
-
-  const handleBookSublet = () => {
-    setIsBookSubletOpen(true);
-  };
-
-  const handleMessageHost = () => {
-    setIsChatOpen(true);
-  };
-
-  if (selectedSublet) {
-    return (
-      <>
-        <SubletDetailPage
-          onBack={handleBack}
-          onBookSublet={handleBookSublet}
-          onMessageHost={handleMessageHost}
-          sublet={selectedSublet}
-        />
-        <ConfirmBookingModal
-          isOpen={isBookSubletOpen}
-          onClose={() => setIsBookSubletOpen(false)}
-          sublet={selectedSublet}
-        />
-        <ChatDrawer
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          recipientName="Mai Chi"
-          recipientRole="Chủ nhà"
-        />
-      </>
-    );
-  }
 
   return (
     <div className="pb-20 md:pb-8">

@@ -99,7 +99,6 @@ export function DataTable<T extends { id: string }>({
                   <th className="w-12 px-4 py-3">
                     <Checkbox
                       checked={allSelected}
-                      indeterminate={someSelected}
                       onCheckedChange={handleSelectAll}
                     />
                   </th>

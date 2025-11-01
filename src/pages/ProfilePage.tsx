@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -14,7 +15,6 @@ import { ServicesBanner } from "@/components/common/ServicesBanner";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { UpgradeRoomZPlusModal } from "@/components/modals/UpgradeRoomZPlusModal";
 import { ProfileEditModal } from "@/components/modals/ProfileEditModal";
-import RoomDetailPage from "@/pages/RoomDetailPage";
 import { MessagesList } from "@/components/common/MessagesList";
 import { messagesData } from "../data/messages";
 import { toast } from "sonner";
@@ -33,7 +33,8 @@ import {
   Eye,
 } from "lucide-react";
 
-export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
+export default function ProfilePage() {
+  const navigate = useNavigate();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedChatPerson, setSelectedChatPerson] = useState<any>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -81,7 +82,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
   };
 
   const handleRoomClick = (room: any) => {
-    setSelectedRoom(room);
+    navigate(`/room/${room.id}`);
   };
 
   const handleRemoveFavorite = (roomId: string, e: React.MouseEvent) => {
@@ -96,15 +97,6 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
   const handleSaveSettings = () => {
     toast.success("Đã lưu cài đặt thành công!");
   };
-
-  if (selectedRoom) {
-    return (
-      <RoomDetailPage
-        onBack={() => setSelectedRoom(null)}
-        roomId={selectedRoom.id}
-      />
-    );
-  }
 
   return (
     <div className="pb-20 md:pb-8">
@@ -248,9 +240,7 @@ export default function ProfilePage({ onNavigate }: ProfilePageProps = {}) {
 
           <TabsContent value="favorites">
             <div className="space-y-8">
-              {onNavigate && (
-                <ServicesBanner onNavigate={onNavigate} />
-              )}
+              <ServicesBanner />
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3>Phòng đã lưu ({savedRooms.length})</h3>
