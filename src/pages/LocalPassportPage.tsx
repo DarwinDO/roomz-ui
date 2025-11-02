@@ -137,22 +137,12 @@ export default function LocalPassportPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F8FAFF] to-white pb-24 md:pb-8">
       {/* Header */}
-      <div className="bg-white border-b border-border sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate(-1)}
-              className="mb-2 rounded-full"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
-          <div className="space-y-1">
-            <h1>RoomZ Local Passport</h1>
-            <p className="text-muted-foreground">
-              Khám phá ưu đãi dành riêng cho sinh viên quanh khu bạn ở.
-            </p>
-          </div>
+      <div className="sticky top-0 bg-white border-b border-border z-40 px-4 py-3">
+        <div className="max-w-6xl mx-auto flex items-center">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h3 className="ml-3">RoomZ Passport</h3>
         </div>
       </div>
 

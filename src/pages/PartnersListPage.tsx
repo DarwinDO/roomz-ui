@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PartnerDetailModal } from "@/components/modals/PartnerDetailModal";
+import { PartnerSignupModal } from "@/components/modals/PartnerSignupModal";
 import { ArrowLeft, Search, Star, MapPin, Percent } from "lucide-react";
 
 interface Partner {
@@ -23,6 +24,7 @@ export default function PartnersListPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
 
   // Mock data - trong thực tế sẽ fetch từ API
   const allPartners: Partner[] = [
@@ -270,7 +272,7 @@ export default function PartnersListPage() {
               </p>
             </div>
             <Button
-              onClick={() => navigate("/partner-signup")}
+              onClick={() => setIsSignupModalOpen(true)}
               className="rounded-full bg-primary hover:bg-primary/90 shrink-0"
             >
               Đăng ký đối tác
@@ -287,6 +289,10 @@ export default function PartnersListPage() {
           partner={selectedPartner}
         />
       )}
+      <PartnerSignupModal
+        isOpen={isSignupModalOpen}
+        onClose={() => setIsSignupModalOpen(false)}
+      />
     </div>
   );
 }

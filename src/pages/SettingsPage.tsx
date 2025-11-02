@@ -69,24 +69,24 @@ export default function SettingsPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Profile Summary Card */}
-        <Card className="p-6 rounded-2xl mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full flex items-center justify-center text-2xl">
+        <Card className="p-4 sm:p-6 rounded-2xl mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full flex items-center justify-center text-xl sm:text-2xl shrink-0">
               JD
             </div>
-            <div className="flex-1">
-              <h3 className="mb-1">Nguyễn Văn A</h3>
-              <p className="text-sm text-gray-500">nguyenvana@example.com</p>
-              <div className="flex items-center gap-2 mt-2">
-                <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs">
+            <div className="flex-1 min-w-0">
+              <h3 className="mb-1 text-base sm:text-lg">Nguyễn Văn A</h3>
+              <p className="text-xs sm:text-sm text-gray-500 truncate">nguyenvana@example.com</p>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <div className="px-2 sm:px-3 py-0.5 sm:py-1 bg-primary/10 text-primary rounded-full text-[10px] sm:text-xs whitespace-nowrap">
                   Sinh viên đã xác thực
                 </div>
-                <div className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-xs">
+                <div className="px-2 sm:px-3 py-0.5 sm:py-1 bg-secondary/10 text-secondary rounded-full text-[10px] sm:text-xs whitespace-nowrap">
                   Thành viên RoomZ+
                 </div>
               </div>
             </div>
-            <Button variant="outline" className="rounded-full">
+            <Button variant="outline" size="sm" className="rounded-full w-full sm:w-auto shrink-0">
               Chỉnh sửa
             </Button>
           </div>

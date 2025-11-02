@@ -122,26 +122,26 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] rounded-3xl p-0 max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="p-6 pb-4 bg-gradient-to-r from-primary/5 to-secondary/5 border-b border-border shrink-0">
-          <div className="flex items-center justify-between mb-2">
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="w-6 h-6 text-primary" />
-              Danh sách bạn cùng phòng phù hợp
+      <DialogContent className="w-[95vw] sm:max-w-[600px] rounded-2xl sm:rounded-3xl p-0 max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 bg-gradient-to-r from-primary/5 to-secondary/5 border-b border-border shrink-0">
+          <div className="flex items-center justify-between mb-2 gap-2">
+            <DialogTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
+              <span className="line-clamp-1">Danh sách bạn cùng phòng phù hợp</span>
             </DialogTitle>
-            <Badge className="bg-secondary text-white">
-              {roommates.length} đề xuất
+            <Badge className="bg-secondary text-white text-xs shrink-0">
+              {roommates.length}
             </Badge>
           </div>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Những người có lối sống tương đồng và sẵn sàng ghép phòng với bạn
           </DialogDescription>
 
-          <div className="flex items-center gap-2 mt-4">
-            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Sắp xếp theo:</span>
+          <div className="flex items-center gap-2 mt-3 sm:mt-4">
+            <ArrowUpDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground shrink-0" />
+            <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">Sắp xếp:</span>
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px] h-9 rounded-full">
+              <SelectTrigger className="w-[140px] sm:w-[180px] h-8 sm:h-9 rounded-full text-xs sm:text-sm">
                 <SelectValue placeholder="Mức độ tương hợp" />
               </SelectTrigger>
               <SelectContent>
@@ -152,15 +152,15 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
           </div>
         </DialogHeader>
 
-        <div className="overflow-y-auto p-6 space-y-4">
+        <div className="overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
           {sortedRoommates.map((roommate) => (
             <div
               key={roommate.id}
-              className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-5 border border-border hover:shadow-lg transition-all"
+              className="bg-gradient-to-br from-white to-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-border hover:shadow-lg transition-all"
             >
-              <div className="flex items-start gap-4">
-                <Avatar className="w-16 h-16 shrink-0 bg-gradient-to-br from-primary/20 to-secondary/20">
-                  <AvatarFallback className="bg-transparent text-lg">
+              <div className="flex items-start gap-2.5 sm:gap-4">
+                <Avatar className="w-12 h-12 sm:w-16 sm:h-16 shrink-0 bg-gradient-to-br from-primary/20 to-secondary/20">
+                  <AvatarFallback className="bg-transparent text-sm sm:text-lg">
                     {roommate.name
                       .split(" ")
                       .map((n) => n[0])
@@ -169,65 +169,67 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
                 </Avatar>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h4 className="text-base mb-0.5">{roommate.name}</h4>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex items-start justify-between mb-1.5 sm:mb-2 gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm sm:text-base mb-0.5 truncate">{roommate.name}</h4>
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
                         {roommate.major} • {roommate.year}
                       </p>
                     </div>
-                    <Badge className="bg-secondary text-white ml-2 shrink-0">
-                      {roommate.match}% phù hợp
+                    <Badge className="bg-secondary text-white text-[10px] sm:text-xs shrink-0 whitespace-nowrap">
+                      {roommate.match}%
                     </Badge>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-3">{roommate.bio}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3 line-clamp-2">{roommate.bio}</p>
 
-                  <div className="flex flex-wrap gap-1.5 mb-3">
+                  <div className="flex flex-wrap gap-1 sm:gap-1.5 mb-2 sm:mb-3">
                     {roommate.interests.map((interest, index) => (
-                      <Badge key={index} variant="outline" className="text-xs rounded-full">
+                      <Badge key={index} variant="outline" className="text-[10px] sm:text-xs rounded-full">
                         {interest}
                       </Badge>
                     ))}
-                    <Badge variant="outline" className="text-xs rounded-full text-primary border-primary">
+                    <Badge variant="outline" className="text-[10px] sm:text-xs rounded-full text-primary border-primary">
                       📍 {roommate.distance}
                     </Badge>
                   </div>
 
-                  <div className="mb-3">
+                  <div className="mb-2 sm:mb-3">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-muted-foreground">Điểm tương hợp</span>
-                      <span className="text-xs text-primary">{roommate.match}%</span>
+                      <span className="text-[10px] sm:text-xs text-muted-foreground">Điểm tương hợp</span>
+                      <span className="text-[10px] sm:text-xs text-primary">{roommate.match}%</span>
                     </div>
-                    <Progress value={roommate.match} className="h-1.5" />
+                    <Progress value={roommate.match} className="h-1 sm:h-1.5" />
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5 sm:gap-2">
                     <Button
                       size="sm"
-                      className="flex-1 rounded-full bg-primary hover:bg-primary/90 h-9"
+                      className="flex-1 rounded-full bg-primary hover:bg-primary/90 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-4"
                       onClick={() => {
                         onClose();
                         onViewProfile?.({ name: roommate.name, role: roommate.role, match: roommate.match });
                       }}
                     >
-                      <Eye className="w-3.5 h-3.5 mr-1.5" />
-                      Xem hồ sơ
+                      <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 sm:mr-1.5" />
+                      <span className="hidden xs:inline">Xem hồ sơ</span>
+                      <span className="xs:hidden">Xem</span>
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex-1 rounded-full h-9"
+                      className="flex-1 rounded-full h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-4"
                       onClick={() => {
                         onClose();
                         onMessage?.({ name: roommate.name, role: roommate.role, match: roommate.match });
                       }}
                     >
-                      <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
-                      Nhắn tin
+                      <MessageCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 sm:mr-1.5" />
+                      <span className="hidden xs:inline">Nhắn tin</span>
+                      <span className="xs:hidden">Chat</span>
                     </Button>
-                    <Button size="sm" variant="ghost" className="rounded-full h-9 px-3">
-                      <Heart className="w-4 h-4" />
+                    <Button size="sm" variant="ghost" className="rounded-full h-8 sm:h-9 px-2 sm:px-3">
+                      <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </Button>
                   </div>
                 </div>
@@ -236,8 +238,8 @@ export function ViewAllMatchesModal({ isOpen, onClose, onViewProfile, onMessage 
           ))}
         </div>
 
-        <div className="border-t border-border p-4 bg-muted/30 shrink-0">
-          <p className="text-xs text-center text-muted-foreground">
+        <div className="border-t border-border p-3 sm:p-4 bg-muted/30 shrink-0">
+          <p className="text-[10px] sm:text-xs text-center text-muted-foreground">
             💡 Mẹo: Điểm tương hợp cao đồng nghĩa với lối sống và thói quen sinh hoạt gần nhau
           </p>
         </div>
