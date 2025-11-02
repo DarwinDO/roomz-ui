@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PartnerDetailModal } from "@/components/modals/PartnerDetailModal";
-import { PartnerSignupModal } from "@/components/modals/PartnerSignupModal";
+import { PartnerSignUpModal } from "@/components/modals/PartnerSignUpModal";
 import { ArrowLeft, Search, Star, MapPin, Percent } from "lucide-react";
 
 interface Partner {
@@ -289,7 +289,7 @@ export default function PartnersListPage() {
           partner={selectedPartner}
         />
       )}
-      <PartnerSignupModal
+      <PartnerSignUpModal
         isOpen={isSignupModalOpen}
         onClose={() => setIsSignupModalOpen(false)}
       />
