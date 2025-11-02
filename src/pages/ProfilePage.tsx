@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -35,12 +35,22 @@ import {
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedChatPerson, setSelectedChatPerson] = useState<any>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [expandedSettings, setExpandedSettings] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("favorites");
+  // Handle tab from URL parameter
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "messages") {
+      setActiveTab("messages");
+    }
+  }, [searchParams]);
+
   const savedRooms = [
     {
       id: "saved-1",
@@ -213,7 +223,7 @@ export default function ProfilePage() {
                 onClick={() => setIsUpgradeModalOpen(true)}
                 className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-white rounded-full"
               >
-                Nâng cấp ngay - 200k/tháng
+                Nâng cấp ngay - 49k/tháng
               </Button>
             </div>
           </div>
@@ -222,7 +232,7 @@ export default function ProfilePage() {
 
       {/* Content Tabs */}
       <div className="px-6 max-w-6xl mx-auto">
-        <Tabs defaultValue="favorites" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="favorites">
               <Heart className="w-4 h-4 mr-2" />

@@ -18,6 +18,7 @@ const LocalPassportPage = lazy(() => import('@/pages/LocalPassportPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const SubletDetailPage = lazy(() => import('@/pages/SubletDetailPage'));
 const PartnersListPage = lazy(() => import('@/pages/PartnersListPage'));
+const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
 
 // Admin pages
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
@@ -68,6 +69,10 @@ export const router = createBrowserRouter([
       {
         path: 'profile',
         element: <ProfilePage />,
+      },
+      {
+        path: 'messages',
+        element: <MessagesPage />,
       },
       {
         path: 'community',

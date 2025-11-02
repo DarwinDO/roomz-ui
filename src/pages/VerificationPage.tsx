@@ -107,7 +107,7 @@ export default function VerificationPage() {
             nhận được nhiều phản hồi hơn gấp 3 lần và đặt phòng nhanh hơn 50%.
           </p>
           <Badge className="bg-primary text-white px-4 py-2 text-base">
-            Miễn phí cho sinh viên • 700k cho người dùng khác
+            Miễn phí cho sinh viên • 99k/tháng cho người dùng khác
           </Badge>
         </Card>
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Search, MessageCircle, User, Plus, Users, RefreshCw, Gift, Settings } from "lucide-react";
+import { Home, Search, MessageCircle, User, Plus, Users, RefreshCw, Gift, Settings, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function BottomNav() {
@@ -18,7 +18,9 @@ export function BottomNav() {
   ];
 
   const expandedMenuItems = [
-    { id: "community", label: "Cộng đồng", icon: Users, color: "bg-blue-50", path: "/community" },
+    { id: "roommates", label: "Tìm bạn cùng phòng", icon: Users, color: "bg-blue-50", path: "/roommates" },
+    { id: "services", label: "Dịch vụ", icon: Truck, color: "bg-orange-50", path: "/support-services" },
+    { id: "community", label: "Cộng đồng", icon: Users, color: "bg-indigo-50", path: "/community" },
     { id: "swap", label: "SwapRoom", icon: RefreshCw, color: "bg-green-50", path: "/swap" },
     { id: "local-passport", label: "Ưu đãi", icon: Gift, color: "bg-purple-50", path: "/local-passport" },
     { id: "settings", label: "Cài đặt", icon: Settings, color: "bg-gray-50", path: "/settings" },
@@ -46,22 +48,24 @@ export function BottomNav() {
       {/* Expandable Bottom Sheet */}
       {isExpanded && (
         <div
-          className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 md:hidden"
+          className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 md:hidden overflow-hidden"
           style={{
-            height: "45vh",
+            height: "65vh",
+            maxHeight: "600px",
             boxShadow: "0 -4px 12px rgba(0,0,0,0.1)",
             animation: "slideUp 300ms ease-out",
           }}
         >
-          <div className="p-6">
+          <div className="h-full flex flex-col p-5">
             {/* Handle Bar */}
-            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6" />
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
 
             {/* Menu Title */}
-            <h3 className="mb-6 text-center">Truy cập nhanh</h3>
+            <h3 className="mb-4 text-center">Truy cập nhanh</h3>
 
-            {/* Menu Grid */}
-            <div className="grid grid-cols-2 gap-6 mb-8">
+            {/* Menu Grid - Scrollable */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3 pb-4">
               {expandedMenuItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
@@ -70,7 +74,7 @@ export function BottomNav() {
                     key={item.id}
                     to={item.path}
                     onClick={() => setIsExpanded(false)}
-                    className={`flex flex-col items-center gap-3 p-4 rounded-2xl transition-all active:scale-95 ${
+                    className={`flex flex-col items-center gap-2.5 p-3 rounded-2xl transition-all active:scale-95 ${
                       active ? 'bg-primary/10' : 'hover:bg-gray-50'
                     }`}
                   >
@@ -81,17 +85,18 @@ export function BottomNav() {
                     >
                       <Icon className={`w-6 h-6 ${active ? 'text-white' : 'text-primary'}`} />
                     </div>
-                    <span className={`text-sm ${active ? 'text-primary font-medium' : ''}`}>{item.label}</span>
+                    <span className={`text-sm text-center ${active ? 'text-primary font-medium' : ''}`}>{item.label}</span>
                   </Link>
                 );
               })}
+              </div>
             </div>
 
             {/* Cancel Button */}
             <Button
               onClick={() => setIsExpanded(false)}
               variant="outline"
-              className="w-full h-12 rounded-full text-gray-600 border-gray-300"
+              className="w-full h-11 rounded-full text-gray-600 border-gray-300 mt-3 shrink-0"
             >
               Hủy
             </Button>
