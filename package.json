@@ -37,6 +37,7 @@
     "@radix-ui/react-toggle-group": "^1.1.1",
     "@radix-ui/react-tooltip": "^1.1.7",
     "@radix-ui/react-visually-hidden": "^1.1.1",
+    "@supabase/supabase-js": "^2.90.1",
     "@tailwindcss/postcss": "^4.1.15",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

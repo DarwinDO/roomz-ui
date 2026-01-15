@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,11 +6,66 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Home, Mail, ShieldCheck, Users, RefreshCw } from "lucide-react";
+import { Home, Mail, ShieldCheck, Users, RefreshCw, AlertCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const onLogin = () => navigate("/");
+  const { signIn, signUp, signInWithGoogle } = useAuth();
+  
+  // Login state
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  
+  // Signup state
+  const [signupName, setSignupName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [signupError, setSignupError] = useState('');
+  const [signupLoading, setSignupLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginLoading(true);
+
+    try {
+      await signIn(loginEmail, loginPassword);
+      navigate('/search');
+    } catch (error: any) {
+      setLoginError(error.message || 'Đăng nhập thất bại');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignupError('');
+    setSignupLoading(true);
+
+    try {
+      await signUp(signupEmail, signupPassword, {
+        full_name: signupName,
+      });
+      navigate('/search');
+    } catch (error: any) {
+      setSignupError(error.message || 'Đăng ký thất bại');
+    } finally {
+      setSignupLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error: any) {
+      setLoginError(error.message || 'Đăng nhập Google thất bại');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
@@ -74,42 +130,58 @@ export default function LoginPage() {
             </TabsList>
 
             <TabsContent value="login" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="login-email">Email</Label>
-                <Input
-                  id="login-email"
-                  type="email"
-                  placeholder="email@example.com"
-                  className="rounded-xl h-12"
-                />
-              </div>
+              <form onSubmit={handleLogin} className="space-y-4">
+                {loginError && (
+                  <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span className="text-sm">{loginError}</span>
+                  </div>
+                )}
 
-              <div className="space-y-2">
-                <Label htmlFor="login-password">Mật khẩu</Label>
-                <Input
-                  id="login-password"
-                  type="password"
-                  placeholder="••••••••"
-                  className="rounded-xl h-12"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="email@example.com"
+                    className="rounded-xl h-12"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    required
+                  />
+                </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="rounded" />
-                  <span>Ghi nhớ đăng nhập</span>
-                </label>
-                <a href="#" className="text-primary hover:underline">
-                  Quên mật khẩu?
-                </a>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Mật khẩu</Label>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    className="rounded-xl h-12"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                  />
+                </div>
 
-              <Button
-                onClick={onLogin}
-                className="w-full h-12 bg-primary hover:bg-primary/90 rounded-full"
-              >
-                Đăng nhập
-              </Button>
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="rounded" />
+                    <span>Ghi nhớ đăng nhập</span>
+                  </label>
+                  <a href="#" className="text-primary hover:underline">
+                    Quên mật khẩu?
+                  </a>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-primary hover:bg-primary/90 rounded-full"
+                  disabled={loginLoading}
+                >
+                  {loginLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                </Button>
+              </form>
 
               <div className="relative my-6">
                 <Separator />
@@ -120,9 +192,10 @@ export default function LoginPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <Button
+                  type="button"
                   variant="outline"
                   className="h-12 rounded-full"
-                  onClick={onLogin}
+                  onClick={handleGoogleLogin}
                 >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                     <path
@@ -145,9 +218,10 @@ export default function LoginPage() {
                   Google
                 </Button>
                 <Button
+                  type="button"
                   variant="outline"
                   className="h-12 rounded-full"
-                  onClick={onLogin}
+                  disabled
                 >
                   <Mail className="w-5 h-5 mr-2" />
                   Mã SV
@@ -156,57 +230,77 @@ export default function LoginPage() {
             </TabsContent>
 
             <TabsContent value="signup" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="signup-name">Họ và tên</Label>
-                <Input
-                  id="signup-name"
-                  type="text"
-                  placeholder="Nguyễn Văn A"
-                  className="rounded-xl h-12"
-                />
-              </div>
+              <form onSubmit={handleSignup} className="space-y-4">
+                {signupError && (
+                  <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span className="text-sm">{signupError}</span>
+                  </div>
+                )}
 
-              <div className="space-y-2">
-                <Label htmlFor="signup-email">Email</Label>
-                <Input
-                  id="signup-email"
-                  type="email"
-                  placeholder="email@example.com"
-                  className="rounded-xl h-12"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Họ và tên</Label>
+                  <Input
+                    id="signup-name"
+                    type="text"
+                    placeholder="Nguyễn Văn A"
+                    className="rounded-xl h-12"
+                    value={signupName}
+                    onChange={(e) => setSignupName(e.target.value)}
+                    required
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="signup-password">Mật khẩu</Label>
-                <Input
-                  id="signup-password"
-                  type="password"
-                  placeholder="••••••••"
-                  className="rounded-xl h-12"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="email@example.com"
+                    className="rounded-xl h-12"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                    required
+                  />
+                </div>
 
-              <div className="flex items-start gap-2 text-sm">
-                <input type="checkbox" className="rounded mt-1" />
-                <span className="text-gray-600">
-                  Tôi đồng ý với{" "}
-                  <a href="#" className="text-primary hover:underline">
-                    Điều khoản dịch vụ
-                  </a>{" "}
-                  và{" "}
-                  <a href="#" className="text-primary hover:underline">
-                    Chính sách bảo mật
-                  </a>{" "}
-                  của RoomZ
-                </span>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Mật khẩu</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    className="rounded-xl h-12"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                </div>
 
-              <Button
-                onClick={onLogin}
-                className="w-full h-12 bg-primary hover:bg-primary/90 rounded-full"
-              >
-                Tạo tài khoản
-              </Button>
+                <div className="flex items-start gap-2 text-sm">
+                  <input type="checkbox" className="rounded mt-1" required />
+                  <span className="text-gray-600">
+                    Tôi đồng ý với{" "}
+                    <a href="#" className="text-primary hover:underline">
+                      Điều khoản dịch vụ
+                    </a>{" "}
+                    và{" "}
+                    <a href="#" className="text-primary hover:underline">
+                      Chính sách bảo mật
+                    </a>{" "}
+                    của RoomZ
+                  </span>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-primary hover:bg-primary/90 rounded-full"
+                  disabled={signupLoading}
+                >
+                  {signupLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
+                </Button>
+              </form>
 
               <div className="relative my-6">
                 <Separator />
@@ -217,9 +311,10 @@ export default function LoginPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <Button
+                  type="button"
                   variant="outline"
                   className="h-12 rounded-full"
-                  onClick={onLogin}
+                  onClick={handleGoogleLogin}
                 >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                     <path
@@ -242,9 +337,10 @@ export default function LoginPage() {
                   Google
                 </Button>
                 <Button
+                  type="button"
                   variant="outline"
                   className="h-12 rounded-full"
-                  onClick={onLogin}
+                  disabled
                 >
                   <Mail className="w-5 h-5 mr-2" />
                   Mã SV

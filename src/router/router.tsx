@@ -2,6 +2,7 @@ import { lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppShell from './AppShell.tsx';
 import AdminShell from './AdminShell.tsx';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 // Lazy load pages
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
@@ -68,11 +69,19 @@ export const router = createBrowserRouter([
       },
       {
         path: 'profile',
-        element: <ProfilePage />,
+        element: (
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'messages',
-        element: <MessagesPage />,
+        element: (
+          <ProtectedRoute>
+            <MessagesPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'community',
@@ -92,7 +101,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: <SettingsPage />,
+        element: (
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'sublet/:id',

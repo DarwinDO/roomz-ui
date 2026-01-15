@@ -4,12 +4,23 @@ import { Toaster } from '@/components/ui/sonner';
 import { BottomNav } from '@/components/common/BottomNav';
 import { Chatbot } from '@/components/common/Chatbot';
 import { Button } from '@/components/ui/button';
-import { LogIn } from 'lucide-react';
+import { LogIn, LogOut, User as UserIcon } from 'lucide-react';
 import LogoRZ from '@/assets/LogoRZWithSlogan.png';
+import { useAuth } from '@/contexts';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, profile, loading, signOut } = useAuth();
   
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -25,6 +36,28 @@ export default function AppShell() {
     { path: '/local-passport', label: 'Ưu đãi' },
     { path: '/profile', label: 'Hồ sơ' },
   ];
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  // Helper function to get user initials
+  const getUserInitials = () => {
+    if (profile?.full_name) {
+      return profile.full_name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return user?.email?.charAt(0).toUpperCase() || '?';
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,14 +85,57 @@ export default function AppShell() {
                   {item.label}
                 </Button>
               ))}
-              <Button
-                onClick={() => navigate('/login')}
-                size="sm"
-                className="rounded-full ml-2 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-sm"
-              >
-                <LogIn className="w-3.5 h-3.5 mr-1.5" />
-                Đăng nhập
-              </Button>
+              
+              {/* Authentication Section */}
+              {loading ? (
+                <div className="w-9 h-9 ml-2 rounded-full bg-gray-200 animate-pulse"></div>
+              ) : user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-9 w-9 rounded-full ml-2">
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || user.email || ''} />
+                        <AvatarFallback className="bg-gradient-to-r from-primary to-secondary text-white">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{profile?.full_name || 'User'}</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/profile')}>
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      <span>Hồ sơ</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      <span>Cài đặt</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Đăng xuất</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  onClick={() => navigate('/login')}
+                  size="sm"
+                  className="rounded-full ml-2 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-sm"
+                >
+                  <LogIn className="w-3.5 h-3.5 mr-1.5" />
+                  Đăng nhập
+                </Button>
+              )}
             </nav>
           </div>
         </div>
@@ -71,14 +147,57 @@ export default function AppShell() {
           <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
             <img src={LogoRZ} alt="RoomZ Logo" className="h-9 w-auto" />
           </a>
-          <Button
-            onClick={() => navigate('/login')}
-            size="sm"
-            className="rounded-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-xs"
-          >
-            <LogIn className="w-3.5 h-3.5 mr-1" />
-            Đăng nhập
-          </Button>
+          
+          {/* Mobile Authentication Section */}
+          {loading ? (
+            <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
+          ) : user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || user.email || ''} />
+                    <AvatarFallback className="bg-gradient-to-r from-primary to-secondary text-white text-xs">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{profile?.full_name || 'User'}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  <span>Hồ sơ</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  <span>Cài đặt</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Đăng xuất</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              onClick={() => navigate('/login')}
+              size="sm"
+              className="rounded-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-xs"
+            >
+              <LogIn className="w-3.5 h-3.5 mr-1" />
+              Đăng nhập
+            </Button>
+          )}
         </div>
       </header>
 
