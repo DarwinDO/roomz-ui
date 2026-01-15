@@ -34,7 +34,7 @@ export default function AppShell() {
     { path: '/support-services', label: 'Dịch vụ' },
     { path: '/community', label: 'Cộng đồng' },
     { path: '/local-passport', label: 'Ưu đãi' },
-    { path: '/profile', label: 'Hồ sơ' },
+    // { path: '/profile', label: 'Hồ sơ' },
   ];
 
   const handleSignOut = async () => {
@@ -115,10 +115,10 @@ export default function AppShell() {
                       <UserIcon className="mr-2 h-4 w-4" />
                       <span>Hồ sơ</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    {/* <DropdownMenuItem onClick={() => navigate('/settings')}>
                       <UserIcon className="mr-2 h-4 w-4" />
                       <span>Cài đặt</span>
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
                       <LogOut className="mr-2 h-4 w-4" />

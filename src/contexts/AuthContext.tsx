@@ -22,10 +22,12 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   profile: UserProfile | null;
+  isEmailVerified: boolean; // Trạng thái email verification
   signIn: (email: string, password: string) => Promise<{ user: User; session: Session }>;
   signUp: (email: string, password: string, userData?: Record<string, unknown>) => Promise<{ user: User; session: Session }>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  refreshUser: () => Promise<void>; // Force refresh user data
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,62 +37,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   useEffect(() => {
-    // Initialize session on mount
-    const initializeAuth = async () => {
-      try {
-        setLoading(true);
-        
-        // Get current session from storage
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error fetching session:', error);
-        }
+    // Flag to track if component is mounted (for cleanup)
+    let isMounted = true;
 
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        // Fetch profile if user exists
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-
-    // Listen for auth state changes
+    // Listen for auth state changes (including email verification)
+    // This is the primary way to get auth state - handles both initial load and changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      
       console.log('Auth state changed:', event, session?.user?.id);
       
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Update email verification status
+      setIsEmailVerified(!!session?.user?.email_confirmed_at);
 
       // Handle profile updates on auth events
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        // Use setTimeout to avoid blocking the auth state update
+        // This prevents race conditions with Supabase's internal state
+        setTimeout(async () => {
+          if (isMounted) {
+            await fetchProfile(session.user.id);
+          }
+        }, 0);
       } else {
         setProfile(null);
       }
 
-      // Only set loading to false after initial session check
+      // Set loading to false after initial session check
       if (event === 'INITIAL_SESSION') {
         setLoading(false);
       }
     });
 
+    // Cleanup subscription on unmount
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
+
+  // Separate effect for email verification polling
+  // This avoids re-subscribing to auth changes when isEmailVerified changes
+  useEffect(() => {
+    // Only poll if user exists and email is not verified
+    if (!user || isEmailVerified) return;
+
+    const pollInterval = setInterval(async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser?.email_confirmed_at) {
+        // Email just got verified!
+        console.log('Email verified detected via polling');
+        setIsEmailVerified(true);
+        setUser(currentUser);
+        
+        // Refresh session to get updated data
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setSession(session);
+        }
+        
+        // Refresh profile to sync email_verified status
+        await fetchProfile(currentUser.id);
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [user, isEmailVerified]);
 
   // Fetch user profile from database
   const fetchProfile = async (userId: string) => {
@@ -164,15 +186,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
+  // Force refresh user data (useful after email verification)
+  const refreshUser = async () => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error) {
+        console.error('Error refreshing user:', error);
+        return;
+      }
+
+      if (user) {
+        setUser(user);
+        setIsEmailVerified(!!user.email_confirmed_at);
+        await fetchProfile(user.id);
+      }
+    } catch (error) {
+      console.error('Error in refreshUser:', error);
+    }
+  };
+
   const value = {
     user,
     session,
     loading,
     profile,
+    isEmailVerified,
     signIn,
     signUp,
     signOut,
     signInWithGoogle,
+    refreshUser,
   };
 
   return (

@@ -1,8 +1,18 @@
-import { lazy } from 'react';
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppShell from './AppShell.tsx';
 import AdminShell from './AdminShell.tsx';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+
+// Loading component for Suspense fallback
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-white to-secondary/10">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+      <p className="mt-4 text-gray-600">Đang tải...</p>
+    </div>
+  </div>
+);
 
 // Lazy load pages
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
@@ -13,6 +23,8 @@ const SwapRoomPage = lazy(() => import('@/pages/SwapRoomPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 const CommunityPage = lazy(() => import('@/pages/CommunityPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
+const VerifyEmailPage = lazy(() => import('@/pages/VerifyEmailPage'));
+const AuthCallbackPage = lazy(() => import('@/pages/AuthCallbackPage'));
 const VerificationPage = lazy(() => import('@/pages/VerificationPage'));
 const SupportServicesPage = lazy(() => import('@/pages/SupportServicesPage'));
 const LocalPassportPage = lazy(() => import('@/pages/LocalPassportPage'));
@@ -41,7 +53,27 @@ const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <LoginPage />,
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <LoginPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/verify-email',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <VerifyEmailPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/auth/callback',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <AuthCallbackPage />
+      </Suspense>
+    ),
   },
   {
     path: '/',

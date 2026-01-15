@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { RoomCard } from "@/components/common/RoomCard";
 import { ServicesBanner } from "@/components/common/ServicesBanner";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
@@ -18,6 +19,8 @@ import { ProfileEditModal } from "@/components/modals/ProfileEditModal";
 import { MessagesList } from "@/components/common/MessagesList";
 import { messagesData } from "../data/messages";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts";
+import { supabase } from "@/lib/supabase";
 import {
   User,
   Settings,
@@ -31,18 +34,48 @@ import {
   ChevronDown,
   Trash2,
   Eye,
+  Loader2,
+  Mail,
+  Phone,
+  GraduationCap,
 } from "lucide-react";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user, profile, signOut, isEmailVerified, refreshUser } = useAuth();
+  
+  // UI states
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [selectedChatPerson, setSelectedChatPerson] = useState<any>(null);
+  const [selectedChatPerson, setSelectedChatPerson] = useState<{
+    name: string;
+    avatar?: string;
+    lastMessage?: string;
+  } | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [expandedSettings, setExpandedSettings] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("favorites");
+  
+  // Profile edit states
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editFullName, setEditFullName] = useState("");
+  const [editMajor, setEditMajor] = useState("");
+  const [editUniversity, setEditUniversity] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editBio, setEditBio] = useState("");
+
+  // Initialize edit form with current profile data
+  useEffect(() => {
+    if (profile) {
+      setEditFullName(profile.full_name || "");
+      setEditMajor(profile.major || "");
+      setEditUniversity(profile.university || "");
+      setEditPhone(profile.phone || "");
+      setEditBio(profile.bio || "");
+    }
+  }, [profile]);
+
   // Handle tab from URL parameter
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -50,6 +83,31 @@ export default function ProfilePage() {
       setActiveTab("messages");
     }
   }, [searchParams]);
+
+  // Helper function to get user initials
+  const getUserInitials = () => {
+    if (profile?.full_name) {
+      return profile.full_name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return user?.email?.charAt(0).toUpperCase() || '?';
+  };
+
+  // Calculate trust score based on verifications
+  const calculateTrustScore = () => {
+    let score = 0;
+    if (isEmailVerified || profile?.email_verified) score += 30;
+    if (profile?.phone_verified) score += 20;
+    if (profile?.id_card_verified) score += 30;
+    if (profile?.student_card_verified) score += 20;
+    return score;
+  };
+
+  const trustScore = calculateTrustScore();
 
   const savedRooms = [
     {
@@ -78,7 +136,7 @@ export default function ProfilePage() {
 
 
 
-  const handleMessageClick = (message: any) => {
+  const handleMessageClick = (message: { name: string; avatar?: string; lastMessage?: string }) => {
     setSelectedChatPerson(message);
     setIsChatOpen(true);
   };
@@ -91,7 +149,7 @@ export default function ProfilePage() {
     toast.success("Cập nhật hồ sơ thành công!");
   };
 
-  const handleRoomClick = (room: any) => {
+  const handleRoomClick = (room: { id: string }) => {
     navigate(`/room/${room.id}`);
   };
 
@@ -104,8 +162,46 @@ export default function ProfilePage() {
     setExpandedSettings(expandedSettings === section ? null : section);
   };
 
-  const handleSaveSettings = () => {
-    toast.success("Đã lưu cài đặt thành công!");
+  // Update profile in Supabase
+  const handleUpdateProfile = async () => {
+    if (!user) return;
+    
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          full_name: editFullName,
+          major: editMajor,
+          university: editUniversity,
+          phone: editPhone,
+          bio: editBio,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast.success("Đã lưu cài đặt thành công!");
+      // Refresh profile data through context
+      await refreshUser();
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast.error(error.message || "Không thể cập nhật hồ sơ");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Handle sign out
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error("Không thể đăng xuất");
+    }
   };
 
   return (
@@ -116,21 +212,41 @@ export default function ProfilePage() {
           {/* Header with Avatar, Name, and Edit Button */}
           <div className="flex items-start gap-3 sm:gap-6 mb-4 sm:mb-6">
             <Avatar className="w-[72px] h-[72px] sm:w-[120px] sm:h-[120px] border-4 border-white shadow-lg shrink-0">
-              <AvatarFallback className="text-xl sm:text-2xl bg-primary text-white">
-                JD
+              <AvatarImage 
+                src={profile?.avatar_url || undefined} 
+                alt={profile?.full_name || user?.email || ''} 
+              />
+              <AvatarFallback className="text-xl sm:text-2xl bg-gradient-to-r from-primary to-secondary text-white">
+                {getUserInitials()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h2 className="text-lg sm:text-2xl">Nguyễn Thảo Linh</h2>
-                    <Badge className="bg-primary text-white text-xs sm:text-sm px-2 py-0.5 sm:px-3 sm:py-1">
-                      <ShieldCheck className="w-3 h-3 mr-1" />
-                      Đã xác thực
-                    </Badge>
+                    <h2 className="text-lg sm:text-2xl">{profile?.full_name || 'Người dùng'}</h2>
+                    {(isEmailVerified || profile?.email_verified) && (
+                      <Badge className="bg-primary text-white text-xs sm:text-sm px-2 py-0.5 sm:px-3 sm:py-1">
+                        <ShieldCheck className="w-3 h-3 mr-1" />
+                        Đã xác thực
+                      </Badge>
+                    )}
+                    {profile?.is_premium && (
+                      <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs sm:text-sm px-2 py-0.5">
+                        <Crown className="w-3 h-3 mr-1" />
+                        Premium
+                      </Badge>
+                    )}
                   </div>
-                  <p className="text-sm sm:text-base text-gray-600">Khoa học máy tính, ĐH Bách Khoa TP.HCM</p>
+                  <p className="text-sm sm:text-base text-gray-600">
+                    {profile?.major && profile?.university 
+                      ? `${profile.major}, ${profile.university}`
+                      : profile?.university || user?.email || 'Chưa cập nhật thông tin'
+                    }
+                  </p>
+                  {profile?.bio && (
+                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">{profile.bio}</p>
+                  )}
                 </div>
                 <Button
                   onClick={() => setIsEditProfileOpen(true)}
@@ -143,22 +259,43 @@ export default function ProfilePage() {
                   <span className="xs:hidden">Sửa</span>
                 </Button>
               </div>
+              
+              {/* User Info Row */}
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-2 text-sm text-gray-500">
+                <div className="flex items-center gap-1">
+                  <Mail className="w-3.5 h-3.5" />
+                  <span className="truncate max-w-[150px] sm:max-w-none">{user?.email}</span>
+                </div>
+                {profile?.phone && (
+                  <div className="flex items-center gap-1">
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>{profile.phone}</span>
+                  </div>
+                )}
+                {profile?.graduation_year && (
+                  <div className="flex items-center gap-1">
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>K{profile.graduation_year}</span>
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center gap-3 sm:gap-6 mt-3 sm:mt-4">
                 <div>
                   <div className="flex items-center gap-1 mb-1">
                     <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-base sm:text-lg">4.9</span>
+                    <span className="text-base sm:text-lg">{profile?.trust_score ? (profile.trust_score / 20).toFixed(1) : '0.0'}</span>
                   </div>
                   <p className="text-xs text-gray-500">Đánh giá</p>
                 </div>
                 <div className="h-6 sm:h-8 w-px bg-gray-300"></div>
                 <div>
-                  <p className="text-base sm:text-lg">12</p>
-                  <p className="text-xs text-gray-500">Nhận xét</p>
+                  <p className="text-base sm:text-lg">{profile?.role === 'landlord' ? 'Chủ nhà' : profile?.role === 'student' ? 'Sinh viên' : 'User'}</p>
+                  <p className="text-xs text-gray-500">Vai trò</p>
                 </div>
                 <div className="h-6 sm:h-8 w-px bg-gray-300"></div>
                 <div>
-                  <p className="text-base sm:text-lg">95%</p>
+                  <p className="text-base sm:text-lg">{trustScore}%</p>
                   <p className="text-xs text-gray-500">Điểm tin cậy</p>
                 </div>
               </div>
@@ -172,22 +309,50 @@ export default function ProfilePage() {
                 <ShieldCheck className="w-5 h-5 text-primary" />
                 <span>Điểm tin cậy</span>
               </div>
-              <span className="text-primary">95%</span>
+              <span className="text-primary">{trustScore}%</span>
             </div>
-            <Progress value={95} className="mb-3" />
+            <Progress value={trustScore} className="mb-3" />
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary" className="bg-green-100 text-green-700">
-                <ShieldCheck className="w-3 h-3 mr-1" />
-                Đã xác thực CMND
-              </Badge>
-              <Badge variant="secondary" className="bg-green-100 text-green-700">
-                <ShieldCheck className="w-3 h-3 mr-1" />
-                Đã xác thực Email
-              </Badge>
-              <Badge variant="secondary" className="bg-green-100 text-green-700">
-                <ShieldCheck className="w-3 h-3 mr-1" />
-                Đã xác thực thẻ SV
-              </Badge>
+              {profile?.id_card_verified ? (
+                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  <ShieldCheck className="w-3 h-3 mr-1" />
+                  Đã xác thực CMND
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="bg-gray-100 text-gray-500">
+                  Chưa xác thực CMND
+                </Badge>
+              )}
+              {(isEmailVerified || profile?.email_verified) ? (
+                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  <ShieldCheck className="w-3 h-3 mr-1" />
+                  Đã xác thực Email
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="bg-gray-100 text-gray-500">
+                  Chưa xác thực Email
+                </Badge>
+              )}
+              {profile?.student_card_verified ? (
+                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  <ShieldCheck className="w-3 h-3 mr-1" />
+                  Đã xác thực thẻ SV
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="bg-gray-100 text-gray-500">
+                  Chưa xác thực thẻ SV
+                </Badge>
+              )}
+              {profile?.phone_verified ? (
+                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  <ShieldCheck className="w-3 h-3 mr-1" />
+                  Đã xác thực SĐT
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="bg-gray-100 text-gray-500">
+                  Chưa xác thực SĐT
+                </Badge>
+              )}
             </div>
           </Card>
         </div>
@@ -324,7 +489,9 @@ export default function ProfilePage() {
                         <Label htmlFor="profile-name">Họ và tên</Label>
                         <Input
                           id="profile-name"
-                          defaultValue="Nguyễn Thảo Linh"
+                          value={editFullName}
+                          onChange={(e) => setEditFullName(e.target.value)}
+                          placeholder="Nhập họ và tên"
                           className="rounded-xl"
                         />
                       </div>
@@ -332,7 +499,9 @@ export default function ProfilePage() {
                         <Label htmlFor="profile-major">Ngành học</Label>
                         <Input
                           id="profile-major"
-                          defaultValue="Khoa học máy tính"
+                          value={editMajor}
+                          onChange={(e) => setEditMajor(e.target.value)}
+                          placeholder="Ví dụ: Khoa học máy tính"
                           className="rounded-xl"
                         />
                       </div>
@@ -340,15 +509,45 @@ export default function ProfilePage() {
                         <Label htmlFor="profile-university">Trường học</Label>
                         <Input
                           id="profile-university"
-                          defaultValue="ĐH Bách Khoa TP.HCM"
+                          value={editUniversity}
+                          onChange={(e) => setEditUniversity(e.target.value)}
+                          placeholder="Ví dụ: ĐH Bách Khoa TP.HCM"
                           className="rounded-xl"
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="profile-phone">Số điện thoại</Label>
+                        <Input
+                          id="profile-phone"
+                          value={editPhone}
+                          onChange={(e) => setEditPhone(e.target.value)}
+                          placeholder="Ví dụ: 0901234567"
+                          className="rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="profile-bio">Giới thiệu bản thân</Label>
+                        <Textarea
+                          id="profile-bio"
+                          value={editBio}
+                          onChange={(e) => setEditBio(e.target.value)}
+                          placeholder="Viết vài dòng về bản thân bạn..."
+                          className="rounded-xl min-h-[80px]"
+                        />
+                      </div>
                       <Button
-                        onClick={handleSaveSettings}
+                        onClick={handleUpdateProfile}
+                        disabled={isUpdating}
                         className="w-full rounded-full bg-primary"
                       >
-                        Lưu thay đổi
+                        {isUpdating ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Đang lưu...
+                          </>
+                        ) : (
+                          'Lưu thay đổi'
+                        )}
                       </Button>
                     </CollapsibleContent>
                   </Collapsible>
@@ -365,7 +564,7 @@ export default function ProfilePage() {
                       >
                         <div className="flex items-center">
                           <ShieldCheck className="w-4 h-4 mr-3" />
-                          Trạng thái xác thực
+                          Trạng thái xác thực ({trustScore}%)
                         </div>
                         <ChevronDown
                           className={`w-4 h-4 transition-transform ${
@@ -378,30 +577,83 @@ export default function ProfilePage() {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-green-600" />
-                            <span className="text-sm">Đã xác thực CMND</span>
+                            <ShieldCheck className={`w-4 h-4 ${profile?.id_card_verified ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className="text-sm">Xác thực CMND/CCCD</span>
                           </div>
-                          <Badge className="bg-green-100 text-green-700 border-0">
-                            ✓ Đã xác thực
-                          </Badge>
+                          {profile?.id_card_verified ? (
+                            <Badge className="bg-green-100 text-green-700 border-0">
+                              ✓ Đã xác thực
+                            </Badge>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-xs h-7"
+                              onClick={() => navigate('/verification')}
+                            >
+                              Xác thực ngay
+                            </Button>
+                          )}
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-green-600" />
-                            <span className="text-sm">Đã xác thực Email</span>
+                            <Mail className={`w-4 h-4 ${(isEmailVerified || profile?.email_verified) ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className="text-sm">Xác thực Email</span>
                           </div>
-                          <Badge className="bg-green-100 text-green-700 border-0">
-                            ✓ Đã xác thực
-                          </Badge>
+                          {(isEmailVerified || profile?.email_verified) ? (
+                            <Badge className="bg-green-100 text-green-700 border-0">
+                              ✓ Đã xác thực
+                            </Badge>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-xs h-7"
+                              onClick={() => navigate('/verify-email')}
+                            >
+                              Xác thực ngay
+                            </Button>
+                          )}
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-green-600" />
-                            <span className="text-sm">Đã xác thực thẻ SV</span>
+                            <GraduationCap className={`w-4 h-4 ${profile?.student_card_verified ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className="text-sm">Xác thực thẻ sinh viên</span>
                           </div>
-                          <Badge className="bg-green-100 text-green-700 border-0">
-                            ✓ Đã xác thực
-                          </Badge>
+                          {profile?.student_card_verified ? (
+                            <Badge className="bg-green-100 text-green-700 border-0">
+                              ✓ Đã xác thực
+                            </Badge>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-xs h-7"
+                              onClick={() => navigate('/verification')}
+                            >
+                              Xác thực ngay
+                            </Button>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Phone className={`w-4 h-4 ${profile?.phone_verified ? 'text-green-600' : 'text-gray-400'}`} />
+                            <span className="text-sm">Xác thực số điện thoại</span>
+                          </div>
+                          {profile?.phone_verified ? (
+                            <Badge className="bg-green-100 text-green-700 border-0">
+                              ✓ Đã xác thực
+                            </Badge>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-xs h-7"
+                              disabled={!profile?.phone}
+                            >
+                              {profile?.phone ? 'Xác thực ngay' : 'Thêm SĐT trước'}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CollapsibleContent>
@@ -448,7 +700,7 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       <Button
-                        onClick={handleSaveSettings}
+                        onClick={handleUpdateProfile}
                         className="w-full rounded-full bg-primary"
                       >
                         Lưu tùy chọn
@@ -509,7 +761,7 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       <Button
-                        onClick={handleSaveSettings}
+                        onClick={handleUpdateProfile}
                         className="w-full rounded-full bg-primary"
                       >
                         Cập nhật bảo mật
@@ -536,7 +788,11 @@ export default function ProfilePage() {
                 </div>
               </Card>
 
-              <Button variant="outline" className="w-full text-red-600 hover:text-red-700 rounded-xl">
+              <Button 
+                variant="outline" 
+                className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl"
+                onClick={handleSignOut}
+              >
                 Đăng xuất
               </Button>
             </div>

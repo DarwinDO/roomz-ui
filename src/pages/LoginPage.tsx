@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,11 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, signUp, signInWithGoogle } = useAuth();
+  
+  // Get the page user was trying to access before being redirected to login
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/search';
   
   // Login state
   const [loginEmail, setLoginEmail] = useState('');
@@ -33,7 +37,7 @@ export default function LoginPage() {
 
     try {
       await signIn(loginEmail, loginPassword);
-      navigate('/search');
+      navigate(from, { replace: true });
     } catch (error: any) {
       setLoginError(error.message || 'Đăng nhập thất bại');
     } finally {
@@ -47,10 +51,18 @@ export default function LoginPage() {
     setSignupLoading(true);
 
     try {
-      await signUp(signupEmail, signupPassword, {
+      const { user } = await signUp(signupEmail, signupPassword, {
         full_name: signupName,
       });
-      navigate('/search');
+
+      // Check if email confirmation is required
+      if (user && !user.email_confirmed_at) {
+        // Email chưa được xác nhận -> redirect to verify page
+        navigate('/verify-email', { replace: true });
+      } else {
+        // Email đã được xác nhận (auto-confirm enabled) -> redirect to saved page
+        navigate(from, { replace: true });
+      }
     } catch (error: any) {
       setSignupError(error.message || 'Đăng ký thất bại');
     } finally {
