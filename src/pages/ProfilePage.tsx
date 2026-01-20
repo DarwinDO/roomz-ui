@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,8 @@ import { messagesData } from "../data/messages";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts";
 import { supabase } from "@/lib/supabase";
+import { useFavorites } from "@/hooks/useFavorites";
+import type { RoomWithDetails } from "@/services/rooms";
 import {
   User,
   Settings,
@@ -38,12 +40,50 @@ import {
   Mail,
   Phone,
   GraduationCap,
+  AlertCircle,
 } from "lucide-react";
+
+// Helper function to transform room data to RoomCard props
+function transformRoomToCardProps(room: RoomWithDetails) {
+  // Get primary image or first image
+  const primaryImage = room.images?.find(img => img.is_primary) || room.images?.[0];
+  const imageUrl = primaryImage?.image_url || 'https://images.unsplash.com/photo-1668089677938-b52086753f77?w=400';
+  
+  // Format location
+  const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
+  
+  // Calculate random distance for now
+  const distance = room.latitude && room.longitude 
+    ? `${(Math.random() * 5 + 0.5).toFixed(1)} km` 
+    : 'N/A';
+
+  return {
+    id: room.id,
+    image: imageUrl,
+    title: room.title,
+    location,
+    price: Number(room.price_per_month),
+    distance,
+    verified: room.is_verified || false,
+    available: room.is_available || false,
+    matchPercentage: Math.floor(Math.random() * 20 + 75),
+  };
+}
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, profile, signOut, isEmailVerified, refreshUser } = useAuth();
+  
+  // Fetch favorites from database
+  const { favorites, loading: favoritesLoading, error: favoritesError, refetch: refetchFavorites, toggleFavorite } = useFavorites();
+  
+  // Transform favorites to room card props (memoized to prevent unnecessary recalculations)
+  const savedRooms = useMemo(() => {
+    return favorites
+      .filter(fav => fav.room)
+      .map(fav => transformRoomToCardProps(fav.room!));
+  }, [favorites]);
   
   // UI states
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -109,33 +149,6 @@ export default function ProfilePage() {
 
   const trustScore = calculateTrustScore();
 
-  const savedRooms = [
-    {
-      id: "saved-1",
-      image: "https://images.unsplash.com/photo-1668089677938-b52086753f77?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBiZWRyb29tJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYwNjM2NDM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Phòng riêng ấm cúng gần trường",
-      location: "Khu Đại học, TP.HCM",
-      price: 3500000,
-      distance: "0.5 km",
-      verified: true,
-      available: true,
-      matchPercentage: 92,
-    },
-    {
-      id: "saved-2",
-      image: "https://images.unsplash.com/photo-1617325247661-675ab4b64ae2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwYmVkcm9vbXxlbnwxfHx8fDE3NjA2MzgzMDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Căn studio hiện đại nhìn ra thành phố",
-      location: "Quận 3, TP.HCM",
-      price: 5000000,
-      distance: "2 km",
-      verified: true,
-      available: true,
-      matchPercentage: 85,
-    },
-  ];
-
-
-
   const handleMessageClick = (message: { name: string; avatar?: string; lastMessage?: string }) => {
     setSelectedChatPerson(message);
     setIsChatOpen(true);
@@ -153,9 +166,15 @@ export default function ProfilePage() {
     navigate(`/room/${room.id}`);
   };
 
-  const handleRemoveFavorite = (roomId: string, e: React.MouseEvent) => {
+  const handleRemoveFavorite = async (roomId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    toast.success("Đã xóa khỏi yêu thích");
+    try {
+      await toggleFavorite(roomId);
+      toast.success("Đã xóa khỏi yêu thích");
+    } catch (error) {
+      console.error('Error removing favorite:', error);
+      toast.error("Không thể xóa khỏi yêu thích");
+    }
   };
 
   const toggleSettingsSection = (section: string) => {
@@ -185,9 +204,10 @@ export default function ProfilePage() {
       toast.success("Đã lưu cài đặt thành công!");
       // Refresh profile data through context
       await refreshUser();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating profile:', error);
-      toast.error(error.message || "Không thể cập nhật hồ sơ");
+      const errorMessage = error instanceof Error ? error.message : "Không thể cập nhật hồ sơ";
+      toast.error(errorMessage);
     } finally {
       setIsUpdating(false);
     }
@@ -419,37 +439,85 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3>Phòng đã lưu ({savedRooms.length})</h3>
+                  {savedRooms.length > 0 && (
+                    <Button variant="outline" size="sm" onClick={() => refetchFavorites()}>
+                      Làm mới
+                    </Button>
+                  )}
                 </div>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {savedRooms.map((room) => (
-                    <div key={room.id} className="relative group">
-                      <div onClick={() => handleRoomClick(room)}>
-                        <RoomCard {...room} />
+                
+                {/* Loading State */}
+                {favoritesLoading && (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden animate-pulse">
+                        <div className="h-48 bg-gray-200" />
+                        <div className="p-4 space-y-3">
+                          <div className="h-5 bg-gray-200 rounded w-3/4" />
+                          <div className="h-4 bg-gray-200 rounded w-1/2" />
+                          <div className="h-4 bg-gray-200 rounded w-1/3" />
+                        </div>
                       </div>
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                        <Button
-                          onClick={(e) => handleRemoveFavorite(room.id, e)}
-                          size="icon"
-                          variant="secondary"
-                          className="rounded-full bg-white/90 hover:bg-white h-8 w-8"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRoomClick(room);
-                          }}
-                          size="icon"
-                          variant="secondary"
-                          className="rounded-full bg-white/90 hover:bg-white h-8 w-8"
-                        >
-                          <Eye className="w-4 h-4 text-primary" />
-                        </Button>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Error State */}
+                {favoritesError && !favoritesLoading && (
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                    <p className="text-red-600 mb-4">{favoritesError}</p>
+                    <Button onClick={() => refetchFavorites()} variant="outline">
+                      Thử lại
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Empty State */}
+                {!favoritesLoading && !favoritesError && savedRooms.length === 0 && (
+                  <div className="bg-gray-50 rounded-2xl p-12 text-center">
+                    <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Chưa có phòng yêu thích</h3>
+                    <p className="text-gray-600 mb-4">Lưu các phòng bạn thích để xem lại sau</p>
+                    <Button onClick={() => navigate('/search')} variant="default">
+                      Tìm kiếm phòng
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Favorites List */}
+                {!favoritesLoading && !favoritesError && savedRooms.length > 0 && (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {savedRooms.map((room) => (
+                      <div key={room.id} className="relative group">
+                        <div onClick={() => handleRoomClick(room)}>
+                          <RoomCard {...room} />
+                        </div>
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                          <Button
+                            onClick={(e) => handleRemoveFavorite(room.id, e)}
+                            size="icon"
+                            variant="secondary"
+                            className="rounded-full bg-white/90 hover:bg-white h-8 w-8"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </Button>
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRoomClick(room);
+                            }}
+                            size="icon"
+                            variant="secondary"
+                            className="rounded-full bg-white/90 hover:bg-white h-8 w-8"
+                          >
+                            <Eye className="w-4 h-4 text-primary" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>

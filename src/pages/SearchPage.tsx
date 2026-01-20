@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,18 +9,49 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RoomCard } from "@/components/common/RoomCard";
 import { formatPriceInMillions } from "@/utils/format";
-import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, UtensilsCrossed, PawPrint, Armchair, CheckCircle2, Loader2 } from "lucide-react";
+import { useRooms, useDebounce } from "@/hooks";
+import { useFavorites } from "@/hooks/useFavorites";
+import { useAuth } from "@/contexts";
+import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, UtensilsCrossed, PawPrint, Armchair, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import type { RoomWithDetails } from "@/services/rooms";
+
+// Helper function to transform room data to RoomCard props
+function transformRoomToCardProps(room: RoomWithDetails, isFavorited: boolean = false) {
+  // Get primary image or first image
+  const primaryImage = room.images?.find(img => img.is_primary) || room.images?.[0];
+  const imageUrl = primaryImage?.image_url || 'https://images.unsplash.com/photo-1668089677938-b52086753f77?w=400';
+  
+  // Format location
+  const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
+  
+  // Calculate random distance for now (in real app, this would be calculated from user location)
+  const distance = room.latitude && room.longitude 
+    ? `${(Math.random() * 5 + 0.5).toFixed(1)} km` 
+    : 'N/A';
+
+  return {
+    id: room.id,
+    image: imageUrl,
+    title: room.title,
+    location,
+    price: Number(room.price_per_month),
+    distance,
+    verified: room.is_verified || false,
+    available: room.is_available || false,
+    matchPercentage: Math.floor(Math.random() * 20 + 75), // Random for now, would come from matching algorithm
+    isFavorited,
+  };
+}
 
 export default function SearchPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
-  const onRoomClick = (id: string) => {
-    navigate(`/room/${id}`);
-  };
+  // Filters state
+  const [searchQuery, setSearchQuery] = useState("");
   const [priceRange, setPriceRange] = useState([2000000, 6000000]);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
@@ -30,83 +61,59 @@ export default function SearchPage() {
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
   const [showVerifiedCheck, setShowVerifiedCheck] = useState(false);
 
-  const mockRooms = [
-    {
-      id: "1",
-      image: "https://images.unsplash.com/photo-1668089677938-b52086753f77?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBiZWRyb29tJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYwNjM2NDM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Phòng riêng ấm cúng gần trường",
-      location: "Quận 1, TP.HCM",
-      price: 3500000,
-      distance: "0.5 km",
-      verified: true,
-      available: true,
-      matchPercentage: 92,
-    },
-    {
-      id: "2",
-      image: "https://images.unsplash.com/photo-1617325247661-675ab4b64ae2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwYmVkcm9vbXxlbnwxfHx8fDE3NjA2MzgzMDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Căn studio hiện đại view thành phố",
-      location: "Quận 3, TP.HCM",
-      price: 5000000,
-      distance: "2 km",
-      verified: true,
-      available: true,
-      matchPercentage: 85,
-    },
-    {
-      id: "3",
-      image: "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcGFydG1lbnQlMjBsaXZpbmclMjByb29tfGVufDF8fHx8MTc2MDY3MzE2NXww&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Căn hộ chung tiện nghi đầy đủ",
-      location: "Bình Thạnh, TP.HCM",
-      price: 2500000,
-      distance: "1 km",
-      verified: false,
-      available: true,
-      matchPercentage: 78,
-    },
-    {
-      id: "4",
-      image: "https://images.unsplash.com/photo-1579632151052-92f741fb9b79?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3p5JTIwc3R1ZGVudCUyMHJvb218ZW58MXx8fHwxNzYwNjA0MDMzfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Phòng sáng trong khu nhà sinh viên",
-      location: "Thủ Đức, TP.HCM",
-      price: 3000000,
-      distance: "0.8 km",
-      verified: true,
-      available: true,
-      matchPercentage: 88,
-    },
-    {
-      id: "5",
-      image: "https://images.unsplash.com/photo-1691126223630-ac10cb81f1f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaXR5JTIwYXBhcnRtZW50JTIwdmlld3xlbnwxfHx8fDE3NjA2MDc2MzJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Căn hộ cao cấp có sân thượng",
-      location: "Quận 7, TP.HCM",
-      price: 6500000,
-      distance: "3.5 km",
-      verified: true,
-      available: true,
-      matchPercentage: 72,
-    },
-    {
-      id: "6",
-      image: "https://images.unsplash.com/photo-1758523417133-41f21fb9f058?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGFyZWQlMjBraXRjaGVuJTIwYXBhcnRtZW50fGVufDF8fHx8MTc2MDY3MzE2Nnww&ixlib=rb-4.1.0&q=80&w=1080",
-      title: "Phòng rộng rãi có bếp riêng",
-      location: "Quận 10, TP.HCM",
-      price: 3200000,
-      distance: "2.5 km",
-      verified: false,
-      available: true,
-      matchPercentage: 81,
-    },
-  ];
+  // Debounce search query to reduce API calls (only fires after user stops typing for 400ms)
+  const debouncedSearchQuery = useDebounce(searchQuery, 400);
 
-  const roomTypes = ["Phòng riêng", "Phòng chung", "Căn studio", "Nguyên căn"];
+  // Extract price range values for stable dependencies
+  const minPrice = priceRange[0];
+  const maxPrice = priceRange[1];
+
+  // Memoize filters object to prevent unnecessary re-fetches
+  const roomFilters = useMemo(() => ({
+    minPrice,
+    maxPrice,
+    isVerified: verifiedOnly ? true : undefined,
+    searchQuery: debouncedSearchQuery || undefined,
+  }), [minPrice, maxPrice, verifiedOnly, debouncedSearchQuery]);
+
+  // Fetch rooms from database
+  const { rooms, loading, error, refetch } = useRooms(roomFilters);
+
+  // Fetch favorites
+  const { isFavorited, toggleFavorite } = useFavorites();
+
+  const onRoomClick = (id: string) => {
+    navigate(`/room/${id}`);
+  };
+
+  const handleFavorite = async (roomId: string) => {
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để lưu phòng yêu thích");
+      navigate('/login');
+      return;
+    }
+    
+    try {
+      const favorited = await toggleFavorite(roomId);
+      toast.success(favorited ? "Đã thêm vào yêu thích" : "Đã xóa khỏi yêu thích");
+    } catch {
+      toast.error("Không thể cập nhật yêu thích");
+    }
+  };
+
+  const roomTypes = [
+    { value: "private", label: "Phòng riêng" },
+    { value: "shared", label: "Phòng chung" },
+    { value: "studio", label: "Căn studio" },
+    { value: "entire", label: "Nguyên căn" },
+  ];
   
   const amenities = [
     { id: "wifi", label: "WiFi", icon: Wifi },
     { id: "parking", label: "Chỗ đỗ xe", icon: Car },
-    { id: "laundry", label: "Giặt là", icon: WashingMachine },
+    { id: "washing_machine", label: "Giặt là", icon: WashingMachine },
     { id: "kitchen", label: "Bếp", icon: UtensilsCrossed },
-    { id: "pet", label: "Cho phép thú cưng", icon: PawPrint },
+    { id: "pet_allowed", label: "Cho phép thú cưng", icon: PawPrint },
     { id: "furnished", label: "Có nội thất", icon: Armchair },
   ];
 
@@ -123,28 +130,47 @@ export default function SearchPage() {
   };
 
   const handleResetFilters = () => {
-    setPriceRange([0, 3000]);
+    setPriceRange([0, 10000000]);
     setVerifiedOnly(false);
     setSelectedRoomTypes([]);
     setSelectedAmenities([]);
     setShowVerifiedCheck(false);
+    setSearchQuery("");
     toast.success("Đã đặt lại bộ lọc");
   };
 
   const handleApplyFilters = async () => {
     setIsApplyingFilters(true);
-    // Simulate loading
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await refetch();
     setIsApplyingFilters(false);
     setIsFiltersOpen(false);
     toast.success("Đã áp dụng bộ lọc");
   };
 
-  const filteredRooms = mockRooms.filter((room) => {
-    if (verifiedOnly && !room.verified) return false;
-    if (room.price < priceRange[0] || room.price > priceRange[1]) return false;
-    return true;
-  });
+  // Filter rooms locally for room type and amenities
+  const filteredRooms = useMemo(() => {
+    return rooms.filter((room) => {
+      // Filter by room type
+      if (selectedRoomTypes.length > 0 && !selectedRoomTypes.includes(room.room_type)) {
+        return false;
+      }
+      
+      // Filter by amenities
+      if (selectedAmenities.length > 0 && room.amenities) {
+        const hasAllAmenities = selectedAmenities.every(amenity => {
+          return room.amenities?.[amenity as keyof typeof room.amenities] === true;
+        });
+        if (!hasAllAmenities) return false;
+      }
+      
+      return true;
+    });
+  }, [rooms, selectedRoomTypes, selectedAmenities]);
+
+  // Transform rooms to card props
+  const roomCards = useMemo(() => {
+    return filteredRooms.map(room => transformRoomToCardProps(room, isFavorited(room.id)));
+  }, [filteredRooms, isFavorited]);
 
   return (
     <div className="pb-20 md:pb-8">
@@ -157,6 +183,13 @@ export default function SearchPage() {
               <Input
                 placeholder="Tìm kiếm địa điểm..."
                 className="pl-10 rounded-full border-gray-200"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    refetch();
+                  }
+                }}
               />
             </div>
             <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
@@ -243,15 +276,15 @@ export default function SearchPage() {
                     <div className="flex flex-wrap gap-2">
                       {roomTypes.map((type) => (
                         <button
-                          key={type}
-                          onClick={() => toggleRoomType(type)}
+                          key={type.value}
+                          onClick={() => toggleRoomType(type.value)}
                           className={`px-4 py-2 rounded-xl text-sm transition-all h-9 ${
-                            selectedRoomTypes.includes(type)
+                            selectedRoomTypes.includes(type.value)
                               ? "bg-primary text-white shadow-md"
                               : "bg-[#F5F5F5] text-[#333333] hover:bg-gray-200"
                           }`}
                         >
-                          {type}
+                          {type.label}
                         </button>
                       ))}
                     </div>
@@ -319,7 +352,14 @@ export default function SearchPage() {
           {/* View Toggle & Results Count */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-600">
-              {filteredRooms.length} phòng còn trống
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Đang tải...
+                </span>
+              ) : (
+                `${roomCards.length} phòng còn trống`
+              )}
             </p>
             <div className="flex gap-2">
               <Button
@@ -344,7 +384,7 @@ export default function SearchPage() {
       </div>
 
       {/* Active Filters */}
-      {(verifiedOnly || priceRange[0] > 0 || priceRange[1] < 10000000) && (
+      {(verifiedOnly || priceRange[0] > 0 || priceRange[1] < 10000000 || selectedRoomTypes.length > 0) && (
         <div className="px-4 py-3 bg-gray-50 border-b border-border">
           <div className="max-w-6xl mx-auto flex flex-wrap gap-2">
             {verifiedOnly && (
@@ -362,19 +402,76 @@ export default function SearchPage() {
                 />
               </Badge>
             )}
+            {selectedRoomTypes.map(type => {
+              const roomType = roomTypes.find(t => t.value === type);
+              return (
+                <Badge key={type} className="bg-primary text-white gap-1">
+                  {roomType?.label}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => toggleRoomType(type)} />
+                </Badge>
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Results */}
       <div className="px-4 py-6 max-w-6xl mx-auto">
-        {viewMode === "list" ? (
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={() => refetch()} variant="outline">
+              Thử lại
+            </Button>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && !error && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredRooms.map((room) => (
-              <RoomCard key={room.id} {...room} onClick={onRoomClick} />
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden animate-pulse">
+                <div className="h-48 bg-gray-200" />
+                <div className="p-4 space-y-3">
+                  <div className="h-5 bg-gray-200 rounded w-3/4" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  <div className="h-4 bg-gray-200 rounded w-1/3" />
+                </div>
+              </div>
             ))}
           </div>
-        ) : (
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && roomCards.length === 0 && (
+          <div className="bg-gray-50 rounded-2xl p-12 text-center">
+            <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Không tìm thấy phòng</h3>
+            <p className="text-gray-600 mb-4">Thử điều chỉnh bộ lọc để xem thêm kết quả</p>
+            <Button onClick={handleResetFilters} variant="outline">
+              Đặt lại bộ lọc
+            </Button>
+          </div>
+        )}
+
+        {/* Results List */}
+        {!loading && !error && roomCards.length > 0 && viewMode === "list" && (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {roomCards.map((room) => (
+              <RoomCard 
+                key={room.id} 
+                {...room} 
+                onClick={onRoomClick}
+                onFavorite={handleFavorite}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Map View */}
+        {!loading && !error && viewMode === "map" && (
           <div className="bg-gray-100 rounded-2xl h-[600px] flex items-center justify-center">
             <div className="text-center">
               <Map className="w-16 h-16 text-gray-400 mx-auto mb-3" />
