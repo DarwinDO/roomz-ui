@@ -491,14 +491,16 @@ export default function ProfilePage() {
                     {savedRooms.map((room) => (
                       <div key={room.id} className="relative group">
                         <div onClick={() => handleRoomClick(room)}>
-                          <RoomCard {...room} />
+                          <RoomCard {...room} isFavorited={true} />
                         </div>
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                        {/* Action buttons positioned at bottom-left to avoid overlapping with heart icon */}
+                        <div className="absolute bottom-20 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                           <Button
                             onClick={(e) => handleRemoveFavorite(room.id, e)}
                             size="icon"
                             variant="secondary"
-                            className="rounded-full bg-white/90 hover:bg-white h-8 w-8"
+                            className="rounded-full bg-white/90 hover:bg-white h-8 w-8 shadow-md"
+                            title="Xóa khỏi yêu thích"
                           >
                             <Trash2 className="w-4 h-4 text-red-500" />
                           </Button>
@@ -509,7 +511,8 @@ export default function ProfilePage() {
                             }}
                             size="icon"
                             variant="secondary"
-                            className="rounded-full bg-white/90 hover:bg-white h-8 w-8"
+                            className="rounded-full bg-white/90 hover:bg-white h-8 w-8 shadow-md"
+                            title="Xem chi tiết"
                           >
                             <Eye className="w-4 h-4 text-primary" />
                           </Button>

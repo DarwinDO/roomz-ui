@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Heart, MapPin } from "lucide-react";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatPriceInMillions } from "@/utils/format";
 
 interface RoomCardProps {
@@ -14,6 +14,8 @@ interface RoomCardProps {
   verified: boolean;
   available: boolean;
   matchPercentage?: number;
+  isFavorited?: boolean;
+  showFavoriteButton?: boolean;
   onFavorite?: (id: string) => void;
   onClick?: (id: string) => void;
 }
@@ -28,14 +30,21 @@ export function RoomCard({
   verified,
   available,
   matchPercentage,
+  isFavorited: isFavoritedProp = false,
+  showFavoriteButton = true,
   onFavorite,
   onClick,
 }: RoomCardProps) {
-  const [isFavorited, setIsFavorited] = useState(false);
+  const [localFavorited, setLocalFavorited] = useState(isFavoritedProp);
+
+  // Sync local state with prop when prop changes
+  useEffect(() => {
+    setLocalFavorited(isFavoritedProp);
+  }, [isFavoritedProp]);
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFavorited(!isFavorited);
+    setLocalFavorited(!localFavorited);
     onFavorite?.(id);
   };
 
@@ -50,16 +59,18 @@ export function RoomCard({
           alt={title}
           className="w-full h-48 object-cover"
         />
-        <button
-          onClick={handleFavorite}
-          className="absolute top-3 right-3 bg-white rounded-full p-2 shadow-md hover:scale-110 transition-transform"
-        >
-          <Heart
-            className={`w-5 h-5 ${
-              isFavorited ? "fill-red-500 text-red-500" : "text-gray-600"
-            }`}
-          />
-        </button>
+        {showFavoriteButton && (
+          <button
+            onClick={handleFavorite}
+            className="absolute top-3 right-3 bg-white rounded-full p-2 shadow-md hover:scale-110 transition-transform z-10"
+          >
+            <Heart
+              className={`w-5 h-5 ${
+                localFavorited ? "fill-red-500 text-red-500" : "text-gray-600"
+              }`}
+            />
+          </button>
+        )}
         {verified && (
           <Badge className="absolute top-3 left-3 bg-primary text-white">
             Verified+

@@ -52,9 +52,14 @@ export async function isRoomFavorited(userId: string, roomId: string): Promise<b
     .select('id')
     .eq('user_id', userId)
     .eq('room_id', roomId)
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') throw error;
+  // maybeSingle returns null if no rows found, data if exactly 1 row
+  // It only throws error if more than 1 row found or other DB error
+  if (error) {
+    console.warn('Error checking favorite status:', error.message);
+    return false; // Return false on error to allow retry
+  }
 
   return !!data;
 }
@@ -77,29 +82,13 @@ export async function addFavorite(userId: string, roomId: string): Promise<Favor
 
   if (error) throw error;
 
-  // Update room favorite count (if the RPC exists)
-  try {
-    await supabase.rpc('increment_favorite_count', { room_id: roomId });
-  } catch (rpcError: any) {
-    // Only use fallback if RPC doesn't exist (code 42883)
-    if (rpcError?.code === '42883' || rpcError?.message?.includes('does not exist')) {
-      const { data: room, error: roomError } = await supabase
-        .from('rooms')
-        .select('favorite_count')
-        .eq('id', roomId)
-        .single();
-      
-      if (!roomError && room) {
-        await supabase
-          .from('rooms')
-          .update({ favorite_count: (room.favorite_count || 0) + 1 })
-          .eq('id', roomId);
-      }
-    } else {
-      // RPC exists but failed for other reason, log but don't throw
-      console.error('Failed to increment favorite count:', rpcError);
+  // Update room favorite count (best effort, don't fail if RPC doesn't exist or user lacks permission)
+  // Note: RPC functions may not exist in database - this is expected and silently ignored
+  supabase.rpc('increment_favorite_count' as never, { room_id: roomId } as never).then(({ error: rpcError }) => {
+    if (rpcError && rpcError.code !== 'PGRST202' && rpcError.code !== '42501' && rpcError.code !== '42883') {
+      console.warn('Failed to increment favorite count:', rpcError.message);
     }
-  }
+  });
 
   return data;
 }
@@ -116,29 +105,13 @@ export async function removeFavorite(userId: string, roomId: string): Promise<vo
 
   if (error) throw error;
 
-  // Decrement room favorite count
-  try {
-    await supabase.rpc('decrement_favorite_count', { room_id: roomId });
-  } catch (rpcError: any) {
-    // Only use fallback if RPC doesn't exist (code 42883)
-    if (rpcError?.code === '42883' || rpcError?.message?.includes('does not exist')) {
-      const { data: room, error: roomError } = await supabase
-        .from('rooms')
-        .select('favorite_count')
-        .eq('id', roomId)
-        .single();
-      
-      if (!roomError && room && room.favorite_count && room.favorite_count > 0) {
-        await supabase
-          .from('rooms')
-          .update({ favorite_count: room.favorite_count - 1 })
-          .eq('id', roomId);
-      }
-    } else {
-      // RPC exists but failed for other reason, log but don't throw
-      console.error('Failed to decrement favorite count:', rpcError);
+  // Decrement room favorite count (best effort, don't fail if RPC doesn't exist or user lacks permission)
+  // Note: RPC functions may not exist in database - this is expected and silently ignored
+  supabase.rpc('decrement_favorite_count' as never, { room_id: roomId } as never).then(({ error: rpcError }) => {
+    if (rpcError && rpcError.code !== 'PGRST202' && rpcError.code !== '42501' && rpcError.code !== '42883') {
+      console.warn('Failed to decrement favorite count:', rpcError.message);
     }
-  }
+  });
 }
 
 /**
