@@ -12,6 +12,7 @@ import {
   markMessagesAsRead,
   getUnreadCount,
   subscribeToMessages,
+  subscribeToConversation,
   type Conversation,
   type MessageWithUsers,
 } from '@/services/messages';
@@ -72,47 +73,63 @@ export function useConversations(): UseConversationsReturn {
     fetchConversations();
   }, [fetchConversations]);
 
-  // Subscribe to real-time updates
+  // Subscribe to real-time updates for all messages
   useEffect(() => {
     if (!user?.id) return;
 
-    const subscription = subscribeToMessages(user.id, (newMessage) => {
-      // Update conversations with new message
-      setConversations(prev => {
-        const partnerId = newMessage.sender_id === user.id 
-          ? newMessage.receiver_id 
-          : newMessage.sender_id;
+    console.log('[useConversations] Setting up realtime subscription');
+
+    const subscription = subscribeToMessages(
+      user.id, 
+      // On new message
+      (newMessage) => {
+        console.log('[useConversations] New message received:', newMessage.id);
         
-        const existingIndex = prev.findIndex(c => c.id === partnerId);
+        // Update conversations with new message
+        setConversations(prev => {
+          const partnerId = newMessage.sender_id === user.id 
+            ? newMessage.receiver_id 
+            : newMessage.sender_id;
+          
+          const existingIndex = prev.findIndex(c => c.id === partnerId);
+          
+          if (existingIndex >= 0) {
+            const updated = [...prev];
+            const isIncoming = newMessage.receiver_id === user.id;
+            updated[existingIndex] = {
+              ...updated[existingIndex],
+              lastMessage: newMessage,
+              unreadCount: isIncoming 
+                ? updated[existingIndex].unreadCount + 1 
+                : updated[existingIndex].unreadCount,
+            };
+            // Move to top
+            const [conversation] = updated.splice(existingIndex, 1);
+            return [conversation, ...updated];
+          }
+          
+          // New conversation - refetch to get full data
+          fetchConversations();
+          return prev;
+        });
         
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          const isIncoming = newMessage.receiver_id === user.id;
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            lastMessage: newMessage,
-            unreadCount: isIncoming 
-              ? updated[existingIndex].unreadCount + 1 
-              : updated[existingIndex].unreadCount,
-          };
-          // Move to top
-          const [conversation] = updated.splice(existingIndex, 1);
-          return [conversation, ...updated];
+        // Only increment total unread count if message is from other user
+        if (newMessage.sender_id !== user.id) {
+          setUnreadCount(prev => prev + 1);
         }
-        
-        return prev;
-      });
-      
-      // Only increment total unread count if message is from other user
-      if (newMessage.sender_id !== user.id) {
-        setUnreadCount(prev => prev + 1);
+      },
+      // On message read (optional)
+      (payload) => {
+        console.log('[useConversations] Messages marked as read:', payload.messageIds);
+        // Could update UI to show message was read
       }
-    });
+    );
 
     return () => {
+      console.log('[useConversations] Cleaning up subscription');
       subscription.unsubscribe();
     };
-  }, [user?.id]); // Use user.id to prevent recreation on user object change
+  }, [user?.id, fetchConversations]); // Include fetchConversations
 
   return {
     conversations,
@@ -160,19 +177,27 @@ export function useConversationMessages(
     fetchMessages();
   }, [fetchMessages]);
 
-  // Subscribe to real-time updates for this conversation
+  // Subscribe to real-time updates for this specific conversation
+  // Uses subscribeToConversation for better performance (focused filter)
   useEffect(() => {
     if (!user || !partnerId) return;
 
-    const subscription = subscribeToMessages(user.id, (newMessage) => {
-      // Add if it's from this conversation partner (either sent or received)
-      if (newMessage.sender_id === partnerId || 
-          (newMessage.sender_id === user.id && newMessage.receiver_id === partnerId)) {
-        setMessages(prev => [...prev, newMessage]);
-      }
+    console.log('[useConversationMessages] Setting up realtime subscription');
+    
+    // Subscribe to conversation-specific channel
+    const subscription = subscribeToConversation(user.id, partnerId, (newMessage) => {
+      console.log('[useConversationMessages] New message received:', newMessage.id);
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(m => m.id === newMessage.id)) {
+          return prev;
+        }
+        return [...prev, newMessage];
+      });
     });
 
     return () => {
+      console.log('[useConversationMessages] Cleaning up subscription');
       subscription.unsubscribe();
     };
   }, [user?.id, partnerId]); // Use user.id instead of user object

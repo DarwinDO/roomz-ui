@@ -32,6 +32,9 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const SubletDetailPage = lazy(() => import('@/pages/SubletDetailPage'));
 const PartnersListPage = lazy(() => import('@/pages/PartnersListPage'));
 const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
+const LandlordDashboardPage = lazy(() => import('@/pages/LandlordDashboardPage'));
+const PostRoomPage = lazy(() => import('@/pages/PostRoomPage'));
+const PaymentPage = lazy(() => import('@/pages/PaymentPage'));
 
 // Admin pages
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
@@ -146,6 +149,30 @@ export const router = createBrowserRouter([
       {
         path: 'partners',
         element: <PartnersListPage />,
+      },
+      {
+        path: 'landlord',
+        element: (
+          <ProtectedRoute>
+            <LandlordDashboardPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'post-room',
+        element: (
+          <ProtectedRoute>
+            <PostRoomPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'payment',
+        element: (
+          <ProtectedRoute>
+            <PaymentPage />
+          </ProtectedRoute>
+        ),
       },
     ],
   },

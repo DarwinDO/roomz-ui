@@ -541,6 +541,9 @@ export default function RoomDetailPage() {
       <BookViewingModal
         isOpen={isBookViewingOpen}
         onClose={() => setIsBookViewingOpen(false)}
+        roomId={room?.id}
+        landlordId={room?.landlord_id}
+        roomTitle={room?.title}
       />
       <ContactLandlordModal
         isOpen={isContactLandlordOpen}

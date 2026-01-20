@@ -6,3 +6,4 @@
 export * from './rooms';
 export * from './favorites';
 export * from './messages';
+export * from './bookings';

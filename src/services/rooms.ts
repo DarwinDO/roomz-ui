@@ -32,6 +32,36 @@ export interface RoomFilters {
   isVerified?: boolean;
 }
 
+export interface CreateRoomData {
+  landlordId: string;
+  title: string;
+  description?: string;
+  address: string;
+  district?: string;
+  city: string;
+  pricePerMonth: number;
+  depositAmount?: number;
+  areaSqm?: number;
+  bedroomCount?: number;
+  bathroomCount?: number;
+  maxOccupants?: number;
+  roomType?: 'phong_tro' | 'chung_cu_mini' | 'nha_nguyen_can' | 'can_ho' | 'o_ghep';
+  furnished?: boolean;
+  availableFrom?: string;
+  minLeaseTerm?: number;
+  amenities?: {
+    wifi?: boolean;
+    air_conditioning?: boolean;
+    parking?: boolean;
+    washing_machine?: boolean;
+    refrigerator?: boolean;
+    heater?: boolean;
+    security_camera?: boolean;
+    balcony?: boolean;
+  };
+  imageUrls?: string[];
+}
+
 /**
  * Get all active rooms with optional filters
  */
@@ -117,11 +147,28 @@ export async function getRoomById(id: string): Promise<RoomWithDetails | null> {
 /**
  * Create a new room
  */
-export async function createRoom(
-  roomData: Partial<Room>,
-  amenities?: Partial<RoomAmenity>,
-  imageUrls?: string[]
-): Promise<RoomWithDetails> {
+export async function createRoom(data: CreateRoomData): Promise<RoomWithDetails> {
+  // Prepare room data
+  const roomData = {
+    landlord_id: data.landlordId,
+    title: data.title,
+    description: data.description,
+    address: data.address,
+    district: data.district,
+    city: data.city,
+    price_per_month: data.pricePerMonth,
+    deposit_amount: data.depositAmount,
+    area_sqm: data.areaSqm,
+    bedroom_count: data.bedroomCount || 1,
+    bathroom_count: data.bathroomCount || 1,
+    max_occupants: data.maxOccupants || 1,
+    room_type: data.roomType || 'phong_tro',
+    furnished: data.furnished || false,
+    available_from: data.availableFrom,
+    min_lease_term: data.minLeaseTerm || 3,
+    status: 'pending', // Pending approval
+  };
+
   // Insert room
   const { data: room, error: roomError } = await supabase
     .from('rooms')
@@ -132,15 +179,15 @@ export async function createRoom(
   if (roomError) throw roomError;
 
   // Insert amenities if provided
-  if (amenities) {
+  if (data.amenities) {
     await supabase
       .from('room_amenities')
-      .insert({ ...amenities, room_id: room.id } as never);
+      .insert({ ...data.amenities, room_id: room.id } as never);
   }
 
   // Insert images if provided
-  if (imageUrls && imageUrls.length > 0) {
-    const images = imageUrls.map((url, index) => ({
+  if (data.imageUrls && data.imageUrls.length > 0) {
+    const images = data.imageUrls.map((url, index) => ({
       room_id: room.id,
       image_url: url,
       display_order: index,
