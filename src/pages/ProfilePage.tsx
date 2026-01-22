@@ -34,7 +34,6 @@ import {
   Edit,
   Crown,
   ChevronDown,
-  Trash2,
   Eye,
   Loader2,
   Mail,
@@ -491,30 +490,37 @@ export default function ProfilePage() {
                     {savedRooms.map((room) => (
                       <div key={room.id} className="relative group">
                         <div onClick={() => handleRoomClick(room)}>
-                          <RoomCard {...room} isFavorited={true} />
+                          <RoomCard 
+                            {...room} 
+                            isFavorited={true} 
+                            showFavoriteButton={false}
+                          />
                         </div>
-                        {/* Action buttons positioned at bottom-left to avoid overlapping with heart icon */}
-                        <div className="absolute bottom-20 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
+                        {/* Action buttons in top-right corner where heart icon would be */}
+                        <div className="absolute top-3 right-3 flex gap-2 z-10">
                           <Button
                             onClick={(e) => handleRemoveFavorite(room.id, e)}
                             size="icon"
-                            variant="secondary"
-                            className="rounded-full bg-white/90 hover:bg-white h-8 w-8 shadow-md"
+                            className="rounded-full bg-white hover:bg-red-50 h-9 w-9 shadow-md border-0"
+                            variant="ghost"
                             title="Xóa khỏi yêu thích"
                           >
-                            <Trash2 className="w-4 h-4 text-red-500" />
+                            <Heart className="w-5 h-5 fill-red-500 text-red-500" />
                           </Button>
+                        </div>
+                        {/* View button on hover at bottom-right */}
+                        <div className="absolute bottom-16 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                           <Button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleRoomClick(room);
                             }}
-                            size="icon"
-                            variant="secondary"
-                            className="rounded-full bg-white/90 hover:bg-white h-8 w-8 shadow-md"
-                            title="Xem chi tiết"
+                            size="sm"
+                            className="rounded-full bg-white/95 hover:bg-white shadow-md text-primary"
+                            variant="ghost"
                           >
-                            <Eye className="w-4 h-4 text-primary" />
+                            <Eye className="w-4 h-4 mr-1" />
+                            Xem
                           </Button>
                         </div>
                       </div>

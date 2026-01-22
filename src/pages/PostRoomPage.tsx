@@ -3,13 +3,14 @@
  * For landlords to post new room listings
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -43,15 +44,20 @@ import {
   Bed,
   Bath,
   Calendar,
+  Camera,
 } from "lucide-react";
 import { useAuth } from "@/contexts";
 import { createRoom, type CreateRoomData } from "@/services/rooms";
+import { uploadMultipleRoomImages } from "@/services/roomImages";
 import { toast } from "sonner";
 
 export default function PostRoomPage() {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [step, setStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
@@ -69,10 +75,10 @@ export default function PostRoomPage() {
     bedroomCount: "1",
     bathroomCount: "1",
     maxOccupants: "1",
-    roomType: "phong_tro" as const,
+    roomType: "private" as const,
     furnished: false,
     availableFrom: "",
-    minLeaseTerm: "3",
+    minLeaseTerm: "1",
     // Amenities
     wifi: true,
     airConditioning: false,
@@ -85,22 +91,66 @@ export default function PostRoomPage() {
   });
 
   // Image state
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const addImageUrl = () => {
-    if (newImageUrl && !imageUrls.includes(newImageUrl)) {
-      setImageUrls((prev) => [...prev, newImageUrl]);
-      setNewImageUrl("");
+  // File upload handlers
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    // Validate files
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} không phải là file ảnh`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        toast.error(`${file.name} vượt quá 5MB`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...validFiles]);
+      
+      // Create preview URLs
+      validFiles.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewUrls(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
-  const removeImage = (url: string) => {
-    setImageUrls((prev) => prev.filter((u) => u !== url));
+  const removeImage = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    
+    const input = fileInputRef.current;
+    if (input) {
+      const dt = new DataTransfer();
+      files.forEach(file => dt.items.add(file));
+      input.files = dt.files;
+      handleFileSelect({ target: input } as React.ChangeEvent<HTMLInputElement>);
+    }
   };
 
   const handleSubmit = async () => {
@@ -117,7 +167,37 @@ export default function PostRoomPage() {
     }
 
     setIsSubmitting(true);
+    
     try {
+      let imageUrls: string[] = [];
+      
+      // Upload images if any
+      if (selectedFiles.length > 0) {
+        setIsUploading(true);
+        setUploadProgress(0);
+        
+        // Simulate progress
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => Math.min(prev + 10, 90));
+        }, 200);
+
+        try {
+          imageUrls = await uploadMultipleRoomImages(user.id, selectedFiles);
+          setUploadedUrls(imageUrls);
+        } catch (uploadErr) {
+          clearInterval(progressInterval);
+          const message = uploadErr instanceof Error ? uploadErr.message : "Không thể tải ảnh lên";
+          toast.error(message);
+          setIsUploading(false);
+          setIsSubmitting(false);
+          return;
+        }
+        
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+        setIsUploading(false);
+      }
+
       const roomData: CreateRoomData = {
         landlordId: user.id,
         title: formData.title,
@@ -134,7 +214,7 @@ export default function PostRoomPage() {
         roomType: formData.roomType,
         furnished: formData.furnished,
         availableFrom: formData.availableFrom || undefined,
-        minLeaseTerm: parseInt(formData.minLeaseTerm) || 3,
+        minLeaseTerm: parseInt(formData.minLeaseTerm) || 1,
         amenities: {
           wifi: formData.wifi,
           air_conditioning: formData.airConditioning,
@@ -283,11 +363,10 @@ export default function PostRoomPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="phong_tro">Phòng trọ</SelectItem>
-                    <SelectItem value="chung_cu_mini">Chung cư mini</SelectItem>
-                    <SelectItem value="nha_nguyen_can">Nhà nguyên căn</SelectItem>
-                    <SelectItem value="can_ho">Căn hộ</SelectItem>
-                    <SelectItem value="o_ghep">Ở ghép</SelectItem>
+                    <SelectItem value="private">Phòng riêng</SelectItem>
+                    <SelectItem value="shared">Ở ghép</SelectItem>
+                    <SelectItem value="studio">Căn hộ mini/Studio</SelectItem>
+                    <SelectItem value="entire">Nhà nguyên căn</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -442,7 +521,7 @@ export default function PostRoomPage() {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="minLeaseTerm">Thời hạn thuê tối thiểu (tháng)</Label>
+                  <Label htmlFor="minLeaseTerm">Thuê tối thiểu (tháng)</Label>
                   <div className="relative mt-2">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
@@ -536,54 +615,116 @@ export default function PostRoomPage() {
                 </div>
               </div>
 
-              {/* Images */}
+              {/* Images Upload */}
               <div>
                 <Label className="mb-3 block">Hình ảnh phòng</Label>
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      value={newImageUrl}
-                      onChange={(e) => setNewImageUrl(e.target.value)}
-                      placeholder="Dán URL hình ảnh..."
-                      className="flex-1"
-                    />
-                    <Button onClick={addImageUrl} variant="outline">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Thêm
-                    </Button>
+                
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+
+                {/* Upload Area */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  className={`border-2 border-dashed rounded-2xl p-6 text-center transition-colors cursor-pointer ${
+                    isUploading
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-300 hover:border-primary hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    {isUploading ? (
+                      <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                    ) : (
+                      <Camera className="w-6 h-6 text-primary" />
+                    )}
                   </div>
-                  {imageUrls.length > 0 && (
+                  <p className="font-medium mb-1">
+                    {isUploading ? "Đang tải lên..." : "Chọn hoặc kéo thả ảnh"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG, tối đa 5MB/ảnh
+                  </p>
+                </div>
+
+                {/* Upload Progress */}
+                {isUploading && (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Đang tải ảnh...</span>
+                      <span className="text-primary">{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                  </div>
+                )}
+
+                {/* Preview Grid */}
+                {previewUrls.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        Đã chọn {selectedFiles.length} ảnh
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading || isSubmitting}
+                      >
+                        <ImagePlus className="w-4 h-4 mr-1" />
+                        Thêm ảnh
+                      </Button>
+                    </div>
                     <div className="grid grid-cols-3 gap-2">
-                      {imageUrls.map((url, i) => (
-                        <div key={i} className="relative group">
+                      {previewUrls.map((url, index) => (
+                        <div key={index} className="relative group">
                           <img
                             src={url}
-                            alt={`Ảnh ${i + 1}`}
+                            alt={`Preview ${index + 1}`}
                             className="w-full aspect-video object-cover rounded-lg"
                           />
-                          <button
-                            onClick={() => removeImage(url)}
-                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                          {!isUploading && !isSubmitting && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeImage(index);
+                              }}
+                              className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                          {index === 0 && (
+                            <span className="absolute bottom-1 left-1 px-2 py-0.5 bg-primary text-white text-xs rounded">
+                              Ảnh đại diện
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
-                  )}
-                  <p className="text-sm text-gray-500">
-                    Thêm ít nhất 3 ảnh để tăng độ tin cậy cho tin đăng
-                  </p>
-                </div>
+                  </div>
+                )}
+
+                <p className="text-sm text-gray-500 mt-3">
+                  Thêm ít nhất 3 ảnh để tăng độ tin cậy cho tin đăng
+                </p>
               </div>
 
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
+                <Button variant="outline" onClick={() => setStep(2)} className="flex-1" disabled={isSubmitting}>
                   Quay lại
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isUploading}
                   className="flex-1"
                 >
                   {isSubmitting ? (

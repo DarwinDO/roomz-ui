@@ -45,7 +45,7 @@ export interface CreateRoomData {
   bedroomCount?: number;
   bathroomCount?: number;
   maxOccupants?: number;
-  roomType?: 'phong_tro' | 'chung_cu_mini' | 'nha_nguyen_can' | 'can_ho' | 'o_ghep';
+  roomType?: 'private' | 'shared' | 'studio' | 'entire';
   furnished?: boolean;
   availableFrom?: string;
   minLeaseTerm?: number;
@@ -128,11 +128,8 @@ export async function getRoomById(id: string): Promise<RoomWithDetails | null> {
     throw error;
   }
 
-  // Increment view count via RPC if available (non-blocking, silently ignore errors)
-  // Note: Direct update to rooms table requires RLS policy or RPC function
-  // RPC functions may not exist in database - this is expected and silently ignored
-  supabase.rpc('increment_view_count' as never, { room_id: id } as never).then(({ error: rpcError }) => {
-    // Silently ignore if RPC doesn't exist or permission denied
+  // Increment view count via RPC (non-blocking)
+  supabase.rpc('increment_view_count' as never, { p_room_id: id } as never).then(({ error: rpcError }) => {
     if (rpcError && rpcError.code !== 'PGRST202' && rpcError.code !== '42501' && rpcError.code !== '42883') {
       console.warn('Failed to increment view count:', rpcError.message);
     }
@@ -162,10 +159,10 @@ export async function createRoom(data: CreateRoomData): Promise<RoomWithDetails>
     bedroom_count: data.bedroomCount || 1,
     bathroom_count: data.bathroomCount || 1,
     max_occupants: data.maxOccupants || 1,
-    room_type: data.roomType || 'phong_tro',
+    room_type: data.roomType || 'private',
     furnished: data.furnished || false,
     available_from: data.availableFrom,
-    min_lease_term: data.minLeaseTerm || 3,
+    min_lease_term: data.minLeaseTerm || 1,
     status: 'pending', // Pending approval
   };
 

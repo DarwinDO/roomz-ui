@@ -12,6 +12,7 @@
 -- HƯỚNG DẪN TẠO STORAGE POLICIES QUA DASHBOARD
 -- ============================================
 --
+-- =============== BUCKET: verifications ===============
 -- 1. Vào Dashboard > Storage > Policies
 -- 2. Chọn bucket "verifications"
 -- 3. Tạo 4 policies sau:
@@ -36,6 +37,34 @@
 --
 -- POLICY 4 - DELETE:
 --   Name: Users can delete own verification files
+--   Operation: DELETE
+--   Roles: authenticated
+--   USING: (storage.foldername(name))[1] = (auth.uid())::text
+--
+-- =============== BUCKET: room-images ===============
+-- 1. Chọn bucket "room-images"
+-- 2. Tạo 4 policies sau:
+--
+-- POLICY 1 - INSERT:
+--   Name: Users can upload room images
+--   Operation: INSERT
+--   Roles: authenticated
+--   WITH CHECK: (storage.foldername(name))[1] = (auth.uid())::text
+--
+-- POLICY 2 - SELECT (Public bucket - everyone can view):
+--   Name: Anyone can view room images
+--   Operation: SELECT
+--   Roles: public (hoặc bỏ trống)
+--   USING: true
+--
+-- POLICY 3 - UPDATE:
+--   Name: Users can update own room images
+--   Operation: UPDATE
+--   Roles: authenticated
+--   USING: (storage.foldername(name))[1] = (auth.uid())::text
+--
+-- POLICY 4 - DELETE:
+--   Name: Users can delete own room images
 --   Operation: DELETE
 --   Roles: authenticated
 --   USING: (storage.foldername(name))[1] = (auth.uid())::text
