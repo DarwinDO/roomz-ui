@@ -13,6 +13,8 @@ import {
     deleteRoom as deleteRoomApi,
     updateUserStatus,
     deleteUser as deleteUserApi,
+    approveLandlordApplication,
+    rejectLandlordApplication,
     type AdminRoom,
     type AdminUser,
     type AdminStats,
@@ -43,10 +45,13 @@ interface UseAdminUsersReturn {
         active: number;
         suspended: number;
         verified: number;
+        pendingLandlords: number;
     };
     suspendUser: (id: string) => Promise<void>;
     activateUser: (id: string) => Promise<void>;
     deleteUser: (id: string) => Promise<void>;
+    approveLandlord: (id: string) => Promise<void>;
+    rejectLandlord: (id: string) => Promise<void>;
     refetch: () => Promise<void>;
 }
 
@@ -161,11 +166,26 @@ export function useAdminUsers(): UseAdminUsersReturn {
         setUsers(prev => prev.filter(u => u.id !== id));
     }, []);
 
+    const handleApproveLandlord = useCallback(async (id: string) => {
+        await approveLandlordApplication(id);
+        setUsers(prev => prev.map(u =>
+            u.id === id ? { ...u, role: 'landlord' as const, account_status: 'active' as const } : u
+        ));
+    }, []);
+
+    const handleRejectLandlord = useCallback(async (id: string) => {
+        await rejectLandlordApplication(id);
+        setUsers(prev => prev.map(u =>
+            u.id === id ? { ...u, account_status: 'active' as const } : u
+        ));
+    }, []);
+
     const stats = {
         total: users.length,
         active: users.filter(u => u.account_status === 'active').length,
         suspended: users.filter(u => u.account_status === 'suspended').length,
-        verified: users.filter(u => u.account_status === 'active').length, // Using active as verified proxy
+        verified: users.filter(u => u.account_status === 'active').length,
+        pendingLandlords: users.filter(u => u.account_status === 'pending_landlord').length,
     };
 
     return {
@@ -176,6 +196,8 @@ export function useAdminUsers(): UseAdminUsersReturn {
         suspendUser: handleSuspendUser,
         activateUser: handleActivateUser,
         deleteUser: handleDeleteUser,
+        approveLandlord: handleApproveLandlord,
+        rejectLandlord: handleRejectLandlord,
         refetch: fetchUsers,
     };
 }

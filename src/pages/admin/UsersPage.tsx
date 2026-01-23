@@ -17,13 +17,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Users, UserCheck, UserX, MoreVertical, Eye, Ban, Trash2, CheckCircle, Loader2, AlertCircle } from "lucide-react";
+import { Users, UserCheck, UserX, MoreVertical, Eye, Ban, Trash2, CheckCircle, Loader2, AlertCircle, Building2, XCircle } from "lucide-react";
 import { useAdminUsers } from "@/hooks/useAdmin";
 import type { AdminUser } from "@/services/admin";
 import { toast } from "sonner";
 
 export default function UsersPage() {
-  const { users, loading, error, stats, suspendUser, activateUser, deleteUser, refetch } = useAdminUsers();
+  const { users, loading, error, stats, suspendUser, activateUser, deleteUser, approveLandlord, rejectLandlord, refetch } = useAdminUsers();
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -34,8 +34,9 @@ export default function UsersPage() {
       filter === "all" ? true :
         filter === "active" ? user.account_status === "active" :
           filter === "suspended" ? user.account_status === "suspended" :
-            filter === "landlord" ? user.role === "landlord" :
-              filter === "admin" ? user.role === "admin" : true;
+            filter === "pending_landlord" ? user.account_status === "pending_landlord" :
+              filter === "landlord" ? user.role === "landlord" :
+                filter === "admin" ? user.role === "admin" : true;
 
     return matchesSearch && matchesFilter;
   });
@@ -67,6 +68,24 @@ export default function UsersPage() {
     }
   };
 
+  const handleApproveLandlord = async (userId: string) => {
+    try {
+      await approveLandlord(userId);
+      toast.success("Đã duyệt đăng ký chủ trọ");
+    } catch {
+      toast.error("Không thể duyệt đăng ký");
+    }
+  };
+
+  const handleRejectLandlord = async (userId: string) => {
+    try {
+      await rejectLandlord(userId);
+      toast.success("Đã từ chối đăng ký chủ trọ");
+    } catch {
+      toast.error("Không thể từ chối đăng ký");
+    }
+  };
+
   const getRoleBadge = (role: string | null) => {
     switch (role) {
       case "admin":
@@ -84,6 +103,8 @@ export default function UsersPage() {
         return <Badge className="bg-green-100 text-green-700">Hoạt động</Badge>;
       case "suspended":
         return <Badge className="bg-red-100 text-red-700">Đình chỉ</Badge>;
+      case "pending_landlord":
+        return <Badge className="bg-amber-100 text-amber-700">Chờ duyệt chủ trọ</Badge>;
       case "pending_verification":
         return <Badge className="bg-yellow-100 text-yellow-700">Chờ xác thực</Badge>;
       default:
@@ -163,7 +184,18 @@ export default function UsersPage() {
               <Eye className="h-4 w-4 mr-2" />
               Xem chi tiết
             </DropdownMenuItem>
-            {user.account_status === "suspended" ? (
+            {user.account_status === "pending_landlord" ? (
+              <>
+                <DropdownMenuItem onClick={() => handleApproveLandlord(user.id)}>
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                  Duyệt làm chủ trọ
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleRejectLandlord(user.id)}>
+                  <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                  Từ chối đăng ký
+                </DropdownMenuItem>
+              </>
+            ) : user.account_status === "suspended" ? (
               <DropdownMenuItem onClick={() => handleActivate(user.id)}>
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Kích hoạt
@@ -240,6 +272,12 @@ export default function UsersPage() {
           icon={CheckCircle}
           variant="info"
         />
+        <StatsCard
+          title="Chờ duyệt chủ trọ"
+          value={stats.pendingLandlords}
+          icon={Building2}
+          variant="warning"
+        />
       </div>
 
       {/* Filters */}
@@ -252,6 +290,7 @@ export default function UsersPage() {
             <SelectItem value="all">Tất cả</SelectItem>
             <SelectItem value="active">Đang hoạt động</SelectItem>
             <SelectItem value="suspended">Đã đình chỉ</SelectItem>
+            <SelectItem value="pending_landlord">Chờ duyệt chủ trọ</SelectItem>
             <SelectItem value="landlord">Chủ nhà</SelectItem>
             <SelectItem value="admin">Quản trị viên</SelectItem>
           </SelectContent>

@@ -618,8 +618,8 @@ export type Database = {
           furnished: boolean | null
           furniture_details: Json | null
           gender_restriction:
-            | Database["public"]["Enums"]["gender_restriction"]
-            | null
+          | Database["public"]["Enums"]["gender_restriction"]
+          | null
           has_360_photos: boolean | null
           id: string
           is_available: boolean | null
@@ -657,8 +657,8 @@ export type Database = {
           furnished?: boolean | null
           furniture_details?: Json | null
           gender_restriction?:
-            | Database["public"]["Enums"]["gender_restriction"]
-            | null
+          | Database["public"]["Enums"]["gender_restriction"]
+          | null
           has_360_photos?: boolean | null
           id?: string
           is_available?: boolean | null
@@ -696,8 +696,8 @@ export type Database = {
           furnished?: boolean | null
           furniture_details?: Json | null
           gender_restriction?:
-            | Database["public"]["Enums"]["gender_restriction"]
-            | null
+          | Database["public"]["Enums"]["gender_restriction"]
+          | null
           has_360_photos?: boolean | null
           id?: string
           is_available?: boolean | null
@@ -740,8 +740,8 @@ export type Database = {
           budget_max: number | null
           budget_min: number | null
           cleanliness_level:
-            | Database["public"]["Enums"]["cleanliness_level"]
-            | null
+          | Database["public"]["Enums"]["cleanliness_level"]
+          | null
           cooking: boolean | null
           created_at: string | null
           guest_frequency: Database["public"]["Enums"]["guest_frequency"] | null
@@ -754,24 +754,24 @@ export type Database = {
           updated_at: string | null
           user_id: string
           weekend_activity:
-            | Database["public"]["Enums"]["weekend_activity"]
-            | null
+          | Database["public"]["Enums"]["weekend_activity"]
+          | null
         }
         Insert: {
           budget_max?: number | null
           budget_min?: number | null
           cleanliness_level?:
-            | Database["public"]["Enums"]["cleanliness_level"]
-            | null
+          | Database["public"]["Enums"]["cleanliness_level"]
+          | null
           cooking?: boolean | null
           created_at?: string | null
           guest_frequency?:
-            | Database["public"]["Enums"]["guest_frequency"]
-            | null
+          | Database["public"]["Enums"]["guest_frequency"]
+          | null
           id?: string
           noise_tolerance?:
-            | Database["public"]["Enums"]["noise_tolerance"]
-            | null
+          | Database["public"]["Enums"]["noise_tolerance"]
+          | null
           pets?: boolean | null
           preferred_locations?: Json | null
           sleep_schedule?: Database["public"]["Enums"]["sleep_schedule"] | null
@@ -779,24 +779,24 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           weekend_activity?:
-            | Database["public"]["Enums"]["weekend_activity"]
-            | null
+          | Database["public"]["Enums"]["weekend_activity"]
+          | null
         }
         Update: {
           budget_max?: number | null
           budget_min?: number | null
           cleanliness_level?:
-            | Database["public"]["Enums"]["cleanliness_level"]
-            | null
+          | Database["public"]["Enums"]["cleanliness_level"]
+          | null
           cooking?: boolean | null
           created_at?: string | null
           guest_frequency?:
-            | Database["public"]["Enums"]["guest_frequency"]
-            | null
+          | Database["public"]["Enums"]["guest_frequency"]
+          | null
           id?: string
           noise_tolerance?:
-            | Database["public"]["Enums"]["noise_tolerance"]
-            | null
+          | Database["public"]["Enums"]["noise_tolerance"]
+          | null
           pets?: boolean | null
           preferred_locations?: Json | null
           sleep_schedule?: Database["public"]["Enums"]["sleep_schedule"] | null
@@ -804,8 +804,8 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           weekend_activity?:
-            | Database["public"]["Enums"]["weekend_activity"]
-            | null
+          | Database["public"]["Enums"]["weekend_activity"]
+          | null
         }
         Relationships: [
           {
@@ -845,6 +845,7 @@ export type Database = {
           password_hash: string
           phone: string | null
           phone_verified: boolean | null
+          preferences: Json | null
           premium_until: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           student_card_verified: boolean | null
@@ -873,6 +874,7 @@ export type Database = {
           password_hash: string
           phone?: string | null
           phone_verified?: boolean | null
+          preferences?: Json | null
           premium_until?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           student_card_verified?: boolean | null
@@ -901,6 +903,7 @@ export type Database = {
           password_hash?: string
           phone?: string | null
           phone_verified?: boolean | null
+          preferences?: Json | null
           premium_until?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           student_card_verified?: boolean | null
@@ -1019,8 +1022,8 @@ export type Database = {
           furnished: boolean | null
           furniture_details: Json | null
           gender_restriction:
-            | Database["public"]["Enums"]["gender_restriction"]
-            | null
+          | Database["public"]["Enums"]["gender_restriction"]
+          | null
           has_360_photos: boolean | null
           id: string | null
           image_count: number | null
@@ -1085,7 +1088,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      account_status: "active" | "suspended" | "pending"
+      account_status: "active" | "suspended" | "pending" | "pending_landlord"
       booking_status: "pending" | "confirmed" | "cancelled" | "completed"
       cleanliness_level: "organized" | "moderate" | "relaxed"
       gender_restriction: "none" | "male_only" | "female_only"
@@ -1100,16 +1103,16 @@ export type Database = {
       user_gender: "male" | "female" | "other"
       user_role: "student" | "landlord" | "admin"
       verification_status:
-        | "pending"
-        | "approved"
-        | "rejected"
-        | "needs_resubmit"
+      | "pending"
+      | "approved"
+      | "rejected"
+      | "needs_resubmit"
       verification_type:
-        | "id_card"
-        | "student_card"
-        | "email"
-        | "phone"
-        | "room_photos"
+      | "id_card"
+      | "student_card"
+      | "email"
+      | "phone"
+      | "room_photos"
       weekend_activity: "home" | "out" | "mix"
     }
     CompositeTypes: {
@@ -1124,121 +1127,121 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? R
-    : never
+  ? R
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
+    DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] &
+    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+  ? R
+  : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
+    Insert: infer I
+  }
+  ? I
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
+    Update: infer U
+  }
+  ? U
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Enums"]
+  | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+  : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["CompositeTypes"]
+  | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
   public: {
     Enums: {
-      account_status: ["active", "suspended", "pending"],
+      account_status: ["active", "suspended", "pending", "pending_landlord"],
       booking_status: ["pending", "confirmed", "cancelled", "completed"],
       cleanliness_level: ["organized", "moderate", "relaxed"],
       gender_restriction: ["none", "male_only", "female_only"],

@@ -15,7 +15,14 @@ export default function LoginPage() {
   const { signIn, signUp, signInWithGoogle } = useAuth();
 
   // Get the page user was trying to access before being redirected to login
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/search';
+  const savedPath = (location.state as { from?: { pathname: string } })?.from?.pathname;
+
+  // Paths that require landlord role - should not redirect here for non-landlords
+  const landlordOnlyPaths = ['/landlord', '/post-room'];
+  const isLandlordPath = savedPath && landlordOnlyPaths.some(p => savedPath.startsWith(p));
+
+  // Default redirect for regular users
+  const defaultPath = '/search';
 
   // Login state
   const [loginEmail, setLoginEmail] = useState('');
@@ -45,11 +52,16 @@ export default function LoginPage() {
         .eq('id', user.id)
         .single();
 
-      // Role-based redirect: Admin → /admin, others → saved page
+      // Role-based redirect logic
       if (profile?.role === 'admin') {
         navigate('/admin', { replace: true });
+      } else if (profile?.role === 'landlord') {
+        // Landlord can access landlord paths
+        navigate(savedPath || defaultPath, { replace: true });
       } else {
-        navigate(from, { replace: true });
+        // Non-landlord users: don't redirect to landlord-only paths
+        const targetPath = isLandlordPath ? defaultPath : (savedPath || defaultPath);
+        navigate(targetPath, { replace: true });
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Đăng nhập thất bại';
@@ -74,8 +86,8 @@ export default function LoginPage() {
         // Email chưa được xác nhận -> redirect to verify page
         navigate('/verify-email', { replace: true });
       } else {
-        // Email đã được xác nhận (auto-confirm enabled) -> redirect to saved page
-        navigate(from, { replace: true });
+        // Email đã được xác nhận (auto-confirm enabled) -> redirect to default page
+        navigate(savedPath || defaultPath, { replace: true });
       }
     } catch (error: any) {
       setSignupError(error.message || 'Đăng ký thất bại');

@@ -208,6 +208,49 @@ export async function deleteUser(userId: string): Promise<void> {
   if (error) throw error;
 }
 
+// ============ LANDLORD APPLICATIONS ============
+
+/**
+ * Approve a landlord application - sets role to landlord and status to active
+ */
+export async function approveLandlordApplication(userId: string): Promise<void> {
+  await refreshSession();
+
+  const { error } = await supabase
+    .from('users')
+    .update({
+      role: 'landlord',
+      account_status: 'active',
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq('id', userId);
+
+  if (error) {
+    console.error('[Admin] Failed to approve landlord:', error);
+    throw error;
+  }
+}
+
+/**
+ * Reject a landlord application - sets status back to active (normal user)
+ */
+export async function rejectLandlordApplication(userId: string): Promise<void> {
+  await refreshSession();
+
+  const { error } = await supabase
+    .from('users')
+    .update({
+      account_status: 'active',
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq('id', userId);
+
+  if (error) {
+    console.error('[Admin] Failed to reject landlord application:', error);
+    throw error;
+  }
+}
+
 // ============ STATS ============
 
 /**
