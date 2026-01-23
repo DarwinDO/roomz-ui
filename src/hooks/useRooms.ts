@@ -97,3 +97,47 @@ export function useRoom(id: string | undefined): UseRoomReturn {
 
   return { room, loading, error, refetch: fetchRoom };
 }
+
+/**
+ * Hook to fetch landlord's rooms (includes all statuses: pending, active, etc.)
+ */
+export function useLandlordRooms(landlordId: string | undefined) {
+  const [rooms, setRooms] = useState<RoomWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchRooms = useCallback(async () => {
+    if (!landlordId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const { getRoomsByLandlord } = await import('@/services/rooms');
+      const data = await getRoomsByLandlord(landlordId);
+      setRooms(data);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch rooms';
+      setError(errorMessage);
+      console.error('Error fetching landlord rooms:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [landlordId]);
+
+  useEffect(() => {
+    fetchRooms();
+  }, [fetchRooms]);
+
+  const stats = {
+    total: rooms.length,
+    pending: rooms.filter(r => r.status === 'pending').length,
+    active: rooms.filter(r => r.status === 'active').length,
+    totalViews: rooms.reduce((sum, r) => sum + (r.view_count || 0), 0),
+    totalFavorites: rooms.reduce((sum, r) => sum + (r.favorite_count || 0), 0),
+  };
+
+  return { rooms, loading, error, stats, refetch: fetchRooms };
+}

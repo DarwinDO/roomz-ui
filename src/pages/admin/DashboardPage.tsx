@@ -2,11 +2,14 @@ import { StatsCard } from "@/components/admin/StatsCard";
 import { LineChartComponent, BarChartComponent, PieChartComponent } from "@/components/admin/Charts";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Home, DollarSign, ShieldCheck, ArrowRight } from "lucide-react";
-import { analyticsData, recentActivities } from "@/data/adminData";
+import { Users, Home, DollarSign, ShieldCheck, ArrowRight, Loader2 } from "lucide-react";
+import { analyticsData } from "@/data/adminData";
 import { Link } from "react-router-dom";
+import { useAdminStats } from "@/hooks/useAdmin";
 
 export default function DashboardPage() {
+  const { stats, loading } = useAdminStats();
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -17,34 +20,42 @@ export default function DashboardPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          title="Tổng người dùng"
-          value="1,920"
-          change={12.5}
-          icon={Users}
-          variant="default"
-        />
-        <StatsCard
-          title="Phòng đang hoạt động"
-          value="48"
-          change={8.2}
-          icon={Home}
-          variant="success"
-        />
-        <StatsCard
-          title="Doanh thu tháng này"
-          value="21.3tr"
-          change={15.3}
-          icon={DollarSign}
-          variant="info"
-        />
-        <StatsCard
-          title="Yêu cầu xác thực"
-          value="8"
-          change={-2.4}
-          icon={ShieldCheck}
-          variant="warning"
-        />
+        {loading ? (
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="p-6 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <StatsCard
+              title="Tổng người dùng"
+              value={stats?.totalUsers || 0}
+              icon={Users}
+              variant="default"
+            />
+            <StatsCard
+              title="Phòng đang hoạt động"
+              value={stats?.activeRooms || 0}
+              icon={Home}
+              variant="success"
+            />
+            <StatsCard
+              title="Chờ phê duyệt"
+              value={stats?.pendingRooms || 0}
+              icon={ShieldCheck}
+              variant="warning"
+            />
+            <StatsCard
+              title="Tổng lịch hẹn"
+              value={stats?.totalBookings || 0}
+              icon={DollarSign}
+              variant="info"
+            />
+          </>
+        )}
       </div>
 
       {/* Charts */}
@@ -77,15 +88,27 @@ export default function DashboardPage() {
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">Thao tác nhanh</h3>
           <div className="space-y-3">
-            <Link to="/admin/verifications">
-              <Button variant="outline" className="w-full justify-between">
-                <span>Xác thực người dùng</span>
+            <Link to="/admin/rooms">
+              <Button variant="outline" className="w-full justify-between mb-2">
+                <span>Quản lý phòng</span>
+                {stats?.pendingRooms ? (
+                  <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs">
+                    {stats.pendingRooms} chờ duyệt
+                  </span>
+                ) : (
+                  <ArrowRight className="w-4 h-4" />
+                )}
+              </Button>
+            </Link>
+            <Link to="/admin/users">
+              <Button variant="outline" className="w-full justify-between mb-2">
+                <span>Quản lý người dùng</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link to="/admin/rooms">
-              <Button variant="outline" className="w-full justify-between">
-                <span>Quản lý phòng</span>
+            <Link to="/admin/verifications">
+              <Button variant="outline" className="w-full justify-between mb-2">
+                <span>Xác thực người dùng</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
@@ -95,50 +118,32 @@ export default function DashboardPage() {
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link to="/admin/analytics">
-              <Button variant="outline" className="w-full justify-between">
-                <span>Phân tích chi tiết</span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
           </div>
         </Card>
       </div>
 
-      {/* Recent Activities */}
+      {/* Summary Info */}
       <Card className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Hoạt động gần đây</h3>
-          <Link to="/admin/users">
-            <Button variant="ghost" size="sm">
-              Xem tất cả
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </Link>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Người dùng</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Hoạt động</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Thời gian</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentActivities.map((activity) => (
-                <tr key={activity.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm">{activity.user}</td>
-                  <td className="py-3 px-4 text-sm text-gray-600">{activity.action}</td>
-                  <td className="py-3 px-4 text-sm text-gray-500">{activity.time}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <h3 className="text-lg font-semibold mb-4">Tóm tắt hệ thống</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <p className="text-2xl font-bold text-primary">{stats?.totalUsers || 0}</p>
+            <p className="text-sm text-gray-500">Người dùng</p>
+          </div>
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <p className="text-2xl font-bold text-green-600">{stats?.activeRooms || 0}</p>
+            <p className="text-sm text-gray-500">Phòng hoạt động</p>
+          </div>
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <p className="text-2xl font-bold text-yellow-600">{stats?.pendingRooms || 0}</p>
+            <p className="text-sm text-gray-500">Chờ duyệt</p>
+          </div>
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <p className="text-2xl font-bold text-blue-600">{stats?.totalBookings || 0}</p>
+            <p className="text-sm text-gray-500">Lịch hẹn</p>
+          </div>
         </div>
       </Card>
     </div>
   );
 }
-
-

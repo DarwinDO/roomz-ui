@@ -1,44 +1,83 @@
-import { useState } from "react";
+/**
+ * Admin Login Page
+ * Uses real Supabase auth with role-based access control
+ */
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Loader2, AlertCircle } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { user, profile, loading: authLoading } = useAuth();
+
+  // Auto-redirect if already logged in as admin
+  useEffect(() => {
+    if (!authLoading && user && profile?.role === "admin") {
+      navigate("/admin/dashboard", { replace: true });
+    }
+  }, [user, profile, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
 
     try {
-      // Mock authentication
-      await new Promise<void>((resolve, reject) => {
-        setTimeout(() => {
-          if (email === "admin@roomz.vn" && password === "admin123") {
-            localStorage.setItem("adminAuth", "true");
-            resolve();
-          } else {
-            reject(new Error("Email hoặc mật khẩu không đúng!"));
-          }
-        }, 800);
+      // Sign in with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Không nhận được thông tin người dùng");
+
+      // Check if user is admin
+      const { data: userProfile, error: profileError } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", authData.user.id)
+        .single();
+
+      if (profileError) throw new Error("Không thể xác thực quyền truy cập");
+
+      if (userProfile?.role !== "admin") {
+        // Not an admin - sign out and show error
+        await supabase.auth.signOut();
+        throw new Error("Bạn không có quyền truy cập trang quản trị");
+      }
+
+      // Success - admin user logged in
       toast.success("Đăng nhập thành công!");
-      navigate("/admin/dashboard");
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Đã xảy ra lỗi. Vui lòng thử lại!";
-      toast.error(errorMessage);
+      navigate("/admin/dashboard", { replace: true });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Đăng nhập thất bại";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-white to-secondary/10">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-white to-secondary/10 px-4">
@@ -52,16 +91,24 @@ export default function AdminLoginPage() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
-              placeholder="admin@roomz.vn"
+              placeholder="admin@roomz.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               className="h-12"
+              disabled={loading}
             />
           </div>
 
@@ -75,6 +122,7 @@ export default function AdminLoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               className="h-12"
+              disabled={loading}
             />
           </div>
 
@@ -83,17 +131,30 @@ export default function AdminLoginPage() {
             className="w-full h-12 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-white"
             disabled={loading}
           >
-            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Đang đăng nhập...
+              </>
+            ) : (
+              "Đăng nhập Admin"
+            )}
           </Button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500">
-            Demo credentials: admin@roomz.vn / admin123
+            Chỉ dành cho quản trị viên
           </p>
+          <Button
+            variant="link"
+            className="text-xs text-primary mt-2"
+            onClick={() => navigate("/login")}
+          >
+            Quay lại trang đăng nhập chung
+          </Button>
         </div>
       </Card>
     </div>
   );
 }
-

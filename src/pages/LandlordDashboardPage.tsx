@@ -41,25 +41,31 @@ import {
   Mail,
   Calendar,
   TrendingUp,
-  Users,
   Heart,
+  Edit,
 } from "lucide-react";
 import { useLandlordBookings } from "@/hooks/useBookings";
+import { useLandlordRooms } from "@/hooks/useRooms";
 import { useAuth } from "@/contexts";
 import { toast } from "sonner";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import type { BookingWithDetails } from "@/services/bookings";
+import type { RoomWithDetails } from "@/services/rooms";
 
 export default function LandlordDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { bookings, loading, error, stats, confirmBooking, rejectBooking, completeBooking, refetch } = useLandlordBookings();
+  const { bookings, loading: bookingsLoading, error: bookingsError, stats: bookingStats, confirmBooking, rejectBooking, completeBooking, refetch: refetchBookings } = useLandlordBookings();
+  const { rooms, loading: roomsLoading, error: roomsError, stats: roomStats, refetch: refetchRooms } = useLandlordRooms(user?.id);
 
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
   const [actionType, setActionType] = useState<"confirm" | "reject" | "complete" | null>(null);
   const [actionNotes, setActionNotes] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const loading = bookingsLoading || roomsLoading;
+  const error = bookingsError || roomsError;
 
   const handleAction = async () => {
     if (!selectedBooking || !actionType) return;
@@ -101,24 +107,12 @@ export default function LandlordDashboardPage() {
     setActionNotes("");
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">Chờ xác nhận</Badge>;
-      case "confirmed":
-        return <Badge className="bg-green-100 text-green-700 border-green-300">Đã xác nhận</Badge>;
-      case "completed":
-        return <Badge className="bg-blue-100 text-blue-700 border-blue-300">Hoàn thành</Badge>;
-      case "cancelled":
-        return <Badge className="bg-red-100 text-red-700 border-red-300">Đã hủy</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
   const pendingBookings = bookings.filter(b => b.status === "pending");
   const confirmedBookings = bookings.filter(b => b.status === "confirmed");
   const historyBookings = bookings.filter(b => b.status === "completed" || b.status === "cancelled");
+
+  const pendingRooms = rooms.filter(r => r.status === "pending");
+  const activeRooms = rooms.filter(r => r.status === "active");
 
   // Loading state
   if (loading) {
@@ -168,14 +162,27 @@ export default function LandlordDashboardPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Stats Cards */}
+        {/* Stats Cards - Combined booking and room stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Chờ xác nhận</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+                  <p className="text-sm text-gray-500">Phòng của tôi</p>
+                  <p className="text-2xl font-bold text-primary">{roomStats.total}</p>
+                </div>
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                  <Home className="w-5 h-5 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Chờ duyệt</p>
+                  <p className="text-2xl font-bold text-yellow-600">{roomStats.pending}</p>
                 </div>
                 <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
                   <Clock className="w-5 h-5 text-yellow-600" />
@@ -187,24 +194,11 @@ export default function LandlordDashboardPage() {
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Đã xác nhận</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.confirmed}</p>
-                </div>
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Hoàn thành</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.completed}</p>
+                  <p className="text-sm text-gray-500">Lượt xem</p>
+                  <p className="text-2xl font-bold text-blue-600">{roomStats.totalViews}</p>
                 </div>
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                  <Eye className="w-5 h-5 text-blue-600" />
                 </div>
               </div>
             </CardContent>
@@ -213,11 +207,11 @@ export default function LandlordDashboardPage() {
             <CardContent className="pt-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Tổng lịch hẹn</p>
-                  <p className="text-2xl font-bold text-primary">{stats.total}</p>
+                  <p className="text-sm text-gray-500">Yêu thích</p>
+                  <p className="text-2xl font-bold text-red-500">{roomStats.totalFavorites}</p>
                 </div>
-                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                  <CalendarCheck className="w-5 h-5 text-primary" />
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <Heart className="w-5 h-5 text-red-500" />
                 </div>
               </div>
             </CardContent>
@@ -229,15 +223,18 @@ export default function LandlordDashboardPage() {
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
             <p className="text-sm text-red-700">{error}</p>
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="ml-auto">
+            <Button variant="outline" size="sm" onClick={() => { refetchBookings(); refetchRooms(); }} className="ml-auto">
               Thử lại
             </Button>
           </div>
         )}
 
         {/* Tabs */}
-        <Tabs defaultValue="pending" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 rounded-full p-1 bg-gray-100">
+        <Tabs defaultValue="my-rooms" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4 rounded-full p-1 bg-gray-100">
+            <TabsTrigger value="my-rooms" className="rounded-full data-[state=active]:bg-white">
+              Phòng ({rooms.length})
+            </TabsTrigger>
             <TabsTrigger value="pending" className="rounded-full data-[state=active]:bg-white">
               Chờ xác nhận ({pendingBookings.length})
             </TabsTrigger>
@@ -248,6 +245,54 @@ export default function LandlordDashboardPage() {
               Lịch sử ({historyBookings.length})
             </TabsTrigger>
           </TabsList>
+
+          {/* My Rooms Tab */}
+          <TabsContent value="my-rooms" className="space-y-4">
+            {rooms.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Home className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-4">Bạn chưa đăng phòng nào</p>
+                  <Button onClick={() => navigate("/post-room")}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Đăng phòng đầu tiên
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {/* Pending Rooms Section */}
+                {pendingRooms.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-yellow-700 mb-3 flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Đang chờ duyệt ({pendingRooms.length})
+                    </h3>
+                    <div className="grid gap-4">
+                      {pendingRooms.map((room) => (
+                        <RoomCard key={room.id} room={room} status="pending" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Active Rooms Section */}
+                {activeRooms.length > 0 && (
+                  <div className={pendingRooms.length > 0 ? "mt-6" : ""}>
+                    <h3 className="text-sm font-medium text-green-700 mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Đang hoạt động ({activeRooms.length})
+                    </h3>
+                    <div className="grid gap-4">
+                      {activeRooms.map((room) => (
+                        <RoomCard key={room.id} room={room} status="active" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </TabsContent>
 
           {/* Pending Bookings */}
           <TabsContent value="pending" className="space-y-4">
@@ -336,7 +381,7 @@ export default function LandlordDashboardPage() {
           <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/profile")}>
             <CardContent className="pt-6 flex items-center gap-4">
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-green-600" />
+                <TrendingUp className="w-6 h-6 text-green-600" />
               </div>
               <div>
                 <p className="font-medium">Hồ sơ của tôi</p>
@@ -365,11 +410,11 @@ export default function LandlordDashboardPage() {
           <div className="py-4">
             <Textarea
               placeholder={
-                actionType === "confirm" 
+                actionType === "confirm"
                   ? "Thêm ghi chú cho khách (không bắt buộc)..."
                   : actionType === "reject"
-                  ? "Lý do từ chối..."
-                  : "Ghi chú về buổi xem phòng..."
+                    ? "Lý do từ chối..."
+                    : "Ghi chú về buổi xem phòng..."
               }
               value={actionNotes}
               onChange={(e) => setActionNotes(e.target.value)}
@@ -384,11 +429,11 @@ export default function LandlordDashboardPage() {
               onClick={handleAction}
               disabled={isProcessing}
               className={
-                actionType === "reject" 
-                  ? "bg-red-500 hover:bg-red-600" 
+                actionType === "reject"
+                  ? "bg-red-500 hover:bg-red-600"
                   : actionType === "confirm"
-                  ? "bg-green-500 hover:bg-green-600"
-                  : ""
+                    ? "bg-green-500 hover:bg-green-600"
+                    : ""
               }
             >
               {isProcessing ? (
@@ -411,6 +456,107 @@ export default function LandlordDashboardPage() {
   );
 }
 
+// Room Card Component for landlord dashboard
+interface RoomCardProps {
+  room: RoomWithDetails;
+  status: "pending" | "active";
+}
+
+function RoomCard({ room, status }: RoomCardProps) {
+  const navigate = useNavigate();
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-4">
+        <div className="flex gap-4">
+          {/* Room Image */}
+          <div
+            className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer"
+            onClick={() => navigate(`/room/${room.id}`)}
+          >
+            {room.images?.[0] ? (
+              <img
+                src={room.images[0].image_url}
+                alt={room.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Home className="w-8 h-8 text-gray-300" />
+              </div>
+            )}
+          </div>
+
+          {/* Room Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3
+                  className="font-medium truncate cursor-pointer hover:text-primary"
+                  onClick={() => navigate(`/room/${room.id}`)}
+                >
+                  {room.title}
+                </h3>
+                <p className="text-sm text-gray-500 truncate">{room.address}</p>
+              </div>
+              <Badge
+                className={
+                  status === "pending"
+                    ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+                    : "bg-green-100 text-green-700 border-green-300"
+                }
+              >
+                {status === "pending" ? "Chờ duyệt" : "Hoạt động"}
+              </Badge>
+            </div>
+
+            <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+              <span className="font-medium text-primary">
+                {room.price_per_month ? `${(Number(room.price_per_month) / 1000000).toFixed(1)}tr/tháng` : "-"}
+              </span>
+              <span className="flex items-center gap-1">
+                <Eye className="w-4 h-4" />
+                {room.view_count || 0}
+              </span>
+              <span className="flex items-center gap-1">
+                <Heart className="w-4 h-4" />
+                {room.favorite_count || 0}
+              </span>
+            </div>
+
+            {status === "pending" && (
+              <p className="text-xs text-yellow-600 mt-2 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                Phòng đang chờ admin duyệt (thường trong 24h)
+              </p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/room/${room.id}`)}
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+            {status === "active" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {/* TODO: Edit room */ }}
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Booking Card Component
 interface BookingCardProps {
   booking: BookingWithDetails;
@@ -425,12 +571,12 @@ function BookingCard({ booking, onConfirm, onReject, onComplete, showActions, sh
   const navigate = useNavigate();
   const tenantName = booking.tenant?.full_name || booking.contact_name || "Khách";
   const tenantInitials = tenantName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-  
+
   const bookingDateTime = booking.booking_date && booking.booking_time
     ? `${format(parseISO(booking.booking_date), "EEEE, dd/MM/yyyy", { locale: vi })} lúc ${booking.booking_time}`
     : "Chưa xác định";
 
-  const timeAgo = booking.created_at 
+  const timeAgo = booking.created_at
     ? formatDistanceToNow(parseISO(booking.created_at), { addSuffix: true, locale: vi })
     : "";
 
@@ -477,13 +623,13 @@ function BookingCard({ booking, onConfirm, onReject, onComplete, showActions, sh
       <CardContent className="space-y-4">
         {/* Room Info */}
         {booking.room && (
-          <div 
+          <div
             className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
             onClick={() => navigate(`/room/${booking.room?.id}`)}
           >
             {booking.room.images?.[0] && (
-              <img 
-                src={booking.room.images[0].image_url} 
+              <img
+                src={booking.room.images[0].image_url}
                 alt={booking.room.title}
                 className="w-16 h-16 object-cover rounded-lg"
               />
@@ -499,7 +645,7 @@ function BookingCard({ booking, onConfirm, onReject, onComplete, showActions, sh
         {/* Contact Info */}
         <div className="flex flex-wrap gap-4 text-sm">
           {(booking.contact_phone || booking.tenant?.phone) && (
-            <a 
+            <a
               href={`tel:${booking.contact_phone || booking.tenant?.phone}`}
               className="flex items-center gap-2 text-gray-600 hover:text-primary"
             >
@@ -508,7 +654,7 @@ function BookingCard({ booking, onConfirm, onReject, onComplete, showActions, sh
             </a>
           )}
           {(booking.contact_email || booking.tenant?.email) && (
-            <a 
+            <a
               href={`mailto:${booking.contact_email || booking.tenant?.email}`}
               className="flex items-center gap-2 text-gray-600 hover:text-primary"
             >

@@ -10,7 +10,7 @@ export function debounce<T extends (...args: unknown[]) => void>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null;
+  let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return (...args: Parameters<T>) => {
     if (timeout) {
@@ -58,7 +58,7 @@ export function measurePerformance(componentName: string): {
     end: () => {
       const endTime = performance.now();
       const duration = endTime - startTime;
-      
+
       if (duration > 16.67) { // More than 1 frame at 60fps
         console.warn(`[Performance] ${componentName} took ${duration.toFixed(2)}ms to render`);
       }
@@ -103,15 +103,23 @@ export function isLowEndDevice(): boolean {
 
   // Check hardware concurrency (number of CPU cores)
   const cores = navigator.hardwareConcurrency || 1;
-  
+
   // Check device memory (if available)
   const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory || 4;
-  
+
   // Check connection type
   const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
   const isSlowConnection = connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g';
 
   return cores < 4 || memory < 4 || isSlowConnection;
+}
+
+// Type for requestIdleCallback
+type IdleRequestCallback = (deadline: { didTimeout: boolean; timeRemaining: () => number }) => void;
+
+interface WindowWithIdleCallback extends Window {
+  requestIdleCallback: (callback: IdleRequestCallback, options?: { timeout: number }) => number;
+  cancelIdleCallback: (handle: number) => void;
 }
 
 /**
@@ -121,20 +129,22 @@ export function requestIdleCallback(
   callback: () => void,
   options?: { timeout: number }
 ): number {
-  if ('requestIdleCallback' in window) {
-    return window.requestIdleCallback(callback, options);
+  const win = globalThis as unknown as WindowWithIdleCallback;
+  if (typeof win.requestIdleCallback === 'function') {
+    return win.requestIdleCallback(callback, options);
   }
-  return window.setTimeout(callback, options?.timeout || 1);
+  return setTimeout(callback, options?.timeout || 1) as unknown as number;
 }
 
 /**
  * Cancel idle callback polyfill
  */
 export function cancelIdleCallback(id: number): void {
-  if ('cancelIdleCallback' in window) {
-    window.cancelIdleCallback(id);
+  const win = globalThis as unknown as WindowWithIdleCallback;
+  if (typeof win.cancelIdleCallback === 'function') {
+    win.cancelIdleCallback(id);
   } else {
-    window.clearTimeout(id);
+    clearTimeout(id);
   }
 }
 
