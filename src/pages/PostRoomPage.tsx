@@ -45,6 +45,7 @@ import {
   Bath,
   Calendar,
   Camera,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/contexts";
 import { createRoom, type CreateRoomData } from "@/services/rooms";
@@ -102,7 +103,7 @@ export default function PostRoomPage() {
   // File upload handlers
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
+
     // Validate files
     const validFiles = files.filter(file => {
       if (!file.type.startsWith('image/')) {
@@ -118,7 +119,7 @@ export default function PostRoomPage() {
 
     if (validFiles.length > 0) {
       setSelectedFiles(prev => [...prev, ...validFiles]);
-      
+
       // Create preview URLs
       validFiles.forEach(file => {
         const reader = new FileReader();
@@ -143,7 +144,7 @@ export default function PostRoomPage() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files);
-    
+
     const input = fileInputRef.current;
     if (input) {
       const dt = new DataTransfer();
@@ -167,15 +168,15 @@ export default function PostRoomPage() {
     }
 
     setIsSubmitting(true);
-    
+
     try {
       let imageUrls: string[] = [];
-      
+
       // Upload images if any
       if (selectedFiles.length > 0) {
         setIsUploading(true);
         setUploadProgress(0);
-        
+
         // Simulate progress
         const progressInterval = setInterval(() => {
           setUploadProgress(prev => Math.min(prev + 10, 90));
@@ -192,7 +193,7 @@ export default function PostRoomPage() {
           setIsSubmitting(false);
           return;
         }
-        
+
         clearInterval(progressInterval);
         setUploadProgress(100);
         setIsUploading(false);
@@ -250,15 +251,32 @@ export default function PostRoomPage() {
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Đăng phòng thành công!</h2>
-            <p className="text-gray-600 mb-6">
-              Phòng của bạn đã được đăng và đang chờ duyệt. Chúng tôi sẽ thông báo khi phòng được phê duyệt.
+
+            {/* Pending approval notice */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-left">
+              <div className="flex items-start gap-3">
+                <Clock className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-yellow-800">Phòng đang chờ phê duyệt</p>
+                  <p className="text-xs text-yellow-700 mt-1">
+                    Admin sẽ xem xét và phê duyệt phòng của bạn trong vòng 24h.
+                    Sau khi được duyệt, phòng sẽ hiển thị công khai trên trang tìm kiếm.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-gray-600 text-sm mb-6">
+              Theo dõi trạng thái phòng trong mục <strong>"Quản lý phòng"</strong> của bạn.
             </p>
+
             <div className="flex gap-3">
               <Button
                 variant="outline"
                 className="flex-1"
                 onClick={() => navigate("/landlord")}
               >
+                <Home className="w-4 h-4 mr-2" />
                 Quản lý phòng
               </Button>
               {createdRoomId && (
@@ -313,9 +331,8 @@ export default function PostRoomPage() {
           {[1, 2, 3].map((s) => (
             <div
               key={s}
-              className={`flex-1 h-2 rounded-full transition-colors ${
-                s <= step ? "bg-primary" : "bg-gray-200"
-              }`}
+              className={`flex-1 h-2 rounded-full transition-colors ${s <= step ? "bg-primary" : "bg-gray-200"
+                }`}
             />
           ))}
         </div>
@@ -593,21 +610,19 @@ export default function PostRoomPage() {
                   ].map(({ key, icon: Icon, label }) => (
                     <div
                       key={key}
-                      className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                        formData[key as keyof typeof formData]
-                          ? "border-primary bg-primary/5"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
+                      className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${formData[key as keyof typeof formData]
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200 hover:border-gray-300"
+                        }`}
                       onClick={() =>
                         handleInputChange(key, !formData[key as keyof typeof formData])
                       }
                     >
                       <Icon
-                        className={`w-5 h-5 ${
-                          formData[key as keyof typeof formData]
-                            ? "text-primary"
-                            : "text-gray-400"
-                        }`}
+                        className={`w-5 h-5 ${formData[key as keyof typeof formData]
+                          ? "text-primary"
+                          : "text-gray-400"
+                          }`}
                       />
                       <span className="text-sm">{label}</span>
                     </div>
@@ -618,7 +633,7 @@ export default function PostRoomPage() {
               {/* Images Upload */}
               <div>
                 <Label className="mb-3 block">Hình ảnh phòng</Label>
-                
+
                 {/* Hidden file input */}
                 <input
                   ref={fileInputRef}
@@ -634,11 +649,10 @@ export default function PostRoomPage() {
                   onClick={() => fileInputRef.current?.click()}
                   onDrop={handleDrop}
                   onDragOver={(e) => e.preventDefault()}
-                  className={`border-2 border-dashed rounded-2xl p-6 text-center transition-colors cursor-pointer ${
-                    isUploading
-                      ? "border-primary bg-primary/5"
-                      : "border-gray-300 hover:border-primary hover:bg-gray-50"
-                  }`}
+                  className={`border-2 border-dashed rounded-2xl p-6 text-center transition-colors cursor-pointer ${isUploading
+                    ? "border-primary bg-primary/5"
+                    : "border-gray-300 hover:border-primary hover:bg-gray-50"
+                    }`}
                 >
                   <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3">
                     {isUploading ? (

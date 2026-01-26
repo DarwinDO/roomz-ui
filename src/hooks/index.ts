@@ -8,3 +8,4 @@ export * from './useFavorites';
 export * from './useMessages';
 export * from './useDebounce';
 export * from './useBookings';
+export * from './useAdmin';

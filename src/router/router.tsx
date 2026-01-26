@@ -3,6 +3,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppShell from './AppShell.tsx';
 import AdminShell from './AdminShell.tsx';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { LandlordRoute } from '@/components/LandlordRoute';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -35,6 +37,7 @@ const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
 const LandlordDashboardPage = lazy(() => import('@/pages/LandlordDashboardPage'));
 const PostRoomPage = lazy(() => import('@/pages/PostRoomPage'));
 const PaymentPage = lazy(() => import('@/pages/PaymentPage'));
+const BecomeLandlordPage = lazy(() => import('@/pages/BecomeLandlordPage'));
 
 // Admin pages
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
@@ -47,10 +50,18 @@ const AnalyticsPage = lazy(() => import('@/pages/admin/AnalyticsPage'));
 const RevenuePage = lazy(() => import('@/pages/admin/RevenuePage'));
 const PartnersPage = lazy(() => import('@/pages/admin/PartnersPage'));
 
-// Admin route protection
+// Admin route protection - Uses Supabase auth
 const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = localStorage.getItem('adminAuth') === 'true';
-  return isAuthenticated ? children : <Navigate to="/admin/login" replace />;
+  const { user, profile, loading } = useAuth();
+
+  // Show loader while checking auth
+  if (loading) {
+    return <PageLoader />;
+  }
+
+  // Check if authenticated AND is admin
+  const isAdmin = user && profile?.role === 'admin';
+  return isAdmin ? children : <Navigate to="/admin/login" replace />;
 };
 
 export const router = createBrowserRouter([
@@ -151,19 +162,27 @@ export const router = createBrowserRouter([
         element: <PartnersListPage />,
       },
       {
-        path: 'landlord',
+        path: 'become-landlord',
         element: (
           <ProtectedRoute>
-            <LandlordDashboardPage />
+            <BecomeLandlordPage />
           </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'landlord',
+        element: (
+          <LandlordRoute>
+            <LandlordDashboardPage />
+          </LandlordRoute>
         ),
       },
       {
         path: 'post-room',
         element: (
-          <ProtectedRoute>
+          <LandlordRoute>
             <PostRoomPage />
-          </ProtectedRoute>
+          </LandlordRoute>
         ),
       },
       {

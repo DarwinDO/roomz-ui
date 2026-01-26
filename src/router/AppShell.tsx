@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { BottomNav } from '@/components/common/BottomNav';
 import { Chatbot } from '@/components/common/Chatbot';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { LogIn, LogOut, User as UserIcon, Building2, Home } from 'lucide-react';
 import LogoRZ from '@/assets/LogoRZWithSlogan.png';
 import { useAuth } from '@/contexts';
 import {
@@ -21,7 +21,7 @@ export default function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
-  
+
   const isActive = (path: string) => {
     return location.pathname === path;
   };
@@ -76,16 +76,15 @@ export default function AppShell() {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate(item.path)}
-                  className={`rounded-full transition-colors text-sm ${
-                    isActive(item.path)
+                  className={`rounded-full transition-colors text-sm ${isActive(item.path)
                       ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
                       : 'hover:bg-primary/10 hover:text-primary'
-                  }`}
+                    }`}
                 >
                   {item.label}
                 </Button>
               ))}
-              
+
               {/* Authentication Section */}
               {loading ? (
                 <div className="w-9 h-9 ml-2 rounded-full bg-gray-200 animate-pulse"></div>
@@ -120,6 +119,19 @@ export default function AppShell() {
                       <span>Cài đặt</span>
                     </DropdownMenuItem> */}
                     <DropdownMenuSeparator />
+                    {/* Landlord Section */}
+                    {profile?.role === 'landlord' ? (
+                      <DropdownMenuItem onClick={() => navigate('/landlord')}>
+                        <Building2 className="mr-2 h-4 w-4" />
+                        <span>Quản lý phòng</span>
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={() => navigate('/become-landlord')}>
+                        <Home className="mr-2 h-4 w-4" />
+                        <span>Cho thuê phòng</span>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Đăng xuất</span>
@@ -147,7 +159,7 @@ export default function AppShell() {
           <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
             <img src={LogoRZ} alt="RoomZ Logo" className="h-9 w-auto" />
           </a>
-          
+
           {/* Mobile Authentication Section */}
           {loading ? (
             <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
@@ -181,6 +193,19 @@ export default function AppShell() {
                   <UserIcon className="mr-2 h-4 w-4" />
                   <span>Cài đặt</span>
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {/* Landlord Section */}
+                {profile?.role === 'landlord' ? (
+                  <DropdownMenuItem onClick={() => navigate('/landlord')}>
+                    <Building2 className="mr-2 h-4 w-4" />
+                    <span>Quản lý phòng</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => navigate('/become-landlord')}>
+                    <Home className="mr-2 h-4 w-4" />
+                    <span>Cho thuê phòng</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
                   <LogOut className="mr-2 h-4 w-4" />
