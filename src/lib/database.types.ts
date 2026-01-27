@@ -17,59 +17,35 @@ export type Database = {
       bookings: {
         Row: {
           booking_date: string
-          booking_time: string
-          cancelled_at: string | null
-          contact_email: string | null
-          contact_name: string | null
-          contact_phone: string | null
           created_at: string | null
-          duration_minutes: number | null
           id: string
           landlord_id: string
-          landlord_notes: string | null
-          message: string | null
+          note: string | null
+          renter_id: string
           room_id: string
           status: Database["public"]["Enums"]["booking_status"] | null
-          tenant_id: string
-          tenant_notes: string | null
           updated_at: string | null
         }
         Insert: {
           booking_date: string
-          booking_time: string
-          cancelled_at?: string | null
-          contact_email?: string | null
-          contact_name?: string | null
-          contact_phone?: string | null
           created_at?: string | null
-          duration_minutes?: number | null
           id?: string
           landlord_id: string
-          landlord_notes?: string | null
-          message?: string | null
+          note?: string | null
+          renter_id: string
           room_id: string
           status?: Database["public"]["Enums"]["booking_status"] | null
-          tenant_id: string
-          tenant_notes?: string | null
           updated_at?: string | null
         }
         Update: {
           booking_date?: string
-          booking_time?: string
-          cancelled_at?: string | null
-          contact_email?: string | null
-          contact_name?: string | null
-          contact_phone?: string | null
           created_at?: string | null
-          duration_minutes?: number | null
           id?: string
           landlord_id?: string
-          landlord_notes?: string | null
-          message?: string | null
+          note?: string | null
+          renter_id?: string
           room_id?: string
           status?: Database["public"]["Enums"]["booking_status"] | null
-          tenant_id?: string
-          tenant_notes?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -81,10 +57,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bookings_landlord_id_fkey"
-            columns: ["landlord_id"]
+            foreignKeyName: "bookings_renter_id_fkey"
+            columns: ["renter_id"]
             isOneToOne: false
-            referencedRelation: "v_users_verification_status"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -93,28 +69,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rooms"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "v_rooms_full"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookings_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "v_users_verification_status"
-            referencedColumns: ["id"]
-          },
+          }
         ]
       }
       compatibility_answers: {
@@ -158,6 +113,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          last_read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          last_read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          last_read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       favorites: {
         Row: {
@@ -212,67 +218,37 @@ export type Database = {
       messages: {
         Row: {
           content: string
+          conversation_id: string
           created_at: string | null
-          deleted_at: string | null
           id: string
           is_read: boolean | null
-          message_type: Database["public"]["Enums"]["message_type"] | null
-          read_at: string | null
-          receiver_id: string
-          room_id: string | null
           sender_id: string
+          updated_at: string | null
         }
         Insert: {
           content: string
+          conversation_id: string
           created_at?: string | null
-          deleted_at?: string | null
           id?: string
           is_read?: boolean | null
-          message_type?: Database["public"]["Enums"]["message_type"] | null
-          read_at?: string | null
-          receiver_id: string
-          room_id?: string | null
           sender_id: string
+          updated_at?: string | null
         }
         Update: {
           content?: string
+          conversation_id?: string
           created_at?: string | null
-          deleted_at?: string | null
           id?: string
           is_read?: boolean | null
-          message_type?: Database["public"]["Enums"]["message_type"] | null
-          read_at?: string | null
-          receiver_id?: string
-          room_id?: string | null
           sender_id?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "messages_receiver_id_fkey"
-            columns: ["receiver_id"]
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
             isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_receiver_id_fkey"
-            columns: ["receiver_id"]
-            isOneToOne: false
-            referencedRelation: "v_users_verification_status"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "v_rooms_full"
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
           {
@@ -281,101 +257,154 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          },
+          }
+        ]
+      }
+      notifications: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          link: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "messages_sender_id_fkey"
-            columns: ["sender_id"]
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "v_users_verification_status"
+            referencedRelation: "users"
             referencedColumns: ["id"]
-          },
+          }
+        ]
+      }
+      partners: {
+        Row: {
+          category: string
+          contact_info: Json | null
+          created_at: string | null
+          discount: string | null
+          id: string
+          image_url: string | null
+          name: string
+          rating: number | null
+          review_count: number | null
+          specialization: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          views: number | null
+        }
+        Insert: {
+          category: string
+          contact_info?: Json | null
+          created_at?: string | null
+          discount?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          rating?: number | null
+          review_count?: number | null
+          specialization?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          views?: number | null
+        }
+        Update: {
+          category?: string
+          contact_info?: Json | null
+          created_at?: string | null
+          discount?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          rating?: number | null
+          review_count?: number | null
+          specialization?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partners_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
         ]
       }
       reviews: {
         Row: {
-          accuracy_rating: number | null
-          cleanliness_rating: number | null
-          communication_rating: number | null
-          content: string | null
+          comment: string | null
           created_at: string | null
           id: string
-          images: Json | null
-          is_hidden: boolean | null
-          is_verified: boolean | null
-          location_rating: number | null
+          partner_id: string | null
           rating: number
-          response: string | null
-          response_at: string | null
-          review_type: Database["public"]["Enums"]["review_type"]
-          reviewee_id: string | null
+          reviewed_user_id: string | null
           reviewer_id: string
           room_id: string | null
-          title: string | null
           updated_at: string | null
-          value_rating: number | null
         }
         Insert: {
-          accuracy_rating?: number | null
-          cleanliness_rating?: number | null
-          communication_rating?: number | null
-          content?: string | null
+          comment?: string | null
           created_at?: string | null
           id?: string
-          images?: Json | null
-          is_hidden?: boolean | null
-          is_verified?: boolean | null
-          location_rating?: number | null
+          partner_id?: string | null
           rating: number
-          response?: string | null
-          response_at?: string | null
-          review_type: Database["public"]["Enums"]["review_type"]
-          reviewee_id?: string | null
+          reviewed_user_id?: string | null
           reviewer_id: string
           room_id?: string | null
-          title?: string | null
           updated_at?: string | null
-          value_rating?: number | null
         }
         Update: {
-          accuracy_rating?: number | null
-          cleanliness_rating?: number | null
-          communication_rating?: number | null
-          content?: string | null
+          comment?: string | null
           created_at?: string | null
           id?: string
-          images?: Json | null
-          is_hidden?: boolean | null
-          is_verified?: boolean | null
-          location_rating?: number | null
+          partner_id?: string | null
           rating?: number
-          response?: string | null
-          response_at?: string | null
-          review_type?: Database["public"]["Enums"]["review_type"]
-          reviewee_id?: string | null
+          reviewed_user_id?: string | null
           reviewer_id?: string
           room_id?: string | null
-          title?: string | null
           updated_at?: string | null
-          value_rating?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "reviews_reviewee_id_fkey"
-            columns: ["reviewee_id"]
+            foreignKeyName: "reviews_partner_id_fkey"
+            columns: ["partner_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "partners"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reviews_reviewee_id_fkey"
-            columns: ["reviewee_id"]
-            isOneToOne: false
-            referencedRelation: "v_users_verification_status"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_reviewer_id_fkey"
-            columns: ["reviewer_id"]
+            foreignKeyName: "reviews_reviewed_user_id_fkey"
+            columns: ["reviewed_user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -384,7 +413,7 @@ export type Database = {
             foreignKeyName: "reviews_reviewer_id_fkey"
             columns: ["reviewer_id"]
             isOneToOne: false
-            referencedRelation: "v_users_verification_status"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -393,14 +422,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rooms"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "v_rooms_full"
-            referencedColumns: ["id"]
-          },
+          }
         ]
       }
       room_amenities: {
@@ -1096,6 +1118,12 @@ export type Database = {
       image_type: "photo" | "360" | "video"
       message_type: "text" | "image" | "file"
       noise_tolerance: "quiet" | "moderate" | "noisy"
+      notification_type:
+      | "booking_request"
+      | "booking_status"
+      | "new_message"
+      | "system"
+      | "verification"
       review_type: "room" | "landlord" | "tenant" | "roommate"
       room_status: "draft" | "pending" | "active" | "rented" | "inactive"
       room_type: "private" | "shared" | "studio" | "entire"
@@ -1249,6 +1277,13 @@ export const Constants = {
       image_type: ["photo", "360", "video"],
       message_type: ["text", "image", "file"],
       noise_tolerance: ["quiet", "moderate", "noisy"],
+      notification_type: [
+        "booking_request",
+        "booking_status",
+        "new_message",
+        "system",
+        "verification",
+      ],
       review_type: ["room", "landlord", "tenant", "roommate"],
       room_status: ["draft", "pending", "active", "rented", "inactive"],
       room_type: ["private", "shared", "studio", "entire"],
