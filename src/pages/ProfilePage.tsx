@@ -17,7 +17,7 @@ import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { UpgradeRoomZPlusModal } from "@/components/modals/UpgradeRoomZPlusModal";
 import { ProfileEditModal } from "@/components/modals/ProfileEditModal";
 import { MessagesList } from "@/components/common/MessagesList";
-import { messagesData } from "../data/messages";
+import { useProfileMessages } from "@/hooks/useMessages";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts";
 import { supabase } from "@/lib/supabase";
@@ -47,13 +47,13 @@ function transformRoomToCardProps(room: RoomWithDetails) {
   // Get primary image or first image
   const primaryImage = room.images?.find(img => img.is_primary) || room.images?.[0];
   const imageUrl = primaryImage?.image_url || 'https://images.unsplash.com/photo-1668089677938-b52086753f77?w=400';
-  
+
   // Format location
   const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
-  
+
   // Calculate random distance for now
-  const distance = room.latitude && room.longitude 
-    ? `${(Math.random() * 5 + 0.5).toFixed(1)} km` 
+  const distance = room.latitude && room.longitude
+    ? `${(Math.random() * 5 + 0.5).toFixed(1)} km`
     : 'N/A';
 
   return {
@@ -73,17 +73,25 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, profile, signOut, isEmailVerified, refreshUser } = useAuth();
-  
+
   // Fetch favorites from database
   const { favorites, loading: favoritesLoading, error: favoritesError, refetch: refetchFavorites, toggleFavorite } = useFavorites();
-  
+
   // Transform favorites to room card props (memoized to prevent unnecessary recalculations)
   const savedRooms = useMemo(() => {
     return favorites
       .filter(fav => fav.room)
       .map(fav => transformRoomToCardProps(fav.room!));
   }, [favorites]);
-  
+
+  // Fetch messages from database (realtime)
+  const {
+    messages: profileMessages,
+    loading: messagesLoading,
+    error: messagesError,
+    unreadCount: messagesUnreadCount,
+  } = useProfileMessages();
+
   // UI states
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedChatPerson, setSelectedChatPerson] = useState<{
@@ -95,7 +103,7 @@ export default function ProfilePage() {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [expandedSettings, setExpandedSettings] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("favorites");
-  
+
   // Profile edit states
   const [isUpdating, setIsUpdating] = useState(false);
   const [editFullName, setEditFullName] = useState("");
@@ -148,9 +156,13 @@ export default function ProfilePage() {
 
   const trustScore = calculateTrustScore();
 
-  const handleMessageClick = (message: { name: string; avatar?: string; lastMessage?: string }) => {
-    setSelectedChatPerson(message);
-    setIsChatOpen(true);
+  const handleMessageClick = (message: { name: string; avatar?: string; lastMessage?: string; conversationId?: string }) => {
+    // Navigate to messages page with the specific conversation
+    if (message.conversationId) {
+      navigate(`/messages?conversation=${message.conversationId}`);
+    } else {
+      navigate('/messages');
+    }
   };
 
   const handleUpgradeSuccess = () => {
@@ -183,7 +195,7 @@ export default function ProfilePage() {
   // Update profile in Supabase
   const handleUpdateProfile = async () => {
     if (!user) return;
-    
+
     setIsUpdating(true);
     try {
       const { error } = await supabase
@@ -231,9 +243,9 @@ export default function ProfilePage() {
           {/* Header with Avatar, Name, and Edit Button */}
           <div className="flex items-start gap-3 sm:gap-6 mb-4 sm:mb-6">
             <Avatar className="w-[72px] h-[72px] sm:w-[120px] sm:h-[120px] border-4 border-white shadow-lg shrink-0">
-              <AvatarImage 
-                src={profile?.avatar_url || undefined} 
-                alt={profile?.full_name || user?.email || ''} 
+              <AvatarImage
+                src={profile?.avatar_url || undefined}
+                alt={profile?.full_name || user?.email || ''}
               />
               <AvatarFallback className="text-xl sm:text-2xl bg-gradient-to-r from-primary to-secondary text-white">
                 {getUserInitials()}
@@ -258,7 +270,7 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <p className="text-sm sm:text-base text-gray-600">
-                    {profile?.major && profile?.university 
+                    {profile?.major && profile?.university
                       ? `${profile.major}, ${profile.university}`
                       : profile?.university || user?.email || 'Chưa cập nhật thông tin'
                     }
@@ -278,7 +290,7 @@ export default function ProfilePage() {
                   <span className="xs:hidden">Sửa</span>
                 </Button>
               </div>
-              
+
               {/* User Info Row */}
               <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-2 text-sm text-gray-500">
                 <div className="flex items-center gap-1">
@@ -425,6 +437,11 @@ export default function ProfilePage() {
             <TabsTrigger value="messages">
               <MessageCircle className="w-4 h-4 mr-2" />
               Tin nhắn
+              {messagesUnreadCount > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px]">
+                  {messagesUnreadCount > 9 ? '9+' : messagesUnreadCount}
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="w-4 h-4 mr-2" />
@@ -444,7 +461,7 @@ export default function ProfilePage() {
                     </Button>
                   )}
                 </div>
-                
+
                 {/* Loading State */}
                 {favoritesLoading && (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -460,7 +477,7 @@ export default function ProfilePage() {
                     ))}
                   </div>
                 )}
-                
+
                 {/* Error State */}
                 {favoritesError && !favoritesLoading && (
                   <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
@@ -471,7 +488,7 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                 )}
-                
+
                 {/* Empty State */}
                 {!favoritesLoading && !favoritesError && savedRooms.length === 0 && (
                   <div className="bg-gray-50 rounded-2xl p-12 text-center">
@@ -483,16 +500,16 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                 )}
-                
+
                 {/* Favorites List */}
                 {!favoritesLoading && !favoritesError && savedRooms.length > 0 && (
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {savedRooms.map((room) => (
                       <div key={room.id} className="relative group">
                         <div onClick={() => handleRoomClick(room)}>
-                          <RoomCard 
-                            {...room} 
-                            isFavorited={true} 
+                          <RoomCard
+                            {...room}
+                            isFavorited={true}
                             showFavoriteButton={false}
                           />
                         </div>
@@ -532,7 +549,30 @@ export default function ProfilePage() {
           </TabsContent>
 
           <TabsContent value="messages">
-            <MessagesList messages={messagesData} onMessageClick={handleMessageClick} />
+            {messagesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : messagesError ? (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+                <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                <p className="text-red-600">{messagesError}</p>
+              </div>
+            ) : profileMessages.length === 0 ? (
+              <div className="bg-gray-50 rounded-2xl p-12 text-center">
+                <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Chưa có tin nhắn</h3>
+                <p className="text-gray-600 mb-4">Bắt đầu trò chuyện khi bạn quan tâm đến một phòng</p>
+                <Button onClick={() => navigate('/search')} variant="default">
+                  Tìm kiếm phòng
+                </Button>
+              </div>
+            ) : (
+              <MessagesList
+                messages={profileMessages}
+                onMessageClick={handleMessageClick}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="settings">
@@ -555,9 +595,8 @@ export default function ProfilePage() {
                           Chỉnh sửa thông tin hồ sơ
                         </div>
                         <ChevronDown
-                          className={`w-4 h-4 transition-transform ${
-                            expandedSettings === "profile" ? "rotate-180" : ""
-                          }`}
+                          className={`w-4 h-4 transition-transform ${expandedSettings === "profile" ? "rotate-180" : ""
+                            }`}
                         />
                       </Button>
                     </CollapsibleTrigger>
@@ -644,9 +683,8 @@ export default function ProfilePage() {
                           Trạng thái xác thực ({trustScore}%)
                         </div>
                         <ChevronDown
-                          className={`w-4 h-4 transition-transform ${
-                            expandedSettings === "verification" ? "rotate-180" : ""
-                          }`}
+                          className={`w-4 h-4 transition-transform ${expandedSettings === "verification" ? "rotate-180" : ""
+                            }`}
                         />
                       </Button>
                     </CollapsibleTrigger>
@@ -662,9 +700,9 @@ export default function ProfilePage() {
                               ✓ Đã xác thực
                             </Badge>
                           ) : (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="text-xs h-7"
                               onClick={() => navigate('/verification')}
                             >
@@ -682,9 +720,9 @@ export default function ProfilePage() {
                               ✓ Đã xác thực
                             </Badge>
                           ) : (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="text-xs h-7"
                               onClick={() => navigate('/verify-email')}
                             >
@@ -702,9 +740,9 @@ export default function ProfilePage() {
                               ✓ Đã xác thực
                             </Badge>
                           ) : (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="text-xs h-7"
                               onClick={() => navigate('/verification')}
                             >
@@ -722,9 +760,9 @@ export default function ProfilePage() {
                               ✓ Đã xác thực
                             </Badge>
                           ) : (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="text-xs h-7"
                               disabled={!profile?.phone}
                             >
@@ -751,9 +789,8 @@ export default function ProfilePage() {
                           Tùy chọn & Phù hợp
                         </div>
                         <ChevronDown
-                          className={`w-4 h-4 transition-transform ${
-                            expandedSettings === "preferences" ? "rotate-180" : ""
-                          }`}
+                          className={`w-4 h-4 transition-transform ${expandedSettings === "preferences" ? "rotate-180" : ""
+                            }`}
                         />
                       </Button>
                     </CollapsibleTrigger>
@@ -800,9 +837,8 @@ export default function ProfilePage() {
                           Quyền riêng tư & Bảo mật
                         </div>
                         <ChevronDown
-                          className={`w-4 h-4 transition-transform ${
-                            expandedSettings === "security" ? "rotate-180" : ""
-                          }`}
+                          className={`w-4 h-4 transition-transform ${expandedSettings === "security" ? "rotate-180" : ""
+                            }`}
                         />
                       </Button>
                     </CollapsibleTrigger>
@@ -865,8 +901,8 @@ export default function ProfilePage() {
                 </div>
               </Card>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl"
                 onClick={handleSignOut}
               >
@@ -889,12 +925,12 @@ export default function ProfilePage() {
         onSave={handleProfileSave}
       />
       {selectedChatPerson && (
-      <ChatDrawer
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        recipientName={selectedChatPerson.name}
-        recipientRole="Người tìm bạn cùng phòng"
-      />
+        <ChatDrawer
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          recipientName={selectedChatPerson.name}
+          recipientRole="Người tìm bạn cùng phòng"
+        />
       )}
     </div>
   );

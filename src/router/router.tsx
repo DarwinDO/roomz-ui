@@ -50,6 +50,8 @@ const AnalyticsPage = lazy(() => import('@/pages/admin/AnalyticsPage'));
 const RevenuePage = lazy(() => import('@/pages/admin/RevenuePage'));
 const PartnersPage = lazy(() => import('@/pages/admin/PartnersPage'));
 
+
+
 // Admin route protection - Uses Supabase auth
 const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, loading } = useAuth();
@@ -193,6 +195,7 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+
     ],
   },
   {

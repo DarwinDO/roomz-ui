@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useLandlordBookings } from "@/hooks/useBookings";
 import { useLandlordRooms } from "@/hooks/useRooms";
+import { useConversations } from "@/hooks/useMessages";
 import { useAuth } from "@/contexts";
 import { toast } from "sonner";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
@@ -58,6 +59,7 @@ export default function LandlordDashboardPage() {
   const { user } = useAuth();
   const { bookings, loading: bookingsLoading, error: bookingsError, stats: bookingStats, confirmBooking, rejectBooking, completeBooking, refetch: refetchBookings } = useLandlordBookings();
   const { rooms, loading: roomsLoading, error: roomsError, stats: roomStats, refetch: refetchRooms } = useLandlordRooms(user?.id);
+  const { unreadCount: messagesUnreadCount } = useConversations();
 
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
   const [actionType, setActionType] = useState<"confirm" | "reject" | "complete" | null>(null);
@@ -367,14 +369,24 @@ export default function LandlordDashboardPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate("/messages")}>
+          <Card className="hover:shadow-md transition-shadow cursor-pointer relative" onClick={() => navigate("/messages")}>
+            {messagesUnreadCount > 0 && (
+              <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium z-10">
+                {messagesUnreadCount > 9 ? '9+' : messagesUnreadCount}
+              </span>
+            )}
             <CardContent className="pt-6 flex items-center gap-4">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <MessageCircle className="w-6 h-6 text-blue-600" />
               </div>
               <div>
                 <p className="font-medium">Tin nhắn</p>
-                <p className="text-sm text-gray-500">Xem tất cả tin nhắn</p>
+                <p className="text-sm text-gray-500">
+                  {messagesUnreadCount > 0
+                    ? `${messagesUnreadCount} tin nhắn chưa đọc`
+                    : 'Xem tất cả tin nhắn'
+                  }
+                </p>
               </div>
             </CardContent>
           </Card>

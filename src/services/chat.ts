@@ -127,3 +127,22 @@ export async function startConversation(otherUserId: string) {
 
     return convo;
 }
+
+// =============================================
+// Re-export Realtime Functions for Chat
+// =============================================
+
+export {
+    subscribeToConversationMessages,
+    subscribeToUserMessages,
+    subscribeToConversations,
+    createTypingChannel,
+    createPresenceChannel,
+    onConnectionStatusChange,
+    cleanupAllChannels,
+    getActiveChannelCount,
+    type MessageWithSender,
+    type RealtimeSubscription,
+    type TypingIndicator,
+    type UserPresence,
+} from './realtime';

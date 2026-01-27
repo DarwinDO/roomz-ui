@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -13,15 +13,18 @@ import {
   Check,
   CheckCheck,
   ChevronLeft,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
-import { useConversations, useConversationMessages } from "@/hooks/useMessages";
+import { useConversations, useConversationMessages, type MessageWithSender } from "@/hooks/useMessages";
 import { useAuth } from "@/contexts";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
-import type { Conversation, MessageWithUsers } from "@/services/messages";
+import type { Conversation } from "@/services/messages";
 
 export default function MessagesPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { conversations, loading, unreadCount, refetch } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -34,6 +37,17 @@ export default function MessagesPage() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Auto-select conversation from URL parameter
+  useEffect(() => {
+    const conversationId = searchParams.get("conversation");
+    if (conversationId && conversations.length > 0) {
+      const found = conversations.find(c => c.id === conversationId);
+      if (found) {
+        setSelectedConversation(found);
+      }
+    }
+  }, [searchParams, conversations]);
 
   // Filter conversations
   const filteredConversations = conversations.filter((conv) =>
@@ -168,6 +182,7 @@ export default function MessagesPage() {
                 <ChatPanel
                   conversation={selectedConversation}
                   currentUserId={user?.id || ""}
+                  onMarkAsRead={refetch}
                 />
               ) : (
                 <div className="hidden md:flex flex-1 items-center justify-center bg-gray-50">
@@ -211,9 +226,8 @@ function ConversationItem({ conversation, isSelected, onClick, currentUserId }: 
   return (
     <button
       onClick={onClick}
-      className={`w-full p-4 flex items-start gap-3 text-left transition-colors hover:bg-gray-50 ${
-        isSelected ? "bg-primary/5 border-l-4 border-primary" : ""
-      }`}
+      className={`w-full p-4 flex items-start gap-3 text-left transition-colors hover:bg-gray-50 ${isSelected ? "bg-primary/5 border-l-4 border-primary" : ""
+        }`}
     >
       <div className="relative">
         <Avatar className="w-12 h-12">
@@ -239,9 +253,8 @@ function ConversationItem({ conversation, isSelected, onClick, currentUserId }: 
           <p className="text-xs text-primary truncate">{roomTitle}</p>
         )}
         <p
-          className={`text-sm truncate mt-0.5 ${
-            unreadCount > 0 ? "text-foreground font-medium" : "text-gray-500"
-          }`}
+          className={`text-sm truncate mt-0.5 ${unreadCount > 0 ? "text-foreground font-medium" : "text-gray-500"
+            }`}
         >
           {isFromMe && <span className="text-gray-400">Bạn: </span>}
           {lastMessage.content}
@@ -255,9 +268,10 @@ function ConversationItem({ conversation, isSelected, onClick, currentUserId }: 
 interface ChatPanelProps {
   conversation: Conversation;
   currentUserId: string;
+  onMarkAsRead?: () => void;
 }
 
-function ChatPanel({ conversation, currentUserId }: ChatPanelProps) {
+function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps) {
   const {
     messages,
     loading,
@@ -270,9 +284,12 @@ function ChatPanel({ conversation, currentUserId }: ChatPanelProps) {
   // Mark as read when opening conversation
   useEffect(() => {
     if (conversation.unreadCount > 0) {
-      markAsRead();
+      markAsRead().then(() => {
+        // Refresh conversations list to update unread count
+        onMarkAsRead?.();
+      });
     }
-  }, [conversation.id, conversation.unreadCount, markAsRead]);
+  }, [conversation.id, conversation.unreadCount, markAsRead, onMarkAsRead]);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -382,7 +399,7 @@ function ChatPanel({ conversation, currentUserId }: ChatPanelProps) {
 
 // Message Bubble Component
 interface MessageBubbleProps {
-  message: MessageWithUsers;
+  message: MessageWithSender;
   isFromMe: boolean;
 }
 
@@ -394,17 +411,15 @@ function MessageBubble({ message, isFromMe }: MessageBubbleProps) {
   return (
     <div className={`flex ${isFromMe ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-          isFromMe
-            ? "bg-primary text-white rounded-br-sm"
-            : "bg-white border border-border rounded-bl-sm"
-        }`}
+        className={`max-w-[80%] rounded-2xl px-4 py-2 ${isFromMe
+          ? "bg-primary text-white rounded-br-sm"
+          : "bg-white border border-border rounded-bl-sm"
+          }`}
       >
         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         <div
-          className={`flex items-center gap-1 mt-1 text-xs ${
-            isFromMe ? "text-white/70 justify-end" : "text-gray-400"
-          }`}
+          className={`flex items-center gap-1 mt-1 text-xs ${isFromMe ? "text-white/70 justify-end" : "text-gray-400"
+            }`}
         >
           <span>{timeAgo}</span>
           {isFromMe && (

@@ -1,6 +1,6 @@
 /**
  * Messages API Service
- * CRUD operations for messages
+ * CRUD operations for messages using conversation-based schema
  */
 
 import { supabase } from '@/lib/supabase';
@@ -13,17 +13,14 @@ export interface MessageWithUsers extends Message {
     id: string;
     full_name: string;
     avatar_url: string | null;
-    email: string;
+    email?: string;
   };
+  // For compatibility, keep receiver but it will be inferred from conversation participants
   receiver?: {
     id: string;
     full_name: string;
     avatar_url: string | null;
-    email: string;
-  };
-  room?: {
-    id: string;
-    title: string;
+    email?: string;
   };
 }
 
@@ -33,7 +30,7 @@ export interface Conversation {
     id: string;
     full_name: string;
     avatar_url: string | null;
-    email: string;
+    email?: string;
   };
   lastMessage: Message;
   unreadCount: number;
@@ -42,371 +39,273 @@ export interface Conversation {
 }
 
 /**
- * Get all messages for a user (both sent and received)
+ * Get all conversations for a user
  */
-export async function getUserMessages(userId: string): Promise<MessageWithUsers[]> {
+export async function getConversations(userId: string): Promise<Conversation[]> {
+  // Get all conversations where user is a participant
+  const { data: participantData, error: participantError } = await supabase
+    .from('conversation_participants')
+    .select(`
+      conversation_id,
+      conversation:conversations(id, created_at, updated_at)
+    `)
+    .eq('user_id', userId);
+
+  if (participantError) throw participantError;
+  if (!participantData || participantData.length === 0) return [];
+
+  const conversationIds = participantData.map(p => p.conversation_id);
+
+  // Get other participants for each conversation
+  const { data: allParticipants, error: allParticipantsError } = await supabase
+    .from('conversation_participants')
+    .select(`
+      conversation_id,
+      user:users(id, full_name, avatar_url, email)
+    `)
+    .in('conversation_id', conversationIds)
+    .neq('user_id', userId);
+
+  if (allParticipantsError) throw allParticipantsError;
+
+  // Get latest message and unread count for each conversation
+  const conversations: Conversation[] = [];
+
+  for (const convId of conversationIds) {
+    // Get latest message
+    const { data: lastMessageData } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', convId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Get unread count
+    const { count: unreadCount } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('conversation_id', convId)
+      .neq('sender_id', userId)
+      .eq('is_read', false);
+
+    // Find the other participant
+    const otherParticipant = allParticipants?.find(p => p.conversation_id === convId);
+    const participant = otherParticipant?.user;
+
+    if (participant && lastMessageData) {
+      conversations.push({
+        id: convId,
+        participant: {
+          id: participant.id,
+          full_name: participant.full_name || 'Unknown',
+          avatar_url: participant.avatar_url,
+          email: participant.email || undefined,
+        },
+        lastMessage: lastMessageData,
+        unreadCount: unreadCount || 0,
+      });
+    }
+  }
+
+  // Sort by latest message
+  conversations.sort((a, b) => {
+    const dateA = a.lastMessage.created_at ? new Date(a.lastMessage.created_at).getTime() : 0;
+    const dateB = b.lastMessage.created_at ? new Date(b.lastMessage.created_at).getTime() : 0;
+    return dateB - dateA;
+  });
+
+  return conversations;
+}
+
+/**
+ * Get messages for a conversation
+ */
+export async function getConversationMessages(
+  conversationId: string
+): Promise<MessageWithUsers[]> {
   const { data, error } = await supabase
     .from('messages')
     .select(`
       *,
-      sender:users!sender_id(id, full_name, avatar_url, email),
-      receiver:users!receiver_id(id, full_name, avatar_url, email),
-      room:rooms(id, title)
+      sender:users!sender_id(id, full_name, avatar_url, email)
     `)
-    .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false });
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true });
 
   if (error) throw error;
-
   return (data || []) as MessageWithUsers[];
 }
 
 /**
- * Get conversations list (grouped by participant)
+ * Get unread message count for a user
  */
-export async function getConversations(userId: string): Promise<Conversation[]> {
-  const messages = await getUserMessages(userId);
+export async function getUnreadCount(userId: string): Promise<number> {
+  // Get user's conversations
+  const { data: participantData } = await supabase
+    .from('conversation_participants')
+    .select('conversation_id')
+    .eq('user_id', userId);
 
-  // Group messages by conversation partner
-  const conversationMap = new Map<string, Conversation>();
+  if (!participantData || participantData.length === 0) return 0;
 
-  for (const msg of messages) {
-    const partnerId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-    const partner = msg.sender_id === userId ? msg.receiver : msg.sender;
+  const conversationIds = participantData.map(p => p.conversation_id);
 
-    if (!partner) continue;
-
-    const existing = conversationMap.get(partnerId);
-    
-    if (!existing) {
-      conversationMap.set(partnerId, {
-        id: partnerId,
-        participant: partner,
-        lastMessage: msg,
-        unreadCount: msg.receiver_id === userId && !msg.is_read ? 1 : 0,
-        roomId: msg.room?.id,
-        roomTitle: msg.room?.title,
-      });
-    } else {
-      // Update unread count
-      if (msg.receiver_id === userId && !msg.is_read) {
-        existing.unreadCount++;
-      }
-    }
-  }
-
-  return Array.from(conversationMap.values());
-}
-
-/**
- * Get messages between two users
- */
-export async function getConversationMessages(
-  userId: string,
-  partnerId: string,
-  roomId?: string
-): Promise<MessageWithUsers[]> {
-  let query = supabase
+  // Count unread messages in those conversations (not sent by user)
+  const { count } = await supabase
     .from('messages')
-    .select(`
-      *,
-      sender:users!sender_id(id, full_name, avatar_url, email),
-      receiver:users!receiver_id(id, full_name, avatar_url, email)
-    `)
-    .or(`and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId})`)
-    .is('deleted_at', null);
+    .select('*', { count: 'exact', head: true })
+    .in('conversation_id', conversationIds)
+    .neq('sender_id', userId)
+    .eq('is_read', false);
 
-  if (roomId) {
-    query = query.eq('room_id', roomId);
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: true });
-
-  if (error) throw error;
-
-  return (data || []) as MessageWithUsers[];
+  return count || 0;
 }
 
 /**
  * Send a message
  */
 export async function sendMessage(
+  conversationId: string,
   senderId: string,
-  receiverId: string,
-  content: string,
-  roomId?: string,
-  messageType: 'text' | 'image' | 'file' = 'text'
-): Promise<MessageWithUsers> {
+  content: string
+): Promise<Message> {
   const { data, error } = await supabase
     .from('messages')
     .insert({
+      conversation_id: conversationId,
       sender_id: senderId,
-      receiver_id: receiverId,
       content,
-      room_id: roomId,
-      message_type: messageType,
+      is_read: false,
     })
-    .select(`
-      *,
-      sender:users!sender_id(id, full_name, avatar_url, email),
-      receiver:users!receiver_id(id, full_name, avatar_url, email)
-    `)
+    .select()
     .single();
 
   if (error) throw error;
-
-  return data as MessageWithUsers;
+  return data;
 }
 
 /**
- * Mark messages as read
+ * Mark messages as read in a conversation
  */
-export async function markMessagesAsRead(userId: string, senderId: string): Promise<void> {
+export async function markMessagesAsRead(
+  conversationId: string,
+  userId: string
+): Promise<void> {
   const { error } = await supabase
     .from('messages')
-    .update({ is_read: true, read_at: new Date().toISOString() })
-    .eq('receiver_id', userId)
-    .eq('sender_id', senderId)
+    .update({ is_read: true })
+    .eq('conversation_id', conversationId)
+    .neq('sender_id', userId)
     .eq('is_read', false);
 
   if (error) throw error;
 }
 
 /**
- * Get unread message count
+ * Create or get existing conversation between users
  */
-export async function getUnreadCount(userId: string): Promise<number> {
-  const { count, error } = await supabase
-    .from('messages')
-    .select('*', { count: 'exact', head: true })
-    .eq('receiver_id', userId)
-    .eq('is_read', false)
-    .is('deleted_at', null);
+export async function getOrCreateConversation(
+  userId: string,
+  otherUserId: string
+): Promise<string> {
+  // Check if conversation already exists
+  const { data: existingConvs } = await supabase
+    .from('conversation_participants')
+    .select('conversation_id')
+    .eq('user_id', userId);
 
-  if (error) throw error;
+  if (existingConvs) {
+    for (const conv of existingConvs) {
+      const { data: otherParticipant } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('conversation_id', conv.conversation_id)
+        .eq('user_id', otherUserId)
+        .single();
 
-  return count || 0;
+      if (otherParticipant) {
+        return conv.conversation_id;
+      }
+    }
+  }
+
+  // Create new conversation
+  const { data: newConversation, error: convError } = await supabase
+    .from('conversations')
+    .insert({})
+    .select()
+    .single();
+
+  if (convError) throw convError;
+
+  // Add participants
+  const { error: participantError } = await supabase
+    .from('conversation_participants')
+    .insert([
+      { conversation_id: newConversation.id, user_id: userId },
+      { conversation_id: newConversation.id, user_id: otherUserId },
+    ]);
+
+  if (participantError) throw participantError;
+
+  return newConversation.id;
 }
 
 /**
- * Delete a message (soft delete)
- */
-export async function deleteMessage(messageId: string, userId: string): Promise<void> {
-  const { error } = await supabase
-    .from('messages')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', messageId)
-    .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
-
-  if (error) throw error;
-}
-
-/**
- * Subscribe to new messages in real-time using Supabase Realtime
- * Uses Postgres Changes (CDC) to listen for INSERT events on messages table
- * 
- * @param userId - Current user ID to filter messages
- * @param onNewMessage - Callback when a new message is received
- * @param onMessageRead - Optional callback when messages are marked as read
- * @returns Supabase RealtimeChannel that can be unsubscribed
+ * Legacy subscriptions - deprecated, use realtime.ts instead
  */
 export function subscribeToMessages(
   userId: string,
-  onNewMessage: (message: MessageWithUsers) => void,
-  onMessageRead?: (payload: { messageIds: string[] }) => void
+  onNewMessage: (message: Message) => void,
+  _onMessagesRead?: (payload: { messageIds: string[] }) => void
 ) {
-  const channelName = `messages-${userId}-${Date.now()}`;
-  
-  console.log('[Realtime] Subscribing to messages channel:', channelName);
-  
+  console.warn('[messages.ts] subscribeToMessages is deprecated, use realtime.ts instead');
+
   const channel = supabase
-    .channel(channelName)
-    // Listen for new messages where user is the receiver
+    .channel(`user-messages-${userId}`)
     .on(
       'postgres_changes',
       {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `receiver_id=eq.${userId}`,
-      },
-      async (payload) => {
-        console.log('[Realtime] New message received:', payload.new);
-        
-        // Fetch the full message with user details
-        try {
-          const { data, error } = await supabase
-            .from('messages')
-            .select(`
-              *,
-              sender:users!sender_id(id, full_name, avatar_url, email),
-              receiver:users!receiver_id(id, full_name, avatar_url, email)
-            `)
-            .eq('id', (payload.new as Message).id)
-            .single();
-
-          if (error) {
-            console.error('[Realtime] Error fetching message details:', error);
-            return;
-          }
-
-          if (data) {
-            onNewMessage(data as MessageWithUsers);
-          }
-        } catch (err) {
-          console.error('[Realtime] Exception fetching message:', err);
-        }
-      }
-    )
-    // Listen for new messages where user is the sender (for optimistic UI sync)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `sender_id=eq.${userId}`,
-      },
-      async (payload) => {
-        console.log('[Realtime] Sent message confirmed:', payload.new);
-        // Could be used to confirm message was saved
-      }
-    )
-    // Listen for message updates (read status)
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'messages',
-        filter: `sender_id=eq.${userId}`,
       },
       (payload) => {
-        console.log('[Realtime] Message updated:', payload.new);
-        
-        // Check if this is a read status update
-        const newMsg = payload.new as Message;
-        const oldMsg = payload.old as Partial<Message>;
-        
-        if (newMsg.is_read && !oldMsg.is_read && onMessageRead) {
-          onMessageRead({ messageIds: [newMsg.id] });
-        }
+        onNewMessage(payload.new as Message);
       }
     )
-    .subscribe((status, err) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Successfully subscribed to messages');
-      } else if (status === 'CHANNEL_ERROR') {
-        console.error('[Realtime] Channel error:', err);
-      } else if (status === 'TIMED_OUT') {
-        console.error('[Realtime] Subscription timed out');
-      }
-    });
+    .subscribe();
 
-  return channel;
+  return {
+    unsubscribe: () => supabase.removeChannel(channel),
+  };
 }
 
-/**
- * Subscribe to a specific conversation for real-time updates
- * Uses a more focused filter for better performance
- * 
- * @param userId - Current user ID
- * @param partnerId - Conversation partner's ID  
- * @param onNewMessage - Callback when a new message arrives in this conversation
- * @returns Supabase RealtimeChannel
- */
 export function subscribeToConversation(
-  userId: string,
-  partnerId: string,
+  _userId: string,
+  conversationId: string,
   onNewMessage: (message: MessageWithUsers) => void
 ) {
-  const channelName = `conversation-${[userId, partnerId].sort().join('-')}`;
-  
-  console.log('[Realtime] Subscribing to conversation:', channelName);
+  console.warn('[messages.ts] subscribeToConversation is deprecated, use realtime.ts instead');
 
   const channel = supabase
-    .channel(channelName)
-    // Messages from partner to user
+    .channel(`conversation-${conversationId}`)
     .on(
       'postgres_changes',
       {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `sender_id=eq.${partnerId}`,
+        filter: `conversation_id=eq.${conversationId}`,
       },
-      async (payload) => {
-        const newMsg = payload.new as Message;
-        // Only process if this message is for the current user
-        if (newMsg.receiver_id !== userId) return;
-        
-        try {
-          const { data } = await supabase
-            .from('messages')
-            .select(`
-              *,
-              sender:users!sender_id(id, full_name, avatar_url, email),
-              receiver:users!receiver_id(id, full_name, avatar_url, email)
-            `)
-            .eq('id', newMsg.id)
-            .single();
-
-          if (data) {
-            onNewMessage(data as MessageWithUsers);
-          }
-        } catch (err) {
-          console.error('[Realtime] Error fetching conversation message:', err);
-        }
+      (payload) => {
+        onNewMessage(payload.new as MessageWithUsers);
       }
     )
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Subscribed to conversation with', partnerId);
-      }
-    });
-
-  return channel;
-}
-
-/**
- * Create a broadcast channel for typing indicators
- * Uses Supabase Broadcast (not Postgres Changes) for ephemeral events
- * 
- * @param conversationId - Unique conversation identifier
- * @param onTyping - Callback when someone is typing
- * @returns Object with channel, sendTyping function, and unsubscribe
- */
-export function createTypingChannel(
-  conversationId: string,
-  onTyping: (userId: string, isTyping: boolean) => void
-) {
-  const channelName = `typing-${conversationId}`;
-  
-  const channel = supabase.channel(channelName, {
-    config: {
-      broadcast: { ack: false, self: false },
-    },
-  });
-
-  channel
-    .on('broadcast', { event: 'typing' }, (payload) => {
-      const { userId, isTyping } = payload.payload as { userId: string; isTyping: boolean };
-      onTyping(userId, isTyping);
-    })
     .subscribe();
 
-  const sendTyping = async (userId: string, isTyping: boolean) => {
-    await channel.send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: { userId, isTyping },
-    });
-  };
-
   return {
-    channel,
-    sendTyping,
-    unsubscribe: () => channel.unsubscribe(),
+    unsubscribe: () => supabase.removeChannel(channel),
   };
 }
