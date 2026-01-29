@@ -66,7 +66,7 @@ export default function AppShell() {
         <div className="max-w-7xl mx-auto px-6 py-2.5">
           <div className="flex items-center justify-between">
             <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-              <img src={LogoRZ} alt="RoomZ Logo" className="h-10 w-auto" />
+              <img src={LogoRZ} alt="RoomZ Logo" className="h-12 w-auto" />
             </a>
 
             <nav className="flex items-center gap-1.5">
@@ -157,7 +157,7 @@ export default function AppShell() {
       <header className="top-0 bg-card/95 backdrop-blur-sm border-b border-border z-50 md:hidden">
         <div className="px-4 py-2 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-            <img src={LogoRZ} alt="RoomZ Logo" className="h-9 w-auto" />
+            <img src={LogoRZ} alt="RoomZ Logo" className="h-10 w-auto" />
           </a>
 
           {/* Mobile Authentication Section */}

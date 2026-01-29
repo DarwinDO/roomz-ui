@@ -13,6 +13,10 @@ import {
     ImagePlus,
     Camera,
     X,
+    Refrigerator,
+    Flame,
+    Shield,
+    DoorOpen,
 } from "lucide-react";
 import type { PostRoomFormData } from "../types";
 
@@ -59,7 +63,6 @@ export function StepAmenitiesImages({
                 <CardDescription>Thêm tiện nghi và ảnh phòng để tăng độ hấp dẫn</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
-                {/* Amenities */}
                 <div>
                     <Label className="mb-4 block text-base font-medium">Tiện nghi có sẵn</Label>
                     <div className="grid grid-cols-2 gap-4">
@@ -68,6 +71,10 @@ export function StepAmenitiesImages({
                             { key: "airConditioning", icon: AirVent, label: "Điều hòa nhiệt độ" },
                             { key: "parking", icon: ParkingCircle, label: "Chỗ đỗ xe rộng rãi" },
                             { key: "washingMachine", icon: WashingMachine, label: "Máy giặt chung/riêng" },
+                            { key: "refrigerator", icon: Refrigerator, label: "Tủ lạnh" },
+                            { key: "heater", icon: Flame, label: "Máy nước nóng" },
+                            { key: "securityCamera", icon: Shield, label: "Camera an ninh" },
+                            { key: "balcony", icon: DoorOpen, label: "Ban công" },
                         ].map(({ key, icon: Icon, label }) => (
                             <div
                                 key={key}
