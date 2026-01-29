@@ -5,7 +5,7 @@ import { BottomNav } from '@/components/common/BottomNav';
 import { Chatbot } from '@/components/common/Chatbot';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, User as UserIcon, Building2, Home } from 'lucide-react';
-import LogoRZ from '@/assets/logo/roomz-logo-full.png';
+import LogoRZ from '@/assets/logo/roomz-icon.png';
 import { useAuth } from '@/contexts';
 import {
   DropdownMenu,
@@ -65,8 +65,8 @@ export default function AppShell() {
       <header className="sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border z-50 hidden md:block">
         <div className="max-w-7xl mx-auto px-6 py-2.5">
           <div className="flex items-center justify-between">
-            <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-              <img src={LogoRZ} alt="RoomZ Logo" className="h-12 w-auto" />
+            <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ml-2">
+              <img src={LogoRZ} alt="RoomZ Logo" className="h-14 w-auto scale-[1.35]" />
             </a>
 
             <nav className="flex items-center gap-1.5">
@@ -156,8 +156,8 @@ export default function AppShell() {
       {/* Mobile Header */}
       <header className="top-0 bg-card/95 backdrop-blur-sm border-b border-border z-50 md:hidden">
         <div className="px-4 py-2 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-            <img src={LogoRZ} alt="RoomZ Logo" className="h-10 w-auto" />
+          <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ml-2">
+            <img src={LogoRZ} alt="RoomZ Logo" className="h-14 w-auto scale-[1.35]" />
           </a>
 
           {/* Mobile Authentication Section */}
