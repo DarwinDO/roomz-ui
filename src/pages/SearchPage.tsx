@@ -23,13 +23,13 @@ function transformRoomToCardProps(room: RoomWithDetails, isFavorited: boolean = 
   // Get primary image or first image
   const primaryImage = room.images?.find(img => img.is_primary) || room.images?.[0];
   const imageUrl = primaryImage?.image_url || 'https://images.unsplash.com/photo-1668089677938-b52086753f77?w=400';
-  
+
   // Format location
   const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
-  
+
   // Calculate random distance for now (in real app, this would be calculated from user location)
-  const distance = room.latitude && room.longitude 
-    ? `${(Math.random() * 5 + 0.5).toFixed(1)} km` 
+  const distance = room.latitude && room.longitude
+    ? `${(Math.random() * 5 + 0.5).toFixed(1)} km`
     : 'N/A';
 
   return {
@@ -49,7 +49,7 @@ function transformRoomToCardProps(room: RoomWithDetails, isFavorited: boolean = 
 export default function SearchPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   // Filters state
   const [searchQuery, setSearchQuery] = useState("");
   const [priceRange, setPriceRange] = useState([2000000, 6000000]);
@@ -92,7 +92,7 @@ export default function SearchPage() {
       navigate('/login');
       return;
     }
-    
+
     try {
       const favorited = await toggleFavorite(roomId);
       toast.success(favorited ? "Đã thêm vào yêu thích" : "Đã xóa khỏi yêu thích");
@@ -107,7 +107,7 @@ export default function SearchPage() {
     { value: "studio", label: "Căn studio" },
     { value: "entire", label: "Nguyên căn" },
   ];
-  
+
   const amenities = [
     { id: "wifi", label: "WiFi", icon: Wifi },
     { id: "parking", label: "Chỗ đỗ xe", icon: Car },
@@ -154,7 +154,7 @@ export default function SearchPage() {
       if (selectedRoomTypes.length > 0 && !selectedRoomTypes.includes(room.room_type)) {
         return false;
       }
-      
+
       // Filter by amenities
       if (selectedAmenities.length > 0 && room.amenities) {
         const hasAllAmenities = selectedAmenities.every(amenity => {
@@ -162,7 +162,7 @@ export default function SearchPage() {
         });
         if (!hasAllAmenities) return false;
       }
-      
+
       return true;
     });
   }, [rooms, selectedRoomTypes, selectedAmenities]);
@@ -175,14 +175,14 @@ export default function SearchPage() {
   return (
     <div className="pb-20 md:pb-8">
       {/* Search Header */}
-      <div className="bg-white border-b border-border sticky top-0 z-40">
+      <div className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-40">
         <div className="px-4 py-4 max-w-6xl mx-auto">
           <div className="flex items-center gap-2 mb-3">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 placeholder="Tìm kiếm địa điểm..."
-                className="pl-10 rounded-full border-gray-200"
+                className="pl-10 rounded-full border-border"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -194,7 +194,7 @@ export default function SearchPage() {
             </div>
             <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-full shrink-0">
+                <Button variant="outline" size="icon" className="rounded-xl shrink-0 border-border hover-scale">
                   <SlidersHorizontal className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
@@ -202,17 +202,17 @@ export default function SearchPage() {
                 <SheetHeader className="px-6 pt-6 pb-4">
                   <SheetTitle>Bộ lọc</SheetTitle>
                 </SheetHeader>
-                
+
                 {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
                   {/* Price Range Section */}
-                  <div className="bg-white rounded-xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
-                    <Label className="mb-3 block text-base">Khoảng giá</Label>
+                  <div className="bg-muted/30 rounded-xl p-4">
+                    <Label className="mb-3 block text-sm font-medium">Khoảng giá</Label>
                     <div className="flex justify-between items-center mb-4">
                       <span className="text-sm px-3 py-1.5 bg-primary/10 text-primary rounded-full">
                         {priceRange[0].toLocaleString('vi-VN')}đ
                       </span>
-                      <span className="text-xs text-gray-400">đến</span>
+                      <span className="text-xs text-muted-foreground">đến</span>
                       <span className="text-sm px-3 py-1.5 bg-primary/10 text-primary rounded-full">
                         {priceRange[1].toLocaleString('vi-VN')}đ
                       </span>
@@ -226,7 +226,7 @@ export default function SearchPage() {
                         onValueChange={setPriceRange}
                         className="mb-2"
                       />
-                      <div className="flex justify-between text-xs text-gray-400 mt-2">
+                      <div className="flex justify-between text-xs text-muted-foreground mt-2">
                         <span>0đ</span>
                         <span>10tr</span>
                       </div>
@@ -234,10 +234,10 @@ export default function SearchPage() {
                   </div>
 
                   {/* Verified Only Section */}
-                  <div className="bg-white rounded-xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
+                  <div className="bg-muted/30 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="verified-toggle" className="text-base cursor-pointer">
+                        <Label htmlFor="verified-toggle" className="text-sm font-medium cursor-pointer">
                           Chỉ phòng đã xác thực
                         </Label>
                         <AnimatePresence>
@@ -248,7 +248,7 @@ export default function SearchPage() {
                               exit={{ scale: 0, opacity: 0 }}
                               transition={{ type: "spring", stiffness: 500, damping: 30 }}
                             >
-                              <CheckCircle2 className="w-5 h-5 text-green-500" />
+                              <CheckCircle2 className="w-5 h-5 text-secondary" />
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -267,22 +267,21 @@ export default function SearchPage() {
                         }}
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Chỉ hiển thị tin đăng đã xác thực</p>
+                    <p className="text-xs text-muted-foreground mt-1">Chỉ hiển thị tin đăng đã xác thực</p>
                   </div>
 
                   {/* Room Type Section */}
-                  <div className="bg-white rounded-xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
-                    <Label className="mb-3 block text-base">Loại phòng</Label>
+                  <div className="bg-muted/30 rounded-xl p-4">
+                    <Label className="mb-3 block text-sm font-medium">Loại phòng</Label>
                     <div className="flex flex-wrap gap-2">
                       {roomTypes.map((type) => (
                         <button
                           key={type.value}
                           onClick={() => toggleRoomType(type.value)}
-                          className={`px-4 py-2 rounded-xl text-sm transition-all h-9 ${
-                            selectedRoomTypes.includes(type.value)
-                              ? "bg-primary text-white shadow-md"
-                              : "bg-[#F5F5F5] text-[#333333] hover:bg-gray-200"
-                          }`}
+                          className={`px-4 py-2 rounded-xl text-sm transition-all h-9 ${selectedRoomTypes.includes(type.value)
+                            ? "bg-primary text-primary-foreground shadow-md"
+                            : "bg-muted text-foreground hover:bg-muted/80"
+                            }`}
                         >
                           {type.label}
                         </button>
@@ -291,8 +290,8 @@ export default function SearchPage() {
                   </div>
 
                   {/* Amenities Section */}
-                  <div className="bg-white rounded-xl p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
-                    <Label className="mb-3 block text-base">Tiện nghi</Label>
+                  <div className="bg-muted/30 rounded-xl p-4">
+                    <Label className="mb-3 block text-sm font-medium">Tiện nghi</Label>
                     <div className="space-y-3">
                       {amenities.map((amenity) => {
                         const Icon = amenity.icon;
@@ -305,7 +304,7 @@ export default function SearchPage() {
                               onCheckedChange={() => toggleAmenity(amenity.id)}
                               className="w-5 h-5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                             />
-                            <Icon className={`w-5 h-5 ${isSelected ? "text-primary" : "text-gray-400"}`} />
+                            <Icon className={`w-5 h-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
                             <Label
                               htmlFor={amenity.id}
                               className="cursor-pointer flex-1 text-base"
@@ -320,19 +319,19 @@ export default function SearchPage() {
                 </div>
 
                 {/* Sticky Bottom Actions */}
-                <div className="border-t border-gray-200 p-4 bg-white">
+                <div className="border-t border-border p-4 bg-card">
                   <div className="flex gap-3">
                     <Button
                       variant="outline"
                       onClick={handleResetFilters}
-                      className="flex-1 rounded-full border-gray-300 hover:bg-gray-50 h-11"
+                      className="flex-1 rounded-xl border-border hover:bg-muted h-11"
                     >
                       Đặt lại
                     </Button>
                     <Button
                       onClick={handleApplyFilters}
                       disabled={isApplyingFilters}
-                      className="flex-1 rounded-full bg-primary hover:bg-primary/90 h-11"
+                      className="flex-1 rounded-xl bg-primary hover:bg-primary/90 h-11"
                     >
                       {isApplyingFilters ? (
                         <>
@@ -351,7 +350,7 @@ export default function SearchPage() {
 
           {/* View Toggle & Results Count */}
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               {loading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -366,7 +365,7 @@ export default function SearchPage() {
                 variant={viewMode === "list" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("list")}
-                className="rounded-full"
+                className="rounded-xl"
               >
                 <List className="w-4 h-4" />
               </Button>
@@ -374,7 +373,7 @@ export default function SearchPage() {
                 variant={viewMode === "map" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("map")}
-                className="rounded-full"
+                className="rounded-xl"
               >
                 <Map className="w-4 h-4" />
               </Button>
@@ -383,46 +382,49 @@ export default function SearchPage() {
         </div>
       </div>
 
+
       {/* Active Filters */}
-      {(verifiedOnly || priceRange[0] > 0 || priceRange[1] < 10000000 || selectedRoomTypes.length > 0) && (
-        <div className="px-4 py-3 bg-gray-50 border-b border-border">
-          <div className="max-w-6xl mx-auto flex flex-wrap gap-2">
-            {verifiedOnly && (
-              <Badge className="bg-primary text-white gap-1">
-                Đã xác thực
-                <X className="w-3 h-3 cursor-pointer" onClick={() => setVerifiedOnly(false)} />
-              </Badge>
-            )}
-            {(priceRange[0] > 0 || priceRange[1] < 10000000) && (
-              <Badge className="bg-primary text-white gap-1">
-                {formatPriceInMillions(priceRange[0])}tr - {formatPriceInMillions(priceRange[1])}tr
-                <X
-                  className="w-3 h-3 cursor-pointer"
-                  onClick={() => setPriceRange([0, 10000000])}
-                />
-              </Badge>
-            )}
-            {selectedRoomTypes.map(type => {
-              const roomType = roomTypes.find(t => t.value === type);
-              return (
-                <Badge key={type} className="bg-primary text-white gap-1">
-                  {roomType?.label}
-                  <X className="w-3 h-3 cursor-pointer" onClick={() => toggleRoomType(type)} />
+      {
+        (verifiedOnly || priceRange[0] > 0 || priceRange[1] < 10000000 || selectedRoomTypes.length > 0) && (
+          <div className="px-4 py-3 bg-muted/50 border-b border-border">
+            <div className="max-w-6xl mx-auto flex flex-wrap gap-2">
+              {verifiedOnly && (
+                <Badge className="bg-primary text-primary-foreground gap-1">
+                  Đã xác thực
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setVerifiedOnly(false)} />
                 </Badge>
-              );
-            })}
+              )}
+              {(priceRange[0] > 0 || priceRange[1] < 10000000) && (
+                <Badge className="bg-primary text-white gap-1">
+                  {formatPriceInMillions(priceRange[0])}tr - {formatPriceInMillions(priceRange[1])}tr
+                  <X
+                    className="w-3 h-3 cursor-pointer"
+                    onClick={() => setPriceRange([0, 10000000])}
+                  />
+                </Badge>
+              )}
+              {selectedRoomTypes.map(type => {
+                const roomType = roomTypes.find(t => t.value === type);
+                return (
+                  <Badge className="bg-primary text-primary-foreground gap-1">
+                    {roomType?.label}
+                    <X className="w-3 h-3 cursor-pointer" onClick={() => toggleRoomType(type)} />
+                  </Badge>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Results */}
       <div className="px-4 py-6 max-w-6xl mx-auto">
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-            <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={() => refetch()} variant="outline">
+          <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-6 text-center animate-fade-in">
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-3" />
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={() => refetch()} variant="outline" className="rounded-xl">
               Thử lại
             </Button>
           </div>
@@ -430,14 +432,14 @@ export default function SearchPage() {
 
         {/* Loading State */}
         {loading && !error && (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden animate-pulse">
-                <div className="h-48 bg-gray-200" />
+              <div key={i} className="bg-card rounded-2xl shadow-soft border border-border overflow-hidden">
+                <div className="h-48 bg-muted animate-skeleton" />
                 <div className="p-4 space-y-3">
-                  <div className="h-5 bg-gray-200 rounded w-3/4" />
-                  <div className="h-4 bg-gray-200 rounded w-1/2" />
-                  <div className="h-4 bg-gray-200 rounded w-1/3" />
+                  <div className="h-5 bg-muted rounded animate-skeleton w-3/4" />
+                  <div className="h-4 bg-muted rounded animate-skeleton w-1/2" />
+                  <div className="h-4 bg-muted rounded animate-skeleton w-1/3" />
                 </div>
               </div>
             ))}
@@ -446,11 +448,11 @@ export default function SearchPage() {
 
         {/* Empty State */}
         {!loading && !error && roomCards.length === 0 && (
-          <div className="bg-gray-50 rounded-2xl p-12 text-center">
-            <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <div className="bg-muted/30 border border-border rounded-2xl p-12 text-center animate-fade-in">
+            <Search className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">Không tìm thấy phòng</h3>
-            <p className="text-gray-600 mb-4">Thử điều chỉnh bộ lọc để xem thêm kết quả</p>
-            <Button onClick={handleResetFilters} variant="outline">
+            <p className="text-muted-foreground mb-4">Thử điều chỉnh bộ lọc để xem thêm kết quả</p>
+            <Button onClick={handleResetFilters} variant="outline" className="rounded-xl">
               Đặt lại bộ lọc
             </Button>
           </div>
@@ -458,11 +460,11 @@ export default function SearchPage() {
 
         {/* Results List */}
         {!loading && !error && roomCards.length > 0 && viewMode === "list" && (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
             {roomCards.map((room) => (
-              <RoomCard 
-                key={room.id} 
-                {...room} 
+              <RoomCard
+                key={room.id}
+                {...room}
                 onClick={onRoomClick}
                 onFavorite={handleFavorite}
               />
@@ -472,14 +474,14 @@ export default function SearchPage() {
 
         {/* Map View */}
         {!loading && !error && viewMode === "map" && (
-          <div className="bg-gray-100 rounded-2xl h-[600px] flex items-center justify-center">
+          <div className="bg-muted/30 rounded-2xl h-[600px] flex items-center justify-center border border-border">
             <div className="text-center">
-              <Map className="w-16 h-16 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">Chế độ xem bản đồ sắp ra mắt</p>
+              <Map className="w-16 h-16 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-muted-foreground">Chế độ xem bản đồ sắp ra mắt</p>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

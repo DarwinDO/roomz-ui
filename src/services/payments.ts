@@ -80,7 +80,7 @@ export const PLANS: PlanDetails[] = [
  * Get user's current subscription
  */
 export async function getUserSubscription(userId: string): Promise<Subscription | null> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('subscriptions')
     .select('*')
     .eq('user_id', userId)
@@ -131,9 +131,9 @@ export async function createCheckoutSession(
 ): Promise<{ checkoutUrl: string }> {
   // In production, this would call your backend API
   // For now, we'll simulate the flow
-  
+
   // Store pending subscription intent
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('subscription_intents')
     .insert({
       user_id: userId,
@@ -149,7 +149,7 @@ export async function createCheckoutSession(
   // In production, this would return the actual Stripe checkout URL
   // For demo purposes, we'll simulate a successful subscription
   console.log('Checkout session created for plan:', plan, 'user:', userId);
-  
+
   // Simulate checkout - in production, redirect to Stripe
   return {
     checkoutUrl: `${successUrl}?session_id=demo_${Date.now()}`,
@@ -165,7 +165,7 @@ export async function handleCheckoutSuccess(
 ): Promise<Subscription> {
   // In production, verify the session with Stripe and create subscription
   // For demo, we'll create a mock subscription
-  
+
   const now = new Date();
   const nextMonth = new Date(now);
   nextMonth.setMonth(nextMonth.getMonth() + 1);
@@ -182,7 +182,7 @@ export async function handleCheckoutSuccess(
   };
 
   // Try to insert subscription
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('subscriptions')
     .insert(subscriptionData as never)
     .select()
@@ -230,7 +230,7 @@ export async function handleCheckoutSuccess(
  * Cancel subscription
  */
 export async function cancelSubscription(subscriptionId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('subscriptions')
     .update({
       cancel_at_period_end: true,
@@ -247,7 +247,7 @@ export async function cancelSubscription(subscriptionId: string): Promise<void> 
  * Reactivate a canceled subscription
  */
 export async function reactivateSubscription(subscriptionId: string): Promise<void> {
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('subscriptions')
     .update({
       cancel_at_period_end: false,

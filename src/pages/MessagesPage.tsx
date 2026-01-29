@@ -73,15 +73,14 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-border z-40 px-4 py-3">
+      <div className="sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border z-40 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center">
             <Button
               variant="ghost"
               size="icon"
               onClick={handleBack}
-              className="rounded-full"
-            >
+              className="rounded-xl hover:bg-muted">
               {selectedConversation && isMobileView ? (
                 <ChevronLeft className="w-5 h-5" />
               ) : (
@@ -105,7 +104,7 @@ export default function MessagesPage() {
                   <div>
                     <p className="font-medium text-sm">{selectedConversation.participant.full_name}</p>
                     {selectedConversation.roomTitle && (
-                      <p className="text-xs text-gray-500">{selectedConversation.roomTitle}</p>
+                      <p className="text-xs text-muted-foreground">{selectedConversation.roomTitle}</p>
                     )}
                   </div>
                 </div>
@@ -132,12 +131,12 @@ export default function MessagesPage() {
               {/* Search */}
               <div className="p-4 border-b border-border">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Tìm kiếm cuộc trò chuyện..."
-                    className="pl-10 rounded-full"
+                    className="pl-10 rounded-xl"
                   />
                 </div>
               </div>
@@ -146,15 +145,15 @@ export default function MessagesPage() {
               <div className="flex-1 overflow-y-auto">
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : filteredConversations.length === 0 ? (
-                  <div className="text-center py-12 px-4">
-                    <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">
+                  <div className="text-center py-12 px-4 animate-fade-in">
+                    <MessageCircle className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                    <p className="text-muted-foreground">
                       {searchQuery ? "Không tìm thấy cuộc trò chuyện" : "Chưa có tin nhắn nào"}
                     </p>
-                    <p className="text-sm text-gray-400 mt-2">
+                    <p className="text-sm text-muted-foreground/70 mt-2">
                       Bắt đầu trò chuyện khi bạn quan tâm đến một phòng
                     </p>
                   </div>
@@ -185,10 +184,10 @@ export default function MessagesPage() {
                   onMarkAsRead={refetch}
                 />
               ) : (
-                <div className="hidden md:flex flex-1 items-center justify-center bg-gray-50">
+                <div className="hidden md:flex flex-1 items-center justify-center bg-muted/50">
                   <div className="text-center">
-                    <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Chọn một cuộc trò chuyện để bắt đầu</p>
+                    <MessageCircle className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+                    <p className="text-muted-foreground">Chọn một cuộc trò chuyện để bắt đầu</p>
                   </div>
                 </div>
               )}
@@ -226,9 +225,8 @@ function ConversationItem({ conversation, isSelected, onClick, currentUserId }: 
   return (
     <button
       onClick={onClick}
-      className={`w-full p-4 flex items-start gap-3 text-left transition-colors hover:bg-gray-50 ${isSelected ? "bg-primary/5 border-l-4 border-primary" : ""
-        }`}
-    >
+      className={`w-full p-4 flex items-start gap-3 text-left transition-colors hover:bg-muted ${isSelected ? "bg-primary/5 border-l-4 border-primary" : ""
+        }`}>
       <div className="relative">
         <Avatar className="w-12 h-12">
           <AvatarImage src={participant.avatar_url || undefined} />
@@ -237,7 +235,7 @@ function ConversationItem({ conversation, isSelected, onClick, currentUserId }: 
           </AvatarFallback>
         </Avatar>
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-white text-xs rounded-full flex items-center justify-center">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -247,16 +245,16 @@ function ConversationItem({ conversation, isSelected, onClick, currentUserId }: 
           <p className={`font-medium truncate ${unreadCount > 0 ? "text-foreground" : ""}`}>
             {participant.full_name}
           </p>
-          <span className="text-xs text-gray-400 shrink-0">{timeAgo}</span>
+          <span className="text-xs text-muted-foreground shrink-0">{timeAgo}</span>
         </div>
         {roomTitle && (
           <p className="text-xs text-primary truncate">{roomTitle}</p>
         )}
         <p
-          className={`text-sm truncate mt-0.5 ${unreadCount > 0 ? "text-foreground font-medium" : "text-gray-500"
+          className={`text-sm truncate mt-0.5 ${unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"
             }`}
         >
-          {isFromMe && <span className="text-gray-400">Bạn: </span>}
+          {isFromMe && <span className="text-muted-foreground">Bạn: </span>}
           {lastMessage.content}
         </p>
       </div>
@@ -323,7 +321,7 @@ function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header (desktop only) */}
-      <div className="hidden md:flex items-center gap-3 p-4 border-b border-border bg-white">
+      <div className="hidden md:flex items-center gap-3 p-4 border-b border-border bg-card">
         <Avatar className="w-10 h-10">
           <AvatarImage src={conversation.participant.avatar_url || undefined} />
           <AvatarFallback>
@@ -338,7 +336,7 @@ function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps
         <div>
           <p className="font-medium">{conversation.participant.full_name}</p>
           {conversation.roomTitle && (
-            <p className="text-sm text-gray-500">{conversation.roomTitle}</p>
+            <p className="text-sm text-muted-foreground">{conversation.roomTitle}</p>
           )}
         </div>
       </div>
@@ -346,16 +344,16 @@ function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps
       {/* Messages */}
       <div
         id="messages-container"
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/30"
       >
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : messages.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">Bắt đầu cuộc trò chuyện</p>
+          <div className="text-center py-12 animate-fade-in">
+            <MessageCircle className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-muted-foreground">Bắt đầu cuộc trò chuyện</p>
           </div>
         ) : (
           messages.map((message) => (
@@ -369,22 +367,21 @@ function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-border bg-white">
+      <div className="p-4 border-t border-border bg-card">
         <div className="flex items-center gap-3">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Nhập tin nhắn..."
-            className="flex-1 rounded-full"
+            className="flex-1 rounded-xl"
             disabled={isSending}
           />
           <Button
             onClick={handleSend}
             disabled={!newMessage.trim() || isSending}
             size="icon"
-            className="rounded-full shrink-0"
-          >
+            className="rounded-xl shrink-0 bg-primary hover:bg-primary/90">
             {isSending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
@@ -412,13 +409,13 @@ function MessageBubble({ message, isFromMe }: MessageBubbleProps) {
     <div className={`flex ${isFromMe ? "justify-end" : "justify-start"}`}>
       <div
         className={`max-w-[80%] rounded-2xl px-4 py-2 ${isFromMe
-          ? "bg-primary text-white rounded-br-sm"
-          : "bg-white border border-border rounded-bl-sm"
+          ? "bg-primary text-primary-foreground rounded-br-sm"
+          : "bg-card border border-border rounded-bl-sm"
           }`}
       >
         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         <div
-          className={`flex items-center gap-1 mt-1 text-xs ${isFromMe ? "text-white/70 justify-end" : "text-gray-400"
+          className={`flex items-center gap-1 mt-1 text-xs ${isFromMe ? "text-primary-foreground/70 justify-end" : "text-muted-foreground"
             }`}
         >
           <span>{timeAgo}</span>

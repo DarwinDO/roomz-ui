@@ -2,17 +2,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, MapPin, Phone, Mail, Clock, CheckCircle2, Percent, ExternalLink } from "lucide-react";
+import type { Partner } from "@/services/partners";
 
 interface PartnerDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  partner: {
-    name: string;
-    rating: number;
-    reviews: number;
-    specialization: string;
-    discount: string;
-  };
+  partner: Partner;
 }
 
 export function PartnerDetailModal({ isOpen, onClose, partner }: PartnerDetailModalProps) {
@@ -58,11 +53,11 @@ export function PartnerDetailModal({ isOpen, onClose, partner }: PartnerDetailMo
             <span>{partner.name}</span>
             <Badge className="bg-primary text-white">
               <Star className="w-3 h-3 mr-1 fill-white" />
-              {partner.rating}
+              {partner.rating || 0}
             </Badge>
           </DialogTitle>
           <DialogDescription>
-            {partner.specialization} • {partner.reviews} đánh giá
+            {partner.specialization || "Dịch vụ"} • {partner.review_count || 0} đánh giá
           </DialogDescription>
         </DialogHeader>
 
@@ -165,8 +160,8 @@ export function PartnerDetailModal({ isOpen, onClose, partner }: PartnerDetailMo
               <h4 className="text-sm font-medium">Đánh giá từ khách hàng</h4>
               <div className="flex items-center gap-1">
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm font-medium">{partner.rating}</span>
-                <span className="text-xs text-gray-500">({partner.reviews} đánh giá)</span>
+                <span className="text-sm font-medium">{partner.rating || 0}</span>
+                <span className="text-xs text-gray-500">({partner.review_count || 0} đánh giá)</span>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">

@@ -90,13 +90,13 @@ export function DataTable<T extends { id: string }>({
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="bg-white rounded-2xl border-none shadow-soft overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-gray-50/50">
               <tr>
                 {selectable && (
-                  <th className="w-12 px-4 py-3">
+                  <th className="w-12 px-6 py-4">
                     <Checkbox
                       checked={allSelected}
                       onCheckedChange={handleSelectAll}
@@ -106,31 +106,34 @@ export function DataTable<T extends { id: string }>({
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className="text-left px-4 py-3 text-sm font-medium text-gray-600"
+                    className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider"
                   >
                     {column.label}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100">
               {currentData.length === 0 ? (
                 <tr>
                   <td
                     colSpan={columns.length + (selectable ? 1 : 0)}
-                    className="text-center py-12 text-gray-500"
+                    className="text-center py-12 text-muted-foreground"
                   >
-                    Không có dữ liệu
+                    <div className="flex flex-col items-center gap-2">
+                      <Search className="w-8 h-8 opacity-20" />
+                      <p>Không tìm thấy dữ liệu</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 currentData.map((item) => (
                   <tr
                     key={item.id}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    className="hover:bg-gray-50/80 transition-colors group"
                   >
                     {selectable && (
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4">
                         <Checkbox
                           checked={selectedIds.has(item.id)}
                           onCheckedChange={(checked) => handleSelectRow(item, checked as boolean)}
@@ -138,7 +141,7 @@ export function DataTable<T extends { id: string }>({
                       </td>
                     )}
                     {columns.map((column) => (
-                      <td key={column.key} className="px-4 py-3 text-sm">
+                      <td key={column.key} className="px-6 py-4 text-sm text-gray-700">
                         {column.render ? column.render(item) : (item as any)[column.key]}
                       </td>
                     ))}

@@ -1,60 +1,30 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { RoomCard } from "@/components/common/RoomCard";
-import { ServicesBanner } from "@/components/common/ServicesBanner";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { UpgradeRoomZPlusModal } from "@/components/modals/UpgradeRoomZPlusModal";
 import { ProfileEditModal } from "@/components/modals/ProfileEditModal";
-import { MessagesList } from "@/components/common/MessagesList";
-import { useProfileMessages } from "@/hooks/useMessages";
-import { toast } from "sonner";
 import { useAuth } from "@/contexts";
 import { supabase } from "@/lib/supabase";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useProfileMessages } from "@/hooks/useMessages";
+import { toast } from "sonner";
 import type { RoomWithDetails } from "@/services/rooms";
-import {
-  User,
-  Settings,
-  ShieldCheck,
-  Heart,
-  MessageCircle,
-  Star,
-  Award,
-  Edit,
-  Crown,
-  ChevronDown,
-  Eye,
-  Loader2,
-  Mail,
-  Phone,
-  GraduationCap,
-  AlertCircle,
-} from "lucide-react";
+import { Heart, MessageCircle, Settings } from "lucide-react";
+
+// Components
+import { ProfileHeader } from "./profile/components/ProfileHeader";
+import { UpgradeBanner } from "./profile/components/UpgradeBanner";
+import { FavoritesTab } from "./profile/components/FavoritesTab";
+import { MessagesTab } from "./profile/components/MessagesTab";
+import { SettingsTab } from "./profile/components/SettingsTab";
 
 // Helper function to transform room data to RoomCard props
 function transformRoomToCardProps(room: RoomWithDetails) {
-  // Get primary image or first image
   const primaryImage = room.images?.find(img => img.is_primary) || room.images?.[0];
   const imageUrl = primaryImage?.image_url || 'https://images.unsplash.com/photo-1668089677938-b52086753f77?w=400';
-
-  // Format location
   const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
-
-  // Calculate random distance for now
-  const distance = room.latitude && room.longitude
-    ? `${(Math.random() * 5 + 0.5).toFixed(1)} km`
-    : 'N/A';
+  const distance = room.latitude && room.longitude ? `${(Math.random() * 5 + 0.5).toFixed(1)} km` : 'N/A';
 
   return {
     id: room.id,
@@ -74,77 +44,41 @@ export default function ProfilePage() {
   const [searchParams] = useSearchParams();
   const { user, profile, signOut, isEmailVerified, refreshUser } = useAuth();
 
-  // Fetch favorites from database
+  // Data Fetching
   const { favorites, loading: favoritesLoading, error: favoritesError, refetch: refetchFavorites, toggleFavorite } = useFavorites();
+  const { messages: profileMessages, loading: messagesLoading, error: messagesError, unreadCount: messagesUnreadCount } = useProfileMessages();
 
-  // Transform favorites to room card props (memoized to prevent unnecessary recalculations)
+  // Memoized Data
   const savedRooms = useMemo(() => {
-    return favorites
-      .filter(fav => fav.room)
-      .map(fav => transformRoomToCardProps(fav.room!));
+    return favorites.filter(fav => fav.room).map(fav => transformRoomToCardProps(fav.room!));
   }, [favorites]);
 
-  // Fetch messages from database (realtime)
-  const {
-    messages: profileMessages,
-    loading: messagesLoading,
-    error: messagesError,
-    unreadCount: messagesUnreadCount,
-  } = useProfileMessages();
-
-  // UI states
+  // UI States
+  const [activeTab, setActiveTab] = useState("favorites");
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [selectedChatPerson, setSelectedChatPerson] = useState<{
     name: string;
     avatar?: string;
     lastMessage?: string;
   } | null>(null);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  const [expandedSettings, setExpandedSettings] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("favorites");
 
-  // Profile edit states
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [editFullName, setEditFullName] = useState("");
-  const [editMajor, setEditMajor] = useState("");
-  const [editUniversity, setEditUniversity] = useState("");
-  const [editPhone, setEditPhone] = useState("");
-  const [editBio, setEditBio] = useState("");
-
-  // Initialize edit form with current profile data
-  useEffect(() => {
-    if (profile) {
-      setEditFullName(profile.full_name || "");
-      setEditMajor(profile.major || "");
-      setEditUniversity(profile.university || "");
-      setEditPhone(profile.phone || "");
-      setEditBio(profile.bio || "");
-    }
-  }, [profile]);
-
-  // Handle tab from URL parameter
+  // Effects
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "messages") {
-      setActiveTab("messages");
-    }
+    if (tab === "messages") setActiveTab("messages");
   }, [searchParams]);
 
-  // Helper function to get user initials
+  // Helpers
   const getUserInitials = () => {
     if (profile?.full_name) {
-      return profile.full_name
-        .split(' ')
-        .map((n: string) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
+      return profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
     }
     return user?.email?.charAt(0).toUpperCase() || '?';
   };
 
-  // Calculate trust score based on verifications
   const calculateTrustScore = () => {
     let score = 0;
     if (isEmailVerified || profile?.email_verified) score += 30;
@@ -156,75 +90,37 @@ export default function ProfilePage() {
 
   const trustScore = calculateTrustScore();
 
+  // Handlers
   const handleMessageClick = (message: { name: string; avatar?: string; lastMessage?: string; conversationId?: string }) => {
-    // Navigate to messages page with the specific conversation
-    if (message.conversationId) {
-      navigate(`/messages?conversation=${message.conversationId}`);
-    } else {
-      navigate('/messages');
-    }
+    if (message.conversationId) navigate(`/messages?conversation=${message.conversationId}`);
+    else navigate('/messages');
   };
 
-  const handleUpgradeSuccess = () => {
-    toast.success("Thành công! RoomZ+ đã được kích hoạt trên tài khoản của bạn.");
-  };
-
-  const handleProfileSave = () => {
-    toast.success("Cập nhật hồ sơ thành công!");
-  };
-
-  const handleRoomClick = (room: { id: string }) => {
-    navigate(`/room/${room.id}`);
-  };
-
-  const handleRemoveFavorite = async (roomId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      await toggleFavorite(roomId);
-      toast.success("Đã xóa khỏi yêu thích");
-    } catch (error) {
-      console.error('Error removing favorite:', error);
-      toast.error("Không thể xóa khỏi yêu thích");
-    }
-  };
-
-  const toggleSettingsSection = (section: string) => {
-    setExpandedSettings(expandedSettings === section ? null : section);
-  };
-
-  // Update profile in Supabase
-  const handleUpdateProfile = async () => {
+  const handleUpdateProfile = async (formData: any) => {
     if (!user) return;
-
     setIsUpdating(true);
     try {
-      const { error } = await supabase
-        .from('users')
-        .update({
-          full_name: editFullName,
-          major: editMajor,
-          university: editUniversity,
-          phone: editPhone,
-          bio: editBio,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
+      const { error } = await supabase.from('users').update({
+        full_name: formData.fullName,
+        major: formData.major,
+        university: formData.university,
+        phone: formData.phone,
+        bio: formData.bio,
+        updated_at: new Date().toISOString(),
+      }).eq('id', user.id);
 
       if (error) throw error;
-
-      toast.success("Đã lưu cài đặt thành công!");
-      // Refresh profile data through context
+      toast.success("Cập nhật hồ sơ thành công!");
       await refreshUser();
-    } catch (error: unknown) {
+      setIsEditProfileOpen(false); // Close modal if open
+    } catch (error: any) {
       console.error('Error updating profile:', error);
-      const errorMessage = error instanceof Error ? error.message : "Không thể cập nhật hồ sơ";
-      toast.error(errorMessage);
+      toast.error(error.message || "Không thể cập nhật hồ sơ");
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // Handle sign out
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -237,199 +133,20 @@ export default function ProfilePage() {
 
   return (
     <div className="pb-20 md:pb-8">
-      {/* Profile Header */}
-      <div className="bg-gradient-to-br from-primary/5 to-secondary/5 px-4 sm:px-6 py-6 sm:py-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Header with Avatar, Name, and Edit Button */}
-          <div className="flex items-start gap-3 sm:gap-6 mb-4 sm:mb-6">
-            <Avatar className="w-[72px] h-[72px] sm:w-[120px] sm:h-[120px] border-4 border-white shadow-lg shrink-0">
-              <AvatarImage
-                src={profile?.avatar_url || undefined}
-                alt={profile?.full_name || user?.email || ''}
-              />
-              <AvatarFallback className="text-xl sm:text-2xl bg-gradient-to-r from-primary to-secondary text-white">
-                {getUserInitials()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h2 className="text-lg sm:text-2xl">{profile?.full_name || 'Người dùng'}</h2>
-                    {(isEmailVerified || profile?.email_verified) && (
-                      <Badge className="bg-primary text-white text-xs sm:text-sm px-2 py-0.5 sm:px-3 sm:py-1">
-                        <ShieldCheck className="w-3 h-3 mr-1" />
-                        Đã xác thực
-                      </Badge>
-                    )}
-                    {profile?.is_premium && (
-                      <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs sm:text-sm px-2 py-0.5">
-                        <Crown className="w-3 h-3 mr-1" />
-                        Premium
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm sm:text-base text-gray-600">
-                    {profile?.major && profile?.university
-                      ? `${profile.major}, ${profile.university}`
-                      : profile?.university || user?.email || 'Chưa cập nhật thông tin'
-                    }
-                  </p>
-                  {profile?.bio && (
-                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">{profile.bio}</p>
-                  )}
-                </div>
-                <Button
-                  onClick={() => setIsEditProfileOpen(true)}
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full shrink-0 min-w-[90px] text-sm"
-                >
-                  <Edit className="w-4 h-4 mr-1 sm:mr-2" />
-                  <span className="hidden xs:inline">Chỉnh sửa hồ sơ</span>
-                  <span className="xs:hidden">Sửa</span>
-                </Button>
-              </div>
+      <ProfileHeader
+        user={user}
+        profile={profile}
+        isEmailVerified={isEmailVerified}
+        trustScore={trustScore}
+        getUserInitials={getUserInitials}
+        onEditProfile={() => setIsEditProfileOpen(true)}
+      />
 
-              {/* User Info Row */}
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-2 text-sm text-gray-500">
-                <div className="flex items-center gap-1">
-                  <Mail className="w-3.5 h-3.5" />
-                  <span className="truncate max-w-[150px] sm:max-w-none">{user?.email}</span>
-                </div>
-                {profile?.phone && (
-                  <div className="flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>{profile.phone}</span>
-                  </div>
-                )}
-                {profile?.graduation_year && (
-                  <div className="flex items-center gap-1">
-                    <GraduationCap className="w-3.5 h-3.5" />
-                    <span>K{profile.graduation_year}</span>
-                  </div>
-                )}
-              </div>
+      <UpgradeBanner onUpgrade={() => setIsUpgradeModalOpen(true)} />
 
-              <div className="flex items-center gap-3 sm:gap-6 mt-3 sm:mt-4">
-                <div>
-                  <div className="flex items-center gap-1 mb-1">
-                    <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-base sm:text-lg">{profile?.trust_score ? (profile.trust_score / 20).toFixed(1) : '0.0'}</span>
-                  </div>
-                  <p className="text-xs text-gray-500">Đánh giá</p>
-                </div>
-                <div className="h-6 sm:h-8 w-px bg-gray-300"></div>
-                <div>
-                  <p className="text-base sm:text-lg">{profile?.role === 'landlord' ? 'Chủ nhà' : profile?.role === 'student' ? 'Sinh viên' : 'User'}</p>
-                  <p className="text-xs text-gray-500">Vai trò</p>
-                </div>
-                <div className="h-6 sm:h-8 w-px bg-gray-300"></div>
-                <div>
-                  <p className="text-base sm:text-lg">{trustScore}%</p>
-                  <p className="text-xs text-gray-500">Điểm tin cậy</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Trust Score */}
-          <Card className="p-4 rounded-2xl bg-white">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-primary" />
-                <span>Điểm tin cậy</span>
-              </div>
-              <span className="text-primary">{trustScore}%</span>
-            </div>
-            <Progress value={trustScore} className="mb-3" />
-            <div className="flex flex-wrap gap-2">
-              {profile?.id_card_verified ? (
-                <Badge variant="secondary" className="bg-green-100 text-green-700">
-                  <ShieldCheck className="w-3 h-3 mr-1" />
-                  Đã xác thực CMND
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-gray-100 text-gray-500">
-                  Chưa xác thực CMND
-                </Badge>
-              )}
-              {(isEmailVerified || profile?.email_verified) ? (
-                <Badge variant="secondary" className="bg-green-100 text-green-700">
-                  <ShieldCheck className="w-3 h-3 mr-1" />
-                  Đã xác thực Email
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-gray-100 text-gray-500">
-                  Chưa xác thực Email
-                </Badge>
-              )}
-              {profile?.student_card_verified ? (
-                <Badge variant="secondary" className="bg-green-100 text-green-700">
-                  <ShieldCheck className="w-3 h-3 mr-1" />
-                  Đã xác thực thẻ SV
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-gray-100 text-gray-500">
-                  Chưa xác thực thẻ SV
-                </Badge>
-              )}
-              {profile?.phone_verified ? (
-                <Badge variant="secondary" className="bg-green-100 text-green-700">
-                  <ShieldCheck className="w-3 h-3 mr-1" />
-                  Đã xác thực SĐT
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-gray-100 text-gray-500">
-                  Chưa xác thực SĐT
-                </Badge>
-              )}
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* RoomZ+ Membership */}
-      <div className="px-6 py-6 max-w-6xl mx-auto">
-        <Card className="p-6 rounded-2xl bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-2xl flex items-center justify-center shrink-0">
-              <Crown className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="mb-1">Nâng cấp lên RoomZ+</h3>
-              <p className="text-sm text-gray-700 mb-3">
-                Nhận ưu tiên hiển thị, phù hợp nâng cao và ưu đãi độc quyền
-              </p>
-              <ul className="space-y-1 mb-4 text-sm">
-                <li className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-primary" />
-                  Ưu tiên trong kết quả tìm kiếm
-                </li>
-                <li className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-primary" />
-                  Phù hợp nâng cao
-                </li>
-                <li className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-primary" />
-                  Không phí đặt phòng
-                </li>
-              </ul>
-              <Button
-                onClick={() => setIsUpgradeModalOpen(true)}
-                className="bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-white rounded-full"
-              >
-                Nâng cấp ngay - 49k/tháng
-              </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Content Tabs */}
       <div className="px-6 max-w-6xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6 rounded-xl">
             <TabsTrigger value="favorites">
               <Heart className="w-4 h-4 mr-2" />
               Yêu thích
@@ -438,7 +155,7 @@ export default function ProfilePage() {
               <MessageCircle className="w-4 h-4 mr-2" />
               Tin nhắn
               {messagesUnreadCount > 0 && (
-                <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px]">
+                <span className="ml-2 bg-destructive text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px]">
                   {messagesUnreadCount > 9 ? '9+' : messagesUnreadCount}
                 </span>
               )}
@@ -450,465 +167,33 @@ export default function ProfilePage() {
           </TabsList>
 
           <TabsContent value="favorites">
-            <div className="space-y-8">
-              <ServicesBanner />
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3>Phòng đã lưu ({savedRooms.length})</h3>
-                  {savedRooms.length > 0 && (
-                    <Button variant="outline" size="sm" onClick={() => refetchFavorites()}>
-                      Làm mới
-                    </Button>
-                  )}
-                </div>
-
-                {/* Loading State */}
-                {favoritesLoading && (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden animate-pulse">
-                        <div className="h-48 bg-gray-200" />
-                        <div className="p-4 space-y-3">
-                          <div className="h-5 bg-gray-200 rounded w-3/4" />
-                          <div className="h-4 bg-gray-200 rounded w-1/2" />
-                          <div className="h-4 bg-gray-200 rounded w-1/3" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Error State */}
-                {favoritesError && !favoritesLoading && (
-                  <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-                    <p className="text-red-600 mb-4">{favoritesError}</p>
-                    <Button onClick={() => refetchFavorites()} variant="outline">
-                      Thử lại
-                    </Button>
-                  </div>
-                )}
-
-                {/* Empty State */}
-                {!favoritesLoading && !favoritesError && savedRooms.length === 0 && (
-                  <div className="bg-gray-50 rounded-2xl p-12 text-center">
-                    <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">Chưa có phòng yêu thích</h3>
-                    <p className="text-gray-600 mb-4">Lưu các phòng bạn thích để xem lại sau</p>
-                    <Button onClick={() => navigate('/search')} variant="default">
-                      Tìm kiếm phòng
-                    </Button>
-                  </div>
-                )}
-
-                {/* Favorites List */}
-                {!favoritesLoading && !favoritesError && savedRooms.length > 0 && (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {savedRooms.map((room) => (
-                      <div key={room.id} className="relative group">
-                        <div onClick={() => handleRoomClick(room)}>
-                          <RoomCard
-                            {...room}
-                            isFavorited={true}
-                            showFavoriteButton={false}
-                          />
-                        </div>
-                        {/* Action buttons in top-right corner where heart icon would be */}
-                        <div className="absolute top-3 right-3 flex gap-2 z-10">
-                          <Button
-                            onClick={(e) => handleRemoveFavorite(room.id, e)}
-                            size="icon"
-                            className="rounded-full bg-white hover:bg-red-50 h-9 w-9 shadow-md border-0"
-                            variant="ghost"
-                            title="Xóa khỏi yêu thích"
-                          >
-                            <Heart className="w-5 h-5 fill-red-500 text-red-500" />
-                          </Button>
-                        </div>
-                        {/* View button on hover at bottom-right */}
-                        <div className="absolute bottom-16 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRoomClick(room);
-                            }}
-                            size="sm"
-                            className="rounded-full bg-white/95 hover:bg-white shadow-md text-primary"
-                            variant="ghost"
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Xem
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <FavoritesTab
+              savedRooms={savedRooms}
+              loading={favoritesLoading}
+              error={favoritesError}
+              onRefetch={refetchFavorites}
+              onRemoveFavorite={async (id) => { await toggleFavorite(id); }}
+            />
           </TabsContent>
 
           <TabsContent value="messages">
-            {messagesLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              </div>
-            ) : messagesError ? (
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-                <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-                <p className="text-red-600">{messagesError}</p>
-              </div>
-            ) : profileMessages.length === 0 ? (
-              <div className="bg-gray-50 rounded-2xl p-12 text-center">
-                <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Chưa có tin nhắn</h3>
-                <p className="text-gray-600 mb-4">Bắt đầu trò chuyện khi bạn quan tâm đến một phòng</p>
-                <Button onClick={() => navigate('/search')} variant="default">
-                  Tìm kiếm phòng
-                </Button>
-              </div>
-            ) : (
-              <MessagesList
-                messages={profileMessages}
-                onMessageClick={handleMessageClick}
-              />
-            )}
+            <MessagesTab
+              messages={profileMessages}
+              loading={messagesLoading}
+              error={messagesError}
+              onMessageClick={handleMessageClick}
+            />
           </TabsContent>
 
           <TabsContent value="settings">
-            <div className="space-y-6">
-              <Card className="p-6 rounded-2xl">
-                <h3 className="mb-4">Cài đặt tài khoản</h3>
-                <div className="space-y-3">
-                  {/* Edit Profile Information */}
-                  <Collapsible
-                    open={expandedSettings === "profile"}
-                    onOpenChange={() => toggleSettingsSection("profile")}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-between rounded-xl"
-                      >
-                        <div className="flex items-center">
-                          <User className="w-4 h-4 mr-3" />
-                          Chỉnh sửa thông tin hồ sơ
-                        </div>
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform ${expandedSettings === "profile" ? "rotate-180" : ""
-                            }`}
-                        />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-3 p-4 bg-gray-50 rounded-xl space-y-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="profile-name">Họ và tên</Label>
-                        <Input
-                          id="profile-name"
-                          value={editFullName}
-                          onChange={(e) => setEditFullName(e.target.value)}
-                          placeholder="Nhập họ và tên"
-                          className="rounded-xl"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="profile-major">Ngành học</Label>
-                        <Input
-                          id="profile-major"
-                          value={editMajor}
-                          onChange={(e) => setEditMajor(e.target.value)}
-                          placeholder="Ví dụ: Khoa học máy tính"
-                          className="rounded-xl"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="profile-university">Trường học</Label>
-                        <Input
-                          id="profile-university"
-                          value={editUniversity}
-                          onChange={(e) => setEditUniversity(e.target.value)}
-                          placeholder="Ví dụ: ĐH Bách Khoa TP.HCM"
-                          className="rounded-xl"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="profile-phone">Số điện thoại</Label>
-                        <Input
-                          id="profile-phone"
-                          value={editPhone}
-                          onChange={(e) => setEditPhone(e.target.value)}
-                          placeholder="Ví dụ: 0901234567"
-                          className="rounded-xl"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="profile-bio">Giới thiệu bản thân</Label>
-                        <Textarea
-                          id="profile-bio"
-                          value={editBio}
-                          onChange={(e) => setEditBio(e.target.value)}
-                          placeholder="Viết vài dòng về bản thân bạn..."
-                          className="rounded-xl min-h-[80px]"
-                        />
-                      </div>
-                      <Button
-                        onClick={handleUpdateProfile}
-                        disabled={isUpdating}
-                        className="w-full rounded-full bg-primary"
-                      >
-                        {isUpdating ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Đang lưu...
-                          </>
-                        ) : (
-                          'Lưu thay đổi'
-                        )}
-                      </Button>
-                    </CollapsibleContent>
-                  </Collapsible>
-
-                  {/* Verification Status */}
-                  <Collapsible
-                    open={expandedSettings === "verification"}
-                    onOpenChange={() => toggleSettingsSection("verification")}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-between rounded-xl"
-                      >
-                        <div className="flex items-center">
-                          <ShieldCheck className="w-4 h-4 mr-3" />
-                          Trạng thái xác thực ({trustScore}%)
-                        </div>
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform ${expandedSettings === "verification" ? "rotate-180" : ""
-                            }`}
-                        />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-3 p-4 bg-gray-50 rounded-xl space-y-3">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <ShieldCheck className={`w-4 h-4 ${profile?.id_card_verified ? 'text-green-600' : 'text-gray-400'}`} />
-                            <span className="text-sm">Xác thực CMND/CCCD</span>
-                          </div>
-                          {profile?.id_card_verified ? (
-                            <Badge className="bg-green-100 text-green-700 border-0">
-                              ✓ Đã xác thực
-                            </Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs h-7"
-                              onClick={() => navigate('/verification')}
-                            >
-                              Xác thực ngay
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Mail className={`w-4 h-4 ${(isEmailVerified || profile?.email_verified) ? 'text-green-600' : 'text-gray-400'}`} />
-                            <span className="text-sm">Xác thực Email</span>
-                          </div>
-                          {(isEmailVerified || profile?.email_verified) ? (
-                            <Badge className="bg-green-100 text-green-700 border-0">
-                              ✓ Đã xác thực
-                            </Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs h-7"
-                              onClick={() => navigate('/verify-email')}
-                            >
-                              Xác thực ngay
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <GraduationCap className={`w-4 h-4 ${profile?.student_card_verified ? 'text-green-600' : 'text-gray-400'}`} />
-                            <span className="text-sm">Xác thực thẻ sinh viên</span>
-                          </div>
-                          {profile?.student_card_verified ? (
-                            <Badge className="bg-green-100 text-green-700 border-0">
-                              ✓ Đã xác thực
-                            </Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs h-7"
-                              onClick={() => navigate('/verification')}
-                            >
-                              Xác thực ngay
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Phone className={`w-4 h-4 ${profile?.phone_verified ? 'text-green-600' : 'text-gray-400'}`} />
-                            <span className="text-sm">Xác thực số điện thoại</span>
-                          </div>
-                          {profile?.phone_verified ? (
-                            <Badge className="bg-green-100 text-green-700 border-0">
-                              ✓ Đã xác thực
-                            </Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs h-7"
-                              disabled={!profile?.phone}
-                            >
-                              {profile?.phone ? 'Xác thực ngay' : 'Thêm SĐT trước'}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-
-                  {/* Preferences & Matching */}
-                  <Collapsible
-                    open={expandedSettings === "preferences"}
-                    onOpenChange={() => toggleSettingsSection("preferences")}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-between rounded-xl"
-                      >
-                        <div className="flex items-center">
-                          <Award className="w-4 h-4 mr-3" />
-                          Tùy chọn & Phù hợp
-                        </div>
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform ${expandedSettings === "preferences" ? "rotate-180" : ""
-                            }`}
-                        />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-3 p-4 bg-gray-50 rounded-xl space-y-3">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Bạn cùng phòng yên tĩnh</span>
-                          <Switch defaultChecked />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Không hút thuốc</span>
-                          <Switch defaultChecked />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Cho phép thú cưng</span>
-                          <Switch />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Ngủ sớm (dậy 6-9h sáng)</span>
-                          <Switch />
-                        </div>
-                      </div>
-                      <Button
-                        onClick={handleUpdateProfile}
-                        className="w-full rounded-full bg-primary"
-                      >
-                        Lưu tùy chọn
-                      </Button>
-                    </CollapsibleContent>
-                  </Collapsible>
-
-                  {/* Privacy & Security */}
-                  <Collapsible
-                    open={expandedSettings === "security"}
-                    onOpenChange={() => toggleSettingsSection("security")}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-between rounded-xl"
-                      >
-                        <div className="flex items-center">
-                          <Settings className="w-4 h-4 mr-3" />
-                          Quyền riêng tư & Bảo mật
-                        </div>
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform ${expandedSettings === "security" ? "rotate-180" : ""
-                            }`}
-                        />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-3 p-4 bg-gray-50 rounded-xl space-y-3">
-                      <div className="space-y-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
-                          <Input
-                            id="current-password"
-                            type="password"
-                            className="rounded-xl"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="new-password">Mật khẩu mới</Label>
-                          <Input
-                            id="new-password"
-                            type="password"
-                            className="rounded-xl"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between pt-2">
-                          <span className="text-sm">Bật xác thực 2 bước</span>
-                          <Switch />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Hiển thị hồ sơ</span>
-                          <select className="px-3 py-1 rounded-lg border text-sm">
-                            <option>Công khai</option>
-                            <option>Chỉ bạn bè</option>
-                            <option>Riêng tư</option>
-                          </select>
-                        </div>
-                      </div>
-                      <Button
-                        onClick={handleUpdateProfile}
-                        className="w-full rounded-full bg-primary"
-                      >
-                        Cập nhật bảo mật
-                      </Button>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </div>
-              </Card>
-
-              <Card className="p-6 rounded-2xl">
-                <h3 className="mb-4">Thông báo</h3>
-                <div className="space-y-4">
-                  {[
-                    "Phòng phù hợp mới",
-                    "Tin nhắn",
-                    "Cập nhật đặt phòng",
-                    "Gợi ý SwapRoom",
-                  ].map((item, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{item}</span>
-                      <Switch defaultChecked />
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              <Button
-                variant="outline"
-                className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl"
-                onClick={handleSignOut}
-              >
-                Đăng xuất
-              </Button>
-            </div>
+            <SettingsTab
+              profile={profile}
+              isEmailVerified={isEmailVerified}
+              trustScore={trustScore}
+              onUpdateProfile={handleUpdateProfile}
+              onSignOut={handleSignOut}
+              isUpdating={isUpdating}
+            />
           </TabsContent>
         </Tabs>
       </div>
@@ -917,12 +202,12 @@ export default function ProfilePage() {
       <UpgradeRoomZPlusModal
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
-        onSuccess={handleUpgradeSuccess}
+        onSuccess={() => toast.success("Thành công! RoomZ+ đã được kích hoạt.")}
       />
       <ProfileEditModal
         isOpen={isEditProfileOpen}
         onClose={() => setIsEditProfileOpen(false)}
-        onSave={handleProfileSave}
+        onSave={() => toast.success("Cập nhật hồ sơ thành công!")}
       />
       {selectedChatPerson && (
         <ChatDrawer
