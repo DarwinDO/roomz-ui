@@ -48,17 +48,16 @@ export function BottomNav() {
       {/* Expandable Bottom Sheet */}
       {isExpanded && (
         <div
-          className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 md:hidden overflow-hidden"
+          className="fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl z-50 md:hidden overflow-hidden shadow-[0_-4px_12px_rgba(0,0,0,0.08)]"
           style={{
             height: "65vh",
             maxHeight: "600px",
-            boxShadow: "0 -4px 12px rgba(0,0,0,0.1)",
             animation: "slideUp 300ms ease-out",
           }}
         >
           <div className="h-full flex flex-col p-5">
             {/* Handle Bar */}
-            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+            <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
 
             {/* Menu Title */}
             <h3 className="mb-4 text-center">Truy cập nhanh</h3>
@@ -66,29 +65,27 @@ export function BottomNav() {
             {/* Menu Grid - Scrollable */}
             <div className="flex-1 overflow-y-auto">
               <div className="grid grid-cols-2 gap-3 pb-4">
-              {expandedMenuItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.path);
-                return (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    onClick={() => setIsExpanded(false)}
-                    className={`flex flex-col items-center gap-2.5 p-3 rounded-2xl transition-all active:scale-95 ${
-                      active ? 'bg-primary/10' : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    <div
-                      className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                        active ? 'bg-primary' : item.color
-                      }`}
+                {expandedMenuItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.path);
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.path}
+                      onClick={() => setIsExpanded(false)}
+                      className={`flex flex-col items-center gap-2.5 p-3 rounded-2xl transition-all active:scale-95 ${active ? 'bg-primary/10' : 'hover:bg-muted'
+                        }`}
                     >
-                      <Icon className={`w-6 h-6 ${active ? 'text-white' : 'text-primary'}`} />
-                    </div>
-                    <span className={`text-sm text-center ${active ? 'text-primary font-medium' : ''}`}>{item.label}</span>
-                  </Link>
-                );
-              })}
+                      <div
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center ${active ? 'bg-primary' : item.color
+                          }`}
+                      >
+                        <Icon className={`w-6 h-6 ${active ? 'text-white' : 'text-primary'}`} />
+                      </div>
+                      <span className={`text-sm text-center ${active ? 'text-primary font-medium' : ''}`}>{item.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 
@@ -96,7 +93,7 @@ export function BottomNav() {
             <Button
               onClick={() => setIsExpanded(false)}
               variant="outline"
-              className="w-full h-11 rounded-full text-gray-600 border-gray-300 mt-3 shrink-0"
+              className="w-full h-11 rounded-full text-muted-foreground border-border mt-3 shrink-0"
             >
               Hủy
             </Button>
@@ -106,10 +103,7 @@ export function BottomNav() {
 
       {/* Bottom Navigation Bar */}
       <div
-        className="fixed bottom-0 left-0 right-0 bg-white z-40 md:hidden"
-        style={{
-          boxShadow: "0 -2px 6px rgba(0,0,0,0.06)",
-        }}
+        className="fixed bottom-0 left-0 right-0 bg-card z-40 md:hidden shadow-[0_-2px_6px_rgba(0,0,0,0.05)]"
       >
         <div className="flex items-center justify-around px-4 py-3">
           {/* Left Navigation Items */}
@@ -123,14 +117,12 @@ export function BottomNav() {
                 className="flex flex-col items-center gap-1 min-w-[48px] transition-all active:scale-95"
               >
                 <Icon
-                  className={`w-6 h-6 ${
-                    active ? "text-primary" : "text-gray-400"
-                  }`}
+                  className={`w-6 h-6 ${active ? "text-primary" : "text-muted-foreground"
+                    }`}
                 />
                 <span
-                  className={`text-xs ${
-                    active ? "text-primary font-medium" : "text-gray-500"
-                  }`}
+                  className={`text-xs ${active ? "text-primary font-medium" : "text-muted-foreground"
+                    }`}
                   style={{ fontSize: "12px", fontWeight: active ? 500 : 400 }}
                 >
                   {item.label}
@@ -147,7 +139,7 @@ export function BottomNav() {
             <div
               className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform"
               style={{
-                background: "linear-gradient(135deg, #1557FF 0%, #3EC8C8 100%)",
+                background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)",
                 transform: isExpanded ? "rotate(45deg)" : "rotate(0deg)",
               }}
             >
@@ -166,14 +158,12 @@ export function BottomNav() {
                 className="flex flex-col items-center gap-1 min-w-[48px] transition-all active:scale-95"
               >
                 <Icon
-                  className={`w-6 h-6 ${
-                    active ? "text-primary" : "text-gray-400"
-                  }`}
+                  className={`w-6 h-6 ${active ? "text-primary" : "text-muted-foreground"
+                    }`}
                 />
                 <span
-                  className={`text-xs ${
-                    active ? "text-primary font-medium" : "text-gray-500"
-                  }`}
+                  className={`text-xs ${active ? "text-primary font-medium" : "text-muted-foreground"
+                    }`}
                   style={{ fontSize: "12px", fontWeight: active ? 500 : 400 }}
                 >
                   {item.label}

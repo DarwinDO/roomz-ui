@@ -184,10 +184,10 @@ export default function RoomDetailPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Đang tải thông tin phòng...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center animate-fade-in">
+          <div className="w-12 h-12 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Đang tải thông tin phòng...</p>
         </div>
       </div>
     );
@@ -196,16 +196,16 @@ export default function RoomDetailPage() {
   // Error state
   if (error || !room) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="text-center max-w-md animate-fade-in">
+          <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Không tìm thấy phòng</h2>
-          <p className="text-gray-600 mb-6">{error || 'Phòng này không tồn tại hoặc đã bị xóa.'}</p>
+          <p className="text-muted-foreground mb-6">{error || 'Phòng này không tồn tại hoặc đã bị xóa.'}</p>
           <div className="flex gap-3 justify-center">
-            <Button onClick={() => navigate('/search')} variant="default">
+            <Button onClick={() => navigate('/search')} variant="default" className="rounded-xl">
               Tìm kiếm phòng khác
             </Button>
-            <Button onClick={() => refetch()} variant="outline">
+            <Button onClick={() => refetch()} variant="outline" className="rounded-xl">
               Thử lại
             </Button>
           </div>
@@ -225,25 +225,25 @@ export default function RoomDetailPage() {
   const landlordInitials = landlordName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-white pb-24 md:pb-8">
+    <div className="min-h-screen bg-background pb-24 md:pb-8">
       {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-border z-40 px-4 py-3">
+      <div className="sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border z-40 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full">
+          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl hover:bg-muted">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted">
               <Share2 className="w-5 h-5" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full"
+              className="rounded-xl hover:bg-muted"
               onClick={handleFavoriteClick}
               disabled={favoriteLoading}
             >
-              <Heart className={`w-5 h-5 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
+              <Heart className={`w-5 h-5 ${isFavorited ? 'fill-destructive text-destructive' : ''}`} />
             </Button>
           </div>
         </div>
@@ -295,8 +295,7 @@ export default function RoomDetailPage() {
               <Button
                 size="sm"
                 onClick={openBookViewingModal}
-                className="rounded-full bg-primary hover:bg-primary/90 shadow-lg min-h-[44px]"
-              >
+                className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg min-h-[44px]">
                 <CalendarCheck className="w-4 h-4 mr-2" />
                 Đặt lịch xem
               </Button>
@@ -312,8 +311,8 @@ export default function RoomDetailPage() {
                   onClick={() => setCurrentImageIndex(index)}
                   aria-label={`Xem ảnh ${index + 1}`}
                   className={`relative aspect-video overflow-hidden rounded-lg transition-all ${index === currentImageIndex
-                      ? "ring-2 ring-primary ring-offset-2 ring-offset-black"
-                      : "opacity-60 hover:opacity-100 hover:ring-1 hover:ring-white/50"
+                    ? "ring-2 ring-primary ring-offset-2 ring-offset-black"
+                    : "opacity-60 hover:opacity-100 hover:ring-1 hover:ring-white/50"
                     }`}
                 >
                   <ImageWithFallback
@@ -334,14 +333,13 @@ export default function RoomDetailPage() {
               {/* Title & Location */}
               <div>
                 <h1 className="mb-3">{room.title}</h1>
-                <div className="flex items-center gap-2 text-gray-600 mb-4">
+                <div className="flex items-center gap-2 text-muted-foreground mb-4">
                   <MapPin className="w-4 h-4" />
                   <span>{location}</span>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="ml-2 rounded-full h-8"
-                  >
+                    className="ml-2 rounded-xl h-8 hover:bg-muted">
                     <Map className="w-3.5 h-3.5 mr-1.5" />
                     Xem bản đồ
                   </Button>
@@ -355,35 +353,34 @@ export default function RoomDetailPage() {
                     <div className="flex items-center justify-center gap-1.5 mb-1 text-primary">
                       <span className="text-2xl">{formattedPrice}tr</span>
                     </div>
-                    <p className="text-xs text-gray-600">/tháng</p>
+                    <p className="text-xs text-muted-foreground">/tháng</p>
                   </div>
                   <div className="text-center border-l border-r border-border">
                     <div className="flex items-center justify-center gap-1.5 mb-1">
                       <Calendar className="w-4 h-4 text-secondary" />
                       <span>{room.available_from ? new Date(room.available_from).toLocaleDateString('vi-VN') : 'Ngay'}</span>
                     </div>
-                    <p className="text-xs text-gray-600">Có thể thuê từ</p>
+                    <p className="text-xs text-muted-foreground">Có thể thuê từ</p>
                   </div>
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1.5 mb-1">
-                      <ShieldCheck className={`w-4 h-4 ${room.is_verified ? 'text-green-600' : 'text-gray-400'}`} />
-                      <span className={room.is_verified ? 'text-green-600' : 'text-gray-500'}>
+                      <ShieldCheck className={`w-4 h-4 ${room.is_verified ? 'text-secondary' : 'text-muted-foreground'}`} />
+                      <span className={room.is_verified ? 'text-secondary font-medium' : 'text-muted-foreground'}>
                         {room.is_verified ? 'Đã xác thực' : 'Chưa xác thực'}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600">{room.is_verified ? 'Giấy tờ + Ảnh' : ''}</p>
+                    <p className="text-xs text-muted-foreground">{room.is_verified ? 'Giấy tờ + Ảnh' : ''}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Description */}
               <div>
                 <h3 className="mb-3">Về phòng này</h3>
-                <p className="text-gray-700 leading-relaxed">
+                <p className="text-foreground/80 leading-relaxed">
                   {room.description || `${room.title}. Diện tích ${room.area_sqm || 'N/A'}m², ${room.bedroom_count || 1} phòng ngủ, ${room.bathroom_count || 1} phòng tắm. Tối đa ${room.max_occupants || 1} người.`}
                 </p>
                 {room.deposit_amount && (
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-sm text-muted-foreground mt-2">
                     Đặt cọc: {formatPriceInMillions(Number(room.deposit_amount))}tr
                   </p>
                 )}
@@ -399,7 +396,7 @@ export default function RoomDetailPage() {
                       return (
                         <div
                           key={index}
-                          className="flex flex-col items-center gap-2 p-3 bg-gray-50 rounded-xl hover:bg-primary/5 transition-colors"
+                          className="flex flex-col items-center gap-2 p-3 bg-muted/50 rounded-xl hover:bg-primary/5 transition-colors"
                         >
                           <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
                             <Icon className="w-6 h-6 text-primary" />
@@ -413,7 +410,7 @@ export default function RoomDetailPage() {
               )}
 
               {/* Landlord */}
-              <div className="bg-gray-50 rounded-xl p-4">
+              <div className="bg-muted/50 rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <Avatar>
                     <AvatarImage src={room.landlord?.avatar_url || undefined} />
@@ -423,19 +420,19 @@ export default function RoomDetailPage() {
                     <div className="flex items-center gap-2">
                       <p>{landlordName}</p>
                       {room.is_verified && (
-                        <Badge variant="outline" className="text-xs border-green-500 text-green-600">
+                        <Badge variant="outline" className="text-xs border-secondary text-secondary">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Chủ nhà xác thực
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {room.landlord?.email}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm text-gray-600">Điểm tin cậy:</span>
+                  <span className="text-sm text-muted-foreground">Điểm tin cậy:</span>
                   <Progress value={room.is_verified ? 95 : 70} className="flex-1" />
                   <span className="text-sm">{room.is_verified ? 95 : 70}%</span>
                 </div>
@@ -445,10 +442,10 @@ export default function RoomDetailPage() {
             {/* Sidebar - Sticky on Desktop */}
             <div className="space-y-6 md:sticky md:top-20 md:self-start">
               {/* CTA Buttons */}
-              <div className="space-y-3 bg-white rounded-2xl border border-border p-4 shadow-sm">
+              <div className="space-y-3 bg-card rounded-2xl border border-border p-4 shadow-soft">
                 <Button
                   onClick={openBookViewingModal}
-                  className="w-full bg-primary hover:bg-primary/90 rounded-full h-12 min-h-[44px]"
+                  className="w-full bg-primary hover:bg-primary/90 rounded-xl h-12 min-h-[44px]"
                 >
                   <CalendarCheck className="w-4 h-4 mr-2" />
                   Đặt lịch xem
@@ -456,8 +453,7 @@ export default function RoomDetailPage() {
                 <Button
                   onClick={openContactLandlordModal}
                   variant="outline"
-                  className="w-full rounded-full h-12 min-h-[44px]"
-                >
+                  className="w-full rounded-xl h-12 min-h-[44px] border-border hover:bg-muted">
                   Nhắn tin cho chủ nhà
                 </Button>
               </div>
@@ -474,7 +470,7 @@ export default function RoomDetailPage() {
                   {roommates.map((roommate, index) => (
                     <div
                       key={index}
-                      className="bg-white rounded-xl p-3 border border-border hover:shadow-md transition-shadow"
+                      className="bg-card rounded-xl p-3 border border-border hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-center gap-3 mb-3">
                         <Avatar className="w-10 h-10">
@@ -484,7 +480,7 @@ export default function RoomDetailPage() {
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm truncate">{roommate.name}</p>
-                          <p className="text-xs text-gray-500 truncate">{roommate.role}</p>
+                          <p className="text-xs text-muted-foreground truncate">{roommate.role}</p>
                         </div>
                         <Badge className="bg-secondary text-white shrink-0">
                           {roommate.match}%
@@ -495,15 +491,13 @@ export default function RoomDetailPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => openRoommateProfileModal(roommate)}
-                          className="rounded-full text-xs"
-                        >
+                          className="rounded-xl text-xs hover:bg-muted">
                           Xem hồ sơ
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => openChatDrawer(roommate)}
-                          className="rounded-full bg-primary hover:bg-primary/90 text-xs"
-                        >
+                          className="rounded-xl bg-primary hover:bg-primary/90 text-xs">
                           Nhắn tin
                         </Button>
                       </div>
@@ -513,19 +507,18 @@ export default function RoomDetailPage() {
                 <Button
                   onClick={openViewAllMatchesModal}
                   variant="outline"
-                  className="w-full mt-4 rounded-full border-primary text-primary hover:bg-primary hover:text-white min-h-[44px]"
-                >
+                  className="w-full mt-4 rounded-xl border-primary text-primary hover:bg-primary hover:text-white min-h-[44px]">
                   Xem tất cả
                 </Button>
               </div>
 
               {/* Safety Note */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <div className="bg-warning/5 border border-warning/20 rounded-xl p-4">
                 <div className="flex gap-3">
                   <ShieldCheck className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm mb-1">An toàn trên hết</p>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-muted-foreground">
                       Luôn gặp trực tiếp và xác minh tài sản trước khi thanh toán bất kỳ khoản nào.
                     </p>
                   </div>

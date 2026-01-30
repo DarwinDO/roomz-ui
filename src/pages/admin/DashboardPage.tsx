@@ -85,14 +85,14 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Thao tác nhanh</h3>
-          <div className="space-y-3">
+        <Card className="p-6 border-none shadow-soft rounded-2xl h-full">
+          <h3 className="text-lg font-bold mb-6 text-gray-900">Thao tác nhanh</h3>
+          <div className="space-y-4">
             <Link to="/admin/rooms">
-              <Button variant="outline" className="w-full justify-between mb-2">
-                <span>Quản lý phòng</span>
+              <Button variant="outline" className="w-full justify-between mb-3 h-12 rounded-xl hover:border-primary/50 hover:text-primary transition-colors hover:bg-primary/5 bg-white shadow-sm">
+                <span className="font-medium">Quản lý phòng</span>
                 {stats?.pendingRooms ? (
-                  <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs">
+                  <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-xs font-semibold">
                     {stats.pendingRooms} chờ duyệt
                   </span>
                 ) : (
@@ -101,20 +101,20 @@ export default function DashboardPage() {
               </Button>
             </Link>
             <Link to="/admin/users">
-              <Button variant="outline" className="w-full justify-between mb-2">
-                <span>Quản lý người dùng</span>
+              <Button variant="outline" className="w-full justify-between mb-3 h-12 rounded-xl hover:border-primary/50 hover:text-primary transition-colors hover:bg-primary/5 bg-white shadow-sm">
+                <span className="font-medium">Quản lý người dùng</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
             <Link to="/admin/verifications">
-              <Button variant="outline" className="w-full justify-between mb-2">
-                <span>Xác thực người dùng</span>
+              <Button variant="outline" className="w-full justify-between mb-3 h-12 rounded-xl hover:border-primary/50 hover:text-primary transition-colors hover:bg-primary/5 bg-white shadow-sm">
+                <span className="font-medium">Xác thực người dùng</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
             <Link to="/admin/reports">
-              <Button variant="outline" className="w-full justify-between">
-                <span>Xem báo cáo</span>
+              <Button variant="outline" className="w-full justify-between h-12 rounded-xl hover:border-primary/50 hover:text-primary transition-colors hover:bg-primary/5 bg-white shadow-sm">
+                <span className="font-medium">Xem báo cáo</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
@@ -123,24 +123,24 @@ export default function DashboardPage() {
       </div>
 
       {/* Summary Info */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Tóm tắt hệ thống</h3>
+      <Card className="p-6 border-none shadow-soft rounded-2xl">
+        <h3 className="text-lg font-bold mb-6 text-gray-900">Tóm tắt hệ thống</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className="text-2xl font-bold text-primary">{stats?.totalUsers || 0}</p>
-            <p className="text-sm text-gray-500">Người dùng</p>
+          <div className="text-center p-6 bg-gray-50/50 rounded-2xl hover:bg-white hover:shadow-sm transition-all border border-gray-100">
+            <p className="text-3xl font-bold text-primary mb-2">{stats?.totalUsers || 0}</p>
+            <p className="text-sm font-medium text-muted-foreground">Người dùng</p>
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className="text-2xl font-bold text-green-600">{stats?.activeRooms || 0}</p>
-            <p className="text-sm text-gray-500">Phòng hoạt động</p>
+          <div className="text-center p-6 bg-green-50/30 rounded-2xl hover:bg-white hover:shadow-sm transition-all border border-green-100">
+            <p className="text-3xl font-bold text-green-600 mb-2">{stats?.activeRooms || 0}</p>
+            <p className="text-sm font-medium text-muted-foreground">Phòng hoạt động</p>
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className="text-2xl font-bold text-yellow-600">{stats?.pendingRooms || 0}</p>
-            <p className="text-sm text-gray-500">Chờ duyệt</p>
+          <div className="text-center p-6 bg-amber-50/30 rounded-2xl hover:bg-white hover:shadow-sm transition-all border border-amber-100">
+            <p className="text-3xl font-bold text-amber-600 mb-2">{stats?.pendingRooms || 0}</p>
+            <p className="text-sm font-medium text-muted-foreground">Chờ duyệt</p>
           </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className="text-2xl font-bold text-blue-600">{stats?.totalBookings || 0}</p>
-            <p className="text-sm text-gray-500">Lịch hẹn</p>
+          <div className="text-center p-6 bg-blue-50/30 rounded-2xl hover:bg-white hover:shadow-sm transition-all border border-blue-100">
+            <p className="text-3xl font-bold text-blue-600 mb-2">{stats?.totalBookings || 0}</p>
+            <p className="text-sm font-medium text-muted-foreground">Lịch hẹn</p>
           </div>
         </div>
       </Card>

@@ -105,24 +105,24 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 items-center">
+    <div className="min-h-screen bg-gradient-to-b from-accent/30 to-background flex items-center justify-center p-4">
+      <div className="w-full max-w-6xl grid md:grid-cols-2 gap-8 lg:gap-12 items-center animate-fade-in">
         {/* Left Side - Branding */}
         <div className="text-center md:text-left space-y-6">
           <div className="flex items-center justify-center md:justify-start gap-3 mb-6">
             <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center">
               <Home className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-4xl">RoomZ</h1>
+            <h1 className="text-4xl font-semibold tracking-tight">RoomZ</h1>
           </div>
 
           <div>
-            <h2 className="text-3xl md:text-4xl mb-4">
+            <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-4">
               Tìm ngôi nhà an toàn
               <br />
-              và thân thiện tiếp theo.
+              <span className="text-primary">và thân thiện tiếp theo.</span>
             </h2>
-            <p className="text-gray-600 text-lg">
+            <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
               Phòng đã xác thực, bạn cùng phòng phù hợp, thuê linh hoạt — tất cả trong một nền tảng.
             </p>
           </div>
@@ -134,8 +134,8 @@ export default function LoginPage() {
                 <ShieldCheck className="w-5 h-5 text-primary" />
               </div>
               <div className="text-left">
-                <p className="text-sm">Phòng & Chủ nhà được xác thực</p>
-                <p className="text-xs text-gray-500">Mọi tin đăng được xác thực để đảm bảo an toàn</p>
+                <p className="text-sm font-medium">Phòng & Chủ nhà được xác thực</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">Mọi tin đăng được xác thực để đảm bảo an toàn</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -143,8 +143,8 @@ export default function LoginPage() {
                 <Users className="w-5 h-5 text-secondary" />
               </div>
               <div className="text-left">
-                <p className="text-sm">Kết nối thông minh</p>
-                <p className="text-xs text-gray-500">Tìm bạn cùng phòng phù hợp với lối sống của bạn</p>
+                <p className="text-sm font-medium">Kết nối thông minh</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">Tìm bạn cùng phòng phù hợp với lối sống của bạn</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -152,17 +152,17 @@ export default function LoginPage() {
                 <RefreshCw className="w-5 h-5 text-primary" />
               </div>
               <div className="text-left">
-                <p className="text-sm">SwapRoom linh hoạt</p>
-                <p className="text-xs text-gray-500">Cho thuê ngắn hạn dễ dàng</p>
+                <p className="text-sm font-medium">SwapRoom linh hoạt</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">Cho thuê ngắn hạn dễ dàng</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right Side - Login Form */}
-        <Card className="p-8 rounded-3xl shadow-2xl border-0 bg-white">
+        <Card className="p-8 rounded-2xl shadow-soft-lg border border-border bg-card">
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-2 mb-6 rounded-xl">
               <TabsTrigger value="login">Đăng nhập</TabsTrigger>
               <TabsTrigger value="signup">Đăng ký</TabsTrigger>
             </TabsList>
@@ -170,7 +170,7 @@ export default function LoginPage() {
             <TabsContent value="login" className="space-y-4">
               <form onSubmit={handleLogin} className="space-y-4">
                 {loginError && (
-                  <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl flex items-center gap-2">
+                  <div className="bg-destructive/5 border border-destructive/20 text-destructive px-4 py-3 rounded-xl flex items-center gap-2 animate-slide-down">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span className="text-sm">{loginError}</span>
                   </div>
@@ -214,7 +214,7 @@ export default function LoginPage() {
 
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-primary hover:bg-primary/90 rounded-full"
+                  className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl touch-target"
                   disabled={loginLoading}
                 >
                   {loginLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
@@ -223,7 +223,7 @@ export default function LoginPage() {
 
               <div className="relative my-6">
                 <Separator />
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 text-sm text-gray-500">
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-sm text-muted-foreground">
                   hoặc tiếp tục với
                 </span>
               </div>
@@ -232,7 +232,7 @@ export default function LoginPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12 rounded-full"
+                  className="h-12 rounded-xl border-border hover:bg-muted"
                   onClick={handleGoogleLogin}
                 >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -258,7 +258,7 @@ export default function LoginPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12 rounded-full"
+                  className="h-12 rounded-xl border-border"
                   disabled
                 >
                   <Mail className="w-5 h-5 mr-2" />
@@ -270,7 +270,7 @@ export default function LoginPage() {
             <TabsContent value="signup" className="space-y-4">
               <form onSubmit={handleSignup} className="space-y-4">
                 {signupError && (
-                  <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl flex items-center gap-2">
+                  <div className="bg-destructive/5 border border-destructive/20 text-destructive px-4 py-3 rounded-xl flex items-center gap-2 animate-slide-down">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span className="text-sm">{signupError}</span>
                   </div>
@@ -318,7 +318,7 @@ export default function LoginPage() {
 
                 <div className="flex items-start gap-2 text-sm">
                   <input type="checkbox" className="rounded mt-1" required />
-                  <span className="text-gray-600">
+                  <span className="text-muted-foreground">
                     Tôi đồng ý với{" "}
                     <a href="#" className="text-primary hover:underline">
                       Điều khoản dịch vụ
@@ -333,7 +333,7 @@ export default function LoginPage() {
 
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-primary hover:bg-primary/90 rounded-full"
+                  className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl touch-target"
                   disabled={signupLoading}
                 >
                   {signupLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
@@ -342,7 +342,7 @@ export default function LoginPage() {
 
               <div className="relative my-6">
                 <Separator />
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 text-sm text-gray-500">
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-sm text-muted-foreground">
                   hoặc đăng ký với
                 </span>
               </div>
@@ -351,7 +351,7 @@ export default function LoginPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12 rounded-full"
+                  className="h-12 rounded-xl border-border hover:bg-muted"
                   onClick={handleGoogleLogin}
                 >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -377,7 +377,7 @@ export default function LoginPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12 rounded-full"
+                  className="h-12 rounded-xl border-border"
                   disabled
                 >
                   <Mail className="w-5 h-5 mr-2" />

@@ -1,47 +1,19 @@
 ﻿import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
-import {
-  Heart,
-  MessageCircle,
-  Share2,
-  Plus,
-  TrendingUp,
-  Hash,
-  UserCheck,
-  ShieldCheck,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { CreatePostModal } from "@/components/modals/CreatePostModal";
 import { PostDetailModal } from "@/components/modals/PostDetailModal";
 
-interface Post {
-  id: string;
-  author: {
-    name: string;
-    role: string;
-    avatar?: string;
-    verified?: boolean;
-  };
-  type: "story" | "offer" | "qa";
-  title: string;
-  preview: string;
-  content: string;
-  images: string[];
-  likes: number;
-  comments: number;
-  shares: number;
-  timestamp: string;
-  liked?: boolean;
-}
+// Components & Types
+import { PostCard } from "./community/components/PostCard";
+import { CommunitySidebar } from "./community/components/CommunitySidebar";
+import type { Post } from "./community/types";
 
 export default function CommunityPage() {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-    const [posts, setPosts] = useState<Post[]>([
+  const [posts, setPosts] = useState<Post[]>([
     {
       id: "1",
       author: {
@@ -131,30 +103,9 @@ export default function CommunityPage() {
     },
   ]);
 
-  const topPosts = [
-    { title: "Checklist chuyển phòng cho sinh viên", likes: 342 },
-    { title: "Bí kíp giảm 2 triệu tiền nhà mỗi tháng", likes: 289 },
-    { title: "Mẫu thỏa thuận ở ghép rõ ràng", likes: 234 },
-  ];
-
-  const suggestedTopics = [
-    "#MeoRoommate",
-    "#PhongChoThue",
-    "#DoiSongSinhVien",
-    "#UuDaiSinhVien",
-    "#SanPhongGiaTot",
-    "#BiKipChuyenNha",
-  ];
-
-  const followedHosts = [
-    { name: "Ngô Minh Phúc", properties: 5 },
-    { name: "Vũ Hải Yến", properties: 8 },
-    { name: "Đặng Quốc Bảo", properties: 3 },
-  ];
-
   const handleLike = (postId: string) => {
-    setPosts(posts.map(post => 
-      post.id === postId 
+    setPosts(posts.map(post =>
+      post.id === postId
         ? { ...post, liked: !post.liked, likes: post.liked ? post.likes - 1 : post.likes + 1 }
         : post
     ));
@@ -179,13 +130,13 @@ export default function CommunityPage() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "story":
-        return "bg-secondary/10 text-secondary";
+        return "bg-secondary/10 text-secondary border-secondary/20";
       case "offer":
-        return "bg-primary/10 text-primary";
+        return "bg-primary/10 text-primary border-primary/20";
       case "qa":
-        return "bg-purple-100 text-purple-600";
+        return "bg-purple-100 text-purple-600 border-purple-200";
       default:
-        return "bg-gray-100 text-gray-600";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -202,165 +153,76 @@ export default function CommunityPage() {
     }
   };
 
+  const renderPostList = (filteredPosts: Post[]) => (
+    <div className="space-y-4 animate-fade-in stagger-children">
+      {filteredPosts.map((post) => (
+        <PostCard
+          key={post.id}
+          post={post}
+          onLike={handleLike}
+          onClick={() => setSelectedPost(post)}
+          getTimeAgo={getTimeAgo}
+          getTypeColor={getTypeColor}
+          getTypeLabel={getTypeLabel}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-8">
       {/* Header */}
-      <div className="bg-gradient-to-br from-primary/10 to-secondary/10 px-6 py-8 border-b">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="mb-2">Cộng đồng RoomZ</h1>
-              <p className="text-gray-600">
-                Chia sẻ trải nghiệm, săn tin ưu đãi và kết nối với mọi người
-              </p>
-            </div>
-            <Button
-              onClick={() => setIsCreatePostOpen(true)}
-              className="bg-primary hover:bg-primary/90 rounded-full hidden md:flex"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Viết bài
-            </Button>
+      <div className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-30 px-6 py-4 transition-all">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Cộng đồng RoomZ</h1>
+            <p className="text-muted-foreground text-sm hidden sm:block">
+              Chia sẻ trải nghiệm, săn tin ưu đãi và kết nối với mọi người
+            </p>
           </div>
+          <Button
+            onClick={() => setIsCreatePostOpen(true)}
+            className="bg-primary hover:bg-primary/90 rounded-xl hidden md:flex"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Viết bài
+          </Button>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Feed */}
           <div className="lg:col-span-2">
             {/* Filter Tabs */}
             <Tabs defaultValue="all" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-6">
-                <TabsTrigger value="all">Tất cả</TabsTrigger>
-                <TabsTrigger value="stories">Chia sẻ</TabsTrigger>
-                <TabsTrigger value="offers">Ưu đãi</TabsTrigger>
-                <TabsTrigger value="qa">Hỏi đáp</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-4 mb-6 rounded-xl bg-muted/50 p-1">
+                <TabsTrigger value="all" className="rounded-lg">Tất cả</TabsTrigger>
+                <TabsTrigger value="stories" className="rounded-lg">Chia sẻ</TabsTrigger>
+                <TabsTrigger value="offers" className="rounded-lg">Ưu đãi</TabsTrigger>
+                <TabsTrigger value="qa" className="rounded-lg">Hỏi đáp</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="all" className="space-y-4">
-                {posts.map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onLike={handleLike}
-                    onClick={() => setSelectedPost(post)}
-                    getTimeAgo={getTimeAgo}
-                    getTypeColor={getTypeColor}
-                    getTypeLabel={getTypeLabel}
-                  />
-                ))}
+              <TabsContent value="all" className="mt-0">
+                {renderPostList(posts)}
               </TabsContent>
 
-              <TabsContent value="stories" className="space-y-4">
-                {posts.filter(p => p.type === "story").map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onLike={handleLike}
-                    onClick={() => setSelectedPost(post)}
-                    getTimeAgo={getTimeAgo}
-                    getTypeColor={getTypeColor}
-                    getTypeLabel={getTypeLabel}
-                  />
-                ))}
+              <TabsContent value="stories" className="mt-0">
+                {renderPostList(posts.filter(p => p.type === "story"))}
               </TabsContent>
 
-              <TabsContent value="offers" className="space-y-4">
-                {posts.filter(p => p.type === "offer").map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onLike={handleLike}
-                    onClick={() => setSelectedPost(post)}
-                    getTimeAgo={getTimeAgo}
-                    getTypeColor={getTypeColor}
-                    getTypeLabel={getTypeLabel}
-                  />
-                ))}
+              <TabsContent value="offers" className="mt-0">
+                {renderPostList(posts.filter(p => p.type === "offer"))}
               </TabsContent>
 
-              <TabsContent value="qa" className="space-y-4">
-                {posts.filter(p => p.type === "qa").map((post) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    onLike={handleLike}
-                    onClick={() => setSelectedPost(post)}
-                    getTimeAgo={getTimeAgo}
-                    getTypeColor={getTypeColor}
-                    getTypeLabel={getTypeLabel}
-                  />
-                ))}
+              <TabsContent value="qa" className="mt-0">
+                {renderPostList(posts.filter(p => p.type === "qa"))}
               </TabsContent>
             </Tabs>
           </div>
 
           {/* Sidebar - Desktop Only */}
-          <div className="hidden lg:block space-y-6">
-            {/* Top Posts */}
-            <Card className="p-5 rounded-2xl">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                <h3>Bài viết nổi bật trong tuần</h3>
-              </div>
-              <div className="space-y-3">
-                {topPosts.map((post, index) => (
-                  <div key={index} className="flex items-start gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
-                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-primary text-sm shrink-0">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm line-clamp-2">{post.title}</p>
-                      <p className="text-xs text-gray-500 mt-1">{post.likes} lượt thích</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Suggested Topics */}
-            <Card className="p-5 rounded-2xl">
-              <div className="flex items-center gap-2 mb-4">
-                <Hash className="w-5 h-5 text-primary" />
-                <h3>Chủ đề gợi ý</h3>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {suggestedTopics.map((topic, index) => (
-                  <Badge
-                    key={index}
-                    variant="outline"
-                    className="cursor-pointer hover:bg-primary hover:text-white transition-colors"
-                  >
-                    {topic}
-                  </Badge>
-                ))}
-              </div>
-            </Card>
-
-            {/* Followed Hosts */}
-            <Card className="p-5 rounded-2xl">
-              <div className="flex items-center gap-2 mb-4">
-                <UserCheck className="w-5 h-5 text-primary" />
-                <h3>Chủ nhà đang theo dõi</h3>
-              </div>
-              <div className="space-y-3">
-                {followedHosts.map((host, index) => (
-                  <div key={index} className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
-                    <Avatar className="w-8 h-8">
-                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20">
-                        {host.name.split(" ").map((n) => n[0]).join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{host.name}</p>
-                      <p className="text-xs text-gray-500">{host.properties} tin đang mở</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
+          <CommunitySidebar />
         </div>
       </div>
 
@@ -391,118 +253,3 @@ export default function CommunityPage() {
     </div>
   );
 }
-
-interface PostCardProps {
-  post: Post;
-  onLike: (postId: string) => void;
-  onClick: () => void;
-  getTimeAgo: (timestamp: string) => string;
-  getTypeColor: (type: string) => string;
-  getTypeLabel: (type: string) => string;
-}
-
-function PostCard({ post, onLike, onClick, getTimeAgo, getTypeColor, getTypeLabel }: PostCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <Card 
-      className="p-5 rounded-2xl transition-all duration-300 cursor-pointer"
-      style={{
-        boxShadow: isHovered ? '0 4px 12px rgba(0,0,0,0.08)' : undefined,
-        border: isHovered ? '2px solid #E6EFFF' : '2px solid transparent',
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Clickable Card Body */}
-      <div onClick={onClick}>
-        {/* Author Info */}
-        <div className="flex items-start gap-3 mb-4">
-          <Avatar className="w-10 h-10">
-            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20">
-              {post.author.name.split(" ").map((n) => n[0]).join("")}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="text-sm truncate">{post.author.name}</p>
-              {post.author.verified && (
-                <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
-              )}
-            </div>
-            <p className="text-xs text-gray-500">{post.author.role}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge className={getTypeColor(post.type)} variant="outline">
-              {getTypeLabel(post.type)}
-            </Badge>
-            <span className="text-xs text-gray-400">{getTimeAgo(post.timestamp)}</span>
-          </div>
-        </div>
-
-        {/* Post Content */}
-        <div>
-          <h3 className="mb-2">{post.title}</h3>
-          <p className="text-sm text-gray-600 line-clamp-2 mb-4">{post.preview}</p>
-
-          {/* Images */}
-          {post.images.length > 0 && (
-            <div className={`grid gap-2 mb-4 ${
-              post.images.length === 1 ? "grid-cols-1" :
-              post.images.length === 2 ? "grid-cols-2" :
-              "grid-cols-3"
-            }`}>
-              {post.images.slice(0, 3).map((image, index) => (
-                <div key={index} className="relative aspect-video overflow-hidden rounded-xl">
-                  <ImageWithFallback
-                    src={image}
-                    alt={`Ảnh bài viết ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Interaction Bar - Not Clickable for Modal */}
-      <div 
-        className="flex items-center gap-4 pt-3 border-t"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onLike(post.id);
-          }}
-          className="flex items-center gap-2 text-sm hover:text-primary transition-colors cursor-pointer"
-        >
-          <Heart className={`w-5 h-5 ${post.liked ? "fill-red-500 text-red-500" : ""}`} />
-          <span>{post.likes}</span>
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onClick();
-          }}
-          className="flex items-center gap-2 text-sm hover:text-primary transition-colors cursor-pointer"
-        >
-          <MessageCircle className="w-5 h-5" />
-          <span>{post.comments}</span>
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            // Handle share action
-          }}
-          className="flex items-center gap-2 text-sm hover:text-primary transition-colors cursor-pointer"
-        >
-          <Share2 className="w-5 h-5" />
-          <span>{post.shares}</span>
-        </button>
-      </div>
-    </Card>
-  );
-}
-

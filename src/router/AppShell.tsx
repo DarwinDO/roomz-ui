@@ -5,7 +5,7 @@ import { BottomNav } from '@/components/common/BottomNav';
 import { Chatbot } from '@/components/common/Chatbot';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, User as UserIcon, Building2, Home } from 'lucide-react';
-import LogoRZ from '@/assets/LogoRZWithSlogan.png';
+import LogoRZ from '@/assets/logo/roomz-icon.png';
 import { useAuth } from '@/contexts';
 import {
   DropdownMenu,
@@ -62,11 +62,11 @@ export default function AppShell() {
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navigation - Desktop */}
-      <header className="sticky top-0 bg-white dark:bg-slate-900 border-b border-border z-50 hidden md:block">
+      <header className="sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border z-50 hidden md:block">
         <div className="max-w-7xl mx-auto px-6 py-2.5">
           <div className="flex items-center justify-between">
-            <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-              <img src={LogoRZ} alt="RoomZ Logo" className="h-10 w-auto" />
+            <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ml-2">
+              <img src={LogoRZ} alt="RoomZ Logo" className="h-14 w-auto scale-[1.35]" />
             </a>
 
             <nav className="flex items-center gap-1.5">
@@ -77,8 +77,8 @@ export default function AppShell() {
                   size="sm"
                   onClick={() => navigate(item.path)}
                   className={`rounded-full transition-colors text-sm ${isActive(item.path)
-                      ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
-                      : 'hover:bg-primary/10 hover:text-primary'
+                    ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                    : 'hover:bg-primary/10 hover:text-primary'
                     }`}
                 >
                   {item.label}
@@ -87,7 +87,7 @@ export default function AppShell() {
 
               {/* Authentication Section */}
               {loading ? (
-                <div className="w-9 h-9 ml-2 rounded-full bg-gray-200 animate-pulse"></div>
+                <div className="w-9 h-9 ml-2 rounded-full bg-muted animate-skeleton"></div>
               ) : user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -154,15 +154,15 @@ export default function AppShell() {
       </header>
 
       {/* Mobile Header */}
-      <header className=" top-0 bg-white dark:bg-slate-900 border-b border-border z-50 md:hidden">
+      <header className="top-0 bg-card/95 backdrop-blur-sm border-b border-border z-50 md:hidden">
         <div className="px-4 py-2 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
-            <img src={LogoRZ} alt="RoomZ Logo" className="h-9 w-auto" />
+          <a href="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity ml-2">
+            <img src={LogoRZ} alt="RoomZ Logo" className="h-14 w-auto scale-[1.35]" />
           </a>
 
           {/* Mobile Authentication Section */}
           {loading ? (
-            <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
+            <div className="w-8 h-8 rounded-full bg-muted animate-skeleton"></div>
           ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
