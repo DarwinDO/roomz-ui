@@ -22,12 +22,15 @@ import { useAdminRooms } from "@/hooks/useAdmin";
 import type { AdminRoom } from "@/services/admin";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { RejectionDialog } from "@/components/admin/RejectionDialog";
 
 export default function RoomsPage() {
   const navigate = useNavigate();
   const { rooms, loading, error, stats, approveRoom, rejectRoom, deleteRoom, refetch } = useAdminRooms();
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
+  const [selectedRoomForReject, setSelectedRoomForReject] = useState<AdminRoom | null>(null);
 
   const filteredRooms = rooms.filter(room => {
     const matchesSearch = room.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -51,10 +54,17 @@ export default function RoomsPage() {
     }
   };
 
-  const handleReject = async (roomId: string) => {
+  const openRejectDialog = (room: AdminRoom) => {
+    setSelectedRoomForReject(room);
+    setRejectionDialogOpen(true);
+  };
+
+  const handleRejectWithReason = async (reason: string) => {
+    if (!selectedRoomForReject) return;
     try {
-      await rejectRoom(roomId);
+      await rejectRoom(selectedRoomForReject.id, reason);
       toast.success("Đã từ chối phòng");
+      setSelectedRoomForReject(null);
     } catch {
       toast.error("Không thể từ chối phòng");
     }
@@ -175,7 +185,7 @@ export default function RoomsPage() {
                   <Check className="h-4 w-4 mr-2" />
                   Phê duyệt
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleReject(room.id)}>
+                <DropdownMenuItem onClick={() => openRejectDialog(room)}>
                   <X className="h-4 w-4 mr-2" />
                   Từ chối
                 </DropdownMenuItem>
@@ -277,6 +287,15 @@ export default function RoomsPage() {
         searchPlaceholder="Tìm theo tiêu đề hoặc địa điểm..."
         onSearch={setSearchTerm}
         pageSize={15}
+      />
+
+      {/* Rejection Dialog */}
+      <RejectionDialog
+        open={rejectionDialogOpen}
+        onOpenChange={setRejectionDialogOpen}
+        onConfirm={handleRejectWithReason}
+        type="room"
+        itemName={selectedRoomForReject?.title}
       />
     </div>
   );

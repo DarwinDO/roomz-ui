@@ -97,19 +97,27 @@ export async function approveRoom(roomId: string): Promise<void> {
 }
 
 /**
- * Reject a room - sets status to 'inactive'
+ * Reject a room - sets status to 'inactive' with rejection reason
  */
-export async function rejectRoom(roomId: string): Promise<void> {
+export async function rejectRoom(roomId: string, reason?: string): Promise<void> {
+  const updateData: Record<string, unknown> = {
+    status: 'inactive',
+    is_verified: false,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (reason) {
+    updateData.rejection_reason = reason;
+  }
+
   const { error } = await supabase
     .from('rooms')
-    .update({
-      status: 'inactive',
-      updated_at: new Date().toISOString(),
-    } as never)
+    .update(updateData as never)
     .eq('id', roomId);
 
   if (error) throw error;
 }
+
 
 /**
  * Toggle room featured status
@@ -233,16 +241,23 @@ export async function approveLandlordApplication(userId: string): Promise<void> 
 
 /**
  * Reject a landlord application - sets status back to active (normal user)
+ * Optionally with a rejection reason
  */
-export async function rejectLandlordApplication(userId: string): Promise<void> {
+export async function rejectLandlordApplication(userId: string, reason?: string): Promise<void> {
   await refreshSession();
+
+  const updateData: Record<string, unknown> = {
+    account_status: 'active',
+    updated_at: new Date().toISOString(),
+  };
+
+  if (reason) {
+    updateData.rejection_reason = reason;
+  }
 
   const { error } = await supabase
     .from('users')
-    .update({
-      account_status: 'active',
-      updated_at: new Date().toISOString(),
-    } as never)
+    .update(updateData as never)
     .eq('id', userId);
 
   if (error) {
@@ -250,6 +265,28 @@ export async function rejectLandlordApplication(userId: string): Promise<void> {
     throw error;
   }
 }
+
+/**
+ * Reject user verification with reason
+ */
+export async function rejectUserVerification(userId: string, reason: string): Promise<void> {
+  await refreshSession();
+
+  const { error } = await supabase
+    .from('users')
+    .update({
+      account_status: 'rejected',
+      rejection_reason: reason,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq('id', userId);
+
+  if (error) {
+    console.error('[Admin] Failed to reject user verification:', error);
+    throw error;
+  }
+}
+
 
 // ============ STATS ============
 

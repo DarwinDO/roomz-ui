@@ -204,52 +204,26 @@ export async function markMessagesAsRead(
 
 /**
  * Create or get existing conversation between users
+ * Uses RPC function to bypass RLS issues with SECURITY DEFINER
  */
 export async function getOrCreateConversation(
   userId: string,
   otherUserId: string
 ): Promise<string> {
-  // Check if conversation already exists
-  const { data: existingConvs } = await supabase
-    .from('conversation_participants')
-    .select('conversation_id')
-    .eq('user_id', userId);
+  // Use RPC function which runs with SECURITY DEFINER
+  // This handles finding existing conversation or creating new one atomically
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('get_or_create_conversation', {
+    user1_id: userId,
+    user2_id: otherUserId,
+  });
 
-  if (existingConvs) {
-    for (const conv of existingConvs) {
-      const { data: otherParticipant } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('conversation_id', conv.conversation_id)
-        .eq('user_id', otherUserId)
-        .single();
-
-      if (otherParticipant) {
-        return conv.conversation_id;
-      }
-    }
+  if (error) {
+    console.error('[getOrCreateConversation] RPC error:', error);
+    throw error;
   }
 
-  // Create new conversation
-  const { data: newConversation, error: convError } = await supabase
-    .from('conversations')
-    .insert({})
-    .select()
-    .single();
-
-  if (convError) throw convError;
-
-  // Add participants
-  const { error: participantError } = await supabase
-    .from('conversation_participants')
-    .insert([
-      { conversation_id: newConversation.id, user_id: userId },
-      { conversation_id: newConversation.id, user_id: otherUserId },
-    ]);
-
-  if (participantError) throw participantError;
-
-  return newConversation.id;
+  return data as string;
 }
 
 /**

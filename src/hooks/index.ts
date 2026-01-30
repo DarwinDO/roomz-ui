@@ -9,3 +9,4 @@ export * from './useMessages';
 export * from './useDebounce';
 export * from './useBookings';
 export * from './useAdmin';
+export * from './useNotifications';
