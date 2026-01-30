@@ -195,6 +195,23 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      // Booking detail routes - redirect to proper dashboard
+      {
+        path: 'landlord/bookings/:id',
+        element: (
+          <LandlordRoute>
+            <Navigate to="/landlord?tab=bookings" replace />
+          </LandlordRoute>
+        ),
+      },
+      {
+        path: 'bookings/:id',
+        element: (
+          <ProtectedRoute>
+            <Navigate to="/profile?tab=bookings" replace />
+          </ProtectedRoute>
+        ),
+      },
 
     ],
   },

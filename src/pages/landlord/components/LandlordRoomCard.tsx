@@ -7,7 +7,7 @@ import type { RoomWithDetails } from "@/services/rooms";
 
 interface LandlordRoomCardProps {
     room: RoomWithDetails;
-    status: "pending" | "active";
+    status: "pending" | "active" | "rejected";
 }
 
 export function LandlordRoomCard({ room, status }: LandlordRoomCardProps) {
@@ -53,10 +53,12 @@ export function LandlordRoomCard({ room, status }: LandlordRoomCardProps) {
                                 className={
                                     status === "pending"
                                         ? "bg-warning/10 text-warning border-warning/20 whitespace-nowrap"
-                                        : "bg-success/10 text-success border-success/20 whitespace-nowrap"
+                                        : status === "rejected"
+                                            ? "bg-destructive/10 text-destructive border-destructive/20 whitespace-nowrap"
+                                            : "bg-success/10 text-success border-success/20 whitespace-nowrap"
                                 }
                             >
-                                {status === "pending" ? "Chờ duyệt" : "Hoạt động"}
+                                {status === "pending" ? "Chờ duyệt" : status === "rejected" ? "Bị từ chối" : "Hoạt động"}
                             </Badge>
                         </div>
 
@@ -80,6 +82,18 @@ export function LandlordRoomCard({ room, status }: LandlordRoomCardProps) {
                                 Đang chờ admin duyệt (thường trong 24h)
                             </p>
                         )}
+                        {status === "rejected" && (
+                            <div className="mt-2 space-y-1">
+                                <p className="text-xs text-destructive flex items-center gap-1.5 font-medium">
+                                    Phòng bị từ chối. Vui lòng chỉnh sửa và gửi lại.
+                                </p>
+                                {room.rejection_reason && (
+                                    <p className="text-xs text-muted-foreground bg-destructive/5 p-2 rounded-md">
+                                        <strong>Lý do:</strong> {room.rejection_reason}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Actions */}
@@ -93,12 +107,12 @@ export function LandlordRoomCard({ room, status }: LandlordRoomCardProps) {
                         >
                             <Eye className="w-4 h-4" />
                         </Button>
-                        {status === "active" && (
+                        {(status === "active" || status === "rejected") && (
                             <Button
                                 variant="outline"
                                 size="icon"
                                 className="h-8 w-8 rounded-lg"
-                                onClick={() => {/* TODO: Edit room */ }}
+                                onClick={() => navigate(`/post-room?edit=${room.id}`)}
                                 title="Chỉnh sửa"
                             >
                                 <Edit className="w-4 h-4" />

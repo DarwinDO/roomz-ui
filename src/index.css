@@ -497,6 +497,10 @@ html {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
 /* Line clamp utilities */
 .line-clamp-1 {
   display: -webkit-box;

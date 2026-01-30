@@ -661,6 +661,7 @@ export type Database = {
           verification_date: string | null
           view_count: number | null
           water_cost: string | null
+          rejection_reason: string | null
         }
         Insert: {
           address: string
@@ -700,6 +701,7 @@ export type Database = {
           verification_date?: string | null
           view_count?: number | null
           water_cost?: string | null
+          rejection_reason?: string | null
         }
         Update: {
           address?: string
@@ -739,6 +741,7 @@ export type Database = {
           verification_date?: string | null
           view_count?: number | null
           water_cost?: string | null
+          rejection_reason?: string | null
         }
         Relationships: [
           {
@@ -1125,7 +1128,7 @@ export type Database = {
       | "system"
       | "verification"
       review_type: "room" | "landlord" | "tenant" | "roommate"
-      room_status: "draft" | "pending" | "active" | "rented" | "inactive"
+      room_status: "draft" | "pending" | "active" | "rented" | "inactive" | "rejected"
       room_type: "private" | "shared" | "studio" | "entire"
       sleep_schedule: "early" | "late" | "flexible"
       user_gender: "male" | "female" | "other"
@@ -1285,7 +1288,7 @@ export const Constants = {
         "verification",
       ],
       review_type: ["room", "landlord", "tenant", "roommate"],
-      room_status: ["draft", "pending", "active", "rented", "inactive"],
+      room_status: ["draft", "pending", "active", "rented", "inactive", "rejected"],
       room_type: ["private", "shared", "studio", "entire"],
       sleep_schedule: ["early", "late", "flexible"],
       user_gender: ["male", "female", "other"],

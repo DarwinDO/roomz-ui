@@ -7,6 +7,12 @@ export function BottomNav() {
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
 
+  // Hide BottomNav when user is in chat view (messages page)
+  // This prevents the nav from overlapping the message input on mobile
+  if (location.pathname === '/messages') {
+    return null;
+  }
+
   const mainNavItems = [
     { id: "home", label: "Trang chủ", icon: Home, path: "/" },
     { id: "search", label: "Tìm kiếm", icon: Search, path: "/search" },

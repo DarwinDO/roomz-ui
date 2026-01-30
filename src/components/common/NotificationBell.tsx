@@ -35,10 +35,12 @@ interface NotificationItemProps {
 
 function NotificationItem({ notification, onRead, onClick }: NotificationItemProps) {
     const icon = NOTIFICATION_ICONS[notification.type] || '🔔';
-    const timeAgo = formatDistanceToNow(new Date(notification.created_at), {
-        addSuffix: true,
-        locale: vi,
-    });
+    const timeAgo = notification.created_at
+        ? formatDistanceToNow(new Date(notification.created_at), {
+            addSuffix: true,
+            locale: vi,
+        })
+        : '';
 
     return (
         <div
@@ -86,8 +88,22 @@ export function NotificationBell() {
         if (!notification.is_read) {
             markAsRead(notification.id);
         }
+
+        // Debug: Check link value
+        console.log('[NotificationBell] Clicked notification:', {
+            id: notification.id,
+            link: notification.link,
+            type: notification.type,
+        });
+
         if (notification.link) {
-            navigate(notification.link);
+            setOpen(false);
+            // Small delay to ensure popover closes before navigation
+            setTimeout(() => {
+                navigate(notification.link!);
+            }, 100);
+        } else {
+            console.warn('[NotificationBell] No link found for notification:', notification.id);
             setOpen(false);
         }
     };
@@ -134,15 +150,17 @@ export function NotificationBell() {
                         <p className="text-sm text-muted-foreground">Chưa có thông báo</p>
                     </div>
                 ) : (
-                    <ScrollArea className="max-h-[400px]">
-                        {notifications.slice(0, 10).map((notification) => (
-                            <NotificationItem
-                                key={notification.id}
-                                notification={notification}
-                                onRead={() => markAsRead(notification.id)}
-                                onClick={() => handleItemClick(notification)}
-                            />
-                        ))}
+                    <ScrollArea className="h-[min(400px,calc(100vh-200px))]">
+                        <div className="max-h-full">
+                            {notifications.slice(0, 10).map((notification) => (
+                                <NotificationItem
+                                    key={notification.id}
+                                    notification={notification}
+                                    onRead={() => markAsRead(notification.id)}
+                                    onClick={() => handleItemClick(notification)}
+                                />
+                            ))}
+                        </div>
                     </ScrollArea>
                 )}
 
