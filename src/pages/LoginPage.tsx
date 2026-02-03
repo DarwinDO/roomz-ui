@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-import { Home, Mail, ShieldCheck, Users, RefreshCw, AlertCircle } from "lucide-react";
+import { Mail, ShieldCheck, Users, RefreshCw, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import RommzLogo from "@/assets/logo/rommz-logo.png";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -110,10 +111,7 @@ export default function LoginPage() {
         {/* Left Side - Branding */}
         <div className="text-center md:text-left space-y-6">
           <div className="flex items-center justify-center md:justify-start gap-3 mb-6">
-            <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center">
-              <Home className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-semibold tracking-tight">RoomZ</h1>
+            <img src={RommzLogo} alt="rommz" className="h-12 md:h-14 w-auto object-contain" />
           </div>
 
           <div>
@@ -327,7 +325,7 @@ export default function LoginPage() {
                     <a href="#" className="text-primary hover:underline">
                       Chính sách bảo mật
                     </a>{" "}
-                    của RoomZ
+                    của rommz
                   </span>
                 </div>
 

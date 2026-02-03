@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ErrorBoundary } from "@/components/admin/ErrorBoundary";
+import RommzIcon from "@/assets/logo/rommz-icon.png";
 import {
   LayoutDashboard,
   Users,
@@ -50,8 +51,9 @@ export default function AdminShell() {
       <aside className="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col">
         <div className="flex min-h-0 flex-1 flex-col bg-[#1a1d29]">
           {/* Logo */}
-          <div className="flex h-16 flex-shrink-0 items-center px-6 border-b border-gray-700/50">
-            <h1 className="text-xl font-bold text-white">RoomZ Admin</h1>
+          <div className="flex h-16 flex-shrink-0 items-center px-4 border-b border-gray-700/50">
+            <img src={RommzIcon} alt="rommz" className="h-8 w-8 object-contain" />
+            <span className="ml-2 text-lg font-bold text-white">Admin</span>
           </div>
 
           {/* Navigation */}
@@ -64,11 +66,10 @@ export default function AdminShell() {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                      isActive
-                        ? "bg-primary text-white"
-                        : "text-gray-300 hover:bg-gray-700/50 hover:text-white"
-                    }`}
+                    className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${isActive
+                      ? "bg-primary text-white"
+                      : "text-gray-300 hover:bg-gray-700/50 hover:text-white"
+                      }`}
                   >
                     <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
                     {item.label}
@@ -111,8 +112,11 @@ export default function AdminShell() {
             onClick={() => setSidebarOpen(false)}
           />
           <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-[#1a1d29] md:hidden">
-            <div className="flex h-16 items-center justify-between px-6 border-b border-gray-700/50">
-              <h1 className="text-xl font-bold text-white">RoomZ Admin</h1>
+            <div className="flex h-16 items-center justify-between px-4 border-b border-gray-700/50">
+              <div className="flex items-center">
+                <img src={RommzIcon} alt="rommz" className="h-8 w-8 object-contain" />
+                <span className="ml-2 text-lg font-bold text-white">Admin</span>
+              </div>
               <Button
                 onClick={() => setSidebarOpen(false)}
                 variant="ghost"
@@ -132,11 +136,10 @@ export default function AdminShell() {
                     key={item.path}
                     to={item.path}
                     onClick={() => setSidebarOpen(false)}
-                    className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                      isActive
-                        ? "bg-primary text-white"
-                        : "text-gray-300 hover:bg-gray-700/50 hover:text-white"
-                    }`}
+                    className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${isActive
+                      ? "bg-primary text-white"
+                      : "text-gray-300 hover:bg-gray-700/50 hover:text-white"
+                      }`}
                   >
                     <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
                     {item.label}

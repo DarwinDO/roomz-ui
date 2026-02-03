@@ -161,7 +161,7 @@ export default function LandingPage() {
       <section className="px-6 py-16 bg-muted/30">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-center text-2xl md:text-3xl font-semibold mb-10">
-            Tại sao chọn RoomZ?
+            Tại sao chọn rommz?
           </h2>
           <div className="grid md:grid-cols-3 gap-6 stagger-children">
             {features.map((feature, index) => (

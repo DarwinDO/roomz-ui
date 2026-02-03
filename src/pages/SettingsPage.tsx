@@ -21,7 +21,7 @@ import {
 export default function SettingsPage() {
   const navigate = useNavigate();
   const onBack = () => navigate(-1);
-  
+
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
@@ -111,7 +111,7 @@ export default function SettingsPage() {
                     >
                       <Icon className="w-5 h-5 text-gray-600" />
                       <span className="flex-1 text-left">{item.label}</span>
-                      
+
                       {'toggle' in item && item.toggle ? (
                         <Switch
                           checked={item.value as boolean}
@@ -120,7 +120,7 @@ export default function SettingsPage() {
                       ) : 'value' in item && item.value ? (
                         <span className="text-sm text-gray-500">{item.value}</span>
                       ) : null}
-                      
+
                       {item.hasArrow && (
                         <ChevronRight className="w-5 h-5 text-gray-400" />
                       )}
@@ -141,10 +141,10 @@ export default function SettingsPage() {
             <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-3">
               <span className="text-2xl text-white">R</span>
             </div>
-            <h4 className="mb-1">RoomZ</h4>
-            <p className="text-sm text-gray-500 mb-4">Phiên bản 2.1.0</p>
-            <p className="text-xs text-gray-400">
-              © 2025 RoomZ. Đã đăng ký bản quyền.
+            <h4 className="mb-1">rommz</h4>
+            <p className="text-xs text-muted-foreground">Phiên bản 1.0.0</p>
+            <p className="text-xs text-muted-foreground">
+              © 2025 rommz. Đã đăng ký bản quyền.
             </p>
           </div>
         </Card>
