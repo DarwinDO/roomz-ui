@@ -20,7 +20,12 @@ const PageLoader = () => (
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
 const SearchPage = lazy(() => import('@/pages/SearchPage'));
 const RoomDetailPage = lazy(() => import('@/pages/RoomDetailPage'));
-const CompatibilityPage = lazy(() => import('@/pages/CompatibilityPage'));
+const RoommateLayout = lazy(() => import('@/pages/roommates').then(m => ({ default: m.RoommateLayout })));
+const RoommateResultsPage = lazy(() => import('@/pages/roommates').then(m => ({ default: m.RoommateResults })));
+const RoommateRequestsPage = lazy(() => import('@/pages/roommates').then(m => ({ default: m.RequestsList })));
+const MyRoommateProfilePage = lazy(() => import('@/pages/roommates').then(m => ({ default: m.MyRoommateProfile })));
+const EditRoommateProfilePage = lazy(() => import('@/pages/roommates').then(m => ({ default: m.EditRoommateProfile })));
+const RoommateSetupPage = lazy(() => import('@/pages/roommates'));
 const SwapRoomPage = lazy(() => import('@/pages/SwapRoomPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 const CommunityPage = lazy(() => import('@/pages/CommunityPage'));
@@ -107,9 +112,41 @@ export const router = createBrowserRouter([
         path: 'room/:id',
         element: <RoomDetailPage />,
       },
+      // Roommate routes with shared layout
       {
         path: 'roommates',
-        element: <CompatibilityPage />,
+        element: (
+          <ProtectedRoute>
+            <RoommateLayout />
+          </ProtectedRoute>
+        ),
+        children: [
+          {
+            index: true,
+            element: <RoommateResultsPage />,
+          },
+          {
+            path: 'requests',
+            element: <RoommateRequestsPage />,
+          },
+          {
+            path: 'profile',
+            element: <MyRoommateProfilePage />,
+          },
+          {
+            path: 'edit',
+            element: <EditRoommateProfilePage />,
+          },
+        ],
+      },
+      // Setup wizard - separate route without layout (for new users)
+      {
+        path: 'roommates/setup',
+        element: (
+          <ProtectedRoute>
+            <RoommateSetupPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'swap',

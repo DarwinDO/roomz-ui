@@ -25,6 +25,7 @@ const NOTIFICATION_ICONS: Record<Notification['type'], string> = {
     new_message: '💬',
     system: '🔔',
     verification: '✅',
+    roommate_request: '🏠',
 };
 
 interface NotificationItemProps {
