@@ -71,9 +71,9 @@ export default function MessagesPage() {
   const showChat = !isMobileView || selectedConversation;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Header */}
-      <div className="sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border z-40 px-4 py-3">
+      <div className="flex-shrink-0 bg-card/95 backdrop-blur-sm border-b border-border z-40 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center">
             <Button
@@ -123,8 +123,8 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto">
-        <div className="md:grid md:grid-cols-3 md:h-[calc(100vh-60px)]">
+      <div className="flex-1 max-w-6xl mx-auto w-full overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-3 h-full">
           {/* Conversations List */}
           {showList && (
             <div className="md:col-span-1 md:border-r border-border h-full overflow-hidden flex flex-col">
@@ -176,7 +176,7 @@ export default function MessagesPage() {
 
           {/* Chat Panel */}
           {showChat && (
-            <div className="md:col-span-2 h-full flex flex-col">
+            <div className="md:col-span-2 h-full flex flex-col overflow-hidden">
               {selectedConversation ? (
                 <ChatPanel
                   conversation={selectedConversation}
@@ -319,9 +319,9 @@ function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Chat Header (desktop only) */}
-      <div className="hidden md:flex items-center gap-3 p-4 border-b border-border bg-card">
+      <div className="hidden md:flex flex-shrink-0 items-center gap-3 p-4 border-b border-border bg-card">
         <Avatar className="w-10 h-10">
           <AvatarImage src={conversation.participant.avatar_url || undefined} />
           <AvatarFallback>
@@ -344,7 +344,7 @@ function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps
       {/* Messages */}
       <div
         id="messages-container"
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/30"
+        className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-muted/30"
       >
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -366,8 +366,8 @@ function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps
         )}
       </div>
 
-      {/* Input */}
-      <div className="p-4 border-t border-border bg-card">
+      {/* Input - Fixed at bottom */}
+      <div className="flex-shrink-0 p-4 border-t border-border bg-card safe-area-pb">
         <div className="flex items-center gap-3">
           <Input
             value={newMessage}

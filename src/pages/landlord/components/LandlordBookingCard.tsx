@@ -29,15 +29,14 @@ export function LandlordBookingCard({
     const tenantName = booking.renter?.full_name || "Khách";
     const tenantInitials = tenantName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
-    const bookingDateTime = booking.booking_date
-        ? `${format(parseISO(booking.booking_date), "EEEE, dd/MM/yyyy", { locale: vi })}`
+    // Parse date and time from booking_date (stored as ISO timestamp: YYYY-MM-DDTHH:mm:ss)
+    const parsedDate = booking.booking_date ? parseISO(booking.booking_date) : null;
+    const bookingDateStr = parsedDate
+        ? format(parsedDate, "EEEE, dd/MM/yyyy", { locale: vi })
         : "Chưa xác định";
-    // Note: booking_time removed as it is not in valid DB schema based on recent check, 
-    // OR if it exists it might be handled differently. 
-    // Wait, let's look at DB schema again. 
-    // Row: { booking_date: string ... } 
-    // There is NO booking_time column in DB schema (lines 17-28 of database.types.ts).
-    // So distinct booking_time usage is also an error if it's not part of Booking type.
+    const bookingTimeStr = parsedDate
+        ? format(parsedDate, "HH:mm")
+        : null;
 
     const timeAgo = booking.created_at
         ? formatDistanceToNow(parseISO(booking.created_at), { addSuffix: true, locale: vi })
@@ -73,7 +72,10 @@ export function LandlordBookingCard({
                             <CardTitle className="text-base font-semibold">{tenantName}</CardTitle>
                             <CardDescription className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
                                 <Calendar className="w-3.5 h-3.5" />
-                                {bookingDateTime}
+                                {bookingDateStr}
+                                {bookingTimeStr && bookingTimeStr !== "00:00" && (
+                                    <span className="ml-1 px-1.5 py-0.5 bg-primary/10 text-primary rounded font-medium">lúc {bookingTimeStr}</span>
+                                )}
                             </CardDescription>
                         </div>
                     </div>

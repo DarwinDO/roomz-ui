@@ -21,11 +21,14 @@ import { Users, UserCheck, UserX, MoreVertical, Eye, Ban, Trash2, CheckCircle, L
 import { useAdminUsers } from "@/hooks/useAdmin";
 import type { AdminUser } from "@/services/admin";
 import { toast } from "sonner";
+import { RejectionDialog } from "@/components/admin/RejectionDialog";
 
 export default function UsersPage() {
   const { users, loading, error, stats, suspendUser, activateUser, deleteUser, approveLandlord, rejectLandlord, refetch } = useAdminUsers();
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
+  const [selectedUserForReject, setSelectedUserForReject] = useState<AdminUser | null>(null);
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -77,10 +80,17 @@ export default function UsersPage() {
     }
   };
 
-  const handleRejectLandlord = async (userId: string) => {
+  const openRejectLandlordDialog = (user: AdminUser) => {
+    setSelectedUserForReject(user);
+    setRejectionDialogOpen(true);
+  };
+
+  const handleRejectLandlordWithReason = async (reason: string) => {
+    if (!selectedUserForReject) return;
     try {
-      await rejectLandlord(userId);
+      await rejectLandlord(selectedUserForReject.id, reason);
       toast.success("Đã từ chối đăng ký chủ trọ");
+      setSelectedUserForReject(null);
     } catch {
       toast.error("Không thể từ chối đăng ký");
     }
@@ -190,7 +200,7 @@ export default function UsersPage() {
                   <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
                   Duyệt làm chủ trọ
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleRejectLandlord(user.id)}>
+                <DropdownMenuItem onClick={() => openRejectLandlordDialog(user)}>
                   <XCircle className="h-4 w-4 mr-2 text-red-600" />
                   Từ chối đăng ký
                 </DropdownMenuItem>
@@ -304,6 +314,15 @@ export default function UsersPage() {
         searchPlaceholder="Tìm theo tên hoặc email..."
         onSearch={setSearchTerm}
         pageSize={15}
+      />
+
+      {/* Rejection Dialog */}
+      <RejectionDialog
+        open={rejectionDialogOpen}
+        onOpenChange={setRejectionDialogOpen}
+        onConfirm={handleRejectLandlordWithReason}
+        type="user"
+        itemName={selectedUserForReject?.full_name || undefined}
       />
     </div>
   );

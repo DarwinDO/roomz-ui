@@ -34,6 +34,7 @@ interface StepAmenitiesImagesProps {
     handleDrop: (e: React.DragEvent) => void;
     removeImage: (index: number) => void;
     fileInputRef: React.RefObject<any>;
+    isEditMode?: boolean;
 }
 
 export function StepAmenitiesImages({
@@ -50,6 +51,7 @@ export function StepAmenitiesImages({
     handleDrop,
     removeImage,
     fileInputRef,
+    isEditMode = false,
 }: StepAmenitiesImagesProps) {
     return (
         <Card className="shadow-soft animate-fade-in border border-border">
@@ -158,7 +160,7 @@ export function StepAmenitiesImages({
                         <div className="mt-6 space-y-4 animate-fade-in">
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium text-muted-foreground">
-                                    Đã chọn {selectedFiles.length} ảnh
+                                    {previewUrls.length} ảnh
                                 </span>
                                 <Button
                                     variant="outline"
@@ -226,7 +228,7 @@ export function StepAmenitiesImages({
                         ) : (
                             <>
                                 <CheckCircle className="w-5 h-5 mr-2" />
-                                Đăng phòng ngay
+                                {isEditMode ? "Cập nhật phòng" : "Đăng phòng ngay"}
                             </>
                         )}
                     </Button>

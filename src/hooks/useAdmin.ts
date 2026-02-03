@@ -31,7 +31,7 @@ interface UseAdminRoomsReturn {
         verified: number;
     };
     approveRoom: (id: string) => Promise<void>;
-    rejectRoom: (id: string) => Promise<void>;
+    rejectRoom: (id: string, reason?: string) => Promise<void>;
     deleteRoom: (id: string) => Promise<void>;
     refetch: () => Promise<void>;
 }
@@ -51,7 +51,7 @@ interface UseAdminUsersReturn {
     activateUser: (id: string) => Promise<void>;
     deleteUser: (id: string) => Promise<void>;
     approveLandlord: (id: string) => Promise<void>;
-    rejectLandlord: (id: string) => Promise<void>;
+    rejectLandlord: (id: string, reason?: string) => Promise<void>;
     refetch: () => Promise<void>;
 }
 
@@ -89,10 +89,10 @@ export function useAdminRooms(): UseAdminRoomsReturn {
         ));
     }, []);
 
-    const handleRejectRoom = useCallback(async (id: string) => {
-        await rejectRoom(id);
+    const handleRejectRoom = useCallback(async (id: string, reason?: string) => {
+        await rejectRoom(id, reason);
         setRooms(prev => prev.map(r =>
-            r.id === id ? { ...r, status: 'inactive' as const } : r
+            r.id === id ? { ...r, status: 'inactive' as const, is_verified: false } : r
         ));
     }, []);
 
@@ -173,8 +173,8 @@ export function useAdminUsers(): UseAdminUsersReturn {
         ));
     }, []);
 
-    const handleRejectLandlord = useCallback(async (id: string) => {
-        await rejectLandlordApplication(id);
+    const handleRejectLandlord = useCallback(async (id: string, reason?: string) => {
+        await rejectLandlordApplication(id, reason);
         setUsers(prev => prev.map(u =>
             u.id === id ? { ...u, account_status: 'active' as const } : u
         ));

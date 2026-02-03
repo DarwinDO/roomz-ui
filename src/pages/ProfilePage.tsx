@@ -10,7 +10,7 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { useProfileMessages } from "@/hooks/useMessages";
 import { toast } from "sonner";
 import type { RoomWithDetails } from "@/services/rooms";
-import { Heart, MessageCircle, Settings } from "lucide-react";
+import { Heart, MessageCircle, Settings, CalendarCheck } from "lucide-react";
 
 // Components
 import { ProfileHeader } from "./profile/components/ProfileHeader";
@@ -18,6 +18,7 @@ import { UpgradeBanner } from "./profile/components/UpgradeBanner";
 import { FavoritesTab } from "./profile/components/FavoritesTab";
 import { MessagesTab } from "./profile/components/MessagesTab";
 import { SettingsTab } from "./profile/components/SettingsTab";
+import { BookingsTab } from "./profile/components/BookingsTab";
 
 // Helper function to transform room data to RoomCard props
 function transformRoomToCardProps(room: RoomWithDetails) {
@@ -146,14 +147,21 @@ export default function ProfilePage() {
 
       <div className="px-6 max-w-6xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6 rounded-xl">
+          <TabsList className="grid w-full grid-cols-4 mb-6 rounded-xl">
             <TabsTrigger value="favorites">
               <Heart className="w-4 h-4 mr-2" />
-              Yêu thích
+              <span className="hidden sm:inline">Yêu thích</span>
+              <span className="sm:hidden">Yêu</span>
+            </TabsTrigger>
+            <TabsTrigger value="bookings">
+              <CalendarCheck className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Lịch hẹn</span>
+              <span className="sm:hidden">Hẹn</span>
             </TabsTrigger>
             <TabsTrigger value="messages">
               <MessageCircle className="w-4 h-4 mr-2" />
-              Tin nhắn
+              <span className="hidden sm:inline">Tin nhắn</span>
+              <span className="sm:hidden">Chat</span>
               {messagesUnreadCount > 0 && (
                 <span className="ml-2 bg-destructive text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px]">
                   {messagesUnreadCount > 9 ? '9+' : messagesUnreadCount}
@@ -162,7 +170,8 @@ export default function ProfilePage() {
             </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="w-4 h-4 mr-2" />
-              Cài đặt
+              <span className="hidden sm:inline">Cài đặt</span>
+              <span className="sm:hidden">Cài</span>
             </TabsTrigger>
           </TabsList>
 
@@ -174,6 +183,10 @@ export default function ProfilePage() {
               onRefetch={refetchFavorites}
               onRemoveFavorite={async (id) => { await toggleFavorite(id); }}
             />
+          </TabsContent>
+
+          <TabsContent value="bookings">
+            <BookingsTab />
           </TabsContent>
 
           <TabsContent value="messages">

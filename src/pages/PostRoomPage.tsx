@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -8,9 +8,11 @@ import {
   CheckCircle,
   Clock,
   ChevronRight,
+  Loader2,
+  Edit,
 } from "lucide-react";
 import { useAuth } from "@/contexts";
-import { createRoom, type CreateRoomData } from "@/services/rooms";
+import { createRoom, getRoomById, updateRoomWithData, type CreateRoomData, type UpdateRoomData } from "@/services/rooms";
 import { uploadMultipleRoomImages } from "@/services/roomImages";
 import { toast } from "sonner";
 import type { PostRoomFormData } from "./post-room/types";
@@ -22,6 +24,7 @@ import { StepAmenitiesImages } from "./post-room/components/StepAmenitiesImages"
 
 export default function PostRoomPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,6 +33,12 @@ export default function PostRoomPage() {
   const [step, setStep] = useState(1);
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
+
+  // Edit mode states
+  const editRoomId = searchParams.get("edit");
+  const isEditMode = !!editRoomId;
+  const [isLoadingRoom, setIsLoadingRoom] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<PostRoomFormData>({
@@ -62,6 +71,74 @@ export default function PostRoomPage() {
   // Image state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+
+  // Load room data for edit mode
+  useEffect(() => {
+    async function loadRoomData() {
+      if (!editRoomId || !user) return;
+
+      setIsLoadingRoom(true);
+      setLoadError(null);
+
+      try {
+        const room = await getRoomById(editRoomId);
+
+        if (!room) {
+          setLoadError("Không tìm thấy phòng");
+          return;
+        }
+
+        // Check if user is the landlord
+        if (room.landlord_id !== user.id) {
+          setLoadError("Bạn không có quyền chỉnh sửa phòng này");
+          return;
+        }
+
+        // Populate form with room data
+        setFormData({
+          title: room.title || "",
+          description: room.description || "",
+          address: room.address || "",
+          district: room.district || "",
+          city: room.city || "Hà Nội",
+          pricePerMonth: room.price_per_month?.toString() || "",
+          depositAmount: room.deposit_amount?.toString() || "",
+          areaSqm: room.area_sqm?.toString() || "",
+          bedroomCount: room.bedroom_count?.toString() || "1",
+          bathroomCount: room.bathroom_count?.toString() || "1",
+          maxOccupants: room.max_occupants?.toString() || "1",
+          roomType: room.room_type || "private",
+          furnished: room.furnished || false,
+          availableFrom: room.available_from || "",
+          minLeaseTerm: "1",
+          // Amenities from room_amenities
+          wifi: room.amenities?.wifi || false,
+          airConditioning: room.amenities?.air_conditioning || false,
+          parking: room.amenities?.parking || false,
+          washingMachine: room.amenities?.washing_machine || false,
+          refrigerator: room.amenities?.refrigerator || false,
+          heater: room.amenities?.heater || false,
+          securityCamera: room.amenities?.security_camera || false,
+          balcony: room.amenities?.balcony || false,
+        });
+
+        // Load existing images
+        if (room.images && room.images.length > 0) {
+          const urls = room.images.map(img => img.image_url);
+          setExistingImageUrls(urls);
+          setPreviewUrls(urls);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Không thể tải dữ liệu phòng";
+        setLoadError(message);
+      } finally {
+        setIsLoadingRoom(false);
+      }
+    }
+
+    loadRoomData();
+  }, [editRoomId, user]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -101,8 +178,19 @@ export default function PostRoomPage() {
   };
 
   const removeImage = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    // Check if this is an existing image or a new file
+    const existingCount = existingImageUrls.length;
+
+    if (index < existingCount) {
+      // Remove existing image
+      setExistingImageUrls(prev => prev.filter((_, i) => i !== index));
+      setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    } else {
+      // Remove new file
+      const fileIndex = index - existingCount;
+      setSelectedFiles(prev => prev.filter((_, i) => i !== fileIndex));
+      setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -133,9 +221,9 @@ export default function PostRoomPage() {
     setIsSubmitting(true);
 
     try {
-      let imageUrls: string[] = [];
+      let newImageUrls: string[] = [];
 
-      // Upload images if any
+      // Upload new images if any
       if (selectedFiles.length > 0) {
         setIsUploading(true);
         setUploadProgress(0);
@@ -146,7 +234,7 @@ export default function PostRoomPage() {
         }, 200);
 
         try {
-          imageUrls = await uploadMultipleRoomImages(user.id, selectedFiles);
+          newImageUrls = await uploadMultipleRoomImages(user.id, selectedFiles);
         } catch (uploadErr) {
           clearInterval(progressInterval);
           const message = uploadErr instanceof Error ? uploadErr.message : "Không thể tải ảnh lên";
@@ -161,47 +249,119 @@ export default function PostRoomPage() {
         setIsUploading(false);
       }
 
-      const roomData: CreateRoomData = {
-        landlordId: user.id,
-        title: formData.title,
-        description: formData.description || undefined,
-        address: formData.address,
-        district: formData.district || undefined,
-        city: formData.city,
-        pricePerMonth: parseFloat(formData.pricePerMonth),
-        depositAmount: formData.depositAmount ? parseFloat(formData.depositAmount) : undefined,
-        areaSqm: formData.areaSqm ? parseFloat(formData.areaSqm) : undefined,
-        bedroomCount: parseInt(formData.bedroomCount) || 1,
-        bathroomCount: parseInt(formData.bathroomCount) || 1,
-        maxOccupants: parseInt(formData.maxOccupants) || 1,
-        roomType: formData.roomType,
-        furnished: formData.furnished,
-        availableFrom: formData.availableFrom || undefined,
-        minLeaseTerm: parseInt(formData.minLeaseTerm) || 1,
-        amenities: {
-          wifi: formData.wifi,
-          air_conditioning: formData.airConditioning,
-          parking: formData.parking,
-          washing_machine: formData.washingMachine,
-          refrigerator: formData.refrigerator,
-          heater: formData.heater,
-          security_camera: formData.securityCamera,
-          balcony: formData.balcony,
-        },
-        imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
-      };
+      const allImageUrls = [...existingImageUrls, ...newImageUrls];
 
-      const room = await createRoom(roomData);
-      setCreatedRoomId(room.id);
-      setIsSuccess(true);
-      toast.success("Đăng phòng thành công!");
+      if (isEditMode && editRoomId) {
+        // UPDATE existing room
+        const updateData: UpdateRoomData = {
+          title: formData.title,
+          description: formData.description || undefined,
+          address: formData.address,
+          district: formData.district || undefined,
+          city: formData.city,
+          pricePerMonth: parseFloat(formData.pricePerMonth),
+          depositAmount: formData.depositAmount ? parseFloat(formData.depositAmount) : undefined,
+          areaSqm: formData.areaSqm ? parseFloat(formData.areaSqm) : undefined,
+          bedroomCount: parseInt(formData.bedroomCount) || 1,
+          bathroomCount: parseInt(formData.bathroomCount) || 1,
+          maxOccupants: parseInt(formData.maxOccupants) || 1,
+          roomType: formData.roomType,
+          furnished: formData.furnished,
+          availableFrom: formData.availableFrom || undefined,
+          // If room was rejected, resubmit as pending
+          status: 'pending',
+          amenities: {
+            wifi: formData.wifi,
+            air_conditioning: formData.airConditioning,
+            parking: formData.parking,
+            washing_machine: formData.washingMachine,
+            refrigerator: formData.refrigerator,
+            heater: formData.heater,
+            security_camera: formData.securityCamera,
+            balcony: formData.balcony,
+          },
+        };
+
+        await updateRoomWithData(editRoomId, updateData);
+        setCreatedRoomId(editRoomId);
+        setIsSuccess(true);
+        toast.success("Cập nhật phòng thành công! Đang chờ duyệt lại.");
+      } else {
+        // CREATE new room
+        const roomData: CreateRoomData = {
+          landlordId: user.id,
+          title: formData.title,
+          description: formData.description || undefined,
+          address: formData.address,
+          district: formData.district || undefined,
+          city: formData.city,
+          pricePerMonth: parseFloat(formData.pricePerMonth),
+          depositAmount: formData.depositAmount ? parseFloat(formData.depositAmount) : undefined,
+          areaSqm: formData.areaSqm ? parseFloat(formData.areaSqm) : undefined,
+          bedroomCount: parseInt(formData.bedroomCount) || 1,
+          bathroomCount: parseInt(formData.bathroomCount) || 1,
+          maxOccupants: parseInt(formData.maxOccupants) || 1,
+          roomType: formData.roomType,
+          furnished: formData.furnished,
+          availableFrom: formData.availableFrom || undefined,
+          minLeaseTerm: parseInt(formData.minLeaseTerm) || 1,
+          amenities: {
+            wifi: formData.wifi,
+            air_conditioning: formData.airConditioning,
+            parking: formData.parking,
+            washing_machine: formData.washingMachine,
+            refrigerator: formData.refrigerator,
+            heater: formData.heater,
+            security_camera: formData.securityCamera,
+            balcony: formData.balcony,
+          },
+          imageUrls: allImageUrls.length > 0 ? allImageUrls : undefined,
+        };
+
+        const room = await createRoom(roomData);
+        setCreatedRoomId(room.id);
+        setIsSuccess(true);
+        toast.success("Đăng phòng thành công!");
+      }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Không thể đăng phòng. Vui lòng thử lại.";
+      const message = err instanceof Error ? err.message : "Không thể lưu phòng. Vui lòng thử lại.";
       toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Loading state for edit mode
+  if (isEditMode && isLoadingRoom) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải dữ liệu phòng...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state for edit mode
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <Card className="max-w-md w-full shadow-lg border-none">
+          <CardContent className="py-16 text-center">
+            <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Home className="w-10 h-10 text-destructive" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Không thể tải phòng</h2>
+            <p className="text-muted-foreground mb-8">{loadError}</p>
+            <Button onClick={() => navigate("/landlord")} className="w-full max-w-xs rounded-xl h-12">
+              Quay về Quản lý phòng
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Success state
   if (isSuccess) {
@@ -212,14 +372,18 @@ export default function PostRoomPage() {
             <div className="w-24 h-24 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6 animate-scale-in">
               <CheckCircle className="w-12 h-12 text-success" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Đăng phòng thành công!</h2>
+            <h2 className="text-2xl font-bold mb-2">
+              {isEditMode ? "Cập nhật thành công!" : "Đăng phòng thành công!"}
+            </h2>
 
             {/* Pending approval notice */}
             <div className="bg-warning/5 border border-warning/20 rounded-xl p-5 mb-6 text-left shadow-sm">
               <div className="flex items-start gap-3">
                 <Clock className="w-5 h-5 text-warning shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-warning-foreground">Phòng đang chờ phê duyệt</p>
+                  <p className="text-sm font-semibold text-warning-foreground">
+                    {isEditMode ? "Phòng đang chờ duyệt lại" : "Phòng đang chờ phê duyệt"}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Admin sẽ xem xét và phê duyệt phòng của bạn trong vòng 24h.
                     Sau khi được duyệt, phòng sẽ hiển thị công khai trên trang tìm kiếm.
@@ -248,7 +412,7 @@ export default function PostRoomPage() {
                   className="w-full h-12 rounded-xl shadow-lg shadow-primary/20"
                   onClick={() => navigate(`/room/${createdRoomId}`)}
                 >
-                  <span>Xem phòng vừa đăng</span>
+                  <span>Xem phòng vừa {isEditMode ? "cập nhật" : "đăng"}</span>
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               )}
@@ -288,7 +452,10 @@ export default function PostRoomPage() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-lg font-bold">Đăng phòng cho thuê</h1>
+            <h1 className="text-lg font-bold flex items-center gap-2">
+              {isEditMode && <Edit className="w-4 h-4 text-primary" />}
+              {isEditMode ? "Chỉnh sửa phòng" : "Đăng phòng cho thuê"}
+            </h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Bước {step} / 3</span>
               <span className="w-1 h-1 rounded-full bg-muted-foreground/30"></span>
@@ -344,6 +511,7 @@ export default function PostRoomPage() {
               handleDrop={handleDrop}
               removeImage={removeImage}
               fileInputRef={fileInputRef}
+              isEditMode={isEditMode}
             />
           )}
         </div>

@@ -24,6 +24,7 @@ import {
   Loader2,
   AlertCircle,
   TrendingUp,
+  RefreshCw,
 } from "lucide-react";
 import { useLandlordBookings } from "@/hooks/useBookings";
 import { useLandlordRooms } from "@/hooks/useRooms";
@@ -98,6 +99,7 @@ export default function LandlordDashboardPage() {
 
   const pendingRooms = rooms.filter(r => r.status === "pending");
   const activeRooms = rooms.filter(r => r.status === "active");
+  const rejectedRooms = rooms.filter(r => r.status === "rejected");
 
   // Loading state
   if (loading) {
@@ -229,6 +231,21 @@ export default function LandlordDashboardPage() {
                     <div className="grid gap-4 md:grid-cols-2">
                       {activeRooms.map((room) => (
                         <LandlordRoomCard key={room.id} room={room} status="active" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rejected Rooms Section */}
+                {rejectedRooms.length > 0 && (
+                  <div className={(pendingRooms.length > 0 || activeRooms.length > 0) ? "pt-4 border-t border-border" : ""}>
+                    <h3 className="text-sm font-semibold text-destructive mb-4 flex items-center gap-2 uppercase tracking-wide">
+                      <XCircle className="w-4 h-4" />
+                      Bị từ chối ({rejectedRooms.length})
+                    </h3>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {rejectedRooms.map((room) => (
+                        <LandlordRoomCard key={room.id} room={room} status="rejected" />
                       ))}
                     </div>
                   </div>
@@ -388,10 +405,10 @@ export default function LandlordDashboardPage() {
               onClick={handleAction}
               disabled={isProcessing}
               className={`rounded-xl ${actionType === "reject"
-                  ? "bg-destructive hover:bg-destructive/90 text-white"
-                  : actionType === "confirm"
-                    ? "bg-success hover:bg-success/90 text-white"
-                    : ""
+                ? "bg-destructive hover:bg-destructive/90 text-white"
+                : actionType === "confirm"
+                  ? "bg-success hover:bg-success/90 text-white"
+                  : ""
                 }`}
             >
               {isProcessing ? (

@@ -62,6 +62,35 @@ export interface CreateRoomData {
   imageUrls?: string[];
 }
 
+export interface UpdateRoomData {
+  title?: string;
+  description?: string;
+  address?: string;
+  district?: string;
+  city?: string;
+  pricePerMonth?: number;
+  depositAmount?: number;
+  areaSqm?: number;
+  bedroomCount?: number;
+  bathroomCount?: number;
+  maxOccupants?: number;
+  roomType?: 'private' | 'shared' | 'studio' | 'entire';
+  furnished?: boolean;
+  availableFrom?: string;
+  minLeaseTerm?: number;
+  amenities?: {
+    wifi?: boolean;
+    air_conditioning?: boolean;
+    parking?: boolean;
+    washing_machine?: boolean;
+    refrigerator?: boolean;
+    heater?: boolean;
+    security_camera?: boolean;
+    balcony?: boolean;
+  };
+  status?: 'draft' | 'pending' | 'active' | 'rented' | 'inactive' | 'rejected';
+}
+
 /**
  * Get all active rooms with optional filters
  */
@@ -100,7 +129,7 @@ export async function getRooms(filters: RoomFilters = {}): Promise<RoomWithDetai
   const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) throw error;
-  
+
   // Transform the data to handle the array result from room_amenities
   return (data || []).map(room => ({
     ...room,
@@ -229,6 +258,34 @@ export async function updateRoom(
     throw new Error('Failed to fetch updated room');
   }
   return roomWithDetails;
+}
+
+/**
+ * Update a room using structured data (similar to CreateRoomData)
+ */
+export async function updateRoomWithData(
+  id: string,
+  data: UpdateRoomData
+): Promise<RoomWithDetails> {
+  const roomData: Partial<Room> = {};
+
+  if (data.title !== undefined) roomData.title = data.title;
+  if (data.description !== undefined) roomData.description = data.description;
+  if (data.address !== undefined) roomData.address = data.address;
+  if (data.district !== undefined) roomData.district = data.district;
+  if (data.city !== undefined) roomData.city = data.city;
+  if (data.pricePerMonth !== undefined) roomData.price_per_month = data.pricePerMonth;
+  if (data.depositAmount !== undefined) roomData.deposit_amount = data.depositAmount;
+  if (data.areaSqm !== undefined) roomData.area_sqm = data.areaSqm;
+  if (data.bedroomCount !== undefined) roomData.bedroom_count = data.bedroomCount;
+  if (data.bathroomCount !== undefined) roomData.bathroom_count = data.bathroomCount;
+  if (data.maxOccupants !== undefined) roomData.max_occupants = data.maxOccupants;
+  if (data.roomType !== undefined) roomData.room_type = data.roomType;
+  if (data.furnished !== undefined) roomData.furnished = data.furnished;
+  if (data.availableFrom !== undefined) roomData.available_from = data.availableFrom;
+  if (data.status !== undefined) roomData.status = data.status;
+
+  return updateRoom(id, roomData, data.amenities);
 }
 
 /**
