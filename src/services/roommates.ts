@@ -357,6 +357,84 @@ export async function sendRoommateRequest(
 }
 
 /**
+ * Send an intro message without full connection request
+ * This creates a pending request with the intro message
+ */
+export async function sendIntroMessage(
+    senderId: string,
+    receiverId: string,
+    message: string
+): Promise<RoommateRequest> {
+    // Check if request already exists
+    const existing = await hasExistingRequest(senderId, receiverId);
+    if (existing) {
+        throw new Error('Bạn đã gửi tin nhắn cho người này rồi');
+    }
+
+    const { data, error } = await supabase
+        .from('roommate_requests')
+        .insert({
+            sender_id: senderId,
+            receiver_id: receiverId,
+            message: message,
+            // Intro messages start as pending, recipient can accept/decline
+        })
+        .select()
+        .single();
+
+    if (error) {
+        if (error.code === '23505') {
+            throw new Error('Bạn đã gửi yêu cầu cho người này rồi');
+        }
+        if (error.code === '23514' && error.message.includes('no_self_request')) {
+            throw new Error('Không thể gửi yêu cầu cho chính mình');
+        }
+        console.error('[sendIntroMessage] Error:', error);
+        throw error;
+    }
+
+    return data as RoommateRequest;
+}
+
+/**
+ * Get list of user IDs that current user has sent intro messages to
+ */
+export async function getIntroMessagesSent(userId: string): Promise<string[]> {
+    const { data, error } = await supabase
+        .from('roommate_requests')
+        .select('receiver_id')
+        .eq('sender_id', userId);
+
+    if (error) {
+        console.error('[getIntroMessagesSent] Error:', error);
+        return [];
+    }
+
+    return (data || []).map(r => r.receiver_id);
+}
+
+/**
+ * Get connected users (accepted requests)
+ */
+export async function getConnectedUsers(userId: string): Promise<string[]> {
+    const { data, error } = await supabase
+        .from('roommate_requests')
+        .select('sender_id, receiver_id')
+        .eq('status', 'accepted')
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+
+    if (error) {
+        console.error('[getConnectedUsers] Error:', error);
+        return [];
+    }
+
+    // Return the IDs of the other party in each connection
+    return (data || []).map(r =>
+        r.sender_id === userId ? r.receiver_id : r.sender_id
+    );
+}
+
+/**
  * Cancel a pending request (sender only)
  */
 export async function cancelRoommateRequest(requestId: string): Promise<void> {

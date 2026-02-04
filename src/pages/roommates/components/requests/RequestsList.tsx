@@ -19,9 +19,10 @@ import {
     Users,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRoommateRequests } from '@/hooks/useRoommates';
+import { useRoommateRequestsQuery } from '@/hooks/useRoommatesQuery';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { PageLoading } from '../common/LoadingSpinner';
 import type { RoommateRequest } from '@/services/roommates';
 
 function getStatusBadge(status: string) {
@@ -101,10 +102,21 @@ function RequestCard({
                             {getStatusBadge(request.status)}
                         </div>
 
+                        {/* Intro Message Display */}
                         {request.message && (
-                            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                                "{request.message}"
-                            </p>
+                            <div className="mb-3 p-3 bg-muted/50 rounded-lg border-l-4 border-primary/50">
+                                <div className="flex items-start gap-2">
+                                    <MessageCircle className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs text-muted-foreground mb-1">
+                                            Lời nhắn giới thiệu:
+                                        </p>
+                                        <p className="text-sm text-foreground line-clamp-3">
+                                            "{request.message}"
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         )}
 
                         <p className="text-xs text-muted-foreground">
@@ -187,17 +199,13 @@ export function RequestsList() {
         acceptRequest,
         declineRequest,
         cancelRequest,
-    } = useRoommateRequests();
+    } = useRoommateRequestsQuery();
 
     const pendingReceived = receivedRequests.filter((r) => r.status === 'pending');
     const pendingSent = sentRequests.filter((r) => r.status === 'pending');
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
-        );
+        return <PageLoading message="Đang tải yêu cầu kết nối..." />;
     }
 
     return (

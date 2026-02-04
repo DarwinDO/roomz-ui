@@ -24,32 +24,38 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    useRoommateMatches,
-    useRoommateProfile,
-    useRoommateRequests,
-} from '@/hooks/useRoommates';
+    useRoommateMatchesQuery,
+    useRoommateProfileQuery,
+    useRoommateRequestsQuery,
+} from '@/hooks/useRoommatesQuery';
+import { sendIntroMessage } from '@/services/roommates';
+import { useAuth } from '@/contexts/AuthContext';
 import { RoommateCard } from './RoommateCard';
+import { IntroMessageModal } from './IntroMessageModal';
 import { RoommateProfileModal } from '@/components/modals/RoommateProfileModal';
 import { LimitsBar } from './LimitsBar';
 import { RoommateFilters, type FilterOptions } from './RoommateFilters';
 import { CompatibilityBreakdown } from './CompatibilityBreakdown';
 import { LimitHitModal } from './LimitHitModal';
+import { PageLoading } from '../common/LoadingSpinner';
+import { toast } from 'sonner';
 
 type SortOption = 'compatibility' | 'distance' | 'age';
 
 export function RoommateResults() {
     const navigate = useNavigate();
-    const { profile, setStatus } = useRoommateProfile();
+    const { user } = useAuth();
+    const { profile, setStatus } = useRoommateProfileQuery();
     const {
         matches,
-        loading,
+        loading: matchesLoading,
         error,
         limits,
         canViewMore,
         recordView,
         refetch,
-    } = useRoommateMatches();
-    const { sendRequest, checkExistingRequest, sentRequests } = useRoommateRequests();
+    } = useRoommateMatchesQuery();
+    const { sendRequest, checkExistingRequest, sentRequests, loading: requestsLoading, refetch: refetchRequests } = useRoommateRequestsQuery();
 
     const [sortBy, setSortBy] = useState<SortOption>('compatibility');
     const [selectedMatch, setSelectedMatch] = useState<typeof matches[0] | null>(null);
@@ -58,6 +64,10 @@ export function RoommateResults() {
     const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
     const [limitType, setLimitType] = useState<'views' | 'requests'>('views');
     const [pendingRequests, setPendingRequests] = useState<Set<string>>(new Set());
+    const [sentIntroMessages, setSentIntroMessages] = useState<Set<string>>(new Set());
+    const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
+    const [isIntroModalOpen, setIsIntroModalOpen] = useState(false);
+    const [introModalTarget, setIntroModalTarget] = useState<typeof matches[0] | null>(null);
     const [filters, setFilters] = useState<FilterOptions>({
         gender: 'any',
         ageMin: 18,
@@ -67,16 +77,41 @@ export function RoommateResults() {
         occupation: 'any',
     });
 
-    // Initialize pendingRequests from existing sent requests on mount
+    // Refetch requests when component mounts (e.g., when switching back from Requests tab)
     useEffect(() => {
-        if (sentRequests.length > 0) {
-            const existingPending = new Set(
-                sentRequests
-                    .filter(r => r.status === 'pending')
-                    .map(r => r.receiver_id)
-            );
-            setPendingRequests(existingPending);
-        }
+        refetchRequests();
+    }, [refetchRequests]);
+
+    // Combined loading state - wait for all data to be ready
+    const isLoading = matchesLoading || requestsLoading;
+
+    // Sync state from sentRequests - this is the single source of truth
+    // IMPORTANT: Always update state when sentRequests changes, even if empty
+    useEffect(() => {
+        // Extract pending requests (not accepted/declined/cancelled yet)
+        const existingPending = new Set(
+            sentRequests
+                .filter(r => r.status === 'pending')
+                .map(r => r.receiver_id)
+        );
+        setPendingRequests(existingPending);
+
+        // Extract users we've sent intro messages to (active requests with a message)
+        // Exclude cancelled/declined requests so user can send again
+        const existingIntros = new Set(
+            sentRequests
+                .filter(r => r.message && r.status === 'pending')
+                .map(r => r.receiver_id)
+        );
+        setSentIntroMessages(existingIntros);
+
+        // Extract connected users (accepted requests)
+        const connected = new Set(
+            sentRequests
+                .filter(r => r.status === 'accepted')
+                .map(r => r.receiver_id)
+        );
+        setConnectedUsers(connected);
     }, [sentRequests]);
 
     // Filter and sort matches
@@ -132,16 +167,41 @@ export function RoommateResults() {
         navigate(`/messages?user=${userId}`);
     };
 
+    const handleOpenIntroModal = (match: typeof matches[0]) => {
+        // If already connected, go directly to chat
+        if (connectedUsers.has(match.matched_user_id)) {
+            handleStartChat(match.matched_user_id);
+            return;
+        }
+
+        // If already sent intro, show toast
+        if (sentIntroMessages.has(match.matched_user_id)) {
+            toast.info('Bạn đã gửi tin nhắn giới thiệu cho người này rồi');
+            return;
+        }
+
+        setIntroModalTarget(match);
+        setIsIntroModalOpen(true);
+    };
+
+    const handleSendIntroMessage = async (message: string) => {
+        if (!introModalTarget || !user?.id) return;
+
+        try {
+            await sendIntroMessage(user.id, introModalTarget.matched_user_id, message);
+            setSentIntroMessages(prev => new Set(prev).add(introModalTarget.matched_user_id));
+            setPendingRequests(prev => new Set(prev).add(introModalTarget.matched_user_id));
+            toast.success('Đã gửi tin nhắn giới thiệu!');
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Không thể gửi tin nhắn. Vui lòng thử lại.';
+            toast.error(errorMessage);
+            throw err;
+        }
+    };
+
     // Loading state
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="text-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-                    <p className="text-muted-foreground">Đang tìm bạn cùng phòng phù hợp...</p>
-                </div>
-            </div>
-        );
+    if (isLoading) {
+        return <PageLoading message="Đang tìm bạn cùng phòng phù hợp..." />;
     }
 
     // Error state
@@ -269,10 +329,12 @@ export function RoommateResults() {
                                 <RoommateCard
                                     match={match}
                                     onViewProfile={() => handleViewProfile(match)}
-                                    onSendRequest={() => handleSendRequest(match.matched_user_id)}
-                                    onMessage={() => handleStartChat(match.matched_user_id)}
+                                    onSendRequest={() => handleOpenIntroModal(match)}
+                                    onMessage={() => handleOpenIntroModal(match)}
                                     hasPendingRequest={pendingRequests.has(match.matched_user_id)}
                                     canSendRequest={limits.requests > 0}
+                                    isConnected={connectedUsers.has(match.matched_user_id)}
+                                    hasIntroMessage={sentIntroMessages.has(match.matched_user_id)}
                                 />
                             </motion.div>
                         ))}
@@ -323,6 +385,17 @@ export function RoommateResults() {
                 onClose={() => setIsLimitModalOpen(false)}
                 limitType={limitType}
                 onUpgrade={() => navigate('/pricing')}
+            />
+
+            {/* Intro Message Modal */}
+            <IntroMessageModal
+                open={isIntroModalOpen}
+                onClose={() => {
+                    setIsIntroModalOpen(false);
+                    setIntroModalTarget(null);
+                }}
+                match={introModalTarget}
+                onSend={handleSendIntroMessage}
             />
         </>
     );

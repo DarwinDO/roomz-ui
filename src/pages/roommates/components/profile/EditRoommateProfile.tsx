@@ -28,8 +28,9 @@ import {
     Wallet,
     Heart,
 } from 'lucide-react';
-import { useRoommateProfile } from '@/hooks/useRoommates';
+import { useRoommateProfileQuery } from '@/hooks/useRoommatesQuery';
 import { toast } from 'sonner';
+import { getProvinces, getDistricts, type Province, type District } from '@/services/vietnamLocations';
 
 const HOBBY_OPTIONS = [
     'Âm nhạc', 'Nấu ăn', 'Leo núi', 'Chơi game', 'Đọc sách',
@@ -58,8 +59,15 @@ const PREFERRED_GENDER_OPTIONS = [
 
 export function EditRoommateProfile() {
     const navigate = useNavigate();
-    const { profile, loading, updateProfile } = useRoommateProfile();
+    const { profile, loading, updateProfile } = useRoommateProfileQuery();
     const [saving, setSaving] = useState(false);
+
+    // Location state
+    const [provinces, setProvinces] = useState<Province[]>([]);
+    const [districts, setDistricts] = useState<District[]>([]);
+    const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | null>(null);
+    const [loadingProvinces, setLoadingProvinces] = useState(false);
+    const [loadingDistricts, setLoadingDistricts] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -76,9 +84,36 @@ export function EditRoommateProfile() {
         search_radius_km: 5,
     });
 
-    // Load existing profile data
+    // Load provinces on mount
     useEffect(() => {
-        if (profile) {
+        async function loadProvinces() {
+            setLoadingProvinces(true);
+            try {
+                const data = await getProvinces();
+                setProvinces(data);
+            } catch (err) {
+                console.error('Failed to load provinces:', err);
+            } finally {
+                setLoadingProvinces(false);
+            }
+        }
+        loadProvinces();
+    }, []);
+
+    // Load existing profile data and match province
+    useEffect(() => {
+        if (profile && provinces.length > 0) {
+            // Find matching province by name
+            const matchedProvince = provinces.find(p =>
+                p.name === profile.city ||
+                p.name.includes(profile.city || '') ||
+                (profile.city || '').includes(p.name)
+            );
+
+            if (matchedProvince) {
+                setSelectedProvinceCode(matchedProvince.code);
+            }
+
             setFormData({
                 bio: profile.bio || '',
                 hobbies: profile.hobbies || [],
@@ -93,7 +128,25 @@ export function EditRoommateProfile() {
                 search_radius_km: profile.search_radius_km || 5,
             });
         }
-    }, [profile]);
+    }, [profile, provinces]);
+
+    // Load districts when province changes
+    useEffect(() => {
+        async function loadDistricts() {
+            if (!selectedProvinceCode || !formData.city) return;
+
+            setLoadingDistricts(true);
+            try {
+                const data = await getDistricts(selectedProvinceCode, formData.city);
+                setDistricts(data);
+            } catch (err) {
+                console.error('Failed to load districts:', err);
+            } finally {
+                setLoadingDistricts(false);
+            }
+        }
+        loadDistricts();
+    }, [selectedProvinceCode, formData.city]);
 
     const handleHobbyToggle = (hobby: string) => {
         setFormData(prev => ({
@@ -334,22 +387,52 @@ export function EditRoommateProfile() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="city">Thành phố</Label>
-                            <Input
-                                id="city"
-                                placeholder="Hà Nội"
-                                value={formData.city}
-                                onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                            />
+                            <Label htmlFor="city">Thành phố/Tỉnh</Label>
+                            <Select
+                                value={selectedProvinceCode?.toString() || ''}
+                                onValueChange={(value) => {
+                                    const code = parseInt(value);
+                                    const province = provinces.find(p => p.code === code);
+                                    setSelectedProvinceCode(code);
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        city: province?.name || '',
+                                        district: '' // Reset district when city changes
+                                    }));
+                                    setDistricts([]); // Clear districts
+                                }}
+                                disabled={loadingProvinces}
+                            >
+                                <SelectTrigger id="city">
+                                    <SelectValue placeholder={loadingProvinces ? "Đang tải..." : "Chọn tỉnh/thành phố"} />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-60">
+                                    {provinces.map(province => (
+                                        <SelectItem key={province.code} value={province.code.toString()}>
+                                            {province.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="district">Quận/Huyện</Label>
-                            <Input
-                                id="district"
-                                placeholder="Cầu Giấy"
+                            <Select
                                 value={formData.district}
-                                onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))}
-                            />
+                                onValueChange={(v) => setFormData(prev => ({ ...prev, district: v }))}
+                                disabled={!selectedProvinceCode || loadingDistricts}
+                            >
+                                <SelectTrigger id="district">
+                                    <SelectValue placeholder={loadingDistricts ? "Đang tải..." : "Chọn quận/huyện"} />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-60">
+                                    {districts.map(district => (
+                                        <SelectItem key={district.code} value={district.name}>
+                                            {district.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 

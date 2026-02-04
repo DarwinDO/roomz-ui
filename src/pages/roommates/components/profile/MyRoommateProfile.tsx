@@ -19,8 +19,9 @@ import {
     Trash2,
     Loader2,
 } from 'lucide-react';
-import { useRoommateProfile } from '@/hooks/useRoommates';
+import { useRoommateProfileQuery } from '@/hooks/useRoommatesQuery';
 import { VisibilityToggle } from './VisibilityToggle';
+import { PageLoading } from '../common/LoadingSpinner';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -35,25 +36,22 @@ import {
 
 export function MyRoommateProfile() {
     const navigate = useNavigate();
-    const { profile, loading, setStatus, deleteProfile } = useRoommateProfile();
+    const { profile, loading, setStatus, deleteProfile } = useRoommateProfileQuery();
     const [deleting, setDeleting] = useState(false);
 
     const handleDelete = async () => {
         setDeleting(true);
         try {
             await deleteProfile();
-            navigate('/roommates');
+            // Navigate to setup since profile is deleted
+            navigate('/roommates/setup');
         } finally {
             setDeleting(false);
         }
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-        );
+        return <PageLoading message="Đang tải hồ sơ của bạn..." />;
     }
 
     if (!profile) {

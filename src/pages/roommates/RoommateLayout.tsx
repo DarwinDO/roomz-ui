@@ -2,19 +2,21 @@
  * RoommateLayout - Shared layout for all roommate pages
  * Contains persistent navigation that doesn't reload on tab change
  * Redirects to setup wizard if user doesn't have a profile yet
+ * 
+ * Uses TanStack Query for cache-synchronized profile state
  */
 
 import { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
 import { RoommateNav } from './components/common/RoommateNav';
-import { useRoommateProfile } from '@/hooks/useRoommates';
+import { PageLoading } from './components/common/LoadingSpinner';
+import { useRoommateProfileQuery } from '@/hooks/useRoommatesQuery';
 
 export function RoommateLayout() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { loading, hasProfile } = useRoommateProfile();
+    const { loading, hasProfile } = useRoommateProfileQuery();
 
     // Redirect to setup if no profile exists
     useEffect(() => {
@@ -23,11 +25,11 @@ export function RoommateLayout() {
         }
     }, [loading, hasProfile, navigate]);
 
-    // Loading state
+    // Loading state - single unified loading for entire roommate section
     if (loading) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="min-h-screen bg-background">
+                <PageLoading message="Đang tải..." />
             </div>
         );
     }

@@ -12,7 +12,7 @@ import {
     Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRoommateRequests } from '@/hooks/useRoommates';
+import { useRoommateRequestsQuery } from '@/hooks/useRoommatesQuery';
 
 const NAV_ITEMS = [
     { path: '/roommates', label: 'Tìm kiếm', icon: Users },
@@ -23,7 +23,7 @@ const NAV_ITEMS = [
 export function RoommateNav() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { pendingCount } = useRoommateRequests();
+    const { pendingCount } = useRoommateRequestsQuery();
 
     return (
         <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">

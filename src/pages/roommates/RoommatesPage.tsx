@@ -1,11 +1,13 @@
 /**
  * RoommatesPage - Main page for Roommate Finder
  * Routes to Setup Wizard or Results based on profile state
+ * 
+ * Uses TanStack Query for proper cache management and state sync
  */
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useRoommateProfile, useRoommateSetup } from '@/hooks/useRoommates';
+import { useRoommateProfileQuery, useRoommateSetupQuery } from '@/hooks/useRoommatesQuery';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -13,12 +15,11 @@ import { Loader2 } from 'lucide-react';
 import { LocationStep } from './components/setup/LocationStep';
 import { QuizStep } from './components/setup/QuizStep';
 import { ProfileStep } from './components/setup/ProfileStep';
-import { RoommateResults } from './components/results/RoommateResults';
 
 export default function RoommatesPage() {
     const navigate = useNavigate();
     const { user, loading: authLoading } = useAuth();
-    const { loading: profileLoading, hasProfile } = useRoommateProfile();
+    const { loading: profileLoading, hasProfile } = useRoommateProfileQuery();
     const {
         state,
         setLocationData,
@@ -26,7 +27,7 @@ export default function RoommatesPage() {
         setProfileData,
         goToStep,
         completeSetup,
-    } = useRoommateSetup();
+    } = useRoommateSetupQuery();
 
     // Redirect to login if not authenticated
     useEffect(() => {
@@ -34,6 +35,14 @@ export default function RoommatesPage() {
             navigate('/login', { state: { from: '/roommates' } });
         }
     }, [authLoading, user, navigate]);
+
+    // Redirect to /roommates with layout after profile is created
+    // TanStack Query ensures cache is invalidated, so navigate() works correctly now
+    useEffect(() => {
+        if (!profileLoading && hasProfile) {
+            navigate('/roommates', { replace: true });
+        }
+    }, [profileLoading, hasProfile, navigate]);
 
     // Loading state
     if (authLoading || profileLoading) {
@@ -51,10 +60,14 @@ export default function RoommatesPage() {
 
     // Render based on current step
     const renderStep = () => {
-        // PRIORITY: If user already has profile, always show results
-        // This prevents flash of wizard while useEffect updates step to 'complete'
+        // PRIORITY: If user already has profile, redirect to main roommates page
+        // The useEffect above handles this, but we show loading while redirecting
         if (hasProfile) {
-            return <RoommateResults />;
+            return (
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+            );
         }
 
         // No profile yet - show wizard based on current step
@@ -80,14 +93,24 @@ export default function RoommatesPage() {
                     <ProfileStep
                         onSubmit={async (data) => {
                             setProfileData(data);
-                            await completeSetup();
+                            const success = await completeSetup();
+                            if (success) {
+                                // TanStack Query invalidates cache -> navigate works!
+                                navigate('/roommates', { replace: true });
+                            }
                         }}
                         onBack={() => goToStep('quiz')}
                     />
                 );
 
             case 'complete':
-                return <RoommateResults />;
+                // Navigate to /roommates for proper layout with navbar
+                navigate('/roommates', { replace: true });
+                return (
+                    <div className="flex items-center justify-center min-h-[60vh]">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    </div>
+                );
 
             default:
                 return <LocationStep onNext={setLocationData} onBack={() => navigate(-1)} />;
@@ -100,3 +123,4 @@ export default function RoommatesPage() {
         </div>
     );
 }
+
