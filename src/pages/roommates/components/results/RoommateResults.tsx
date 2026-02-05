@@ -62,10 +62,11 @@ export function RoommateResults() {
         receivedRequests,
         loading: requestsLoading,
         refetch: refetchRequests,
-        // Helper to check connection status
         checkConnection,
-        // Helper to check pending status
-        checkPending,
+        checkOutgoingPending,
+        checkIncomingPending,
+        acceptRequest,
+        isAccepting
     } = useRoommateRequestsQuery();
 
     const [sortBy, setSortBy] = useState<SortOption>('compatibility');
@@ -92,8 +93,8 @@ export function RoommateResults() {
     const sentIntroMessages = useMemo(() => {
         return new Set(
             sentRequests
-                .filter(r => r.message && r.status === 'pending')
-                .map(r => r.receiver_id)
+                .filter((r: any) => r.message && r.status === 'pending')
+                .map((r: any) => r.receiver_id)
         );
     }, [sentRequests]);
 
@@ -322,8 +323,16 @@ export function RoommateResults() {
                                     match={match}
                                     onViewProfile={() => handleViewProfile(match)}
                                     onSendRequest={() => handleOpenIntroModal(match)}
-                                    onMessage={() => handleOpenIntroModal(match)}
-                                    hasPendingRequest={checkPending(match.matched_user_id)}
+                                    onMessage={() => handleStartChat(match.matched_user_id)}
+                                    hasPendingRequest={checkOutgoingPending(match.matched_user_id)}
+                                    isIncomingPending={checkIncomingPending(match.matched_user_id)}
+                                    onAccept={() => {
+                                        // Need to find request ID for this user effectively
+                                        // Since we don't have it in matches, we find it in receivedRequests
+                                        const req = receivedRequests.find((r: any) => r.sender_id === match.matched_user_id && r.status === 'pending');
+                                        if (req) acceptRequest(req.id);
+                                    }}
+                                    isAccepting={isAccepting}
                                     canSendRequest={limits.requests > 0}
                                     isConnected={checkConnection(match.matched_user_id)}
                                     hasIntroMessage={sentIntroMessages.has(match.matched_user_id)}

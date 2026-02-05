@@ -452,6 +452,8 @@ export function useRoommateRequestsQuery() {
         // Mutation states
         isSending: sendMutation.isPending,
         isCancelling: cancelMutation.isPending,
+        isAccepting: acceptMutation.isPending,
+        isDeclining: declineMutation.isPending,
 
         // Helpers
         checkConnection: (otherUserId: string) => {
@@ -462,6 +464,17 @@ export function useRoommateRequestsQuery() {
                 data.received.some(r => r.sender_id === otherUserId && r.status === 'accepted')
             );
         },
+        checkOutgoingPending: (otherUserId: string) => {
+            const data = query.data;
+            if (!data) return false;
+            return data.sent.some(r => r.receiver_id === otherUserId && r.status === 'pending');
+        },
+        checkIncomingPending: (otherUserId: string) => {
+            const data = query.data;
+            if (!data) return false;
+            return data.received.some(r => r.sender_id === otherUserId && r.status === 'pending');
+        },
+        // Legacy helper for backward compatibility
         checkPending: (otherUserId: string) => {
             const data = query.data;
             if (!data) return false;

@@ -24,6 +24,7 @@ import {
     Volume2,
     Users,
     Coffee,
+    Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RoommateMatch } from '@/services/roommates';
@@ -37,6 +38,9 @@ interface RoommateCardProps {
     canSendRequest: boolean;
     isConnected?: boolean;
     hasIntroMessage?: boolean;
+    isIncomingPending?: boolean;
+    onAccept?: () => void;
+    isAccepting?: boolean;
 }
 
 // Score color based on value
@@ -109,6 +113,9 @@ export function RoommateCard({
     canSendRequest,
     isConnected = false,
     hasIntroMessage = false,
+    isIncomingPending = false,
+    onAccept,
+    isAccepting = false,
 }: RoommateCardProps) {
     const getInitials = (name: string) => {
         return name
@@ -237,8 +244,27 @@ export function RoommateCard({
                         <MessageCircle className="w-4 h-4" />
                         <span className="text-xs sm:text-sm">Nhắn tin</span>
                     </Button>
+                ) : isIncomingPending ? (
+                    // Incoming Pending: Show Accept button
+                    <Button
+                        size="sm"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onAccept?.();
+                        }}
+                        disabled={isAccepting}
+                        className="flex-1 h-9 sm:h-8 gap-1 sm:gap-2 bg-emerald-600 hover:bg-emerald-700"
+                        title="Chấp nhận yêu cầu kết nối ngay"
+                    >
+                        {isAccepting ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <Check className="w-4 h-4" />
+                        )}
+                        <span className="text-xs sm:text-sm">Chấp nhận</span>
+                    </Button>
                 ) : hasPendingRequest || hasIntroMessage ? (
-                    // Pending: Show disabled "Đã gửi" button
+                    // Outgoing Pending: Show disabled "Đã gửi" button
                     <Button
                         variant="secondary"
                         size="sm"
