@@ -221,14 +221,14 @@ export function RoommateResults() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button
+                    {/* <Button
                         variant="outline"
                         size="icon"
                         onClick={() => refetch()}
                         title="Làm mới"
                     >
                         <RefreshCw className="w-4 h-4" />
-                    </Button>
+                    </Button> */}
                     <Button
                         variant="outline"
                         size="icon"
@@ -349,16 +349,23 @@ export function RoommateResults() {
                 <RoommateProfileModal
                     isOpen={isProfileModalOpen}
                     onClose={() => setIsProfileModalOpen(false)}
-                    roommate={{
-                        name: selectedMatch.full_name,
-                        role: selectedMatch.occupation || 'Sinh viên',
-                        match: selectedMatch.compatibility_score,
-                        age: selectedMatch.age || 0,
-                        university: selectedMatch.university || '',
-                        major: selectedMatch.major || '',
-                        bio: selectedMatch.bio || '',
-                    }}
+                    roommate={selectedMatch}
                     onMessageClick={() => handleStartChat(selectedMatch.matched_user_id)}
+                    onSendRequest={() => {
+                        // Close profile modal and open intro message modal
+                        setIsProfileModalOpen(false);
+                        handleOpenIntroModal(selectedMatch);
+                    }}
+                    connectionStatus={
+                        checkConnection(selectedMatch.matched_user_id)
+                            ? 'connected'
+                            : checkOutgoingPending(selectedMatch.matched_user_id)
+                                ? 'pending_sent'
+                                : checkIncomingPending(selectedMatch.matched_user_id)
+                                    ? 'pending_received'
+                                    : 'none'
+                    }
+                    isRequestLoading={requestsLoading}
                 />
             )}
 

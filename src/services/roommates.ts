@@ -84,6 +84,10 @@ export interface RoommateMatch {
     guest_score: number;
     weekend_score: number;
     budget_score: number;
+    // V2.0 - New score factors
+    hobby_score: number;
+    age_score: number;
+    last_seen: string | null;
 }
 
 export interface RoommateRequest {

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, User as UserIcon, Building2, Home } from 'lucide-react';
 import RommzLogo from '@/assets/logo/rommz-logo.png';
 import { useAuth } from '@/contexts';
+import { useActivityTracker } from '@/hooks/useActivityTracker';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,9 @@ export default function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
+
+  // Track user activity - updates last_seen every 5 minutes
+  useActivityTracker();
 
   const isActive = (path: string) => {
     return location.pathname === path;
