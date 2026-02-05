@@ -1,20 +1,26 @@
-// @ts-nocheck - Tables mới chưa có trong database.types.ts
-// Regenerate types: npx supabase gen types typescript --project-id vevnoxlgwisdottaifdn > src/lib/database.types.ts
 /**
  * Roommates API Service
  * CRUD operations for roommate profiles, matching, and requests
  */
 
-
-
 import { supabase } from '@/lib/supabase';
+import type { Database, Tables, Enums } from '@/lib/database.types';
 
 // ============================================
-// Types
+// Types - Using generated database types
 // ============================================
 
-export type RoommateProfileStatus = 'looking' | 'paused' | 'found';
-export type RoommateRequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired';
+// Status types from database enums
+export type RoommateProfileStatus = Enums<'roommate_profile_status'>;
+export type RoommateRequestStatus = Enums<'roommate_request_status'>;
+
+// RPC function types for type-safe calls
+type GetRoommateMatchesArgs = Database['public']['Functions']['get_roommate_matches']['Args'];
+type GetRoommateMatchesReturns = Database['public']['Functions']['get_roommate_matches']['Returns'];
+type CalculateCompatibilityArgs = Database['public']['Functions']['calculate_compatibility_score']['Args'];
+type CalculateCompatibilityReturns = Database['public']['Functions']['calculate_compatibility_score']['Returns'];
+type GetOrCreateConversationArgs = Database['public']['Functions']['get_or_create_conversation']['Args'];
+type GetOrCreateConversationReturns = Database['public']['Functions']['get_or_create_conversation']['Returns'];
 
 export interface RoommateProfile {
     id: string;
@@ -268,11 +274,11 @@ export async function getTopMatches(
     userId: string,
     limit: number = 20
 ): Promise<RoommateMatch[]> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.rpc as any)('get_roommate_matches', {
+    const args: GetRoommateMatchesArgs = {
         p_user_id: userId,
         p_limit: limit,
-    });
+    };
+    const { data, error } = await supabase.rpc('get_roommate_matches', args);
 
     if (error) {
         console.error('[getTopMatches] Error:', error);
@@ -297,11 +303,11 @@ export async function calculateCompatibility(
     weekend_score: number;
     budget_score: number;
 }> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase.rpc as any)('calculate_compatibility_score', {
+    const args: CalculateCompatibilityArgs = {
         p_user1_id: user1Id,
         p_user2_id: user2Id,
-    });
+    };
+    const { data, error } = await supabase.rpc('calculate_compatibility_score', args);
 
     if (error) {
         console.error('[calculateCompatibility] Error:', error);
@@ -460,6 +466,7 @@ export async function respondToRequest(
         .from('roommate_requests')
         .update({
             status: accept ? 'accepted' : 'declined',
+            responded_at: new Date().toISOString(),
         })
         .eq('id', requestId);
 
@@ -495,13 +502,13 @@ export async function acceptRequestAndCreateConversation(
         : request.sender_id;
 
     // Use the existing RPC function to create conversation
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: conversationId, error: convError } = await (supabase.rpc as any)(
+    const convArgs: GetOrCreateConversationArgs = {
+        user1_id: currentUserId,
+        user2_id: otherUserId,
+    };
+    const { data: conversationId, error: convError } = await supabase.rpc(
         'get_or_create_conversation',
-        {
-            user1_id: currentUserId,
-            user2_id: otherUserId,
-        }
+        convArgs
     );
 
     if (convError) throw convError;
@@ -519,14 +526,10 @@ export async function acceptRequestAndCreateConversation(
 
         await supabase.from('notifications').insert({
             user_id: request.sender_id, // Notify the original sender
-            type: 'roommate_request_accepted',
+            type: 'roommate_request' as const,
             title: 'Yêu cầu kết nối được chấp nhận!',
-            message: `${senderName} đã chấp nhận yêu cầu kết nối của bạn. Bạn có thể bắt đầu trò chuyện ngay.`,
-            data: {
-                request_id: requestId,
-                conversation_id: conversationId,
-                accepter_id: currentUserId,
-            },
+            content: `${senderName} đã chấp nhận yêu cầu kết nối của bạn. Bạn có thể bắt đầu trò chuyện ngay.`,
+            link: `/messages/${conversationId}`,
             is_read: false,
         });
     } catch (notifError) {
@@ -535,6 +538,27 @@ export async function acceptRequestAndCreateConversation(
     }
 
     return conversationId as string;
+}
+
+/**
+ * Get all requests received by user (including accepted/declined)
+ */
+export async function getReceivedRequests(userId: string): Promise<RoommateRequest[]> {
+    const { data, error } = await supabase
+        .from('roommate_requests')
+        .select(`
+      *,
+      sender:users!sender_id(id, full_name, avatar_url)
+    `)
+        .eq('receiver_id', userId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('[getReceivedRequests] Error:', error);
+        throw error;
+    }
+
+    return (data || []) as RoommateRequest[];
 }
 
 /**
@@ -588,7 +612,7 @@ export async function getAllRequests(userId: string): Promise<{
     sent: RoommateRequest[];
 }> {
     const [received, sent] = await Promise.all([
-        getPendingRequests(userId),
+        getReceivedRequests(userId), // Fetch all received, not just pending
         getSentRequests(userId),
     ]);
 

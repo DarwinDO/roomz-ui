@@ -31,13 +31,13 @@ import {
 import { sendIntroMessage } from '@/services/roommates';
 import { useAuth } from '@/contexts/AuthContext';
 import { RoommateCard } from './RoommateCard';
+import { RoommateResultsSkeleton } from './RoommateCardSkeleton';
 import { IntroMessageModal } from './IntroMessageModal';
 import { RoommateProfileModal } from '@/components/modals/RoommateProfileModal';
 import { LimitsBar } from './LimitsBar';
 import { RoommateFilters, type FilterOptions } from './RoommateFilters';
 import { CompatibilityBreakdown } from './CompatibilityBreakdown';
 import { LimitHitModal } from './LimitHitModal';
-import { PageLoading } from '../common/LoadingSpinner';
 import { toast } from 'sonner';
 
 type SortOption = 'compatibility' | 'distance' | 'age';
@@ -55,7 +55,18 @@ export function RoommateResults() {
         recordView,
         refetch,
     } = useRoommateMatchesQuery();
-    const { sendRequest, checkExistingRequest, sentRequests, loading: requestsLoading, refetch: refetchRequests } = useRoommateRequestsQuery();
+    const {
+        sendRequest,
+        checkExistingRequest,
+        sentRequests,
+        receivedRequests,
+        loading: requestsLoading,
+        refetch: refetchRequests,
+        // Helper to check connection status
+        checkConnection,
+        // Helper to check pending status
+        checkPending,
+    } = useRoommateRequestsQuery();
 
     const [sortBy, setSortBy] = useState<SortOption>('compatibility');
     const [selectedMatch, setSelectedMatch] = useState<typeof matches[0] | null>(null);
@@ -75,37 +86,15 @@ export function RoommateResults() {
     });
 
     // Combined loading state - wait for all data to be ready
-    const isLoading = matchesLoading || requestsLoading;
+    const isLoading = matchesLoading || (requestsLoading && matches.length === 0);
 
-    // ✅ OPTIMIZED: Use useMemo instead of useState + useEffect
-    // These are derived states computed from sentRequests - no need for separate state
-    const { pendingRequests, sentIntroMessages, connectedUsers } = useMemo(() => {
-        // Pending requests (not accepted/declined/cancelled yet)
-        const pending = new Set(
-            sentRequests
-                .filter(r => r.status === 'pending')
-                .map(r => r.receiver_id)
-        );
-
-        // Users we've sent intro messages to (active requests with a message)
-        const intros = new Set(
+    // Users we've sent intro messages to (used for intro modal check)
+    const sentIntroMessages = useMemo(() => {
+        return new Set(
             sentRequests
                 .filter(r => r.message && r.status === 'pending')
                 .map(r => r.receiver_id)
         );
-
-        // Connected users (accepted requests)
-        const connected = new Set(
-            sentRequests
-                .filter(r => r.status === 'accepted')
-                .map(r => r.receiver_id)
-        );
-
-        return {
-            pendingRequests: pending,
-            sentIntroMessages: intros,
-            connectedUsers: connected
-        };
     }, [sentRequests]);
 
     // Filter and sort matches
@@ -162,7 +151,7 @@ export function RoommateResults() {
 
     const handleOpenIntroModal = (match: typeof matches[0]) => {
         // If already connected, go directly to chat
-        if (connectedUsers.has(match.matched_user_id)) {
+        if (checkConnection(match.matched_user_id)) {
             handleStartChat(match.matched_user_id);
             return;
         }
@@ -193,9 +182,18 @@ export function RoommateResults() {
         }
     };
 
-    // Loading state
+    // IMPROVED: Show skeleton for matches loading, but allow parallel viewing
+    // if requests still loading - we can show matches with a small indicator
     if (isLoading) {
-        return <PageLoading message="Đang tìm bạn cùng phòng phù hợp..." />;
+        return (
+            <>
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold mb-1">Bạn cùng phòng phù hợp</h1>
+                    <p className="text-muted-foreground">Đang tìm kiếm...</p>
+                </div>
+                <RoommateResultsSkeleton count={4} />
+            </>
+        );
     }
 
     // Error state
@@ -325,9 +323,9 @@ export function RoommateResults() {
                                     onViewProfile={() => handleViewProfile(match)}
                                     onSendRequest={() => handleOpenIntroModal(match)}
                                     onMessage={() => handleOpenIntroModal(match)}
-                                    hasPendingRequest={pendingRequests.has(match.matched_user_id)}
+                                    hasPendingRequest={checkPending(match.matched_user_id)}
                                     canSendRequest={limits.requests > 0}
-                                    isConnected={connectedUsers.has(match.matched_user_id)}
+                                    isConnected={checkConnection(match.matched_user_id)}
                                     hasIntroMessage={sentIntroMessages.has(match.matched_user_id)}
                                 />
                             </motion.div>

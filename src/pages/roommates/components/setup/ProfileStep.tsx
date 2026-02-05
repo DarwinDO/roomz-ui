@@ -20,40 +20,24 @@ import {
     ArrowLeft,
     User,
     Loader2,
-    Gamepad2,
-    Dumbbell,
-    BookOpen,
-    Music,
-    Camera,
-    Plane,
-    Coffee,
-    Film,
-    Palette,
-    Code,
     Sparkles,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { RoommateProfileInput } from '@/services/roommates';
+import {
+    HOBBY_OPTIONS,
+    GENDER_OPTIONS,
+    PREFERRED_GENDER_OPTIONS,
+    OCCUPATION_OPTIONS
+} from '@/constants/roommates';
 
 interface ProfileStepProps {
     onSubmit: (data: Partial<RoommateProfileInput>) => Promise<void>;
     onBack: () => void;
 }
 
-// Hobby options with icons
-const hobbyOptions = [
-    { value: 'gaming', label: 'Gaming', icon: Gamepad2 },
-    { value: 'gym', label: 'Gym', icon: Dumbbell },
-    { value: 'reading', label: 'Đọc sách', icon: BookOpen },
-    { value: 'music', label: 'Âm nhạc', icon: Music },
-    { value: 'photography', label: 'Chụp ảnh', icon: Camera },
-    { value: 'travel', label: 'Du lịch', icon: Plane },
-    { value: 'coffee', label: 'Cà phê', icon: Coffee },
-    { value: 'movies', label: 'Xem phim', icon: Film },
-    { value: 'art', label: 'Nghệ thuật', icon: Palette },
-    { value: 'coding', label: 'Lập trình', icon: Code },
-];
+
 
 export function ProfileStep({ onSubmit, onBack }: ProfileStepProps) {
     const [loading, setLoading] = useState(false);
@@ -161,7 +145,7 @@ export function ProfileStep({ onSubmit, onBack }: ProfileStepProps) {
                         Sở thích (chọn tối đa 5)
                     </Label>
                     <div className="flex flex-wrap gap-2">
-                        {hobbyOptions.map((hobby) => {
+                        {HOBBY_OPTIONS.map((hobby) => {
                             const Icon = hobby.icon;
                             const isSelected = hobbies.includes(hobby.value);
                             return (
@@ -212,9 +196,11 @@ export function ProfileStep({ onSubmit, onBack }: ProfileStepProps) {
                                 <SelectValue placeholder="Chọn" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="male">Nam</SelectItem>
-                                <SelectItem value="female">Nữ</SelectItem>
-                                <SelectItem value="other">Khác</SelectItem>
+                                {GENDER_OPTIONS.map(option => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
@@ -229,10 +215,11 @@ export function ProfileStep({ onSubmit, onBack }: ProfileStepProps) {
                                 <SelectValue placeholder="Chọn" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="student">Sinh viên</SelectItem>
-                                <SelectItem value="worker">Đi làm</SelectItem>
-                                <SelectItem value="freelancer">Freelancer</SelectItem>
-                                <SelectItem value="other">Khác</SelectItem>
+                                {OCCUPATION_OPTIONS.map(option => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
@@ -247,9 +234,11 @@ export function ProfileStep({ onSubmit, onBack }: ProfileStepProps) {
                                 <SelectValue placeholder="Chọn" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="any">Không phân biệt</SelectItem>
-                                <SelectItem value="male">Nam</SelectItem>
-                                <SelectItem value="female">Nữ</SelectItem>
+                                {PREFERRED_GENDER_OPTIONS.map(option => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>

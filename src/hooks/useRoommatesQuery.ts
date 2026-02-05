@@ -23,8 +23,9 @@ import {
     getTopMatches,
     saveQuizAnswers,
     getQuizAnswers,
-    getPendingRequests,
+    getReceivedRequests,
     getSentRequests,
+    getAllRequests,
     sendRoommateRequest,
     cancelRoommateRequest,
     respondToRequest,
@@ -239,13 +240,7 @@ export function useRoommateRequestsQuery() {
     // Query: Fetch both received and sent requests
     const query = useQuery({
         queryKey: roommateKeys.requests(user?.id ?? ''),
-        queryFn: async () => {
-            const [received, sent] = await Promise.all([
-                getPendingRequests(user!.id),
-                getSentRequests(user!.id),
-            ]);
-            return { received, sent };
-        },
+        queryFn: () => getAllRequests(user!.id),
         enabled: !!user?.id,
     });
 
@@ -353,6 +348,7 @@ export function useRoommateRequestsQuery() {
                 (old: { received: RoommateRequest[]; sent: RoommateRequest[] } | undefined) =>
                     old ? { ...old, sent: [newRequest, ...old.sent] } : old
             );
+            queryClient.invalidateQueries({ queryKey: roommateKeys.requests(user!.id) });
             incrementDailyRequestCount();
             toast.success('Đã gửi yêu cầu kết nối!');
         },
@@ -375,6 +371,7 @@ export function useRoommateRequestsQuery() {
                         )
                     } : old
             );
+            queryClient.invalidateQueries({ queryKey: roommateKeys.requests(user!.id) });
             toast.success('Đã hủy yêu cầu');
         },
         onError: (error: Error) => {
@@ -391,9 +388,17 @@ export function useRoommateRequestsQuery() {
                 (old: { received: RoommateRequest[]; sent: RoommateRequest[] } | undefined) =>
                     old ? {
                         ...old,
-                        received: old.received.filter(r => r.id !== requestId)
+                        received: old.received.map(r =>
+                            r.id === requestId ? { ...r, status: 'accepted' as const, responded_at: new Date().toISOString() } : r
+                        )
                     } : old
             );
+
+            // Invalidate to sync with server and update other queries (matches, messages)
+            queryClient.invalidateQueries({ queryKey: roommateKeys.requests(user!.id) });
+            queryClient.invalidateQueries({ queryKey: roommateKeys.matches(user!.id) });
+            queryClient.invalidateQueries({ queryKey: ['conversations'] });
+
             toast.success('Đã chấp nhận yêu cầu! Bạn có thể bắt đầu trò chuyện.');
         },
         onError: (error: Error) => {
@@ -410,9 +415,12 @@ export function useRoommateRequestsQuery() {
                 (old: { received: RoommateRequest[]; sent: RoommateRequest[] } | undefined) =>
                     old ? {
                         ...old,
-                        received: old.received.filter(r => r.id !== requestId)
+                        received: old.received.map(r =>
+                            r.id === requestId ? { ...r, status: 'declined' as const, responded_at: new Date().toISOString() } : r
+                        )
                     } : old
             );
+            queryClient.invalidateQueries({ queryKey: roommateKeys.requests(user!.id) });
             toast.success('Đã từ chối yêu cầu');
         },
         onError: (error: Error) => {
@@ -425,7 +433,7 @@ export function useRoommateRequestsQuery() {
         sentRequests: query.data?.sent ?? [],
         loading: query.isLoading,
         error: query.error?.message ?? null,
-        pendingCount: query.data?.received.length ?? 0,
+        pendingCount: query.data?.received.filter(r => r.status === 'pending').length ?? 0,
 
         // Mutations
         sendRequest: (receiverId: string, message?: string) =>
@@ -444,6 +452,24 @@ export function useRoommateRequestsQuery() {
         // Mutation states
         isSending: sendMutation.isPending,
         isCancelling: cancelMutation.isPending,
+
+        // Helpers
+        checkConnection: (otherUserId: string) => {
+            const data = query.data;
+            if (!data) return false;
+            return (
+                data.sent.some(r => r.receiver_id === otherUserId && r.status === 'accepted') ||
+                data.received.some(r => r.sender_id === otherUserId && r.status === 'accepted')
+            );
+        },
+        checkPending: (otherUserId: string) => {
+            const data = query.data;
+            if (!data) return false;
+            return (
+                data.sent.some(r => r.receiver_id === otherUserId && r.status === 'pending') ||
+                data.received.some(r => r.sender_id === otherUserId && r.status === 'pending')
+            );
+        },
     };
 }
 
@@ -501,7 +527,7 @@ export function useRoommateSetupQuery() {
         setState(prev => ({ ...prev, step }));
     }, []);
 
-    const completeSetup = useCallback(async (): Promise<boolean> => {
+    const completeSetup = useCallback(async (finalProfileData?: Partial<RoommateProfileInput>): Promise<boolean> => {
         if (!user?.id || !state.locationData) return false;
 
         try {
@@ -511,9 +537,10 @@ export function useRoommateSetupQuery() {
             }
 
             // Create or update profile
+            // Use finalProfileData if provided, otherwise fallback to state (stale)
             const profileData: RoommateProfileInput = {
                 ...state.locationData,
-                ...state.profileData,
+                ...(finalProfileData || state.profileData),
             };
 
             if (profile) {

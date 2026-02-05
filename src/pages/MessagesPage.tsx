@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import type { Conversation } from "@/services/messages";
 
 export default function MessagesPage() {
   const navigate = useNavigate();
+  const { conversationId: urlConversationId } = useParams();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { conversations, loading, unreadCount, refetch } = useConversations();
@@ -42,7 +43,16 @@ export default function MessagesPage() {
   useEffect(() => {
     if (conversations.length === 0) return;
 
-    // Handle ?conversation=<id> - direct conversation ID
+    // Priority 1: Handle :conversationId from URL path
+    if (urlConversationId) {
+      const found = conversations.find(c => c.id === urlConversationId);
+      if (found) {
+        setSelectedConversation(found);
+        return;
+      }
+    }
+
+    // Priority 2: Handle ?conversation=<id> - direct conversation ID (legacy)
     const conversationId = searchParams.get("conversation");
     if (conversationId) {
       const found = conversations.find(c => c.id === conversationId);
@@ -52,7 +62,7 @@ export default function MessagesPage() {
       }
     }
 
-    // Handle ?user=<userId> - find conversation with this user
+    // Priority 3: Handle ?user=<userId> - find conversation with this user
     const targetUserId = searchParams.get("user");
     if (targetUserId) {
       const found = conversations.find(c => c.participant.id === targetUserId);

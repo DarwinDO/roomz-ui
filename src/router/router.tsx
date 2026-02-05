@@ -161,7 +161,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: 'messages',
+        path: 'messages/:conversationId?',
         element: (
           <ProtectedRoute>
             <MessagesPage />

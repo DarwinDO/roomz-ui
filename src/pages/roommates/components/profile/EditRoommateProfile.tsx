@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,31 +32,13 @@ import {
 import { useRoommateProfileQuery } from '@/hooks/useRoommatesQuery';
 import { toast } from 'sonner';
 import { getProvinces, getDistricts, type Province, type District } from '@/services/vietnamLocations';
+import {
+    HOBBY_OPTIONS,
+    GENDER_OPTIONS,
+    PREFERRED_GENDER_OPTIONS,
+    OCCUPATION_OPTIONS
+} from '@/constants/roommates';
 
-const HOBBY_OPTIONS = [
-    'Âm nhạc', 'Nấu ăn', 'Leo núi', 'Chơi game', 'Đọc sách',
-    'Yoga', 'Gym', 'Du lịch', 'Nhiếp ảnh', 'Vẽ tranh',
-    'Xem phim', 'Thể thao', 'Học ngoại ngữ', 'Làm vườn',
-];
-
-const OCCUPATION_OPTIONS = [
-    { value: 'student', label: 'Sinh viên' },
-    { value: 'worker', label: 'Đi làm' },
-    { value: 'freelancer', label: 'Freelancer' },
-    { value: 'other', label: 'Khác' },
-];
-
-const GENDER_OPTIONS = [
-    { value: 'male', label: 'Nam' },
-    { value: 'female', label: 'Nữ' },
-    { value: 'other', label: 'Khác' },
-];
-
-const PREFERRED_GENDER_OPTIONS = [
-    { value: 'any', label: 'Không phân biệt' },
-    { value: 'male', label: 'Nam' },
-    { value: 'female', label: 'Nữ' },
-];
 
 export function EditRoommateProfile() {
     const navigate = useNavigate();
@@ -116,7 +99,9 @@ export function EditRoommateProfile() {
 
             setFormData({
                 bio: profile.bio || '',
+                // Ensure hobbies match values in HOBBY_OPTIONS
                 hobbies: profile.hobbies || [],
+                // Ensure age is string for input
                 age: profile.age?.toString() || '',
                 gender: profile.gender || '',
                 occupation: profile.occupation || '',
@@ -278,6 +263,33 @@ export function EditRoommateProfile() {
                         </div>
                     </div>
 
+                    {/* Hobbies */}
+                    <div>
+                        <Label className="text-base mb-3 block">Sở thích</Label>
+                        <div className="flex flex-wrap gap-2">
+                            {HOBBY_OPTIONS.map((hobby) => {
+                                const Icon = hobby.icon;
+                                const isSelected = formData.hobbies.includes(hobby.value);
+                                return (
+                                    <button
+                                        key={hobby.value}
+                                        type="button"
+                                        onClick={() => handleHobbyToggle(hobby.value)}
+                                        className={cn(
+                                            'flex items-center gap-2 px-3 py-2 rounded-full border transition-all text-sm',
+                                            isSelected
+                                                ? 'border-primary bg-primary/10 text-primary'
+                                                : 'border-muted hover:border-primary/50'
+                                        )}
+                                    >
+                                        <Icon className="w-4 h-4" />
+                                        <span>{hobby.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
                     {/* Occupation */}
                     <div className="space-y-2">
                         <Label htmlFor="occupation">Nghề nghiệp</Label>
@@ -312,12 +324,12 @@ export function EditRoommateProfile() {
                     <div className="flex flex-wrap gap-2">
                         {HOBBY_OPTIONS.map(hobby => (
                             <Badge
-                                key={hobby}
-                                variant={formData.hobbies.includes(hobby) ? 'default' : 'outline'}
+                                key={hobby.value}
+                                variant={formData.hobbies.includes(hobby.value) ? 'default' : 'outline'}
                                 className="cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={() => handleHobbyToggle(hobby)}
+                                onClick={() => handleHobbyToggle(hobby.value)}
                             >
-                                {hobby}
+                                {hobby.label}
                             </Badge>
                         ))}
                     </div>

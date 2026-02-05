@@ -93,7 +93,7 @@ export default function RoommatesPage() {
                     <ProfileStep
                         onSubmit={async (data) => {
                             setProfileData(data);
-                            const success = await completeSetup();
+                            const success = await completeSetup(data);
                             if (success) {
                                 // TanStack Query invalidates cache -> navigate works!
                                 navigate('/roommates', { replace: true });
