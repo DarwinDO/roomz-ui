@@ -1,104 +1,143 @@
+/**
+ * ChatDrawer Component
+ * Chat drawer using TanStack Query hooks with realtime updates
+ * No more polling - uses subscription for live updates
+ */
+
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Send, Loader2 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts";
-import { getMessages, sendMessage, startConversation, type Message } from "@/services/chat";
+import { startConversation } from "@/services/chat";
+import { useMessages, useTypingIndicator } from "@/hooks/chat";
+import {
+  MessageBubble,
+  TypingIndicator,
+  QuickReplies,
+  ConnectionStatus,
+  MessageSkeleton
+} from "@/components/chat";
 import { toast } from "sonner";
-import { format } from "date-fns";
 
 interface ChatDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  recipientId?: string; // We need ID to start/find chat
+  recipientId?: string;
   recipientName: string;
   recipientRole?: string;
   compatibilityScore?: number;
+  recipientAvatar?: string;
 }
 
-export function ChatDrawer({ isOpen, onClose, recipientId, recipientName, recipientRole, compatibilityScore }: ChatDrawerProps) {
+export function ChatDrawer({
+  isOpen,
+  onClose,
+  recipientId,
+  recipientName,
+  recipientRole,
+  compatibilityScore,
+  recipientAvatar
+}: ChatDrawerProps) {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [newMessage, setNewMessage] = useState("");
+  const [isInitializing, setIsInitializing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Initialize chat
+  // TanStack Query hooks (only active when conversationId exists)
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    isSending,
+    markAsRead
+  } = useMessages(conversationId || '');
+
+  // Typing indicator (active chat only)
+  const { typingUsers, setTyping } = useTypingIndicator(conversationId || '');
+
+  // Initialize conversation when drawer opens
   useEffect(() => {
     async function initChat() {
       if (!isOpen || !recipientId || !user) return;
 
-      setIsLoading(true);
+      setIsInitializing(true);
       try {
-        // Find existing conversation or start new
-        // For MVP, we'll try to 'start' which gets or creates
-        // Optimized: In real app, check if we already have convId from parent
         const convo = await startConversation(recipientId);
         setConversationId(convo.id);
-
-        // Fetch messages
-        const msgs = await getMessages(convo.id);
-        setMessages(msgs);
       } catch (error) {
-        console.error("Failed to load chat", error);
+        console.error("Failed to initialize chat", error);
         toast.error("Không thể tải cuộc trò chuyện");
       } finally {
-        setIsLoading(false);
+        setIsInitializing(false);
       }
     }
 
     initChat();
+  }, [isOpen, recipientId, user]);
 
-    // Polling for new messages (Simple MVP)
-    const interval = setInterval(() => {
-      if (conversationId) {
-        getMessages(conversationId).then(setMessages).catch(() => { });
-      }
-    }, 5000); // 5s
+  // Mark messages as read when viewing
+  useEffect(() => {
+    if (conversationId && messages.length > 0) {
+      markAsRead();
+    }
+  }, [conversationId, messages.length, markAsRead]);
 
-    return () => clearInterval(interval);
-  }, [isOpen, recipientId, user, conversationId]);
-
-  // Scroll to bottom
+  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSendMessage = async () => {
+  // Handle typing indicator
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    setTyping(e.target.value.length > 0);
+  }, [setTyping]);
+
+  // Send message
+  const handleSendMessage = useCallback(async () => {
     if (!newMessage.trim() || !conversationId) return;
 
     const content = newMessage.trim();
-    setNewMessage(""); // Optimistic clear
+    setNewMessage("");
+    setTyping(false);
 
     try {
-      await sendMessage(conversationId, content);
-      // Refresh immediately
-      const msgs = await getMessages(conversationId);
-      setMessages(msgs);
-    } catch (error) {
+      await sendMessage(content);
+    } catch {
       toast.error("Gửi tin nhắn thất bại");
-      setNewMessage(content); // Restore if failed
+      setNewMessage(content); // Restore on failure
     }
-  };
+  }, [newMessage, conversationId, sendMessage, setTyping]);
 
-  const quickMessages = [
-    "Chào bạn! Mình thấy chúng ta khá phù hợp!",
-    "Mình muốn tìm hiểu thêm về lối sống của bạn!",
-    "Bạn muốn gặp lúc nào?",
-  ];
+  // Quick reply handler
+  const handleQuickReply = useCallback((text: string) => {
+    setNewMessage(text);
+  }, []);
+
+  const initials = recipientName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  const isLoadingState = isInitializing || isLoading;
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full sm:max-w-lg p-0 flex flex-col">
+        {/* Header */}
         <SheetHeader className="px-6 pt-6 pb-4 border-b">
           <div className="flex items-center gap-3">
             <Avatar className="w-12 h-12">
+              <AvatarImage src={recipientAvatar} />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20">
-                {recipientName.split(" ").map((n) => n[0]).join("")}
+                {initials}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
@@ -116,82 +155,75 @@ export function ChatDrawer({ isOpen, onClose, recipientId, recipientName, recipi
                 <SheetDescription>{recipientRole}</SheetDescription>
               )}
             </div>
+            <ConnectionStatus />
           </div>
         </SheetHeader>
 
-        {/* Quick Message Suggestions */}
-        <div className="px-6 py-4 bg-gradient-to-br from-primary/5 to-secondary/5 border-b">
-          <p className="text-xs text-gray-600 mb-2">Tin nhắn nhanh:</p>
-          <div className="flex flex-wrap gap-2">
-            {quickMessages.map((quickMsg, index) => (
-              <Badge
-                key={index}
-                variant="outline"
-                className="bg-white cursor-pointer hover:bg-primary hover:text-white transition-colors"
-                onClick={() => setNewMessage(quickMsg)}
-              >
-                {quickMsg}
-              </Badge>
-            ))}
-          </div>
-        </div>
+        {/* Quick Replies (only show when no messages yet) */}
+        {!isLoadingState && messages.length === 0 && (
+          <QuickReplies onSelect={handleQuickReply} />
+        )}
 
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-slate-50">
-          {isLoading ? (
-            <div className="flex justify-center py-4"><Loader2 className="animate-spin text-muted-foreground" /></div>
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-muted/30">
+          {isLoadingState ? (
+            <MessageSkeleton count={4} />
           ) : messages.length === 0 ? (
-            <p className="text-center text-muted-foreground text-sm py-8">Hãy bắt đầu cuộc trò chuyện!</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Send className="w-8 h-8 text-primary" />
+              </div>
+              <p className="text-muted-foreground text-sm">
+                Hãy bắt đầu cuộc trò chuyện!
+              </p>
+              <p className="text-muted-foreground/70 text-xs mt-1">
+                Chọn tin nhắn nhanh ở trên hoặc tự gõ
+              </p>
+            </div>
           ) : (
-            messages.map((msg, index) => {
-              const isMe = msg.sender_id === user?.id; // Assuming user available
-              return (
-                <div
-                  key={msg.id || index}
-                  className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${isMe
-                        ? "bg-primary text-white rounded-br-sm"
-                        : "bg-white text-gray-900 rounded-bl-sm border"
-                      }`}
-                  >
-                    <p className="text-sm">{msg.content}</p>
-                    <p
-                      className={`text-[10px] mt-1 text-right ${isMe ? "text-primary-foreground/70" : "text-gray-400"
-                        }`}
-                    >
-                      {msg.created_at ? format(new Date(msg.created_at), "h:mm a") : ""}
-                    </p>
-                  </div>
-                </div>
-              );
-            })
+            <>
+              {messages.map((msg) => (
+                <MessageBubble
+                  key={msg.id}
+                  message={msg}
+                  isFromMe={msg.sender_id === user?.id}
+                />
+              ))}
+
+              {/* Typing Indicator */}
+              <TypingIndicator typingUsers={typingUsers} />
+            </>
           )}
           <div ref={messagesEndRef} />
         </div>
 
         {/* Message Input */}
-        <div className="px-6 py-4 border-t bg-white">
+        <div className="px-4 py-4 border-t bg-background">
           <div className="flex gap-2">
             <Input
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleInputChange}
               placeholder="Nhập tin nhắn..."
               className="rounded-full flex-1"
-              onKeyPress={(e) => {
-                if (e.key === "Enter") {
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
                   handleSendMessage();
                 }
               }}
+              disabled={!conversationId}
             />
             <Button
               onClick={handleSendMessage}
               size="icon"
               className="rounded-full bg-primary hover:bg-primary/90 shrink-0"
-              disabled={!newMessage.trim() || !conversationId}
+              disabled={!newMessage.trim() || !conversationId || isSending}
             >
-              <Send className="w-4 h-4" />
+              {isSending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
             </Button>
           </div>
         </div>

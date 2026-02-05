@@ -106,14 +106,25 @@ export function useNotifications(): UseNotificationsReturn {
     useEffect(() => {
         if (!user?.id) return;
 
+        let isMounted = true;
+
         // Initial fetch
         fetchNotifications();
 
-        // Create unique channel name
-        const channelName = `notifications:${user.id}:${Date.now()}`;
+        // Stable channel name - reuse same channel for same user
+        const channelName = `notifications-${user.id}`;
+
+        // Check if channel already exists to prevent duplicates
+        const existingChannel = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`);
+        if (existingChannel) {
+            console.log('[useNotifications] Reusing existing channel');
+            channelRef.current = existingChannel;
+            return;
+        }
+
         console.log('[useNotifications] Setting up realtime subscription:', channelName);
 
-        // Subscribe to INSERT events with proper configuration
+        // Subscribe to INSERT events
         channelRef.current = supabase
             .channel(channelName)
             .on(
@@ -122,35 +133,37 @@ export function useNotifications(): UseNotificationsReturn {
                     event: 'INSERT',
                     schema: 'public',
                     table: 'notifications',
-                    filter: `user_id=eq.${user.id}`,
                 },
                 (payload) => {
-                    console.log('[useNotifications] Received new notification:', payload);
+                    if (!isMounted) return;
+
                     const newNotification = payload.new as Notification;
+                    // Client-side filter: only process notifications for current user
+                    if (newNotification.user_id !== user.id) return;
+
+                    console.log('[useNotifications] Received new notification:', payload);
                     setNotifications(prev => [newNotification, ...prev]);
                     setUnreadCount(prev => prev + 1);
                 }
             )
             .subscribe((status, err) => {
-                console.log('[useNotifications] Subscription status:', status);
                 if (status === 'SUBSCRIBED') {
                     console.log('[useNotifications] ✅ Successfully subscribed to notifications');
                 }
                 if (status === 'CHANNEL_ERROR') {
                     console.error('[useNotifications] ❌ Channel error:', err);
                 }
-                if (status === 'TIMED_OUT') {
-                    console.error('[useNotifications] ⏱ Subscription timed out');
-                }
             });
 
         return () => {
+            isMounted = false;
             console.log('[useNotifications] Cleaning up subscription:', channelName);
             if (channelRef.current) {
                 supabase.removeChannel(channelRef.current);
+                channelRef.current = null;
             }
         };
-    }, [user?.id, fetchNotifications]);
+    }, [user?.id]); // Remove fetchNotifications from deps - it's stable via useCallback
 
     return {
         notifications,

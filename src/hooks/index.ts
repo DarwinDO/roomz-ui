@@ -4,7 +4,7 @@
  */
 
 export * from './useRooms';
-export * from './useRoommates';
+export * from './useRoommatesQuery';
 export * from './useFavorites';
 export * from './useMessages';
 export * from './useDebounce';

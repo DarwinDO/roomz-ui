@@ -506,6 +506,34 @@ export async function acceptRequestAndCreateConversation(
 
     if (convError) throw convError;
 
+    // 🔔 FIX BUG 1: Create notification for the sender
+    try {
+        // Get current user's name for the notification
+        const { data: currentUserData } = await supabase
+            .from('users')
+            .select('full_name')
+            .eq('id', currentUserId)
+            .single();
+
+        const senderName = currentUserData?.full_name || 'Ai đó';
+
+        await supabase.from('notifications').insert({
+            user_id: request.sender_id, // Notify the original sender
+            type: 'roommate_request_accepted',
+            title: 'Yêu cầu kết nối được chấp nhận!',
+            message: `${senderName} đã chấp nhận yêu cầu kết nối của bạn. Bạn có thể bắt đầu trò chuyện ngay.`,
+            data: {
+                request_id: requestId,
+                conversation_id: conversationId,
+                accepter_id: currentUserId,
+            },
+            is_read: false,
+        });
+    } catch (notifError) {
+        // Don't fail the whole operation if notification fails
+        console.error('[acceptRequestAndCreateConversation] Notification error:', notifError);
+    }
+
     return conversationId as string;
 }
 

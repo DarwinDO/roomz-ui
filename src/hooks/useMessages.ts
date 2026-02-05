@@ -87,9 +87,7 @@ export function useConversations(): UseConversationsReturn {
     // Subscribe to new messages for this user
     subscriptionRef.current = subscribeToUserMessages(user.id, {
       onNewMessage: (newMessage, conversationId) => {
-
-
-        // Update conversations list
+        // Update conversations list optimistically
         setConversations(prev => {
           const existingIndex = prev.findIndex(c => c.id === conversationId);
 
@@ -114,8 +112,7 @@ export function useConversations(): UseConversationsReturn {
             return [conversation, ...updated];
           }
 
-          // New conversation - refetch to get full data
-          fetchConversations();
+          // New conversation - don't do anything here, handled by onNewConversation subscription
           return prev;
         });
 

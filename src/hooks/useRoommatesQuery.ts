@@ -8,9 +8,12 @@
  * - Cache invalidation
  */
 
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
     getRoommateProfile,
     createRoommateProfile,
@@ -226,9 +229,12 @@ export function useRoommateMatchesQuery() {
 // useRoommateRequestsQuery - Request Management
 // ============================================
 
+
+
 export function useRoommateRequestsQuery() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    const channelRef = useRef<RealtimeChannel | null>(null);
 
     // Query: Fetch both received and sent requests
     const query = useQuery({
@@ -242,6 +248,95 @@ export function useRoommateRequestsQuery() {
         },
         enabled: !!user?.id,
     });
+
+    // 🔄 Realtime subscription for request status updates
+    // IMPORTANT: Requires enabling Replication for `roommate_requests` table in Supabase Dashboard
+    // If Realtime is not available, TanStack Query's refetchOnWindowFocus provides fallback
+    const ENABLE_REALTIME = true; // ✅ Enabled - tables added to supabase_realtime publication
+
+    useEffect(() => {
+        if (!user?.id || !ENABLE_REALTIME) return;
+
+        let isMounted = true;
+
+        // Stable channel name - reuse same channel for same user
+        const channelName = `roommate-requests-${user.id}`;
+
+        // Check if channel already exists to prevent duplicates
+        const existingChannel = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`);
+        if (existingChannel) {
+            console.log('[useRoommateRequestsQuery] Reusing existing channel');
+            channelRef.current = existingChannel;
+            return;
+        }
+
+        console.log('[useRoommateRequestsQuery] Setting up realtime subscription');
+
+        channelRef.current = supabase
+            .channel(channelName)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'roommate_requests',
+                },
+                (payload) => {
+                    if (!isMounted) return;
+
+                    const newData = payload.new as RoommateRequest | undefined;
+                    const oldData = payload.old as { id?: string; sender_id?: string; receiver_id?: string } | undefined;
+
+                    // Check if this change affects current user
+                    const isRelevant =
+                        newData?.sender_id === user.id ||
+                        newData?.receiver_id === user.id ||
+                        oldData?.sender_id === user.id ||
+                        oldData?.receiver_id === user.id;
+
+                    if (!isRelevant) return;
+
+                    console.log('[useRoommateRequestsQuery] Relevant request change:', payload.eventType);
+
+                    if (payload.eventType === 'UPDATE' && newData?.sender_id === user.id) {
+                        queryClient.setQueryData(
+                            roommateKeys.requests(user.id),
+                            (old: { received: RoommateRequest[]; sent: RoommateRequest[] } | undefined) =>
+                                old ? {
+                                    ...old,
+                                    sent: old.sent.map(r =>
+                                        r.id === newData.id
+                                            ? { ...r, status: newData.status }
+                                            : r
+                                    )
+                                } : old
+                        );
+
+                        if (newData.status === 'accepted') {
+                            toast.success('Yêu cầu kết nối của bạn đã được chấp nhận! 🎉');
+                        }
+                    } else if (payload.eventType === 'INSERT' && newData?.receiver_id === user.id) {
+                        queryClient.invalidateQueries({ queryKey: roommateKeys.requests(user.id) });
+                    }
+                }
+            )
+            .subscribe((status, err) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('[useRoommateRequestsQuery] ✅ Subscribed to request updates');
+                }
+                if (status === 'CHANNEL_ERROR') {
+                    console.error('[useRoommateRequestsQuery] ❌ Channel error:', err);
+                }
+            });
+
+        return () => {
+            isMounted = false;
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
+                channelRef.current = null;
+            }
+        };
+    }, [user?.id, queryClient]);
 
     // Mutation: Send request
     const sendMutation = useMutation({
@@ -368,7 +463,7 @@ export interface SetupWizardState {
     profileData: Partial<RoommateProfileInput>;
 }
 
-import { useState, useEffect, useCallback } from 'react';
+
 
 export function useRoommateSetupQuery() {
     const { user } = useAuth();

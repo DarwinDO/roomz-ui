@@ -63,9 +63,6 @@ export function RoommateResults() {
     const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
     const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
     const [limitType, setLimitType] = useState<'views' | 'requests'>('views');
-    const [pendingRequests, setPendingRequests] = useState<Set<string>>(new Set());
-    const [sentIntroMessages, setSentIntroMessages] = useState<Set<string>>(new Set());
-    const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
     const [isIntroModalOpen, setIsIntroModalOpen] = useState(false);
     const [introModalTarget, setIntroModalTarget] = useState<typeof matches[0] | null>(null);
     const [filters, setFilters] = useState<FilterOptions>({
@@ -77,41 +74,38 @@ export function RoommateResults() {
         occupation: 'any',
     });
 
-    // Refetch requests when component mounts (e.g., when switching back from Requests tab)
-    useEffect(() => {
-        refetchRequests();
-    }, [refetchRequests]);
-
     // Combined loading state - wait for all data to be ready
     const isLoading = matchesLoading || requestsLoading;
 
-    // Sync state from sentRequests - this is the single source of truth
-    // IMPORTANT: Always update state when sentRequests changes, even if empty
-    useEffect(() => {
-        // Extract pending requests (not accepted/declined/cancelled yet)
-        const existingPending = new Set(
+    // ✅ OPTIMIZED: Use useMemo instead of useState + useEffect
+    // These are derived states computed from sentRequests - no need for separate state
+    const { pendingRequests, sentIntroMessages, connectedUsers } = useMemo(() => {
+        // Pending requests (not accepted/declined/cancelled yet)
+        const pending = new Set(
             sentRequests
                 .filter(r => r.status === 'pending')
                 .map(r => r.receiver_id)
         );
-        setPendingRequests(existingPending);
 
-        // Extract users we've sent intro messages to (active requests with a message)
-        // Exclude cancelled/declined requests so user can send again
-        const existingIntros = new Set(
+        // Users we've sent intro messages to (active requests with a message)
+        const intros = new Set(
             sentRequests
                 .filter(r => r.message && r.status === 'pending')
                 .map(r => r.receiver_id)
         );
-        setSentIntroMessages(existingIntros);
 
-        // Extract connected users (accepted requests)
+        // Connected users (accepted requests)
         const connected = new Set(
             sentRequests
                 .filter(r => r.status === 'accepted')
                 .map(r => r.receiver_id)
         );
-        setConnectedUsers(connected);
+
+        return {
+            pendingRequests: pending,
+            sentIntroMessages: intros,
+            connectedUsers: connected
+        };
     }, [sentRequests]);
 
     // Filter and sort matches
@@ -156,10 +150,9 @@ export function RoommateResults() {
             return;
         }
 
-        const success = await sendRequest(userId);
-        if (success) {
-            setPendingRequests(prev => new Set(prev).add(userId));
-        }
+        // Send request - TanStack Query will auto-update sentRequests cache
+        // which triggers useMemo to recalculate pendingRequests
+        await sendRequest(userId);
     };
 
     const handleStartChat = (userId: string) => {
@@ -189,8 +182,9 @@ export function RoommateResults() {
 
         try {
             await sendIntroMessage(user.id, introModalTarget.matched_user_id, message);
-            setSentIntroMessages(prev => new Set(prev).add(introModalTarget.matched_user_id));
-            setPendingRequests(prev => new Set(prev).add(introModalTarget.matched_user_id));
+            // Refetch requests to update sentRequests cache
+            // useMemo will automatically recalculate pendingRequests and sentIntroMessages
+            await refetchRequests();
             toast.success('Đã gửi tin nhắn giới thiệu!');
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Không thể gửi tin nhắn. Vui lòng thử lại.';

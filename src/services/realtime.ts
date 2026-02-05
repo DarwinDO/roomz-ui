@@ -41,7 +41,7 @@ export interface TypingIndicator {
 // Connection Status Management
 // =============================================
 
-type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 type ConnectionListener = (status: ConnectionStatus) => void;
 
 const connectionListeners = new Set<ConnectionListener>();
@@ -192,7 +192,7 @@ export function subscribeToUserMessages(
                         .select('conversation_id')
                         .eq('conversation_id', newMessage.conversation_id)
                         .eq('user_id', userId)
-                        .single();
+                        .maybeSingle();
 
                     if (participant) {
 

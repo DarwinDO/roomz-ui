@@ -40,11 +40,27 @@ export default function MessagesPage() {
 
   // Auto-select conversation from URL parameter
   useEffect(() => {
+    if (conversations.length === 0) return;
+
+    // Handle ?conversation=<id> - direct conversation ID
     const conversationId = searchParams.get("conversation");
-    if (conversationId && conversations.length > 0) {
+    if (conversationId) {
       const found = conversations.find(c => c.id === conversationId);
       if (found) {
         setSelectedConversation(found);
+        return;
+      }
+    }
+
+    // Handle ?user=<userId> - find conversation with this user
+    const targetUserId = searchParams.get("user");
+    if (targetUserId) {
+      const found = conversations.find(c => c.participant.id === targetUserId);
+      if (found) {
+        setSelectedConversation(found);
+      } else {
+        // No existing conversation - user might need to start from roommate feature
+        console.log('[MessagesPage] No conversation found with user:', targetUserId);
       }
     }
   }, [searchParams, conversations]);

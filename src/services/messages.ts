@@ -72,14 +72,14 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
   const conversations: Conversation[] = [];
 
   for (const convId of conversationIds) {
-    // Get latest message
+    // Get latest message (use maybeSingle to avoid 406 error when no messages)
     const { data: lastMessageData } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', convId)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     // Get unread count
     const { count: unreadCount } = await supabase
@@ -93,7 +93,8 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
     const otherParticipant = allParticipants?.find(p => p.conversation_id === convId);
     const participant = otherParticipant?.user;
 
-    if (participant && lastMessageData) {
+    // Include conversations even without messages (e.g., newly accepted roommate requests)
+    if (participant) {
       conversations.push({
         id: convId,
         participant: {
@@ -102,7 +103,16 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
           avatar_url: participant.avatar_url,
           email: participant.email || undefined,
         },
-        lastMessage: lastMessageData,
+        // Provide empty placeholder if no messages yet
+        lastMessage: lastMessageData || {
+          id: '',
+          conversation_id: convId,
+          sender_id: '',
+          content: 'Bắt đầu cuộc trò chuyện...',
+          created_at: new Date().toISOString(),
+          updated_at: null,
+          is_read: true,
+        },
         unreadCount: unreadCount || 0,
       });
     }
