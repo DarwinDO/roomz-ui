@@ -5,6 +5,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { RoommateMatch } from '@/services/roommates';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -100,7 +101,7 @@ export function RoommateResults() {
 
     // Filter and sort matches
     const filteredMatches = useMemo(() => {
-        return matches.filter(match => {
+        return matches.filter((match: RoommateMatch) => {
             if (filters.gender !== 'any' && match.gender !== filters.gender) return false;
             if (match.age && (match.age < filters.ageMin || match.age > filters.ageMax)) return false;
             if (filters.occupation !== 'any' && match.occupation !== filters.occupation) return false;

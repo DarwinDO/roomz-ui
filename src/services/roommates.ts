@@ -651,9 +651,10 @@ const DAILY_REQUEST_LIMIT = 5;
 /**
  * Get daily view count from localStorage
  */
-export function getDailyViewCount(): number {
+export function getDailyViewCount(userId?: string): number {
+    if (!userId) return 0;
     const today = new Date().toDateString();
-    const stored = localStorage.getItem('roommate_views');
+    const stored = localStorage.getItem(`roommate_views_${userId}`);
 
     if (!stored) return 0;
 
@@ -669,12 +670,12 @@ export function getDailyViewCount(): number {
 /**
  * Increment daily view count
  */
-export function incrementDailyViewCount(): number {
+export function incrementDailyViewCount(userId: string): number {
     const today = new Date().toDateString();
-    const current = getDailyViewCount();
+    const current = getDailyViewCount(userId);
     const newCount = current + 1;
 
-    localStorage.setItem('roommate_views', JSON.stringify({
+    localStorage.setItem(`roommate_views_${userId}`, JSON.stringify({
         date: today,
         count: newCount,
     }));
@@ -685,16 +686,17 @@ export function incrementDailyViewCount(): number {
 /**
  * Check if user can view more profiles
  */
-export function canViewMoreProfiles(): boolean {
-    return getDailyViewCount() < DAILY_VIEW_LIMIT;
+export function canViewMoreProfiles(userId?: string): boolean {
+    return getDailyViewCount(userId) < DAILY_VIEW_LIMIT;
 }
 
 /**
  * Get daily request count
  */
-export function getDailyRequestCount(): number {
+export function getDailyRequestCount(userId?: string): number {
+    if (!userId) return 0;
     const today = new Date().toDateString();
-    const stored = localStorage.getItem('roommate_requests');
+    const stored = localStorage.getItem(`roommate_requests_${userId}`);
 
     if (!stored) return 0;
 
@@ -710,12 +712,12 @@ export function getDailyRequestCount(): number {
 /**
  * Increment daily request count
  */
-export function incrementDailyRequestCount(): number {
+export function incrementDailyRequestCount(userId: string): number {
     const today = new Date().toDateString();
-    const current = getDailyRequestCount();
+    const current = getDailyRequestCount(userId);
     const newCount = current + 1;
 
-    localStorage.setItem('roommate_requests', JSON.stringify({
+    localStorage.setItem(`roommate_requests_${userId}`, JSON.stringify({
         date: today,
         count: newCount,
     }));
@@ -726,22 +728,22 @@ export function incrementDailyRequestCount(): number {
 /**
  * Check if user can send more requests
  */
-export function canSendMoreRequests(): boolean {
-    return getDailyRequestCount() < DAILY_REQUEST_LIMIT;
+export function canSendMoreRequests(userId?: string): boolean {
+    return getDailyRequestCount(userId) < DAILY_REQUEST_LIMIT;
 }
 
 /**
  * Get remaining limits
  */
-export function getRemainingLimits(): {
+export function getRemainingLimits(userId?: string): {
     views: number;
     requests: number;
     viewLimit: number;
     requestLimit: number;
 } {
     return {
-        views: DAILY_VIEW_LIMIT - getDailyViewCount(),
-        requests: DAILY_REQUEST_LIMIT - getDailyRequestCount(),
+        views: DAILY_VIEW_LIMIT - getDailyViewCount(userId),
+        requests: DAILY_REQUEST_LIMIT - getDailyRequestCount(userId),
         viewLimit: DAILY_VIEW_LIMIT,
         requestLimit: DAILY_REQUEST_LIMIT,
     };

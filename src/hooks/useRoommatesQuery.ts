@@ -31,8 +31,11 @@ import {
     respondToRequest,
     acceptRequestAndCreateConversation,
     hasExistingRequest,
-    canSendMoreRequests,
-    incrementDailyRequestCount,
+    getRemainingLimits,
+    canViewMoreProfiles,
+    canSendMoreRequests as canSendMoreRequestsFn,
+    incrementDailyViewCount,
+    incrementDailyRequestCount as incrementDailyRequestCountFn,
     type RoommateProfile,
     type RoommateProfileInput,
     type RoommateProfileStatus,
@@ -51,6 +54,7 @@ export const roommateKeys = {
     quiz: (userId: string) => [...roommateKeys.all, 'quiz', userId] as const,
     matches: (userId: string) => [...roommateKeys.all, 'matches', userId] as const,
     requests: (userId: string) => [...roommateKeys.all, 'requests', userId] as const,
+    limits: (userId: string) => [...roommateKeys.all, 'limits', userId] as const,
 };
 
 // ============================================
@@ -186,19 +190,48 @@ export function useRoommateQuizQuery() {
 }
 
 // ============================================
+// useRoommateLimits - Reactive limits tracking
+// ============================================
+
+export function useRoommateLimits() {
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
+
+    const query = useQuery({
+        queryKey: roommateKeys.limits(user?.id ?? ''),
+        queryFn: () => getRemainingLimits(user?.id),
+        enabled: !!user?.id,
+    });
+
+    const incrementView = useCallback(() => {
+        if (!user?.id) return;
+        incrementDailyViewCount(user.id);
+        queryClient.invalidateQueries({ queryKey: roommateKeys.limits(user.id) });
+    }, [user?.id, queryClient]);
+
+    const incrementRequest = useCallback(() => {
+        if (!user?.id) return;
+        incrementDailyRequestCountFn(user.id);
+        queryClient.invalidateQueries({ queryKey: roommateKeys.limits(user.id) });
+    }, [user?.id, queryClient]);
+
+    return {
+        limits: query.data ?? { views: 0, requests: 0, viewLimit: 10, requestLimit: 5 },
+        loading: query.isLoading,
+        incrementView,
+        incrementRequest,
+        canViewMore: canViewMoreProfiles(user?.id),
+        canSendMore: canSendMoreRequestsFn(user?.id),
+    };
+}
+
+// ============================================
 // useRoommateMatchesQuery - Matching
 // ============================================
 
-import {
-    getRemainingLimits,
-    canViewMoreProfiles,
-    canSendMoreRequests as canSendMoreRequestsFn,
-    incrementDailyViewCount,
-} from '@/services/roommates';
-
 export function useRoommateMatchesQuery() {
     const { user } = useAuth();
-    const [limits, setLimits] = useState(getRemainingLimits());
+    const { limits, canViewMore, canSendMore, incrementView } = useRoommateLimits();
 
     const query = useQuery({
         queryKey: roommateKeys.matches(user?.id ?? ''),
@@ -206,23 +239,18 @@ export function useRoommateMatchesQuery() {
         enabled: !!user?.id,
     });
 
-    const recordView = useCallback(() => {
-        incrementDailyViewCount();
-        setLimits(getRemainingLimits());
-    }, []);
-
     return {
         matches: query.data ?? [],
         loading: query.isLoading,
         error: query.error?.message ?? null,
         refetch: query.refetch,
-        isFetching: query.isFetching, // True when refetching in background
+        isFetching: query.isFetching,
 
-        // Limits tracking
+        // Limits tracking (now reactive)
         limits,
-        canViewMore: canViewMoreProfiles(),
-        canSendMore: canSendMoreRequestsFn(),
-        recordView,
+        canViewMore,
+        canSendMore,
+        recordView: incrementView,
     };
 }
 
@@ -336,7 +364,7 @@ export function useRoommateRequestsQuery() {
     // Mutation: Send request
     const sendMutation = useMutation({
         mutationFn: async ({ receiverId, message }: { receiverId: string; message?: string }) => {
-            if (!canSendMoreRequests()) {
+            if (!canSendMoreRequestsFn(user?.id)) {
                 throw new Error('Bạn đã hết lượt gửi yêu cầu hôm nay. Vui lòng quay lại vào ngày mai.');
             }
             return sendRoommateRequest(user!.id, receiverId, message);
@@ -349,7 +377,11 @@ export function useRoommateRequestsQuery() {
                     old ? { ...old, sent: [newRequest, ...old.sent] } : old
             );
             queryClient.invalidateQueries({ queryKey: roommateKeys.requests(user!.id) });
-            incrementDailyRequestCount();
+
+            // ✅ Increment request count and invalidate limits
+            incrementDailyRequestCountFn(user!.id);
+            queryClient.invalidateQueries({ queryKey: roommateKeys.limits(user!.id) });
+
             toast.success('Đã gửi yêu cầu kết nối!');
         },
         onError: (error: Error) => {
