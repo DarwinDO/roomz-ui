@@ -5,6 +5,7 @@
 
 import { supabase } from '@/lib/supabase';
 import type { Tables } from '@/lib/database.types';
+import { sanitizeSearchInput } from '@/utils/sanitize';
 
 // Use database types
 export type Room = Tables<'rooms'>;
@@ -18,6 +19,7 @@ export interface RoomWithDetails extends Room {
     avatar_url: string | null;
     phone: string | null;
     email: string;
+    trust_score: number | null;
   };
   images?: RoomImage[];
   amenities?: RoomAmenity | null;
@@ -99,11 +101,12 @@ export async function getRooms(filters: RoomFilters = {}): Promise<RoomWithDetai
     .from('rooms')
     .select(`
       *,
-      landlord:users!landlord_id(id, full_name, avatar_url, phone, email),
+      landlord:users!landlord_id(id, full_name, avatar_url, phone, email, trust_score),
       images:room_images(*),
       amenities:room_amenities(*)
     `)
     .eq('status', 'active')
+    .eq('is_available', true)
     .is('deleted_at', null);
 
   // Apply filters
@@ -120,7 +123,8 @@ export async function getRooms(filters: RoomFilters = {}): Promise<RoomWithDetai
     query = query.eq('room_type', filters.roomType);
   }
   if (filters.searchQuery) {
-    query = query.or(`title.ilike.%${filters.searchQuery}%,address.ilike.%${filters.searchQuery}%,district.ilike.%${filters.searchQuery}%`);
+    const sanitized = sanitizeSearchInput(filters.searchQuery);
+    query = query.or(`title.ilike.%${sanitized}%,address.ilike.%${sanitized}%,district.ilike.%${sanitized}%`);
   }
   if (filters.isVerified !== undefined) {
     query = query.eq('is_verified', filters.isVerified);
@@ -145,7 +149,7 @@ export async function getRoomById(id: string): Promise<RoomWithDetails | null> {
     .from('rooms')
     .select(`
       *,
-      landlord:users!landlord_id(id, full_name, avatar_url, phone, email),
+      landlord:users!landlord_id(id, full_name, avatar_url, phone, email, trust_score),
       images:room_images(*),
       amenities:room_amenities(*)
     `)

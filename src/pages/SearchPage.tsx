@@ -22,15 +22,10 @@ import type { RoomWithDetails } from "@/services/rooms";
 function transformRoomToCardProps(room: RoomWithDetails, isFavorited: boolean = false) {
   // Get primary image or first image
   const primaryImage = room.images?.find(img => img.is_primary) || room.images?.[0];
-  const imageUrl = primaryImage?.image_url || 'https://images.unsplash.com/photo-1668089677938-b52086753f77?w=400';
+  const imageUrl = primaryImage?.image_url || '';
 
   // Format location
   const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
-
-  // Calculate random distance for now (in real app, this would be calculated from user location)
-  const distance = room.latitude && room.longitude
-    ? `${(Math.random() * 5 + 0.5).toFixed(1)} km`
-    : 'N/A';
 
   return {
     id: room.id,
@@ -38,10 +33,10 @@ function transformRoomToCardProps(room: RoomWithDetails, isFavorited: boolean = 
     title: room.title,
     location,
     price: Number(room.price_per_month),
-    distance,
+    distance: undefined,
     verified: room.is_verified || false,
     available: room.is_available || false,
-    matchPercentage: Math.floor(Math.random() * 20 + 75), // Random for now, would come from matching algorithm
+    matchPercentage: undefined,
     isFavorited,
   };
 }
@@ -52,7 +47,7 @@ export default function SearchPage() {
 
   // Filters state
   const [searchQuery, setSearchQuery] = useState("");
-  const [priceRange, setPriceRange] = useState([2000000, 6000000]);
+  const [priceRange, setPriceRange] = useState([0, 10000000]);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
@@ -88,7 +83,7 @@ export default function SearchPage() {
 
   const handleFavorite = async (roomId: string) => {
     if (!user) {
-      toast.error("Vui lòng đăng nhập để lưu phòng yêu thích");
+      toast.info("Vui lòng đăng nhập để lưu phòng yêu thích");
       navigate('/login');
       return;
     }
@@ -406,7 +401,7 @@ export default function SearchPage() {
               {selectedRoomTypes.map(type => {
                 const roomType = roomTypes.find(t => t.value === type);
                 return (
-                  <Badge className="bg-primary text-primary-foreground gap-1">
+                  <Badge key={type} className="bg-primary text-primary-foreground gap-1">
                     {roomType?.label}
                     <X className="w-3 h-3 cursor-pointer" onClick={() => toggleRoomType(type)} />
                   </Badge>

@@ -10,7 +10,7 @@ interface RoomCardProps {
   title: string;
   location: string;
   price: number;
-  distance: string;
+  distance?: string;
   verified: boolean;
   available: boolean;
   matchPercentage?: number;
@@ -86,7 +86,7 @@ export function RoomCard({
         <div className="flex items-center gap-1 text-muted-foreground mb-2">
           <MapPin className="w-4 h-4" />
           <span className="text-sm">{location}</span>
-          <span className="text-sm">• {distance}</span>
+          {distance && <span className="text-sm">• {distance}</span>}
         </div>
         <div className="flex items-center justify-between">
           <div>

@@ -128,10 +128,7 @@ export default function RoomDetailPage() {
   // Get images from room data
   const images = useMemo(() => {
     if (!room?.images || room.images.length === 0) {
-      return [
-        "https://images.unsplash.com/photo-1668089677938-b52086753f77?w=800",
-        "https://images.unsplash.com/photo-1617325247661-675ab4b64ae2?w=800",
-      ];
+      return [];
     }
     return room.images
       .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
@@ -174,12 +171,7 @@ export default function RoomDetailPage() {
     return list.slice(0, 8); // Limit to 8 items
   }, [amenities, room?.furnished]);
 
-  // Mock roommates for now
-  const roommates = [
-    { name: "Minh Tuấn", match: 92, avatar: "", role: "CNTT, Năm 3" },
-    { name: "Hương Giang", match: 88, avatar: "", role: "Kinh tế, Năm 2" },
-    { name: "Đức Anh", match: 85, avatar: "", role: "Kỹ thuật, Cao học" },
-  ];
+
 
   // Loading state
   if (loading) {
@@ -433,8 +425,8 @@ export default function RoomDetailPage() {
                 </div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm text-muted-foreground">Điểm tin cậy:</span>
-                  <Progress value={room.is_verified ? 95 : 70} className="flex-1" />
-                  <span className="text-sm">{room.is_verified ? 95 : 70}%</span>
+                  <Progress value={Number(room.landlord?.trust_score) || 0} className="flex-1" />
+                  <span className="text-sm">{Number(room.landlord?.trust_score) || 0}%</span>
                 </div>
               </div>
             </div>
@@ -458,59 +450,7 @@ export default function RoomDetailPage() {
                 </Button>
               </div>
 
-              {/* Roommate Matching */}
-              <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10">
-                <div className="flex items-center justify-between mb-4">
-                  <h3>Bạn cùng phòng tiềm năng</h3>
-                  <Badge variant="outline" className="bg-white">
-                    3 kết quả
-                  </Badge>
-                </div>
-                <div className="space-y-3">
-                  {roommates.map((roommate, index) => (
-                    <div
-                      key={index}
-                      className="bg-card rounded-xl p-3 border border-border hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <Avatar className="w-10 h-10">
-                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20">
-                            {roommate.name.split(" ").map((n) => n[0]).join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm truncate">{roommate.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{roommate.role}</p>
-                        </div>
-                        <Badge className="bg-secondary text-white shrink-0">
-                          {roommate.match}%
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openRoommateProfileModal(roommate)}
-                          className="rounded-xl text-xs hover:bg-muted">
-                          Xem hồ sơ
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => openChatDrawer(roommate)}
-                          className="rounded-xl bg-primary hover:bg-primary/90 text-xs">
-                          Nhắn tin
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Button
-                  onClick={openViewAllMatchesModal}
-                  variant="outline"
-                  className="w-full mt-4 rounded-xl border-primary text-primary hover:bg-primary hover:text-white min-h-[44px]">
-                  Xem tất cả
-                </Button>
-              </div>
+              {/* Roommate Matching — hidden until real data is available */}
 
               {/* Safety Note */}
               <div className="bg-warning/5 border border-warning/20 rounded-xl p-4">
