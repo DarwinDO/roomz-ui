@@ -1,5 +1,6 @@
 /**
  * RoomMap — Leaflet map with room markers and popups
+ * Supports both multi-room (Search) and single-room (Detail) modes
  */
 import { useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -7,13 +8,19 @@ import L from '@/lib/leaflet-setup';
 import type { RoomWithDetails } from '@/services/rooms';
 import { formatPriceInMillions } from '@/utils/format';
 import { useNavigate } from 'react-router-dom';
+import { MapPin } from 'lucide-react';
 
 const DEFAULT_CENTER: [number, number] = [10.82, 106.63];
 const DEFAULT_ZOOM = 12;
+const SINGLE_ROOM_ZOOM = 15;
 
 interface RoomMapProps {
     rooms: RoomWithDetails[];
     className?: string;
+    /** Single room mode: disable fitBounds, use fixed zoom */
+    singleRoom?: boolean;
+    /** Allow scroll wheel zoom (disable for inline to prevent scroll hijack) */
+    interactive?: boolean;
 }
 
 /** Auto-fit map bounds to show all markers */
@@ -37,6 +44,18 @@ function FitBounds({ positions }: { positions: [number, number][] }) {
     }, [positionKey]);
 
     return null;
+}
+
+/** Fallback UI when no coordinates available */
+function MapPlaceholder() {
+    return (
+        <div className="flex flex-col items-center justify-center h-full min-h-[300px] bg-muted/30 rounded-2xl border border-border">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                <MapPin className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground text-sm">Chưa có dữ liệu bản đồ chính xác</p>
+        </div>
+    );
 }
 
 /** 
@@ -92,34 +111,66 @@ function RoomPopup({ room }: { room: RoomWithDetails }) {
     );
 }
 
-export function RoomMap({ rooms, className = '' }: RoomMapProps) {
+export function RoomMap({
+    rooms,
+    className = '',
+    singleRoom = false,
+    interactive = true
+}: RoomMapProps) {
     const roomsWithCoords = useMemo(
         () => rooms.filter(r => r.latitude != null && r.longitude != null),
         [rooms]
     );
+
+    // Check if we have valid coordinates
+    const hasValidCoords = roomsWithCoords.length > 0;
+
+    // For single room mode, get the first room's coordinates
+    const singleRoomData = singleRoom && roomsWithCoords.length > 0 ? roomsWithCoords[0] : null;
 
     const positions = useMemo(
         () => roomsWithCoords.map(r => [Number(r.latitude), Number(r.longitude)] as [number, number]),
         [roomsWithCoords]
     );
 
-    const center = positions.length > 0 ? positions[0] : DEFAULT_CENTER;
+    // Determine center and zoom
+    const center = singleRoomData
+        ? [Number(singleRoomData.latitude), Number(singleRoomData.longitude)] as [number, number]
+        : positions.length > 0
+            ? positions[0]
+            : DEFAULT_CENTER;
+
+    const zoom = singleRoom ? SINGLE_ROOM_ZOOM : DEFAULT_ZOOM;
+    const minHeight = singleRoom ? 300 : 500;
+
+    // Show placeholder if no coordinates
+    if (!hasValidCoords) {
+        return (
+            <div className={className}>
+                <MapPlaceholder />
+            </div>
+        );
+    }
 
     return (
         <div className={`rounded-2xl overflow-hidden border border-border ${className}`}>
             <MapContainer
                 center={center}
-                zoom={DEFAULT_ZOOM}
+                zoom={zoom}
                 className="h-full w-full"
-                style={{ minHeight: 500 }}
-                scrollWheelZoom
+                style={{ minHeight }}
+                scrollWheelZoom={interactive}
+                dragging={interactive}
+                touchZoom={interactive}
+                doubleClickZoom={interactive}
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                <FitBounds positions={positions} />
+                {/* Only use FitBounds for multi-room search mode */}
+                {!singleRoom && <FitBounds positions={positions} />}
 
                 {roomsWithCoords.map((room) => (
                     <Marker
@@ -133,7 +184,7 @@ export function RoomMap({ rooms, className = '' }: RoomMapProps) {
                 ))}
             </MapContainer>
 
-            {roomsWithCoords.length < rooms.length && (
+            {roomsWithCoords.length < rooms.length && !singleRoom && (
                 <div className="bg-muted/50 text-center py-2 text-xs text-muted-foreground">
                     Hiển thị {roomsWithCoords.length}/{rooms.length} phòng có tọa độ trên bản đồ
                 </div>

@@ -40,7 +40,9 @@ import { ContactLandlordModal } from "@/components/modals/ContactLandlordModal";
 import { GalleryModal } from "@/components/modals/GalleryModal";
 import { ViewAllMatchesModal } from "@/components/modals/ViewAllMatchesModal";
 import { RoommateProfileModal } from "@/components/modals/RoommateProfileModal";
+import { MapModal } from "@/components/modals/MapModal";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
+import { RoomMap } from "@/components/common/RoomMap";
 import { useRoom } from "@/hooks/useRooms";
 import { useIsFavorited } from "@/hooks/useFavorites";
 import { useAuth } from "@/contexts";
@@ -67,6 +69,7 @@ export default function RoomDetailPage() {
   const [isViewAllMatchesOpen, setIsViewAllMatchesOpen] = useState(false);
   const [isRoommateProfileOpen, setIsRoommateProfileOpen] = useState(false);
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
   const [selectedRoommate, setSelectedRoommate] = useState<{ name: string; role: string; match: number } | null>(null);
 
   // Helper functions to manage mutually exclusive modals
@@ -77,6 +80,12 @@ export default function RoomDetailPage() {
     setIsViewAllMatchesOpen(false);
     setIsRoommateProfileOpen(false);
     setIsChatDrawerOpen(false);
+    setIsMapOpen(false);
+  };
+
+  const openMapModal = () => {
+    closeAllModals();
+    setIsMapOpen(true);
   };
 
   const openBookViewingModal = () => {
@@ -329,14 +338,27 @@ export default function RoomDetailPage() {
                 <div className="flex items-center gap-2 text-muted-foreground mb-4">
                   <MapPin className="w-4 h-4" />
                   <span>{location}</span>
+                  {/* Mobile: Show button to open modal */}
                   <Button
                     variant="outline"
                     size="sm"
-                    className="ml-2 rounded-xl h-8 hover:bg-muted">
+                    onClick={openMapModal}
+                    className="ml-2 rounded-xl h-8 hover:bg-muted md:hidden">
                     <Map className="w-3.5 h-3.5 mr-1.5" />
                     Xem bản đồ
                   </Button>
                 </div>
+              </div>
+
+              {/* Desktop: Inline Map Section */}
+              <div className="hidden md:block">
+                <h3 className="mb-3">Vị trí trên bản đồ</h3>
+                <RoomMap
+                  rooms={[room]}
+                  singleRoom
+                  interactive={false}
+                  className="h-[350px]"
+                />
               </div>
 
               {/* Compact Info Bar */}
@@ -471,6 +493,11 @@ export default function RoomDetailPage() {
       </div>
 
       {/* Modals */}
+      <MapModal
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        room={room}
+      />
       <BookViewingModal
         isOpen={isBookViewingOpen}
         onClose={() => setIsBookViewingOpen(false)}
