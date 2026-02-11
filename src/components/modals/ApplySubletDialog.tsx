@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useCreateApplication } from '@/hooks/useSublets';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { SubletListing } from '@/types/swap';
 
 interface ApplySubletDialogProps {
@@ -31,7 +31,6 @@ interface ApplySubletDialogProps {
 }
 
 export function ApplySubletDialog({ sublet, isOpen, onClose }: ApplySubletDialogProps) {
-    const { toast } = useToast();
     const createApplication = useCreateApplication();
 
     const [formData, setFormData] = useState({
@@ -86,8 +85,7 @@ export function ApplySubletDialog({ sublet, isOpen, onClose }: ApplySubletDialog
                 preferred_move_out_date: formData.preferredMoveOutDate || undefined,
             });
 
-            toast({
-                title: 'Thành công!',
+            toast.success('Thành công!', {
                 description: 'Đơn đăng ký của bạn đã được gửi. Chủ phòng sẽ phản hồi sớm.',
             });
 
@@ -99,10 +97,8 @@ export function ApplySubletDialog({ sublet, isOpen, onClose }: ApplySubletDialog
             });
             onClose();
         } catch (error) {
-            toast({
-                title: 'Lỗi',
+            toast.error('Lỗi', {
                 description: error instanceof Error ? error.message : 'Không thể gửi đơn đăng ký. Vui lòng thử lại.',
-                variant: 'destructive',
             });
         }
     };

@@ -16,12 +16,11 @@ import {
     useRespondToSwapRequest,
     useCancelSwapRequest,
 } from '@/hooks/useSwap';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { SwapRequest } from '@/types/swap';
 
 export default function SwapRequestsPage() {
     const navigate = useNavigate();
-    const { toast } = useToast();
 
     const { data: requests, isLoading, isError } = useSwapRequests();
     const respondToRequest = useRespondToSwapRequest();
@@ -42,15 +41,12 @@ export default function SwapRequestsPage() {
                 requestId: request.id,
                 response: { status: 'accepted' },
             });
-            toast({
-                title: 'Đã chấp nhận!',
+            toast.success('Đã chấp nhận!', {
                 description: 'Yêu cầu hoán đổi đã được chấp nhận.',
             });
         } catch (error) {
-            toast({
-                title: 'Lỗi',
+            toast.error('Lỗi', {
                 description: 'Không thể chấp nhận yêu cầu.',
-                variant: 'destructive',
             });
         } finally {
             setProcessingId(null);
@@ -64,15 +60,12 @@ export default function SwapRequestsPage() {
                 requestId: request.id,
                 response: { status: 'rejected', rejection_reason: 'Không phù hợp' },
             });
-            toast({
-                title: 'Đã từ chối',
+            toast.success('Đã từ chối', {
                 description: 'Yêu cầu đã bị từ chối.',
             });
         } catch (error) {
-            toast({
-                title: 'Lỗi',
+            toast.error('Lỗi', {
                 description: 'Không thể từ chối yêu cầu.',
-                variant: 'destructive',
             });
         } finally {
             setProcessingId(null);
@@ -83,15 +76,12 @@ export default function SwapRequestsPage() {
         setProcessingId(request.id);
         try {
             await cancelRequest.mutateAsync(request.id);
-            toast({
-                title: 'Đã hủy',
+            toast.success('Đã hủy', {
                 description: 'Yêu cầu của bạn đã được hủy.',
             });
         } catch (error) {
-            toast({
-                title: 'Lỗi',
+            toast.error('Lỗi', {
                 description: 'Không thể hủy yêu cầu.',
-                variant: 'destructive',
             });
         } finally {
             setProcessingId(null);

@@ -16,12 +16,11 @@ import { SubletCard, SubletFilter } from '@/components/swap';
 import { ApplySubletDialog } from '@/components/modals/ApplySubletDialog';
 import { SwapRequestDialog } from '@/components/modals/SwapRequestDialog';
 import { useSublets } from '@/hooks/useSublets';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { SubletListingWithDetails } from '@/types/swap';
 
 export default function SwapRoomPage() {
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const [selectedSublet, setSelectedSublet] = useState<SubletListingWithDetails | null>(null);
   const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);

@@ -12,12 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { SubletCard } from '@/components/swap';
 import { useMySublets, useDeleteSublet } from '@/hooks/useSublets';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { SubletListingWithDetails } from '@/types/swap';
 
 export default function MySubletsPage() {
     const navigate = useNavigate();
-    const { toast } = useToast();
 
     const { data: sublets, isLoading, isError } = useMySublets();
     const deleteSublet = useDeleteSublet();
@@ -39,15 +38,12 @@ export default function MySubletsPage() {
         setDeletingId(sublet.id);
         try {
             await deleteSublet.mutateAsync(sublet.id);
-            toast({
-                title: 'Đã xóa',
+            toast.success('Đã xóa', {
                 description: 'Tin đăng đã được xóa thành công.',
             });
         } catch (error) {
-            toast({
-                title: 'Lỗi',
+            toast.error('Lỗi', {
                 description: 'Không thể xóa tin đăng.',
-                variant: 'destructive',
             });
         } finally {
             setDeletingId(null);

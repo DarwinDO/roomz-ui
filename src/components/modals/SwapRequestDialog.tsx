@@ -23,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCreateSwapRequest } from '@/hooks/useSwap';
 import { useMySublets } from '@/hooks/useSublets';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { formatMonthlyPrice } from '@/utils/format';
 import type { SubletListing } from '@/types/swap';
 
@@ -34,7 +34,6 @@ interface SwapRequestDialogProps {
 }
 
 export function SwapRequestDialog({ targetSublet, isOpen, onClose }: SwapRequestDialogProps) {
-    const { toast } = useToast();
     const createSwapRequest = useCreateSwapRequest();
     const { data: mySublets, isLoading: isLoadingMySublets } = useMySublets();
 
@@ -93,8 +92,7 @@ export function SwapRequestDialog({ targetSublet, isOpen, onClose }: SwapRequest
                 proposed_end_date: formData.proposedEndDate,
             });
 
-            toast({
-                title: 'Thành công!',
+            toast.success('Thành công!', {
                 description: 'Yêu cầu hoán đổi đã được gửi. Bạn sẽ nhận được thông báo khi có phản hồi.',
             });
 
@@ -107,10 +105,8 @@ export function SwapRequestDialog({ targetSublet, isOpen, onClose }: SwapRequest
             });
             onClose();
         } catch (error) {
-            toast({
-                title: 'Lỗi',
+            toast.error('Lỗi', {
                 description: error instanceof Error ? error.message : 'Không thể gửi yêu cầu. Vui lòng thử lại.',
-                variant: 'destructive',
             });
         }
     };
@@ -176,8 +172,8 @@ export function SwapRequestDialog({ targetSublet, isOpen, onClose }: SwapRequest
                                     <div
                                         key={sublet.id}
                                         className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedListingId === sublet.id
-                                                ? 'border-primary bg-primary/5'
-                                                : 'border-muted hover:border-primary/30'
+                                            ? 'border-primary bg-primary/5'
+                                            : 'border-muted hover:border-primary/30'
                                             }`}
                                         onClick={() => setSelectedListingId(sublet.id)}
                                     >

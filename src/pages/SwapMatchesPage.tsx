@@ -12,12 +12,11 @@ import { Badge } from '@/components/ui/badge';
 import { SwapMatchCard } from '@/components/swap';
 import { SwapRequestDialog } from '@/components/modals/SwapRequestDialog';
 import { useSwapMatches, useSwipeMatch } from '@/hooks/useSwap';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import type { SwapMatch } from '@/types/swap';
 
 export default function SwapMatchesPage() {
     const navigate = useNavigate();
-    const { toast } = useToast();
     const { data, isLoading, isError } = useSwapMatches(60);
     const swipeMatch = useSwipeMatch();
 
@@ -37,15 +36,12 @@ export default function SwapMatchesPage() {
                 matchId: match.id,
                 direction: 'pass',
             });
-            toast({
-                title: 'Đã bỏ qua',
+            toast.success('Đã bỏ qua', {
                 description: 'Bạn sẽ không thấy gợi ý này nữa.',
             });
         } catch (error) {
-            toast({
-                title: 'Lỗi',
+            toast.error('Lỗi', {
                 description: 'Không thể cập nhật. Vui lòng thử lại.',
-                variant: 'destructive',
             });
         }
     };
