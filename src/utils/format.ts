@@ -19,3 +19,32 @@ export function formatPriceInMillions(
   // Drop trailing ".0" (or multiple zeros) but keep other decimals.
   return formatted.replace(/\.0+$/, "");
 }
+
+/**
+ * Format a monthly price in VND
+ * Example: 3500000 -> "3.5 triệu/tháng"
+ */
+export function formatMonthlyPrice(price: number): string {
+  if (!Number.isFinite(price)) {
+    return "Liên hệ";
+  }
+
+  const valueInMillions = price / 1_000_000;
+
+  if (valueInMillions >= 1) {
+    const formatted = valueInMillions.toFixed(1).replace(/\.0$/, '');
+    return `${formatted} triệu/tháng`;
+  } else {
+    return `${price.toLocaleString('vi-VN')}đ/tháng`;
+  }
+}
+
+/**
+ * Format a price range
+ */
+export function formatPriceRange(min: number, max: number): string {
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    return "Liên hệ";
+  }
+  return `${formatPriceInMillions(min)} - ${formatPriceInMillions(max)} triệu`;
+}

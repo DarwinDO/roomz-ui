@@ -247,7 +247,7 @@ export type Database = {
           is_read: boolean | null
           link: string | null
           title: string
-          type: Database["public"]["Enums"]["notification_type"]
+          type: Database["public"]["Enums"]["notification_type"] | SwapNotificationType
           user_id: string
         }
         Insert: {
@@ -716,8 +716,8 @@ export type Database = {
           furnished: boolean | null
           furniture_details: Json | null
           gender_restriction:
-            | Database["public"]["Enums"]["gender_restriction"]
-            | null
+          | Database["public"]["Enums"]["gender_restriction"]
+          | null
           has_360_photos: boolean | null
           id: string
           is_available: boolean | null
@@ -757,8 +757,8 @@ export type Database = {
           furnished?: boolean | null
           furniture_details?: Json | null
           gender_restriction?:
-            | Database["public"]["Enums"]["gender_restriction"]
-            | null
+          | Database["public"]["Enums"]["gender_restriction"]
+          | null
           has_360_photos?: boolean | null
           id?: string
           is_available?: boolean | null
@@ -798,8 +798,8 @@ export type Database = {
           furnished?: boolean | null
           furniture_details?: Json | null
           gender_restriction?:
-            | Database["public"]["Enums"]["gender_restriction"]
-            | null
+          | Database["public"]["Enums"]["gender_restriction"]
+          | null
           has_360_photos?: boolean | null
           id?: string
           is_available?: boolean | null
@@ -837,8 +837,8 @@ export type Database = {
           budget_max: number | null
           budget_min: number | null
           cleanliness_level:
-            | Database["public"]["Enums"]["cleanliness_level"]
-            | null
+          | Database["public"]["Enums"]["cleanliness_level"]
+          | null
           cooking: boolean | null
           created_at: string | null
           guest_frequency: Database["public"]["Enums"]["guest_frequency"] | null
@@ -851,24 +851,24 @@ export type Database = {
           updated_at: string | null
           user_id: string
           weekend_activity:
-            | Database["public"]["Enums"]["weekend_activity"]
-            | null
+          | Database["public"]["Enums"]["weekend_activity"]
+          | null
         }
         Insert: {
           budget_max?: number | null
           budget_min?: number | null
           cleanliness_level?:
-            | Database["public"]["Enums"]["cleanliness_level"]
-            | null
+          | Database["public"]["Enums"]["cleanliness_level"]
+          | null
           cooking?: boolean | null
           created_at?: string | null
           guest_frequency?:
-            | Database["public"]["Enums"]["guest_frequency"]
-            | null
+          | Database["public"]["Enums"]["guest_frequency"]
+          | null
           id?: string
           noise_tolerance?:
-            | Database["public"]["Enums"]["noise_tolerance"]
-            | null
+          | Database["public"]["Enums"]["noise_tolerance"]
+          | null
           pets?: boolean | null
           preferred_locations?: Json | null
           sleep_schedule?: Database["public"]["Enums"]["sleep_schedule"] | null
@@ -876,24 +876,24 @@ export type Database = {
           updated_at?: string | null
           user_id: string
           weekend_activity?:
-            | Database["public"]["Enums"]["weekend_activity"]
-            | null
+          | Database["public"]["Enums"]["weekend_activity"]
+          | null
         }
         Update: {
           budget_max?: number | null
           budget_min?: number | null
           cleanliness_level?:
-            | Database["public"]["Enums"]["cleanliness_level"]
-            | null
+          | Database["public"]["Enums"]["cleanliness_level"]
+          | null
           cooking?: boolean | null
           created_at?: string | null
           guest_frequency?:
-            | Database["public"]["Enums"]["guest_frequency"]
-            | null
+          | Database["public"]["Enums"]["guest_frequency"]
+          | null
           id?: string
           noise_tolerance?:
-            | Database["public"]["Enums"]["noise_tolerance"]
-            | null
+          | Database["public"]["Enums"]["noise_tolerance"]
+          | null
           pets?: boolean | null
           preferred_locations?: Json | null
           sleep_schedule?: Database["public"]["Enums"]["sleep_schedule"] | null
@@ -901,8 +901,8 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           weekend_activity?:
-            | Database["public"]["Enums"]["weekend_activity"]
-            | null
+          | Database["public"]["Enums"]["weekend_activity"]
+          | null
         }
         Relationships: [
           {
@@ -1079,6 +1079,477 @@ export type Database = {
           },
         ]
       }
+      sublet_listings: {
+        Row: {
+          id: string
+          original_room_id: string
+          owner_id: string
+          start_date: string
+          end_date: string
+          original_price: number
+          sublet_price: number
+          deposit_required: number | null
+          description: string | null
+          requirements: string[] | null
+          status: string | null
+          view_count: number | null
+          application_count: number | null
+          created_at: string | null
+          updated_at: string | null
+          published_at: string | null
+        }
+        Insert: {
+          id?: string
+          original_room_id: string
+          owner_id: string
+          start_date: string
+          end_date: string
+          original_price: number
+          sublet_price: number
+          deposit_required?: number | null
+          description?: string | null
+          requirements?: string[] | null
+          status?: string | null
+          view_count?: number | null
+          application_count?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          published_at?: string | null
+        }
+        Update: {
+          id?: string
+          original_room_id?: string
+          owner_id?: string
+          start_date?: string
+          end_date?: string
+          original_price?: number
+          sublet_price?: number
+          deposit_required?: number | null
+          description?: string | null
+          requirements?: string[] | null
+          status?: string | null
+          view_count?: number | null
+          application_count?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          published_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sublet_listings_original_room_id_fkey"
+            columns: ["original_room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublet_listings_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swap_requests: {
+        Row: {
+          id: string
+          requester_id: string
+          requester_listing_id: string
+          recipient_id: string
+          recipient_listing_id: string
+          message: string | null
+          proposed_start_date: string
+          proposed_end_date: string
+          status: string | null
+          created_at: string | null
+          updated_at: string | null
+          responded_at: string | null
+          confirmed_at: string | null
+          completed_at: string | null
+          expires_at: string | null
+          rejection_reason: string | null
+          cancellation_reason: string | null
+        }
+        Insert: {
+          id?: string
+          requester_id: string
+          requester_listing_id: string
+          recipient_id: string
+          recipient_listing_id: string
+          message?: string | null
+          proposed_start_date: string
+          proposed_end_date: string
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          responded_at?: string | null
+          confirmed_at?: string | null
+          completed_at?: string | null
+          expires_at?: string | null
+          rejection_reason?: string | null
+          cancellation_reason?: string | null
+        }
+        Update: {
+          id?: string
+          requester_id?: string
+          requester_listing_id?: string
+          recipient_id?: string
+          recipient_listing_id?: string
+          message?: string | null
+          proposed_start_date?: string
+          proposed_end_date?: string
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          responded_at?: string | null
+          confirmed_at?: string | null
+          completed_at?: string | null
+          expires_at?: string | null
+          rejection_reason?: string | null
+          cancellation_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_requester_listing_id_fkey"
+            columns: ["requester_listing_id"]
+            isOneToOne: false
+            referencedRelation: "sublet_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_recipient_listing_id_fkey"
+            columns: ["recipient_listing_id"]
+            isOneToOne: false
+            referencedRelation: "sublet_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swap_matches: {
+        Row: {
+          id: string
+          listing_1_id: string
+          listing_2_id: string
+          match_score: number
+          location_score: number | null
+          price_score: number | null
+          time_score: number | null
+          preference_score: number | null
+          match_reasons: string[] | null
+          is_active: boolean | null
+          shown_to_user1: boolean | null
+          shown_to_user2: boolean | null
+          user1_swiped: boolean | null
+          user2_swiped: boolean | null
+          calculated_at: string | null
+          expires_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          listing_1_id: string
+          listing_2_id: string
+          match_score: number
+          location_score?: number | null
+          price_score?: number | null
+          time_score?: number | null
+          preference_score?: number | null
+          match_reasons?: string[] | null
+          is_active?: boolean | null
+          shown_to_user1?: boolean | null
+          shown_to_user2?: boolean | null
+          user1_swiped?: boolean | null
+          user2_swiped?: boolean | null
+          calculated_at?: string | null
+          expires_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          listing_1_id?: string
+          listing_2_id?: string
+          match_score?: number
+          location_score?: number | null
+          price_score?: number | null
+          time_score?: number | null
+          preference_score?: number | null
+          match_reasons?: string[] | null
+          is_active?: boolean | null
+          shown_to_user1?: boolean | null
+          shown_to_user2?: boolean | null
+          user1_swiped?: boolean | null
+          user2_swiped?: boolean | null
+          calculated_at?: string | null
+          expires_at?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_matches_listing_1_id_fkey"
+            columns: ["listing_1_id"]
+            isOneToOne: false
+            referencedRelation: "sublet_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_matches_listing_2_id_fkey"
+            columns: ["listing_2_id"]
+            isOneToOne: false
+            referencedRelation: "sublet_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sublet_applications: {
+        Row: {
+          id: string
+          sublet_listing_id: string
+          applicant_id: string
+          message: string | null
+          preferred_move_in_date: string
+          preferred_move_out_date: string | null
+          documents: Json | null
+          status: string | null
+          created_at: string | null
+          updated_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          review_notes: string | null
+          rejection_reason: string | null
+          expires_at: string | null
+        }
+        Insert: {
+          id?: string
+          sublet_listing_id: string
+          applicant_id: string
+          message?: string | null
+          preferred_move_in_date: string
+          preferred_move_out_date?: string | null
+          documents?: Json | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          review_notes?: string | null
+          rejection_reason?: string | null
+          expires_at?: string | null
+        }
+        Update: {
+          id?: string
+          sublet_listing_id?: string
+          applicant_id?: string
+          message?: string | null
+          preferred_move_in_date?: string
+          preferred_move_out_date?: string | null
+          documents?: Json | null
+          status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          review_notes?: string | null
+          rejection_reason?: string | null
+          expires_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sublet_applications_sublet_listing_id_fkey"
+            columns: ["sublet_listing_id"]
+            isOneToOne: false
+            referencedRelation: "sublet_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublet_applications_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublet_applications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swap_agreements: {
+        Row: {
+          id: string
+          swap_request_id: string
+          party_a_id: string
+          party_a_listing_id: string
+          party_a_signed_at: string | null
+          party_a_signature_url: string | null
+          party_b_id: string
+          party_b_listing_id: string
+          party_b_signed_at: string | null
+          party_b_signature_url: string | null
+          terms: Json
+          status: string | null
+          created_at: string | null
+          activated_at: string | null
+          completed_at: string | null
+          platform_fee: number | null
+          fee_paid_by: string | null
+          fee_paid_at: string | null
+        }
+        Insert: {
+          id?: string
+          swap_request_id: string
+          party_a_id: string
+          party_a_listing_id: string
+          party_a_signed_at?: string | null
+          party_a_signature_url?: string | null
+          party_b_id: string
+          party_b_listing_id: string
+          party_b_signed_at?: string | null
+          party_b_signature_url?: string | null
+          terms: Json
+          status?: string | null
+          created_at?: string | null
+          activated_at?: string | null
+          completed_at?: string | null
+          platform_fee?: number | null
+          fee_paid_by?: string | null
+          fee_paid_at?: string | null
+        }
+        Update: {
+          id?: string
+          swap_request_id?: string
+          party_a_id?: string
+          party_a_listing_id?: string
+          party_a_signed_at?: string | null
+          party_a_signature_url?: string | null
+          party_b_id?: string
+          party_b_listing_id?: string
+          party_b_signed_at?: string | null
+          party_b_signature_url?: string | null
+          terms?: Json
+          status?: string | null
+          created_at?: string | null
+          activated_at?: string | null
+          completed_at?: string | null
+          platform_fee?: number | null
+          fee_paid_by?: string | null
+          fee_paid_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_agreements_swap_request_id_fkey"
+            columns: ["swap_request_id"]
+            isOneToOne: false
+            referencedRelation: "swap_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_agreements_party_a_id_fkey"
+            columns: ["party_a_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_agreements_party_b_id_fkey"
+            columns: ["party_b_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_agreements_fee_paid_by_fkey"
+            columns: ["fee_paid_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sublet_reviews: {
+        Row: {
+          id: string
+          sublet_listing_id: string
+          reviewer_id: string
+          reviewee_id: string
+          overall_rating: number | null
+          cleanliness_rating: number | null
+          communication_rating: number | null
+          accuracy_rating: number | null
+          comment: string | null
+          would_recommend: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          sublet_listing_id: string
+          reviewer_id: string
+          reviewee_id: string
+          overall_rating?: number | null
+          cleanliness_rating?: number | null
+          communication_rating?: number | null
+          accuracy_rating?: number | null
+          comment?: string | null
+          would_recommend?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          sublet_listing_id?: string
+          reviewer_id?: string
+          reviewee_id?: string
+          overall_rating?: number | null
+          cleanliness_rating?: number | null
+          communication_rating?: number | null
+          accuracy_rating?: number | null
+          comment?: string | null
+          would_recommend?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sublet_reviews_sublet_listing_id_fkey"
+            columns: ["sublet_listing_id"]
+            isOneToOne: false
+            referencedRelation: "sublet_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublet_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublet_reviews_reviewee_id_fkey"
+            columns: ["reviewee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1143,11 +1614,11 @@ export type Database = {
     }
     Enums: {
       account_status:
-        | "active"
-        | "suspended"
-        | "pending"
-        | "pending_landlord"
-        | "rejected"
+      | "active"
+      | "suspended"
+      | "pending"
+      | "pending_landlord"
+      | "rejected"
       booking_status: "pending" | "confirmed" | "cancelled" | "completed"
       cleanliness_level: "organized" | "moderate" | "relaxed"
       gender_restriction: "none" | "male_only" | "female_only"
@@ -1156,42 +1627,42 @@ export type Database = {
       message_type: "text" | "image" | "file"
       noise_tolerance: "quiet" | "moderate" | "noisy"
       notification_type:
-        | "booking_request"
-        | "booking_status"
-        | "new_message"
-        | "system"
-        | "verification"
-        | "roommate_request"
+      | "booking_request"
+      | "booking_status"
+      | "new_message"
+      | "system"
+      | "verification"
+      | "roommate_request"
       review_type: "room" | "landlord" | "tenant" | "roommate"
       room_status:
-        | "draft"
-        | "pending"
-        | "active"
-        | "rented"
-        | "inactive"
-        | "rejected"
+      | "draft"
+      | "pending"
+      | "active"
+      | "rented"
+      | "inactive"
+      | "rejected"
       room_type: "private" | "shared" | "studio" | "entire"
       roommate_profile_status: "looking" | "paused" | "found"
       roommate_request_status:
-        | "pending"
-        | "accepted"
-        | "declined"
-        | "cancelled"
-        | "expired"
+      | "pending"
+      | "accepted"
+      | "declined"
+      | "cancelled"
+      | "expired"
       sleep_schedule: "early" | "late" | "flexible"
       user_gender: "male" | "female" | "other"
       user_role: "student" | "landlord" | "admin"
       verification_status:
-        | "pending"
-        | "approved"
-        | "rejected"
-        | "needs_resubmit"
+      | "pending"
+      | "approved"
+      | "rejected"
+      | "needs_resubmit"
       verification_type:
-        | "id_card"
-        | "student_card"
-        | "email"
-        | "phone"
-        | "room_photos"
+      | "id_card"
+      | "student_card"
+      | "email"
+      | "phone"
+      | "room_photos"
       weekend_activity: "home" | "out" | "mix"
     }
     CompositeTypes: {
@@ -1206,116 +1677,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? R
-    : never
+  ? R
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
+    DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] &
+    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+  ? R
+  : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
+    Insert: infer I
+  }
+  ? I
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
+    Update: infer U
+  }
+  ? U
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Enums"]
+  | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+  : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["CompositeTypes"]
+  | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
   public: {

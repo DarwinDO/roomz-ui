@@ -27,6 +27,9 @@ const MyRoommateProfilePage = lazy(() => import('@/pages/roommates').then(m => (
 const EditRoommateProfilePage = lazy(() => import('@/pages/roommates').then(m => ({ default: m.EditRoommateProfile })));
 const RoommateSetupPage = lazy(() => import('@/pages/roommates'));
 const SwapRoomPage = lazy(() => import('@/pages/SwapRoomPage'));
+const SwapMatchesPage = lazy(() => import('@/pages/SwapMatchesPage'));
+const SwapRequestsPage = lazy(() => import('@/pages/SwapRequestsPage'));
+const MySubletsPage = lazy(() => import('@/pages/MySubletsPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 const CommunityPage = lazy(() => import('@/pages/CommunityPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
@@ -151,6 +154,30 @@ export const router = createBrowserRouter([
       {
         path: 'swap',
         element: <SwapRoomPage />,
+      },
+      {
+        path: 'swap-matches',
+        element: (
+          <ProtectedRoute>
+            <SwapMatchesPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'swap-requests',
+        element: (
+          <ProtectedRoute>
+            <SwapRequestsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'my-sublets',
+        element: (
+          <ProtectedRoute>
+            <MySubletsPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'profile',
