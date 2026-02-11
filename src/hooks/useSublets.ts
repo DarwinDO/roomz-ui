@@ -11,6 +11,7 @@ import {
     useQueryClient,
     keepPreviousData,
 } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
     fetchSublets,
     fetchSubletById,
@@ -137,9 +138,11 @@ export function useCreateSublet() {
     return useMutation({
         mutationFn: createSublet,
         onSuccess: () => {
-            // Invalidate all sublet lists
             queryClient.invalidateQueries({ queryKey: subletKeys.lists() });
             queryClient.invalidateQueries({ queryKey: subletKeys.mySublets() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message || 'Không thể tạo tin đăng.' });
         },
     });
 }
@@ -154,10 +157,12 @@ export function useUpdateSublet() {
         mutationFn: ({ id, updates }: { id: string; updates: Partial<CreateSubletRequest> }) =>
             updateSublet(id, updates),
         onSuccess: (_, { id }) => {
-            // Invalidate specific detail and all lists
             queryClient.invalidateQueries({ queryKey: subletKeys.detail(id) });
             queryClient.invalidateQueries({ queryKey: subletKeys.lists() });
             queryClient.invalidateQueries({ queryKey: subletKeys.mySublets() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message || 'Không thể cập nhật tin đăng.' });
         },
     });
 }
@@ -173,6 +178,9 @@ export function useDeleteSublet() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: subletKeys.lists() });
             queryClient.invalidateQueries({ queryKey: subletKeys.mySublets() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message || 'Không thể xóa tin đăng.' });
         },
     });
 }
@@ -195,11 +203,13 @@ export function useCreateApplication() {
     return useMutation({
         mutationFn: createApplication,
         onSuccess: (_, variables) => {
-            // Invalidate applications for the sublet
             queryClient.invalidateQueries({
                 queryKey: subletKeys.applications(variables.sublet_listing_id),
             });
             queryClient.invalidateQueries({ queryKey: subletKeys.myApplications() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message || 'Không thể gửi đơn đăng ký.' });
         },
     });
 }
@@ -226,6 +236,9 @@ export function useUpdateApplicationStatus() {
             });
             queryClient.invalidateQueries({ queryKey: subletKeys.myApplications() });
         },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message || 'Không thể cập nhật trạng thái.' });
+        },
     });
 }
 
@@ -239,6 +252,9 @@ export function useWithdrawApplication() {
         mutationFn: withdrawApplication,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: subletKeys.myApplications() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message || 'Không thể rút đơn đăng ký.' });
         },
     });
 }

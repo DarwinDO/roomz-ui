@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Inbox, Send, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import type { SwapRequest } from '@/types/swap';
 
 export default function SwapRequestsPage() {
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     const { data: requests, isLoading, isError } = useSwapRequests();
     const respondToRequest = useRespondToSwapRequest();
@@ -31,7 +33,7 @@ export default function SwapRequestsPage() {
     const incomingRequests =
         requests?.filter((r) => r.status === 'pending') || [];
     const outgoingRequests =
-        requests?.filter((r) => r.requester_id === 'current-user-id') || [];
+        requests?.filter((r) => r.requester_id === user?.id) || [];
     const allRequests = requests || [];
 
     const handleAccept = async (request: SwapRequest) => {
@@ -144,7 +146,7 @@ export default function SwapRequestsPage() {
                                 </div>
                                 <h3 className="mb-2 font-medium">Chưa có yêu cầu nào</h3>
                                 <p className="text-muted-foreground">
-                                    Khi có ngườ gửi yêu cầu hoán đổi, bạn sẽ thấy ở đây.
+                                    Khi có người gửi yêu cầu hoán đổi, bạn sẽ thấy ở đây.
                                 </p>
                             </Card>
                         ) : (
@@ -221,7 +223,7 @@ export default function SwapRequestsPage() {
                                     <SwapRequestCard
                                         key={request.id}
                                         request={request}
-                                        isIncoming={request.recipient_id === 'current-user-id'}
+                                        isIncoming={request.recipient_id === user?.id}
                                     />
                                 ))}
                             </div>

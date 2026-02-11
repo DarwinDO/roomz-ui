@@ -14,6 +14,7 @@ import {
     cancelSwapRequest,
     swipeMatch,
 } from '@/services/swap';
+import { toast } from 'sonner';
 import type {
     SwapRequest,
     SwapMatch,
@@ -46,8 +47,8 @@ export function useSwapMatches(minScore: number = 60) {
     return useQuery<SwapMatchResponse>({
         queryKey: swapKeys.matchList(minScore),
         queryFn: () => fetchSwapMatches(minScore),
-        staleTime: 5 * 60_000, // 5 minutes - matches don't change often
-        refetchInterval: 5 * 60_000, // Auto refresh every 5 min
+        staleTime: 5 * 60_000,
+        refetchInterval: 5 * 60_000,
     });
 }
 
@@ -58,7 +59,7 @@ export function useSwapRequests(status?: string) {
     return useQuery<SwapRequest[]>({
         queryKey: swapKeys.requestList(status),
         queryFn: () => fetchSwapRequests(status),
-        staleTime: 10_000, // 10 seconds - requests change frequently
+        staleTime: 10_000,
     });
 }
 
@@ -87,8 +88,10 @@ export function useCreateSwapRequest() {
     return useMutation({
         mutationFn: createSwapRequest,
         onSuccess: () => {
-            // Invalidate requests list
             queryClient.invalidateQueries({ queryKey: swapKeys.requests() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message || 'Không thể tạo yêu cầu hoán đổi.' });
         },
     });
 }
@@ -108,11 +111,13 @@ export function useRespondToSwapRequest() {
             response: RespondToSwapRequest;
         }) => respondToSwapRequest(requestId, response),
         onSuccess: (_, variables) => {
-            // Invalidate specific request and list
             queryClient.invalidateQueries({
                 queryKey: swapKeys.requestDetail(variables.requestId),
             });
             queryClient.invalidateQueries({ queryKey: swapKeys.requests() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message || 'Không thể phản hồi yêu cầu.' });
         },
     });
 }
@@ -128,6 +133,9 @@ export function useCancelSwapRequest() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: swapKeys.requests() });
         },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message || 'Không thể hủy yêu cầu.' });
+        },
     });
 }
 
@@ -141,8 +149,10 @@ export function useSwipeMatch() {
         mutationFn: ({ matchId, direction }: { matchId: string; direction: 'like' | 'pass' }) =>
             swipeMatch(matchId, direction),
         onSuccess: () => {
-            // Invalidate matches list
             queryClient.invalidateQueries({ queryKey: swapKeys.matches() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message || 'Không thể cập nhật.' });
         },
     });
 }

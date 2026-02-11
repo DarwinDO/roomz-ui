@@ -4,7 +4,6 @@
  * Following UX Psychology principles from frontend-design skill
  */
 
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -25,7 +24,6 @@ interface SwapMatchCardProps {
 
 export function SwapMatchCard({ match, onAccept, onPass }: SwapMatchCardProps) {
     const navigate = useNavigate();
-    const [isHovered, setIsHovered] = useState(false);
 
     const myListing = match.my_listing;
     const matchedListing = match.matched_listing;
@@ -55,8 +53,6 @@ export function SwapMatchCard({ match, onAccept, onPass }: SwapMatchCardProps) {
                 'hover:shadow-xl hover:-translate-y-1',
                 'border-2 border-transparent hover:border-primary/20'
             )}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
         >
             {/* Match Score Header */}
             <div className={cn('px-4 py-3 flex items-center justify-between', getScoreColor(matchScore))}>

@@ -297,21 +297,3 @@ export type MatchReason =
     | 'same_district'
     | 'same_city'
     | 'compatible_requirements';
-
-// ============================================
-// TanStack Query Key Types
-// ============================================
-
-export const subletKeys = {
-    all: ['sublets'] as const,
-    lists: () => [...subletKeys.all, 'list'] as const,
-    list: (filters: SubletFilters) => [...subletKeys.lists(), filters] as const,
-    details: () => [...subletKeys.all, 'detail'] as const,
-    detail: (id: string) => [...subletKeys.details(), id] as const,
-    matches: (userId: string) => [...subletKeys.all, 'matches', userId] as const,
-    requests: (userId: string) => [...subletKeys.all, 'requests', userId] as const,
-    applications: (listingId: string) => [...subletKeys.all, 'applications', listingId] as const,
-    myApplications: (userId: string) => [...subletKeys.all, 'my-applications', userId] as const,
-} as const;
-
-export type SubletQueryKey = typeof subletKeys;

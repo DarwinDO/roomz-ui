@@ -48,19 +48,19 @@ export async function fetchSwapMatches(
         .select(
             `
       *,
-      listing1:listing_1_id (
+      listing1:sublet_listings!listing_1_id (
         id, start_date, end_date, sublet_price, original_price,
         original_room:original_room_id (
-          title, address, district, city, room_images:image_url
+          title, address, district, city, room_images(image_url, is_primary, display_order)
         ),
         owner:owner_id (
           full_name, avatar_url
         )
       ),
-      listing2:listing_2_id (
+      listing2:sublet_listings!listing_2_id (
         id, start_date, end_date, sublet_price, original_price,
         original_room:original_room_id (
-          title, address, district, city, room_images:image_url
+          title, address, district, city, room_images(image_url, is_primary, display_order)
         ),
         owner:owner_id (
           full_name, avatar_url
@@ -85,7 +85,7 @@ export async function fetchSwapMatches(
     }
 
     // Transform data
-    const matches: SwapMatch[] = (data || []).map((match) => {
+    const matches: SwapMatch[] = (data || []).map((match: any) => {
         const isListing1Mine = listingIds.includes(match.listing_1_id);
         return {
             ...match,
@@ -187,22 +187,22 @@ export async function fetchSwapRequests(
         .select(
             `
       *,
-      requester:requester_id (
+      requester:users!requester_id (
         id, full_name, avatar_url
       ),
-      requester_listing:requester_listing_id (
+      requester_listing:sublet_listings!requester_listing_id (
         id, start_date, end_date, sublet_price,
         original_room:original_room_id (
-          title, address, district, city, room_images:image_url
+          title, address, district, city, room_images(image_url, is_primary, display_order)
         )
       ),
-      recipient:recipient_id (
+      recipient:users!recipient_id (
         id, full_name, avatar_url
       ),
-      recipient_listing:recipient_listing_id (
+      recipient_listing:sublet_listings!recipient_listing_id (
         id, start_date, end_date, sublet_price,
         original_room:original_room_id (
-          title, address, district, city, room_images:image_url
+          title, address, district, city, room_images(image_url, is_primary, display_order)
         )
       )
     `
@@ -221,7 +221,7 @@ export async function fetchSwapRequests(
         throw error;
     }
 
-    return (data || []) as SwapRequest[];
+    return (data || []) as unknown as SwapRequest[];
 }
 
 /**
@@ -235,26 +235,26 @@ export async function fetchSwapRequestById(
         .select(
             `
       *,
-      requester:requester_id (
-        id, full_name, avatar_url, email, phone
+      requester:users!requester_id (
+        id, full_name, avatar_url
       ),
-      requester_listing:requester_listing_id (
+      requester_listing:sublet_listings!requester_listing_id (
         id, start_date, end_date, sublet_price, deposit_required, description,
         original_room:original_room_id (
           title, address, district, city, area_sqm,
           bedroom_count, bathroom_count, furnished,
-          room_images:image_url
+           room_images(image_url, is_primary, display_order)
         )
       ),
-      recipient:recipient_id (
-        id, full_name, avatar_url, email, phone
+      recipient:users!recipient_id (
+        id, full_name, avatar_url
       ),
-      recipient_listing:recipient_listing_id (
+      recipient_listing:sublet_listings!recipient_listing_id (
         id, start_date, end_date, sublet_price, deposit_required, description,
         original_room:original_room_id (
           title, address, district, city, area_sqm,
           bedroom_count, bathroom_count, furnished,
-          room_images:image_url
+           room_images(image_url, is_primary, display_order)
         )
       )
     `
@@ -268,7 +268,7 @@ export async function fetchSwapRequestById(
         throw error;
     }
 
-    return data as SwapRequest;
+    return data as unknown as SwapRequest;
 }
 
 /**

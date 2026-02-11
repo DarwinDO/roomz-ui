@@ -17,7 +17,7 @@ import type { SwapMatch } from '@/types/swap';
 
 export default function SwapMatchesPage() {
     const navigate = useNavigate();
-    const { data, isLoading, isError } = useSwapMatches(60);
+    const { data, isLoading, isError, refetch } = useSwapMatches(60);
     const swipeMatch = useSwipeMatch();
 
     const [selectedMatch, setSelectedMatch] = useState<SwapMatch | null>(null);
@@ -98,7 +98,7 @@ export default function SwapMatchesPage() {
                 ) : isError ? (
                     <Card className="p-8 text-center">
                         <p className="text-muted-foreground mb-4">Có lỗi xảy ra khi tải dữ liệu</p>
-                        <Button onClick={() => window.location.reload()}>Thử lại</Button>
+                        <Button onClick={() => refetch()}>Thử lại</Button>
                     </Card>
                 ) : matches.length === 0 ? (
                     <Card className="p-12 text-center">

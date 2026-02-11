@@ -44,6 +44,7 @@ export default function SwapRoomPage() {
     isFetchingNextPage,
     isLoading,
     isError,
+    refetch,
   } = useSublets(filters);
 
   const sublets = data?.pages.flatMap((page) => page.sublets) || [];
@@ -134,7 +135,7 @@ export default function SwapRoomPage() {
           <div className="mb-6">
             <SubletFilter
               filters={filters}
-              onChange={setFilters}
+              onChange={(f) => setFilters({ ...filters, ...f })}
               onReset={handleResetFilters}
             />
           </div>
@@ -193,7 +194,7 @@ export default function SwapRoomPage() {
                   <p className="text-muted-foreground mb-4">
                     Có lỗi xảy ra khi tải dữ liệu
                   </p>
-                  <Button onClick={() => window.location.reload()}>Thử lại</Button>
+                  <Button onClick={() => refetch()}>Thử lại</Button>
                 </Card>
               ) : sublets.length === 0 ? (
                 <Card className="p-8 text-center">

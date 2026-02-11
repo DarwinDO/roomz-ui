@@ -4,7 +4,7 @@
  * Following UX Psychology - Hick's Law: limit options
  */
 
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { MapPin, Calendar, Tag, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -37,11 +37,24 @@ const ROOM_TYPES = [
 export function SubletFilter({ filters, onChange, onReset }: SubletFilterProps) {
     const [localFilters, setLocalFilters] = useState<SubletFilters>(filters);
 
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
     const handleChange = (updates: Partial<SubletFilters>) => {
         const newFilters = { ...localFilters, ...updates };
         setLocalFilters(newFilters);
         onChange(newFilters);
     };
+
+    const handleDebouncedChange = useCallback((updates: Partial<SubletFilters>) => {
+        setLocalFilters((prev) => ({ ...prev, ...updates }));
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            setLocalFilters((prev) => {
+                onChange({ ...prev, ...updates });
+                return { ...prev, ...updates };
+            });
+        }, 300);
+    }, [onChange]);
 
     const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
         if (key === 'page' || key === 'pageSize') return false;
@@ -74,7 +87,7 @@ export function SubletFilter({ filters, onChange, onReset }: SubletFilterProps) 
                 <Input
                     placeholder="Nhập quận/thành phố..."
                     value={localFilters.district || ''}
-                    onChange={(e) => handleChange({ district: e.target.value })}
+                    onChange={(e) => handleDebouncedChange({ district: e.target.value })}
                 />
             </div>
 
@@ -138,7 +151,7 @@ export function SubletFilter({ filters, onChange, onReset }: SubletFilterProps) 
             <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    Thờ gian
+                    Thời gian
                 </Label>
                 <div className="grid grid-cols-2 gap-2">
                     <div>

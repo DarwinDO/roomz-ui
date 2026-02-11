@@ -35,13 +35,11 @@ export async function fetchSublets(
       original_room:original_room_id (
         id, title, address, district, city, area_sqm, 
         bedroom_count, bathroom_count, furnished, 
-        latitude, longitude, room_type
+        latitude, longitude, room_type,
+        room_images(image_url, is_primary, display_order)
       ),
       owner:owner_id (
         id, full_name, avatar_url, id_card_verified
-      ),
-      room_images:original_room_id (
-        image_url, is_primary, display_order
       )
     `,
             { count: 'exact' }
@@ -98,7 +96,7 @@ export async function fetchSublets(
         owner_name: item.owner?.full_name || '',
         owner_avatar: item.owner?.avatar_url,
         owner_verified: item.owner?.id_card_verified,
-        images: item.room_images || [],
+        images: item.original_room?.room_images || [],
         room: item.original_room,
         owner: item.owner,
     }));
@@ -123,13 +121,11 @@ export async function fetchSubletById(id: string): Promise<SubletListing | null>
       original_room:original_room_id (
         id, title, address, district, city, area_sqm,
         bedroom_count, bathroom_count, furnished,
-        latitude, longitude, room_type
+        latitude, longitude, room_type,
+        room_images(image_url, is_primary, display_order)
       ),
       owner:owner_id (
-        id, full_name, avatar_url, id_card_verified, phone, email
-      ),
-      room_images:original_room_id (
-        image_url, is_primary, display_order
+        id, full_name, avatar_url, id_card_verified
       )
     `
         )
@@ -142,12 +138,15 @@ export async function fetchSubletById(id: string): Promise<SubletListing | null>
         throw error;
     }
 
+    // The Supabase data structure needs to be mapped to the SubletListing type
+    // which expects 'room' and 'owner' as direct properties, not 'original_room' and 'owner' from the select alias.
+    // Also, 'images' needs to be extracted from 'original_room.room_images'.
     return {
         ...data,
         room: data.original_room,
         owner: data.owner,
-        images: data.room_images || [],
-    } as SubletListing;
+        images: data.original_room?.room_images || [],
+    } as unknown as SubletListing;
 }
 
 /**
@@ -276,11 +275,7 @@ export async function incrementSubletView(id: string): Promise<void> {
     });
 
     if (error) {
-        // Fallback if RPC not available
-        await supabase
-            .from('sublet_listings')
-            .update({ view_count: supabase.rpc('increment', { value: 1 }) })
-            .eq('id', id);
+        console.error('Failed to increment sublet view count:', error);
     }
 }
 
@@ -443,7 +438,7 @@ export async function fetchMySublets(): Promise<SubletListing[]> {
             `
       *,
       original_room:original_room_id (
-        title, address, district, city, room_images:image_url
+        id, title, address, district, city
       )
     `
         )
@@ -455,5 +450,9 @@ export async function fetchMySublets(): Promise<SubletListing[]> {
         throw error;
     }
 
-    return data as SubletListing[];
+    return (data || []).map((item) => ({
+        ...item,
+        room: item.original_room,
+        images: [],
+    })) as unknown as SubletListing[];
 }
