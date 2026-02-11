@@ -30,8 +30,64 @@ export interface RoomFilters {
   minPrice?: number;
   maxPrice?: number;
   roomType?: Room['room_type'];
+  roomTypes?: string[];
   searchQuery?: string;
   isVerified?: boolean;
+  petAllowed?: boolean;
+  furnished?: boolean;
+  amenities?: string[];
+  sortBy?: 'price_asc' | 'price_desc' | 'newest' | 'most_viewed';
+  page?: number;
+  pageSize?: number;
+}
+
+export type SortOption = NonNullable<RoomFilters['sortBy']>;
+
+/** Row returned by the search_rooms RPC */
+interface SearchRoomRow {
+  id: string;
+  landlord_id: string;
+  title: string;
+  description: string | null;
+  room_type: string;
+  address: string;
+  district: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  price_per_month: number;
+  deposit_amount: number | null;
+  area_sqm: number | null;
+  bedroom_count: number | null;
+  bathroom_count: number | null;
+  max_occupants: number | null;
+  furnished: boolean;
+  pet_allowed: boolean;
+  gender_restriction: string | null;
+  is_available: boolean;
+  is_verified: boolean;
+  has_360_photos: boolean;
+  view_count: number;
+  favorite_count: number;
+  status: string;
+  min_lease_term: number | null;
+  available_from: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  landlord_name: string | null;
+  landlord_avatar: string | null;
+  landlord_email: string | null;
+  landlord_phone: string | null;
+  landlord_trust_score: number | null;
+  total_count: number;
+  search_rank: number;
+  primary_image_url: string | null;
+}
+
+export interface RoomSearchResponse {
+  rooms: RoomWithDetails[];
+  totalCount: number;
 }
 
 export interface CreateRoomData {
@@ -93,52 +149,56 @@ export interface UpdateRoomData {
   status?: 'draft' | 'pending' | 'active' | 'rented' | 'inactive' | 'rejected';
 }
 
+
 /**
- * Get all active rooms with optional filters
+ * Transform a flat RPC row into RoomWithDetails shape
  */
-export async function getRooms(filters: RoomFilters = {}): Promise<RoomWithDetails[]> {
-  let query = supabase
-    .from('rooms')
-    .select(`
-      *,
-      landlord:users!landlord_id(id, full_name, avatar_url, phone, email, trust_score),
-      images:room_images(*),
-      amenities:room_amenities(*)
-    `)
-    .eq('status', 'active')
-    .eq('is_available', true)
-    .is('deleted_at', null);
+function transformSearchRow(row: SearchRoomRow): RoomWithDetails {
+  return {
+    ...row,
+    landlord: {
+      id: row.landlord_id,
+      full_name: row.landlord_name || '',
+      avatar_url: row.landlord_avatar,
+      phone: row.landlord_phone,
+      email: row.landlord_email || '',
+      trust_score: row.landlord_trust_score,
+    },
+    images: row.primary_image_url
+      ? [{ image_url: row.primary_image_url, is_primary: true } as RoomImage]
+      : [],
+    amenities: null,
+  } as unknown as RoomWithDetails;
+}
 
-  // Apply filters
-  if (filters.district) {
-    query = query.eq('district', filters.district);
-  }
-  if (filters.minPrice) {
-    query = query.gte('price_per_month', filters.minPrice);
-  }
-  if (filters.maxPrice) {
-    query = query.lte('price_per_month', filters.maxPrice);
-  }
-  if (filters.roomType) {
-    query = query.eq('room_type', filters.roomType);
-  }
-  if (filters.searchQuery) {
-    const sanitized = sanitizeSearchInput(filters.searchQuery);
-    query = query.or(`title.ilike.%${sanitized}%,address.ilike.%${sanitized}%,district.ilike.%${sanitized}%`);
-  }
-  if (filters.isVerified !== undefined) {
-    query = query.eq('is_verified', filters.isVerified);
-  }
-
-  const { data, error } = await query.order('created_at', { ascending: false });
+/**
+ * Search rooms via server-side RPC (full-text search, amenity filtering, sort, pagination)
+ */
+export async function searchRooms(filters: RoomFilters = {}): Promise<RoomSearchResponse> {
+  const { data, error } = await supabase.rpc('search_rooms' as never, {
+    p_search_query: filters.searchQuery || null,
+    p_district: filters.district || null,
+    p_min_price: filters.minPrice ?? null,
+    p_max_price: filters.maxPrice ?? null,
+    p_room_types: filters.roomTypes?.length ? filters.roomTypes : null,
+    p_is_verified: filters.isVerified ?? null,
+    p_pet_allowed: filters.petAllowed ?? null,
+    p_furnished: filters.furnished ?? null,
+    p_amenities: filters.amenities?.length ? filters.amenities : null,
+    p_sort_by: filters.sortBy || 'newest',
+    p_page: filters.page || 1,
+    p_page_size: filters.pageSize || 12,
+  } as never);
 
   if (error) throw error;
 
-  // Transform the data to handle the array result from room_amenities
-  return (data || []).map(room => ({
-    ...room,
-    amenities: Array.isArray(room.amenities) ? room.amenities[0] : room.amenities,
-  })) as RoomWithDetails[];
+  const rows = (data || []) as SearchRoomRow[];
+  const totalCount = rows.length > 0 ? rows[0].total_count : 0;
+
+  return {
+    rooms: rows.map(transformSearchRow),
+    totalCount,
+  };
 }
 
 /**

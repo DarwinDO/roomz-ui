@@ -9,14 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RoomCard } from "@/components/common/RoomCard";
 import { formatPriceInMillions } from "@/utils/format";
-import { useRooms, useDebounce } from "@/hooks";
+import { useSearchRooms, useDebounce } from "@/hooks";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useAuth } from "@/contexts";
-import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, UtensilsCrossed, PawPrint, Armchair, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, UtensilsCrossed, PawPrint, Armchair, CheckCircle2, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import type { RoomWithDetails } from "@/services/rooms";
+import type { RoomWithDetails, SortOption } from "@/services/rooms";
 
 // Helper function to transform room data to RoomCard props
 function transformRoomToCardProps(room: RoomWithDetails, isFavorited: boolean = false) {
@@ -53,8 +53,8 @@ export default function SearchPage() {
   const [selectedRoomTypes, setSelectedRoomTypes] = useState<string[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
   const [showVerifiedCheck, setShowVerifiedCheck] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
 
   // Debounce search query to reduce API calls (only fires after user stops typing for 400ms)
   const debouncedSearchQuery = useDebounce(searchQuery, 400);
@@ -63,16 +63,22 @@ export default function SearchPage() {
   const minPrice = priceRange[0];
   const maxPrice = priceRange[1];
 
-  // Memoize filters object to prevent unnecessary re-fetches
+  // Memoize filters object — ALL filters now server-side
   const roomFilters = useMemo(() => ({
     minPrice,
     maxPrice,
     isVerified: verifiedOnly ? true : undefined,
     searchQuery: debouncedSearchQuery || undefined,
-  }), [minPrice, maxPrice, verifiedOnly, debouncedSearchQuery]);
+    roomTypes: selectedRoomTypes.length > 0 ? selectedRoomTypes : undefined,
+    amenities: selectedAmenities.length > 0 ? selectedAmenities : undefined,
+    sortBy,
+  }), [minPrice, maxPrice, verifiedOnly, debouncedSearchQuery, selectedRoomTypes, selectedAmenities, sortBy]);
 
-  // Fetch rooms from database
-  const { rooms, loading, error, refetch } = useRooms(roomFilters);
+  // Fetch rooms via TanStack Query (infinite pagination)
+  const {
+    rooms, totalCount, isLoading, isFetchingNextPage,
+    error, refetch, hasNextPage, fetchNextPage, isPlaceholderData,
+  } = useSearchRooms(roomFilters);
 
   // Fetch favorites
   const { isFavorited, toggleFavorite } = useFavorites();
@@ -131,41 +137,19 @@ export default function SearchPage() {
     setSelectedAmenities([]);
     setShowVerifiedCheck(false);
     setSearchQuery("");
+    setSortBy('newest');
     toast.success("Đã đặt lại bộ lọc");
   };
 
-  const handleApplyFilters = async () => {
-    setIsApplyingFilters(true);
-    await refetch();
-    setIsApplyingFilters(false);
+  const handleApplyFilters = () => {
     setIsFiltersOpen(false);
     toast.success("Đã áp dụng bộ lọc");
   };
 
-  // Filter rooms locally for room type and amenities
-  const filteredRooms = useMemo(() => {
-    return rooms.filter((room) => {
-      // Filter by room type
-      if (selectedRoomTypes.length > 0 && !selectedRoomTypes.includes(room.room_type)) {
-        return false;
-      }
-
-      // Filter by amenities
-      if (selectedAmenities.length > 0 && room.amenities) {
-        const hasAllAmenities = selectedAmenities.every(amenity => {
-          return room.amenities?.[amenity as keyof typeof room.amenities] === true;
-        });
-        if (!hasAllAmenities) return false;
-      }
-
-      return true;
-    });
-  }, [rooms, selectedRoomTypes, selectedAmenities]);
-
-  // Transform rooms to card props
+  // Transform rooms to card props (no more client-side filtering!)
   const roomCards = useMemo(() => {
-    return filteredRooms.map(room => transformRoomToCardProps(room, isFavorited(room.id)));
-  }, [filteredRooms, isFavorited]);
+    return rooms.map(room => transformRoomToCardProps(room, isFavorited(room.id)));
+  }, [rooms, isFavorited]);
 
   return (
     <div className="pb-20 md:pb-8">
@@ -325,17 +309,9 @@ export default function SearchPage() {
                     </Button>
                     <Button
                       onClick={handleApplyFilters}
-                      disabled={isApplyingFilters}
                       className="flex-1 rounded-xl bg-primary hover:bg-primary/90 h-11"
                     >
-                      {isApplyingFilters ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Đang áp dụng...
-                        </>
-                      ) : (
-                        "Áp dụng"
-                      )}
+                      Áp dụng
                     </Button>
                   </div>
                 </div>
@@ -346,32 +322,46 @@ export default function SearchPage() {
           {/* View Toggle & Results Count */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {loading ? (
+              {isLoading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Đang tải...
                 </span>
               ) : (
-                `${roomCards.length} phòng còn trống`
+                `${totalCount} phòng còn trống`
               )}
             </p>
-            <div className="flex gap-2">
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                className="rounded-xl"
+
+            {/* Sort Dropdown */}
+            <div className="flex gap-2 items-center">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="text-sm border border-border rounded-xl px-3 py-1.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <List className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === "map" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("map")}
-                className="rounded-xl"
-              >
-                <Map className="w-4 h-4" />
-              </Button>
+                <option value="newest">Mới nhất</option>
+                <option value="price_asc">Giá thấp → cao</option>
+                <option value="price_desc">Giá cao → thấp</option>
+                <option value="most_viewed">Xem nhiều nhất</option>
+              </select>
+              <div className="flex gap-2">
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                  className="rounded-xl"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "map" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("map")}
+                  className="rounded-xl"
+                >
+                  <Map className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -418,7 +408,7 @@ export default function SearchPage() {
         {error && (
           <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-6 text-center animate-fade-in">
             <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-3" />
-            <p className="text-destructive mb-4">{error}</p>
+            <p className="text-destructive mb-4">{error instanceof Error ? error.message : 'Đã xảy ra lỗi'}</p>
             <Button onClick={() => refetch()} variant="outline" className="rounded-xl">
               Thử lại
             </Button>
@@ -426,7 +416,7 @@ export default function SearchPage() {
         )}
 
         {/* Loading State */}
-        {loading && !error && (
+        {isLoading && !error && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="bg-card rounded-2xl shadow-soft border border-border overflow-hidden">
@@ -442,7 +432,7 @@ export default function SearchPage() {
         )}
 
         {/* Empty State */}
-        {!loading && !error && roomCards.length === 0 && (
+        {!isLoading && !error && roomCards.length === 0 && (
           <div className="bg-muted/30 border border-border rounded-2xl p-12 text-center animate-fade-in">
             <Search className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">Không tìm thấy phòng</h3>
@@ -454,21 +444,42 @@ export default function SearchPage() {
         )}
 
         {/* Results List */}
-        {!loading && !error && roomCards.length > 0 && viewMode === "list" && (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
-            {roomCards.map((room) => (
-              <RoomCard
-                key={room.id}
-                {...room}
-                onClick={onRoomClick}
-                onFavorite={handleFavorite}
-              />
-            ))}
-          </div>
+        {!isLoading && !error && roomCards.length > 0 && viewMode === "list" && (
+          <>
+            <div className={`grid sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children ${isPlaceholderData ? 'opacity-60 transition-opacity' : ''}`}>
+              {roomCards.map((room) => (
+                <RoomCard
+                  key={room.id}
+                  {...room}
+                  onClick={onRoomClick}
+                  onFavorite={handleFavorite}
+                />
+              ))}
+            </div>
+
+            {/* Load More Button */}
+            {hasNextPage && (
+              <div className="flex justify-center mt-8">
+                <Button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  variant="outline"
+                  className="rounded-xl px-8 py-3 min-h-[44px] hover:bg-primary hover:text-white transition-colors"
+                >
+                  {isFetchingNextPage ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 mr-2" />
+                  )}
+                  Xem thêm ({totalCount - roomCards.length} phòng còn lại)
+                </Button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Map View */}
-        {!loading && !error && viewMode === "map" && (
+        {!isLoading && !error && viewMode === "map" && (
           <div className="bg-muted/30 rounded-2xl h-[600px] flex items-center justify-center border border-border">
             <div className="text-center">
               <Map className="w-16 h-16 text-muted-foreground/50 mx-auto mb-3" />
@@ -477,6 +488,6 @@ export default function SearchPage() {
           </div>
         )}
       </div>
-    </div >
+    </div>
   );
 }

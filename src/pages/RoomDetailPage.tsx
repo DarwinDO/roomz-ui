@@ -53,7 +53,8 @@ export default function RoomDetailPage() {
   const { user } = useAuth();
 
   // Fetch room data
-  const { room, loading, error, refetch } = useRoom(id);
+  const { data: room, isLoading: loading, error: queryError, refetch } = useRoom(id);
+  const error = queryError?.message || null;
 
   // Favorite state
   const { isFavorited, toggle: toggleFavorite, loading: favoriteLoading } = useIsFavorited(id || '');
