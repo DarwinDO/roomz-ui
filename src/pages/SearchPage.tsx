@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
@@ -8,6 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RoomCard } from "@/components/common/RoomCard";
+import { RoomMap } from "@/components/common/RoomMap";
+import { SearchAutocomplete } from "@/components/common/SearchAutocomplete";
 import { formatPriceInMillions } from "@/utils/format";
 import { useSearchRooms, useDebounce } from "@/hooks";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -157,20 +158,11 @@ export default function SearchPage() {
       <div className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-40">
         <div className="px-4 py-4 max-w-6xl mx-auto">
           <div className="flex items-center gap-2 mb-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                placeholder="Tìm kiếm địa điểm..."
-                className="pl-10 rounded-full border-border"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    refetch();
-                  }
-                }}
-              />
-            </div>
+            <SearchAutocomplete
+              value={searchQuery}
+              onChange={setSearchQuery}
+              className="flex-1"
+            />
             <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="rounded-xl shrink-0 border-border hover-scale">
@@ -480,12 +472,10 @@ export default function SearchPage() {
 
         {/* Map View */}
         {!isLoading && !error && viewMode === "map" && (
-          <div className="bg-muted/30 rounded-2xl h-[600px] flex items-center justify-center border border-border">
-            <div className="text-center">
-              <Map className="w-16 h-16 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">Chế độ xem bản đồ sắp ra mắt</p>
-            </div>
-          </div>
+          <RoomMap
+            rooms={rooms}
+            className="h-[calc(100vh-200px)] min-h-[500px]"
+          />
         )}
       </div>
     </div>
