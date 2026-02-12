@@ -4,15 +4,17 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { setupAuth, cleanupTestUser } from './setup/auth';
 
 test.describe('Swap Room Feature', () => {
     test.beforeEach(async ({ page }) => {
-        // Login before each test
-        await page.goto('/login');
-        await page.fill('[data-testid="email-input"]', 'test@example.com');
-        await page.fill('[data-testid="password-input"]', 'password123');
-        await page.click('[data-testid="login-button"]');
-        await page.waitForURL('/');
+        // Create new test user and login
+        await setupAuth(page);
+    });
+
+    test.afterAll(async () => {
+        // Cleanup test user after all tests
+        await cleanupTestUser();
     });
 
     test.describe('SwapRoomPage', () => {
