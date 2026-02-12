@@ -167,17 +167,17 @@ export async function createSublet(
         .single();
 
     if (roomError || !room) {
-        throw new Error('Room not found');
+        throw new Error('Không tìm thấy phòng');
     }
 
     if (room.landlord_id !== user.user.id) {
-        throw new Error('You can only create sublets for rooms you own');
+        throw new Error('Bạn chỉ có thể tạo tin đăng cho phòng của chính mình');
     }
 
     // Validate price constraint (max 120% of original)
     const maxPrice = room.price_per_month * 1.2;
     if (request.sublet_price > maxPrice) {
-        throw new Error(`Sublet price cannot exceed ${maxPrice}`);
+        throw new Error(`Giá sublet không được vượt quá ${maxPrice.toLocaleString('vi-VN')} VNĐ`);
     }
 
     const { data, error } = await supabase

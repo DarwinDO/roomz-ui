@@ -40,9 +40,9 @@ export function SubletCard({
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
     );
 
-    const discount = Math.round(
-        ((sublet.original_price - sublet.sublet_price) / sublet.original_price) * 100
-    );
+    const discount = sublet.original_price > 0
+        ? Math.round(((sublet.original_price - sublet.sublet_price) / sublet.original_price) * 100)
+        : 0;
 
     return (
         <Card className="overflow-hidden group cursor-pointer hover:shadow-lg transition-shadow">

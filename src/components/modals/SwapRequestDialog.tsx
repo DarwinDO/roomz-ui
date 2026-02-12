@@ -76,6 +76,27 @@ export function SwapRequestDialog({ targetSublet, isOpen, onClose }: SwapRequest
             }
         }
 
+        // Validate dates are within target sublet availability
+        if (formData.proposedStartDate && targetSublet?.start_date && targetSublet?.end_date) {
+            const start = new Date(formData.proposedStartDate);
+            const subletStart = new Date(targetSublet.start_date);
+            const subletEnd = new Date(targetSublet.end_date);
+
+            if (start < subletStart || start > subletEnd) {
+                newErrors.proposedStartDate = `Ngày bắt đầu phải từ ${format(subletStart, 'dd/MM/yyyy')} đến ${format(subletEnd, 'dd/MM/yyyy')}`;
+            }
+        }
+
+        if (formData.proposedEndDate && targetSublet?.start_date && targetSublet?.end_date) {
+            const end = new Date(formData.proposedEndDate);
+            const subletStart = new Date(targetSublet.start_date);
+            const subletEnd = new Date(targetSublet.end_date);
+
+            if (end < subletStart || end > subletEnd) {
+                newErrors.proposedEndDate = `Ngày kết thúc phải từ ${format(subletStart, 'dd/MM/yyyy')} đến ${format(subletEnd, 'dd/MM/yyyy')}`;
+            }
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };

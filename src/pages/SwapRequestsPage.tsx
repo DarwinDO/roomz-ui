@@ -31,7 +31,7 @@ export default function SwapRequestsPage() {
     const [processingId, setProcessingId] = useState<string | null>(null);
 
     const incomingRequests =
-        requests?.filter((r) => r.status === 'pending') || [];
+        requests?.filter((r) => r.status === 'pending' && r.recipient_id === user?.id) || [];
     const outgoingRequests =
         requests?.filter((r) => r.requester_id === user?.id) || [];
     const allRequests = requests || [];

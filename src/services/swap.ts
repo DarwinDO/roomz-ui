@@ -67,15 +67,15 @@ export async function createSwapRequest(
         .single();
 
     if (requesterError || !requesterListing) {
-        throw new Error('Your listing not found');
+        throw new Error('Không tìm thấy tin đăng của bạn');
     }
 
     if (requesterListing.owner_id !== user.user.id) {
-        throw new Error('You can only swap with your own listings');
+        throw new Error('Bạn chỉ có thể hoán đổi với tin đăng của chính mình');
     }
 
     if (requesterListing.status !== 'active') {
-        throw new Error('Your listing must be active to create swap requests');
+        throw new Error('Tin đăng của bạn phải đang hoạt động để gửi yêu cầu hoán đổi');
     }
 
     // Validate: recipient listing exists and is active
@@ -86,15 +86,15 @@ export async function createSwapRequest(
         .single();
 
     if (recipientError || !recipientListing) {
-        throw new Error('Recipient listing not found');
+        throw new Error('Không tìm thấy tin đăng của ngườ nhận');
     }
 
     if (recipientListing.status !== 'active') {
-        throw new Error('Recipient listing is not available for swap');
+        throw new Error('Tin đăng của ngườ nhận không khả dụng để hoán đổi');
     }
 
     if (recipientListing.owner_id === user.user.id) {
-        throw new Error('Cannot swap with your own listing');
+        throw new Error('Không thể hoán đổi với chính tin đăng của bạn');
     }
 
     const { data, error } = await supabase
