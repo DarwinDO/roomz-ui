@@ -149,7 +149,7 @@ export function useCreateSublet() {
                     description: 'Bạn cần xác thực CCCD/Thẻ sinh viên để đăng tin.',
                     action: {
                         label: 'Xác thực ngay',
-                        onClick: () => window.location.assign('/profile/verify'),
+                        onClick: () => window.location.assign('/verification'),
                     },
                     duration: 8000,
                 });

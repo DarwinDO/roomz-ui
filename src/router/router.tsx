@@ -201,7 +201,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'verification',
-        element: <VerificationPage />,
+        element: (
+          <ProtectedRoute>
+            <VerificationPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'support-services',

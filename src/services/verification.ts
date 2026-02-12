@@ -1,273 +1,209 @@
 /**
- * Verification API Service
- * Upload and manage verification documents via Supabase Storage
+ * Identity Verification Service
+ * CCCD upload + admin review via Supabase Storage (private) + verification_requests table
  */
 
 import { supabase } from '@/lib/supabase';
-import type { Database } from '@/lib/database.types';
+import imageCompression from 'browser-image-compression';
 
-export type VerificationType = Database['public']['Enums']['verification_type'];
-export type VerificationStatus = Database['public']['Enums']['verification_status'];
+const BUCKET = 'identity_documents';
 
-export interface VerificationDocument {
+// ============================================
+// Types
+// ============================================
+
+export type VerificationStatus = 'pending' | 'approved' | 'rejected';
+
+export interface VerificationRequest {
   id: string;
-  userId: string;
-  type: VerificationType;
-  status: VerificationStatus | null;
-  documentFrontUrl: string | null;
-  documentBackUrl: string | null;
-  additionalDocuments: string[] | null;
-  submittedAt: string | null;
-  reviewedAt: string | null;
-  rejectionReason: string | null;
+  user_id: string;
+  document_type: string;
+  front_image_path: string;
+  back_image_path: string;
+  status: VerificationStatus;
+  rejection_reason: string | null;
+  reviewed_by: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+  // Joined fields (admin queries)
+  user?: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+    email: string;
+  };
 }
 
-export interface VerificationProgress {
-  idVerified: boolean;
-  photoVerified: boolean;
-  landlordVerified: boolean;
-  overallStatus: 'not_started' | 'in_progress' | 'verified';
+// ============================================
+// Image Compression
+// ============================================
+
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 1,
+  maxWidthOrHeight: 1920,
+  useWebWorker: true,
+  fileType: 'image/jpeg' as const,
+};
+
+async function compressImage(file: File): Promise<File> {
+  if (file.size <= 1024 * 1024) return file; // Skip if already < 1MB
+  return imageCompression(file, COMPRESSION_OPTIONS);
 }
 
-const BUCKET_NAME = 'verifications';
+// ============================================
+// User Functions
+// ============================================
 
 /**
- * Upload a verification document to Supabase Storage
- * 
- * IMPORTANT: RLS Policy must exist in Supabase for this to work.
- * Run the SQL in supabase/migrations/001_rpc_functions.sql to create the policies.
- * 
- * File path format: {userId}/{type}/{timestamp}.{ext}
- * This matches the RLS policy: (storage.foldername(name))[1] = auth.uid()
+ * Upload CCCD images (front + back) to private storage
+ * Returns { frontPath, backPath } for DB insert
  */
-export async function uploadVerificationDocument(
-  userId: string,
-  file: File,
-  type: VerificationType
-): Promise<string> {
-  // Validate inputs
-  if (!userId) {
-    throw new Error('User ID is required for uploading verification documents');
-  }
-  
-  if (!file) {
-    throw new Error('File is required');
-  }
+export async function uploadCCCDImages(
+  frontFile: File,
+  backFile: File
+): Promise<{ frontPath: string; backPath: string }> {
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) throw new Error('Chưa đăng nhập');
 
-  // Create a unique file path: {userId}/{type}/{timestamp}.{ext}
-  // This format is required for RLS policy to work
-  const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const userId = user.user.id;
   const timestamp = Date.now();
-  const fileName = `${userId}/${type}/${timestamp}.${fileExt}`;
 
-  console.log('[Verification] Uploading file:', fileName);
+  // Compress both images in parallel
+  const [compressedFront, compressedBack] = await Promise.all([
+    compressImage(frontFile),
+    compressImage(backFile),
+  ]);
 
-  // Upload to Supabase Storage
-  const { data, error: uploadError } = await supabase.storage
-    .from(BUCKET_NAME)
-    .upload(fileName, file, {
-      cacheControl: '3600',
-      upsert: true, // Allow overwriting existing files
-      contentType: file.type,
-    });
+  const frontPath = `${userId}/front_${timestamp}.jpg`;
+  const backPath = `${userId}/back_${timestamp}.jpg`;
 
-  if (uploadError) {
-    console.error('[Verification] Upload error:', uploadError);
-    
-    // Check for RLS policy error
-    if (uploadError.message.includes('row-level security') || 
-        uploadError.message.includes('violates') ||
-        (uploadError as { statusCode?: string }).statusCode === '403') {
-      throw new Error(
-        'Không có quyền upload file. Vui lòng liên hệ admin để kiểm tra RLS policies trong Supabase Storage.'
-      );
-    }
-    
-    // Check for bucket not found
-    if (uploadError.message.includes('not found') || uploadError.message.includes('Bucket')) {
-      throw new Error(
-        `Bucket "${BUCKET_NAME}" không tồn tại. Vui lòng tạo bucket trong Supabase Dashboard > Storage.`
-      );
-    }
-    
-    throw uploadError;
-  }
+  // Upload both in parallel
+  const [frontResult, backResult] = await Promise.all([
+    supabase.storage.from(BUCKET).upload(frontPath, compressedFront, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    }),
+    supabase.storage.from(BUCKET).upload(backPath, compressedBack, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    }),
+  ]);
 
-  console.log('[Verification] Upload successful:', data?.path);
+  if (frontResult.error) throw new Error(`Lỗi upload mặt trước: ${frontResult.error.message}`);
+  if (backResult.error) throw new Error(`Lỗi upload mặt sau: ${backResult.error.message}`);
 
-  // Get signed URL (for private bucket) or public URL
-  const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-    .from(BUCKET_NAME)
-    .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year expiry
-
-  if (signedUrlError) {
-    console.warn('[Verification] Could not create signed URL, using public URL');
-    const { data: publicUrlData } = supabase.storage
-      .from(BUCKET_NAME)
-      .getPublicUrl(fileName);
-    return publicUrlData.publicUrl;
-  }
-
-  return signedUrlData.signedUrl;
+  return { frontPath, backPath };
 }
 
 /**
- * Upload multiple verification photos (e.g., 360 room photos)
- */
-export async function uploadMultiplePhotos(
-  userId: string,
-  files: File[],
-  type: VerificationType = 'room_photos'
-): Promise<string[]> {
-  const uploadPromises = files.map((file) =>
-    uploadVerificationDocument(userId, file, type)
-  );
-
-  return Promise.all(uploadPromises);
-}
-
-/**
- * Submit verification request to database
+ * Submit verification request to DB
  */
 export async function submitVerificationRequest(
-  userId: string,
-  type: VerificationType,
-  fileUrls: string[]
+  frontPath: string,
+  backPath: string
 ): Promise<void> {
-  // Create verification record with proper schema
-  const record = {
-    user_id: userId,
-    verification_type: type,
-    document_front_url: fileUrls[0] || null,
-    document_back_url: fileUrls[1] || null,
-    additional_documents: fileUrls.length > 2 ? fileUrls.slice(2) : null,
-    status: 'pending' as VerificationStatus,
-    submitted_at: new Date().toISOString(),
-  };
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) throw new Error('Chưa đăng nhập');
 
   const { error } = await supabase
-    .from('verifications')
-    .insert(record);
+    .from('verification_requests')
+    .insert({
+      user_id: user.user.id,
+      document_type: 'cccd',
+      front_image_path: frontPath,
+      back_image_path: backPath,
+      status: 'pending',
+    });
 
   if (error) {
-    // If table doesn't exist, just log
-    if (error.code === '42P01') {
-      console.warn('verifications table does not exist, skipping database insert');
-      return;
+    if (error.code === '23505') {
+      throw new Error('Bạn đã có yêu cầu xác thực đang chờ duyệt');
     }
-    throw error;
+    throw new Error(`Lỗi gửi yêu cầu: ${error.message}`);
   }
-
-  // Update user verification status
-  await supabase
-    .from('users')
-    .update({
-      updated_at: new Date().toISOString(),
-    } as never)
-    .eq('id', userId);
 }
 
 /**
- * Get user's verification progress
+ * Get current user's latest verification status
  */
-export async function getVerificationProgress(userId: string): Promise<VerificationProgress> {
+export async function getMyVerificationStatus(): Promise<VerificationRequest | null> {
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) return null;
+
   const { data, error } = await supabase
-    .from('verifications')
-    .select('verification_type, status')
-    .eq('user_id', userId);
-
-  if (error) {
-    // If table doesn't exist, return default
-    if (error.code === '42P01') {
-      return {
-        idVerified: false,
-        photoVerified: false,
-        landlordVerified: false,
-        overallStatus: 'not_started',
-      };
-    }
-    throw error;
-  }
-
-  const verifications = data || [];
-  
-  // Check ID verification (id_card or student_card)
-  const idVerified = verifications.some(
-    (v) => (v.verification_type === 'id_card' || v.verification_type === 'student_card') && v.status === 'approved'
-  );
-  // Check photo verification (room_photos)
-  const photoVerified = verifications.some(
-    (v) => v.verification_type === 'room_photos' && v.status === 'approved'
-  );
-  // Check landlord/email verification
-  const landlordVerified = verifications.some(
-    (v) => v.verification_type === 'email' && v.status === 'approved'
-  );
-
-  let overallStatus: VerificationProgress['overallStatus'] = 'not_started';
-  if (idVerified && photoVerified && landlordVerified) {
-    overallStatus = 'verified';
-  } else if (verifications.length > 0) {
-    overallStatus = 'in_progress';
-  }
-
-  return {
-    idVerified,
-    photoVerified,
-    landlordVerified,
-    overallStatus,
-  };
-}
-
-/**
- * Get all verification documents for a user
- */
-export async function getUserVerifications(userId: string): Promise<VerificationDocument[]> {
-  const { data, error } = await supabase
-    .from('verifications')
+    .from('verification_requests')
     .select('*')
-    .eq('user_id', userId)
+    .eq('user_id', user.user.id)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as VerificationRequest | null;
+}
+
+// ============================================
+// Admin Functions
+// ============================================
+
+/**
+ * Fetch all verification requests (admin only)
+ * Joins user info for display
+ */
+export async function fetchVerificationRequests(
+  statusFilter?: VerificationStatus
+): Promise<VerificationRequest[]> {
+  let query = supabase
+    .from('verification_requests')
+    .select(`
+            *,
+            user:users!verification_requests_user_id_fkey(
+                id, full_name, avatar_url, email
+            )
+        `)
     .order('submitted_at', { ascending: false });
 
-  if (error) {
-    if (error.code === '42P01') {
-      return [];
-    }
-    throw error;
+  if (statusFilter) {
+    query = query.eq('status', statusFilter);
   }
 
-  return (data || []).map((doc) => ({
-    id: doc.id,
-    userId: doc.user_id,
-    type: doc.verification_type,
-    status: doc.status,
-    documentFrontUrl: doc.document_front_url,
-    documentBackUrl: doc.document_back_url,
-    additionalDocuments: doc.additional_documents as string[] | null,
-    submittedAt: doc.submitted_at,
-    reviewedAt: doc.reviewed_at,
-    rejectionReason: doc.rejection_reason,
-  }));
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data || []) as VerificationRequest[];
 }
 
 /**
- * Delete a verification document
+ * Get signed URL for viewing CCCD image (60 second expiry)
  */
-export async function deleteVerificationDocument(
-  documentId: string,
-  fileUrl: string
-): Promise<void> {
-  // Extract file path from URL
-  const urlParts = fileUrl.split('/');
-  const bucketIndex = urlParts.findIndex((p) => p === BUCKET_NAME || p === 'public');
-  if (bucketIndex !== -1) {
-    const filePath = urlParts.slice(bucketIndex + 1).join('/');
-    await supabase.storage.from(BUCKET_NAME).remove([filePath]);
-  }
+export async function getSignedImageUrl(path: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(path, 60);
 
-  // Delete from database
-  await supabase
-    .from('verifications')
-    .delete()
-    .eq('id', documentId);
+  if (error) throw new Error(`Lỗi tạo URL: ${error.message}`);
+  return data.signedUrl;
+}
+
+/**
+ * Admin: approve or reject a verification request
+ */
+export async function reviewVerification(
+  requestId: string,
+  status: 'approved' | 'rejected',
+  rejectionReason?: string
+): Promise<void> {
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) throw new Error('Chưa đăng nhập');
+
+  const { error } = await supabase
+    .from('verification_requests')
+    .update({
+      status,
+      rejection_reason: status === 'rejected' ? (rejectionReason || 'Giấy tờ không hợp lệ') : null,
+      reviewed_by: user.user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', requestId);
+
+  if (error) throw new Error(`Lỗi cập nhật: ${error.message}`);
 }
