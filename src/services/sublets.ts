@@ -299,7 +299,6 @@ export async function createApplication(
             applicant_id: user.user.id,
             message: request.message,
             preferred_move_in_date: request.preferred_move_in_date,
-            preferred_move_out_date: request.preferred_move_out_date,
             documents: request.documents || [],
             status: 'pending',
         })
@@ -411,7 +410,7 @@ export async function withdrawApplication(applicationId: string): Promise<void> 
 
     const { error } = await supabase
         .from('sublet_applications')
-        .update({ status: 'withdrawn' })
+        .update({ status: 'rejected' })
         .eq('id', applicationId)
         .eq('applicant_id', user.user.id);
 

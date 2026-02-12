@@ -6,7 +6,7 @@
 
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { ArrowRight, ArrowLeft, Clock, CheckCircle, XCircle, MessageCircle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -37,10 +37,6 @@ export function SwapRequestCard({
         pending: { label: 'Chờ phản hồi', color: 'bg-yellow-500', icon: Clock },
         accepted: { label: 'Đã chấp nhận', color: 'bg-blue-500', icon: CheckCircle },
         rejected: { label: 'Đã từ chối', color: 'bg-red-500', icon: XCircle },
-        negotiating: { label: 'Đang thương lượng', color: 'bg-purple-500', icon: MessageCircle },
-        confirmed: { label: 'Đã xác nhận', color: 'bg-green-500', icon: CheckCircle },
-        completed: { label: 'Đã hoàn thành', color: 'bg-gray-500', icon: CheckCircle },
-        cancelled: { label: 'Đã hủy', color: 'bg-gray-400', icon: XCircle },
     };
 
     const status = statusConfig[request.status as keyof typeof statusConfig] || statusConfig.pending;
@@ -49,6 +45,10 @@ export function SwapRequestCard({
     const otherUser = isIncoming ? request.requester : request.recipient;
     const otherListing = isIncoming ? request.requester_listing : request.recipient_listing;
     const myListing = isIncoming ? request.recipient_listing : request.requester_listing;
+
+    // Access room data via Supabase join alias 'original_room'
+    const myRoom = (myListing as any)?.original_room;
+    const otherRoom = (otherListing as any)?.original_room;
 
     return (
         <Card className="p-4 space-y-4 hover:shadow-md transition-shadow">
@@ -77,8 +77,8 @@ export function SwapRequestCard({
                 {/* My Listing */}
                 <div className="space-y-1">
                     <p className="text-xs text-muted-foreground">Phòng của bạn</p>
-                    <p className="font-medium text-sm line-clamp-1">{myListing?.room?.title}</p>
-                    <p className="text-xs text-muted-foreground">{myListing?.room?.district}</p>
+                    <p className="font-medium text-sm line-clamp-1">{myRoom?.title}</p>
+                    <p className="text-xs text-muted-foreground">{myRoom?.district}</p>
                 </div>
 
                 {/* Direction Arrow */}
@@ -93,8 +93,8 @@ export function SwapRequestCard({
                 {/* Other Listing */}
                 <div className="space-y-1 text-right">
                     <p className="text-xs text-muted-foreground">Phòng đề xuất</p>
-                    <p className="font-medium text-sm line-clamp-1">{otherListing?.room?.title}</p>
-                    <p className="text-xs text-muted-foreground">{otherListing?.room?.district}</p>
+                    <p className="font-medium text-sm line-clamp-1">{otherRoom?.title}</p>
+                    <p className="text-xs text-muted-foreground">{otherRoom?.district}</p>
                 </div>
             </div>
 

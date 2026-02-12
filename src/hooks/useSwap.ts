@@ -89,6 +89,7 @@ export function useCreateSwapRequest() {
         mutationFn: createSwapRequest,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: swapKeys.requests() });
+            queryClient.invalidateQueries({ queryKey: swapKeys.matches() });
         },
         onError: (error: Error) => {
             toast.error('Lỗi', { description: error.message || 'Không thể tạo yêu cầu hoán đổi.' });

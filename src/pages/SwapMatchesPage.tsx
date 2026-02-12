@@ -25,8 +25,8 @@ function adaptMatchToSubletListing(match: PotentialMatch): SubletListing {
         id: match.matched_listing_id,
         original_room_id: '', // Not available from match data
         owner_id: '', // Not available from match data
-        start_date: '', // Will be set in dialog
-        end_date: '', // Will be set in dialog
+        start_date: null as any, // Null → skip date validation in dialog
+        end_date: null as any, // Null → skip date validation in dialog
         original_price: matchedListing.sublet_price,
         sublet_price: matchedListing.sublet_price,
         deposit_required: 0,
