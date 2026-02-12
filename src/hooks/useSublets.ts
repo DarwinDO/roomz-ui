@@ -16,6 +16,7 @@ import {
     fetchSublets,
     fetchSubletById,
     createSublet,
+    createSubletWithRoom,
     updateSublet,
     deleteSublet,
     incrementSubletView,
@@ -26,6 +27,7 @@ import {
     withdrawApplication,
     fetchMySublets,
 } from '@/services/sublets';
+import type { CreateSubletWithRoomRequest } from '@/services/sublets';
 import type {
     SubletFilters,
     SubletSearchResponse,
@@ -142,6 +144,36 @@ export function useCreateSublet() {
             queryClient.invalidateQueries({ queryKey: subletKeys.lists() });
             queryClient.invalidateQueries({ queryKey: subletKeys.mySublets() });
             toast.success('Thành công', { description: 'Tin đăng đã được tạo.' });
+        },
+        onError: (error: Error) => {
+            if (error.message === 'REQUIRE_VERIFICATION') {
+                toast.error('Chưa xác thực tài khoản', {
+                    description: 'Bạn cần xác thực CCCD/Thẻ sinh viên để đăng tin.',
+                    action: {
+                        label: 'Xác thực ngay',
+                        onClick: () => window.location.assign('/verification'),
+                    },
+                    duration: 8000,
+                });
+                return;
+            }
+            toast.error('Lỗi', { description: error.message || 'Không thể tạo tin đăng.' });
+        },
+    });
+}
+
+/**
+ * Hook to create a sublet listing with auto-created room (non-landlord flow)
+ */
+export function useCreateSubletWithRoom() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (request: CreateSubletWithRoomRequest) => createSubletWithRoom(request),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: subletKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: subletKeys.mySublets() });
+            toast.success('Thành công', { description: 'Tin cho thuê lại đã được tạo.' });
         },
         onError: (error: Error) => {
             if (error.message === 'REQUIRE_VERIFICATION') {

@@ -46,6 +46,7 @@ const LandlordDashboardPage = lazy(() => import('@/pages/LandlordDashboardPage')
 const PostRoomPage = lazy(() => import('@/pages/PostRoomPage'));
 const PaymentPage = lazy(() => import('@/pages/PaymentPage'));
 const BecomeLandlordPage = lazy(() => import('@/pages/BecomeLandlordPage'));
+const PostSubletPage = lazy(() => import('@/pages/PostSubletPage'));
 
 // Admin pages
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
@@ -176,6 +177,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <MySubletsPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'create-sublet',
+        element: (
+          <ProtectedRoute>
+            <PostSubletPage />
           </ProtectedRoute>
         ),
       },

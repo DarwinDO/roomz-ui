@@ -70,7 +70,7 @@ export default function MySubletsPage() {
                             </p>
                         </div>
                     </div>
-                    <Button onClick={() => navigate('/post-room')}>
+                    <Button onClick={() => navigate('/create-sublet')}>
                         <Plus className="w-4 h-4 mr-2" />
                         Đăng phòng mới
                     </Button>
@@ -157,7 +157,7 @@ export default function MySubletsPage() {
                                 <p className="text-muted-foreground mb-4">
                                     Đăng phòng của bạn để tìm ngườ thuê phù hợp.
                                 </p>
-                                <Button onClick={() => navigate('/post-room')}>
+                                <Button onClick={() => navigate('/create-sublet')}>
                                     <Plus className="w-4 h-4 mr-2" />
                                     Đăng phòng ngay
                                 </Button>

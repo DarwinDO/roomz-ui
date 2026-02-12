@@ -97,7 +97,7 @@ export default function SwapRoomPage() {
           </div>
           <Button
             className="bg-primary hover:bg-primary/90 rounded-xl hidden md:flex"
-            onClick={() => navigate('/my-sublets')}
+            onClick={() => navigate('/create-sublet')}
           >
             <Plus className="w-4 h-4 mr-2" />
             Đăng phòng ngay

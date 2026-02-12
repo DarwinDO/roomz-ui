@@ -35,11 +35,9 @@ export default function AppShell() {
     { path: '/search', label: 'Tìm phòng' },
     { path: '/roommates', label: 'Tìm bạn cùng phòng' },
     { path: '/swap', label: 'SwapRoom' },
-    { path: '/verification', label: 'Xác thực' },
     { path: '/support-services', label: 'Dịch vụ' },
     { path: '/community', label: 'Cộng đồng' },
     { path: '/local-passport', label: 'Ưu đãi' },
-    // { path: '/profile', label: 'Hồ sơ' },
   ];
 
   const handleSignOut = async () => {

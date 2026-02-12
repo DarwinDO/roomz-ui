@@ -211,6 +211,121 @@ export async function createSublet(
 }
 
 /**
+ * Create a sublet listing WITH auto-created room (for non-landlord users)
+ * Flow: verify user → upload images → create room → create sublet → rollback on failure
+ */
+export interface CreateSubletWithRoomRequest {
+    // Room info
+    title: string;
+    address: string;
+    district?: string;
+    city: string;
+    room_type: 'private' | 'shared' | 'studio' | 'entire';
+    price_per_month: number;
+    area_sqm?: number;
+    bedroom_count?: number;
+    bathroom_count?: number;
+    furnished?: boolean;
+    image_urls?: string[];
+    // Sublet info
+    start_date: string;
+    end_date: string;
+    sublet_price: number;
+    deposit_required?: number;
+    description?: string;
+    requirements?: string[];
+}
+
+export async function createSubletWithRoom(
+    request: CreateSubletWithRoomRequest
+): Promise<SubletListing> {
+    const { data: user } = await supabase.auth.getUser();
+    if (!user.user) throw new Error('Chưa đăng nhập');
+
+    // 1. Verify identity
+    const { data: profile } = await supabase
+        .from('users')
+        .select('id_card_verified')
+        .eq('id', user.user.id)
+        .single();
+
+    if (!profile?.id_card_verified) {
+        throw new Error('REQUIRE_VERIFICATION');
+    }
+
+    // 2. Validate price (sublet <= 120% of original)
+    const maxPrice = request.price_per_month * 1.2;
+    if (request.sublet_price > maxPrice) {
+        throw new Error(`Giá cho thuê lại không được vượt quá ${maxPrice.toLocaleString('vi-VN')} VNĐ (120% giá gốc)`);
+    }
+
+    // 3. Create "Ghost Room" (active for search visibility)
+    const { data: newRoom, error: roomError } = await supabase
+        .from('rooms')
+        .insert({
+            landlord_id: user.user.id,
+            title: request.title,
+            address: request.address,
+            district: request.district || null,
+            city: request.city,
+            room_type: request.room_type,
+            price_per_month: request.price_per_month,
+            area_sqm: request.area_sqm || null,
+            bedroom_count: request.bedroom_count || 1,
+            bathroom_count: request.bathroom_count || 1,
+            furnished: request.furnished || false,
+            status: 'active',
+            is_available: true,
+        } as never)
+        .select('id, price_per_month')
+        .single();
+
+    if (roomError) throw new Error(`Lỗi tạo phòng: ${roomError.message}`);
+
+    // 4. Insert room images (if any)
+    if (request.image_urls && request.image_urls.length > 0) {
+        const images = request.image_urls.map((url, index) => ({
+            room_id: newRoom.id,
+            image_url: url,
+            display_order: index,
+            is_primary: index === 0,
+        }));
+        await supabase.from('room_images').insert(images as never);
+    }
+
+    // 5. Create sublet listing (linked to ghost room)
+    const { data: sublet, error: subletError } = await supabase
+        .from('sublet_listings')
+        .insert({
+            original_room_id: newRoom.id,
+            owner_id: user.user.id,
+            start_date: request.start_date,
+            end_date: request.end_date,
+            original_price: newRoom.price_per_month,
+            sublet_price: request.sublet_price,
+            deposit_required: request.deposit_required || 0,
+            description: request.description,
+            requirements: request.requirements || [],
+            status: 'active',
+            published_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+    // 6. Rollback: delete room if sublet insert failed
+    if (subletError) {
+        try {
+            await supabase.from('rooms').delete().eq('id', newRoom.id);
+        } catch {
+            // best-effort cleanup
+        }
+        throw new Error(`Lỗi tạo tin đăng: ${subletError.message}`);
+    }
+
+    return sublet as SubletListing;
+}
+
+/**
  * Update a sublet listing
  * Only owner can update
  */

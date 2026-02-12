@@ -9,6 +9,7 @@ import {
     getMyVerificationStatus,
     uploadCCCDImages,
     submitVerificationRequest,
+    deleteUploadedFiles,
     fetchVerificationRequests,
     reviewVerification,
     type VerificationStatus,
@@ -40,8 +41,13 @@ export function useSubmitVerification() {
         mutationFn: async ({ frontFile, backFile }: { frontFile: File; backFile: File }) => {
             // Step 1: Compress + upload
             const { frontPath, backPath } = await uploadCCCDImages(frontFile, backFile);
-            // Step 2: Insert DB record
-            await submitVerificationRequest(frontPath, backPath);
+            // Step 2: Insert DB record (cleanup uploaded files if this fails)
+            try {
+                await submitVerificationRequest(frontPath, backPath);
+            } catch (error) {
+                await deleteUploadedFiles(frontPath, backPath).catch(() => { });
+                throw error;
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: verificationKeys.myStatus() });

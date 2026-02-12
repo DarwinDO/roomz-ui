@@ -96,6 +96,13 @@ export async function uploadCCCDImages(
 }
 
 /**
+ * Delete uploaded files from storage (used for orphan cleanup)
+ */
+export async function deleteUploadedFiles(frontPath: string, backPath: string): Promise<void> {
+  await supabase.storage.from(BUCKET).remove([frontPath, backPath]);
+}
+
+/**
  * Submit verification request to DB
  */
 export async function submitVerificationRequest(

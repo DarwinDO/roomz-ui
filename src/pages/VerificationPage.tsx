@@ -4,7 +4,7 @@
  * Status-based UI: unverified → upload, pending → waiting, rejected → re-upload, verified → done
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
@@ -42,17 +42,27 @@ export default function VerificationPage() {
   const isRejected = currentStatus === 'rejected';
   const canUpload = !isPending && !isVerified;
 
+  // Cleanup blob URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (frontPreview) URL.revokeObjectURL(frontPreview);
+      if (backPreview) URL.revokeObjectURL(backPreview);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleFileDrop = useCallback((side: 'front' | 'back') => (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
 
     const preview = URL.createObjectURL(file);
     if (side === 'front') {
+      // Revoke previous URL to prevent memory leak
+      setFrontPreview(prev => { if (prev) URL.revokeObjectURL(prev); return preview; });
       setFrontFile(file);
-      setFrontPreview(preview);
     } else {
+      setBackPreview(prev => { if (prev) URL.revokeObjectURL(prev); return preview; });
       setBackFile(file);
-      setBackPreview(preview);
     }
   }, []);
 
