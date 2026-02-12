@@ -17,19 +17,15 @@ export type SwapRequestRow = Database['public']['Tables']['swap_requests']['Row'
 export type SwapRequestInsert = Database['public']['Tables']['swap_requests']['Insert'];
 export type SwapRequestUpdate = Database['public']['Tables']['swap_requests']['Update'];
 
-export type SwapMatchRow = Database['public']['Tables']['swap_matches']['Row'];
 export type SubletApplicationRow = Database['public']['Tables']['sublet_applications']['Row'];
-export type SwapAgreementRow = Database['public']['Tables']['swap_agreements']['Row'];
-export type SubletReviewRow = Database['public']['Tables']['sublet_reviews']['Row'];
 
 // ============================================
-// Enums
+// Enums (Simplified - 3 values each)
 // ============================================
 
-export type SubletStatus = 'draft' | 'pending' | 'active' | 'booked' | 'completed' | 'cancelled';
-export type SwapRequestStatus = 'pending' | 'accepted' | 'rejected' | 'negotiating' | 'confirmed' | 'completed' | 'cancelled';
-export type ApplicationStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | 'withdrawn' | 'expired';
-export type AgreementStatus = 'draft' | 'pending_signatures' | 'active' | 'completed' | 'terminated';
+export type SubletStatus = 'active' | 'booked' | 'cancelled';
+export type SwapRequestStatus = 'pending' | 'accepted' | 'rejected';
+export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
 
 // ============================================
 // Extended Types with Joined Data
@@ -99,11 +95,6 @@ export interface SwapRequest extends SwapRequestRow {
     recipient_listing?: SubletListing;
 }
 
-export interface SwapMatch extends SwapMatchRow {
-    my_listing?: SubletListing;
-    matched_listing?: SubletListing;
-}
-
 export interface SubletApplication extends SubletApplicationRow {
     sublet_listing?: SubletListing;
     applicant?: {
@@ -117,31 +108,34 @@ export interface SubletApplication extends SubletApplicationRow {
     };
 }
 
-export interface SwapAgreement extends SwapAgreementRow {
-    swap_request?: SwapRequest;
-    party_a?: {
-        id: string;
-        full_name: string;
-        avatar_url: string | null;
-    };
-    party_b?: {
-        id: string;
-        full_name: string;
-        avatar_url: string | null;
-    };
-}
+// ============================================
+// Potential Match (RPC Response)
+// ============================================
 
-export interface SubletReview extends SubletReviewRow {
-    sublet_listing?: SubletListing;
-    reviewer?: {
+export interface PotentialMatch {
+    listing_id: string;
+    matched_listing_id: string;
+    match_score: number;
+    matched_listing: {
         id: string;
-        full_name: string;
-        avatar_url: string | null;
-    };
-    reviewee?: {
-        id: string;
-        full_name: string;
-        avatar_url: string | null;
+        sublet_price: number;
+        title: string;
+        address: string;
+        district: string;
+        city: string;
+        latitude: number | null;
+        longitude: number | null;
+        area_sqm: number | null;
+        bedroom_count: number | null;
+        bathroom_count: number | null;
+        furnished: boolean | null;
+        room_type: string;
+        owner_name: string;
+        owner_avatar: string | null;
+        images: Array<{
+            image_url: string;
+            is_primary: boolean | null;
+        }>;
     };
 }
 
@@ -160,11 +154,6 @@ export interface SubletFilters {
     furnished?: boolean;
     page?: number;
     pageSize?: number;
-}
-
-export interface SwapMatchFilters {
-    min_score?: number;
-    max_results?: number;
 }
 
 // ============================================
@@ -193,7 +182,6 @@ export interface CreateApplicationRequest {
     sublet_listing_id: string;
     message?: string;
     preferred_move_in_date: string;
-    preferred_move_out_date?: string;
     documents?: Array<{
         type: string;
         url: string;
@@ -211,6 +199,12 @@ export interface RespondToSwapRequest {
     rejection_reason?: string;
 }
 
+// Potential Matches Response
+export interface PotentialMatchResponse {
+    matches: PotentialMatch[];
+    totalCount: number;
+}
+
 // ============================================
 // Search Response Types
 // ============================================
@@ -219,11 +213,6 @@ export interface SubletSearchResponse {
     sublets: SubletListingWithDetails[];
     totalCount: number;
     hasMore: boolean;
-}
-
-export interface SwapMatchResponse {
-    matches: SwapMatch[];
-    totalCount: number;
 }
 
 // ============================================
@@ -248,14 +237,9 @@ export interface SubletCardProps {
     onSwapRequest?: () => void;
 }
 
-export interface SwapMatchCardProps {
-    matchId: string;
-    myListing: SubletListing;
-    matchedListing: SubletListing;
-    matchScore: number;
-    matchReasons: string[];
-    onAccept: () => void;
-    onPass: () => void;
+export interface PotentialMatchCardProps {
+    match: PotentialMatch;
+    onRequestSwap: () => void;
     onViewDetails: () => void;
 }
 
@@ -289,11 +273,3 @@ export type PriceRange = {
     min: number;
     max: number;
 };
-
-export type MatchReason =
-    | 'similar_location'
-    | 'similar_price'
-    | 'overlapping_dates'
-    | 'same_district'
-    | 'same_city'
-    | 'compatible_requirements';

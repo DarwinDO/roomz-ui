@@ -26,6 +26,11 @@ const NOTIFICATION_ICONS: Record<Notification['type'], string> = {
     system: '🔔',
     verification: '✅',
     roommate_request: '🏠',
+    sublet_request: '📝',
+    sublet_approved: '✨',
+    swap_match: '🔄',
+    swap_request: '🔀',
+    swap_confirmed: '✅',
 };
 
 interface NotificationItemProps {

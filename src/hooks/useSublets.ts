@@ -34,6 +34,7 @@ import type {
     CreateSubletRequest,
     CreateApplicationRequest,
     UpdateApplicationStatusRequest,
+    ApplicationStatus,
 } from '@/types/swap';
 
 const PAGE_SIZE = 12;
@@ -216,6 +217,7 @@ export function useCreateApplication() {
 
 /**
  * Hook to update application status (approve/reject)
+ * Simplified: only 'approved' or 'rejected'
  */
 export function useUpdateApplicationStatus() {
     const queryClient = useQueryClient();
@@ -223,13 +225,22 @@ export function useUpdateApplicationStatus() {
     return useMutation({
         mutationFn: ({
             applicationId,
-            request,
+            status,
+            reviewNotes,
+            rejectionReason,
             subletId,
         }: {
             applicationId: string;
-            request: UpdateApplicationStatusRequest;
+            status: Extract<ApplicationStatus, 'approved' | 'rejected'>;
+            reviewNotes?: string;
+            rejectionReason?: string;
             subletId: string;
-        }) => updateApplicationStatus(applicationId, request),
+        }) =>
+            updateApplicationStatus(applicationId, {
+                status,
+                review_notes: reviewNotes,
+                rejection_reason: rejectionReason,
+            }),
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
                 queryKey: subletKeys.applications(variables.subletId),
@@ -244,6 +255,7 @@ export function useUpdateApplicationStatus() {
 
 /**
  * Hook to withdraw an application
+ * Simplified: updates status to 'rejected' (no withdrawn status)
  */
 export function useWithdrawApplication() {
     const queryClient = useQueryClient();

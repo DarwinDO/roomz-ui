@@ -1,102 +1,51 @@
 /**
  * Swap Services
- * API functions for swap requests and matches
+ * API functions for swap requests
  * Following Supabase Postgres Best Practices
+ * Simplified version - using RPC for matches
  */
 
 import { supabase } from '@/lib/supabase';
 import type {
     SwapRequest,
-    SwapMatch,
     CreateSwapRequest,
     RespondToSwapRequest,
-    SwapMatchResponse,
+    PotentialMatch,
+    PotentialMatchResponse,
 } from '@/types/swap';
 
 /**
- * Fetch swap matches for current user
- * Uses indexed query on swap_matches table
+ * Fetch potential swap matches for current user
+ * Uses RPC function get_potential_matches for realtime calculation
  */
-export async function fetchSwapMatches(
-    minScore: number = 60,
-    limit: number = 20
-): Promise<SwapMatchResponse> {
+export async function fetchPotentialMatches(
+    minScore: number = 40
+): Promise<PotentialMatchResponse> {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) throw new Error('User not authenticated');
 
-    // Get user's sublet listings first
-    const { data: myListings, error: listingsError } = await supabase
-        .from('sublet_listings')
-        .select('id')
-        .eq('owner_id', user.user.id)
-        .eq('status', 'active');
-
-    if (listingsError) {
-        console.error('Error fetching my listings:', listingsError);
-        throw listingsError;
-    }
-
-    if (!myListings || myListings.length === 0) {
-        return { matches: [], totalCount: 0 };
-    }
-
-    const listingIds = myListings.map((l) => l.id);
-
-    // Find matches where my listings are involved
-    const { data, error, count } = await supabase
-        .from('swap_matches')
-        .select(
-            `
-      *,
-      listing1:sublet_listings!listing_1_id (
-        id, start_date, end_date, sublet_price, original_price,
-        original_room:original_room_id (
-          title, address, district, city, room_images(image_url, is_primary, display_order)
-        ),
-        owner:owner_id (
-          full_name, avatar_url
-        )
-      ),
-      listing2:sublet_listings!listing_2_id (
-        id, start_date, end_date, sublet_price, original_price,
-        original_room:original_room_id (
-          title, address, district, city, room_images(image_url, is_primary, display_order)
-        ),
-        owner:owner_id (
-          full_name, avatar_url
-        )
-      )
-    `,
-            { count: 'exact' }
-        )
-        .or(
-            listingIds.map((id) => `listing_1_id.eq.${id}`).join(',') +
-            ',' +
-            listingIds.map((id) => `listing_2_id.eq.${id}`).join(',')
-        )
-        .eq('is_active', true)
-        .gte('match_score', minScore)
-        .order('match_score', { ascending: false })
-        .limit(limit);
+    const { data, error } = await supabase.rpc('get_potential_matches', {
+        p_user_id: user.user.id,
+    });
 
     if (error) {
-        console.error('Error fetching swap matches:', error);
+        console.error('Error fetching potential matches:', error);
         throw error;
     }
 
-    // Transform data
-    const matches: SwapMatch[] = (data || []).map((match: any) => {
-        const isListing1Mine = listingIds.includes(match.listing_1_id);
-        return {
-            ...match,
-            my_listing: isListing1Mine ? match.listing1 : match.listing2,
-            matched_listing: isListing1Mine ? match.listing2 : match.listing1,
-        };
-    });
+    // Filter by min score and cast to type
+    const matches: PotentialMatch[] = (data || [])
+        .filter((match: any) => match.match_score >= minScore)
+        .map((match: any) => ({
+            listing_id: match.listing_id,
+            matched_listing_id: match.matched_listing_id,
+            match_score: match.match_score,
+            matched_listing: match.matched_listing,
+        }));
 
     return {
         matches,
-        totalCount: count || 0,
+        totalCount: matches.length,
     };
 }
 
@@ -304,6 +253,7 @@ export async function respondToSwapRequest(
 
 /**
  * Cancel a swap request (requester only)
+ * Updates status to 'rejected' (simplified - no cancelled status)
  */
 export async function cancelSwapRequest(requestId: string): Promise<void> {
     const { data: user } = await supabase.auth.getUser();
@@ -311,57 +261,13 @@ export async function cancelSwapRequest(requestId: string): Promise<void> {
 
     const { error } = await supabase
         .from('swap_requests')
-        .update({ status: 'cancelled' })
+        .update({ status: 'rejected' })
         .eq('id', requestId)
         .eq('requester_id', user.user.id)
-        .in('status', ['pending', 'negotiating']);
+        .eq('status', 'pending');
 
     if (error) {
         console.error('Error cancelling swap request:', error);
-        throw error;
-    }
-}
-
-/**
- * Update match swipe status (like/pass)
- */
-export async function swipeMatch(
-    matchId: string,
-    direction: 'like' | 'pass'
-): Promise<void> {
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) throw new Error('User not authenticated');
-
-    // First get the match to determine if user is user1 or user2
-    const { data: match, error: matchError } = await supabase
-        .from('swap_matches')
-        .select('listing_1_id, listing_2_id')
-        .eq('id', matchId)
-        .single();
-
-    if (matchError || !match) {
-        throw new Error('Match not found');
-    }
-
-    // Determine which field to update based on user's listing
-    const { data: listing1 } = await supabase
-        .from('sublet_listings')
-        .select('owner_id')
-        .eq('id', match.listing_1_id)
-        .single();
-
-    const isUser1 = listing1?.owner_id === user.user.id;
-
-    const { error } = await supabase
-        .from('swap_matches')
-        .update({
-            [isUser1 ? 'user1_swiped' : 'user2_swiped']: direction === 'like',
-            [isUser1 ? 'shown_to_user1' : 'shown_to_user2']: true,
-        })
-        .eq('id', matchId);
-
-    if (error) {
-        console.error('Error updating match swipe:', error);
         throw error;
     }
 }

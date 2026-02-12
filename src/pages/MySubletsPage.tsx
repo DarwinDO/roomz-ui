@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { SubletCard } from '@/components/swap';
 import { useMySublets, useDeleteSublet } from '@/hooks/useSublets';
 import { toast } from 'sonner';
-import type { SubletListingWithDetails } from '@/types/swap';
+import type { SubletListing } from '@/types/swap';
 
 export default function MySubletsPage() {
     const navigate = useNavigate();
@@ -24,15 +24,15 @@ export default function MySubletsPage() {
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const activeSublets = sublets?.filter((s) => s.status === 'active') || [];
-    const pendingSublets = sublets?.filter((s) => s.status === 'pending') || [];
+    const pendingSublets: SubletListing[] = []; // Simplified - no pending status
     const expiredSublets =
-        sublets?.filter((s) => ['completed', 'cancelled'].includes(s.status)) || [];
+        sublets?.filter((s) => s.status === 'cancelled') || [];
 
-    const handleEdit = (sublet: SubletListingWithDetails) => {
+    const handleEdit = (sublet: SubletListing) => {
         navigate(`/sublet/${sublet.id}/edit`);
     };
 
-    const handleDelete = async (sublet: SubletListingWithDetails) => {
+    const handleDelete = async (sublet: SubletListing) => {
         if (!confirm('Bạn có chắc muốn xóa tin đăng này?')) return;
 
         setDeletingId(sublet.id);
@@ -50,7 +50,7 @@ export default function MySubletsPage() {
         }
     };
 
-    const handleViewApplications = (sublet: SubletListingWithDetails) => {
+    const handleViewApplications = (sublet: SubletListing) => {
         navigate(`/sublet/${sublet.id}/applications`);
     };
 

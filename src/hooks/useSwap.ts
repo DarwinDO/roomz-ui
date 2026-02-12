@@ -2,25 +2,24 @@
  * useSwap Hook (TanStack Query)
  * Server state management for swap requests and matches
  * Following patterns from useRooms.ts
+ * Simplified version - using RPC for matches
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-    fetchSwapMatches,
+    fetchPotentialMatches,
     fetchSwapRequests,
     fetchSwapRequestById,
     createSwapRequest,
     respondToSwapRequest,
     cancelSwapRequest,
-    swipeMatch,
 } from '@/services/swap';
 import { toast } from 'sonner';
 import type {
     SwapRequest,
-    SwapMatch,
     CreateSwapRequest,
     RespondToSwapRequest,
-    SwapMatchResponse,
+    PotentialMatchResponse,
 } from '@/types/swap';
 
 // ============================================
@@ -41,12 +40,13 @@ export const swapKeys = {
 // ============================================
 
 /**
- * Hook to fetch swap matches for current user
+ * Hook to fetch potential swap matches for current user
+ * Uses RPC function for realtime calculation
  */
-export function useSwapMatches(minScore: number = 60) {
-    return useQuery<SwapMatchResponse>({
+export function useSwapMatches(minScore: number = 40) {
+    return useQuery<PotentialMatchResponse>({
         queryKey: swapKeys.matchList(minScore),
-        queryFn: () => fetchSwapMatches(minScore),
+        queryFn: () => fetchPotentialMatches(minScore),
         staleTime: 5 * 60_000,
         refetchInterval: 5 * 60_000,
     });
@@ -135,24 +135,6 @@ export function useCancelSwapRequest() {
         },
         onError: (error: Error) => {
             toast.error('Lỗi', { description: error.message || 'Không thể hủy yêu cầu.' });
-        },
-    });
-}
-
-/**
- * Hook to swipe on a match (like/pass)
- */
-export function useSwipeMatch() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: ({ matchId, direction }: { matchId: string; direction: 'like' | 'pass' }) =>
-            swipeMatch(matchId, direction),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: swapKeys.matches() });
-        },
-        onError: (error: Error) => {
-            toast.error('Lỗi', { description: error.message || 'Không thể cập nhật.' });
         },
     });
 }

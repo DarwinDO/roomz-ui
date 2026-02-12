@@ -1,6 +1,7 @@
 /**
  * SwapMatchesPage
- * Display swap match suggestions for current user
+ * Display potential swap matches using RPC
+ * Simplified version - no swipe mechanism
  */
 
 import { useState } from 'react';
@@ -8,42 +9,24 @@ import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Star, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { SwapMatchCard } from '@/components/swap';
 import { SwapRequestDialog } from '@/components/modals/SwapRequestDialog';
-import { useSwapMatches, useSwipeMatch } from '@/hooks/useSwap';
+import { useSwapMatches } from '@/hooks/useSwap';
 import { toast } from 'sonner';
-import type { SwapMatch } from '@/types/swap';
+import type { PotentialMatch } from '@/types/swap';
 
 export default function SwapMatchesPage() {
     const navigate = useNavigate();
-    const { data, isLoading, isError, refetch } = useSwapMatches(60);
-    const swipeMatch = useSwipeMatch();
+    const { data, isLoading, isError, refetch } = useSwapMatches(40);
 
-    const [selectedMatch, setSelectedMatch] = useState<SwapMatch | null>(null);
+    const [selectedMatch, setSelectedMatch] = useState<PotentialMatch | null>(null);
     const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
 
     const matches = data?.matches || [];
 
-    const handleAccept = (match: SwapMatch) => {
+    const handleRequestSwap = (match: PotentialMatch) => {
         setSelectedMatch(match);
         setIsRequestDialogOpen(true);
-    };
-
-    const handlePass = async (match: SwapMatch) => {
-        try {
-            await swipeMatch.mutateAsync({
-                matchId: match.id,
-                direction: 'pass',
-            });
-            toast.success('Đã bỏ qua', {
-                description: 'Bạn sẽ không thấy gợi ý này nữa.',
-            });
-        } catch (error) {
-            toast.error('Lỗi', {
-                description: 'Không thể cập nhật. Vui lòng thử lại.',
-            });
-        }
     };
 
     return (
@@ -81,8 +64,9 @@ export default function SwapMatchesPage() {
                         <div className="flex-1">
                             <h3 className="mb-2 font-semibold">Thuật toán tìm kiếm thông minh</h3>
                             <p className="text-sm text-muted-foreground">
-                                Chúng tôi phân tích vị trí, giá cả, thờ gian và sở thích của bạn
-                                để tìm những phòng phù hợp nhất. Điểm càng cao, khả năng hoán đổi càng tốt.
+                                Chúng tôi phân tích vị trí (50%) và giá cả (50%) để tìm
+                                những phòng phù hợp nhất với nhu cầu hoán đổi của bạn.
+                                Điểm càng cao, khả năng hoán đổi càng tốt.
                             </p>
                         </div>
                     </div>
@@ -107,7 +91,7 @@ export default function SwapMatchesPage() {
                         </div>
                         <h3 className="mb-2 font-medium text-lg">Chưa có gợi ý nào</h3>
                         <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                            Bạn cần đăng tin cho thuê phòng trước để nhận gợi ý hoán đổi.
+                            Bạn cần đăng tin cho thuê phòng active để nhận gợi ý hoán đổi.
                             Hoặc thử điều chỉnh bộ lọc để tìm thêm kết quả.
                         </p>
                         <div className="flex gap-2 justify-center">
@@ -123,10 +107,9 @@ export default function SwapMatchesPage() {
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {matches.map((match) => (
                             <SwapMatchCard
-                                key={match.id}
+                                key={`${match.listing_id}-${match.matched_listing_id}`}
                                 match={match}
-                                onAccept={() => handleAccept(match)}
-                                onPass={() => handlePass(match)}
+                                onRequestSwap={() => handleRequestSwap(match)}
                             />
                         ))}
                     </div>
@@ -135,9 +118,28 @@ export default function SwapMatchesPage() {
 
             {/* Swap Request Dialog */}
             <SwapRequestDialog
-                targetSublet={selectedMatch?.matched_listing || null}
+                targetSublet={selectedMatch ? {
+                    id: selectedMatch.matched_listing_id,
+                    sublet_price: selectedMatch.matched_listing.sublet_price,
+                    start_date: '', // Will be set in dialog
+                    end_date: '',
+                    room: {
+                        title: selectedMatch.matched_listing.title,
+                        address: selectedMatch.matched_listing.address,
+                        district: selectedMatch.matched_listing.district,
+                        city: selectedMatch.matched_listing.city,
+                        room_images: selectedMatch.matched_listing.images,
+                    },
+                    owner: {
+                        full_name: selectedMatch.matched_listing.owner_name,
+                        avatar_url: selectedMatch.matched_listing.owner_avatar,
+                    },
+                } as any : null}
                 isOpen={isRequestDialogOpen}
-                onClose={() => setIsRequestDialogOpen(false)}
+                onClose={() => {
+                    setIsRequestDialogOpen(false);
+                    setSelectedMatch(null);
+                }}
             />
         </div>
     );

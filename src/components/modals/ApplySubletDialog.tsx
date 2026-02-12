@@ -82,7 +82,6 @@ export function ApplySubletDialog({ sublet, isOpen, onClose }: ApplySubletDialog
                 sublet_listing_id: sublet.id,
                 message: formData.message,
                 preferred_move_in_date: formData.preferredMoveInDate,
-                preferred_move_out_date: formData.preferredMoveOutDate || undefined,
             });
 
             toast.success('Thành công!', {

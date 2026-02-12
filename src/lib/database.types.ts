@@ -247,7 +247,7 @@ export type Database = {
           is_read: boolean | null
           link: string | null
           title: string
-          type: Database["public"]["Enums"]["notification_type"] | SwapNotificationType
+          type: Database["public"]["Enums"]["notification_type"]
           user_id: string
         }
         Insert: {
@@ -832,6 +832,225 @@ export type Database = {
           },
         ]
       }
+      sublet_applications: {
+        Row: {
+          applicant_id: string
+          created_at: string | null
+          documents: Json | null
+          id: string
+          message: string | null
+          preferred_move_in_date: string
+          rejection_reason: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          sublet_listing_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          applicant_id: string
+          created_at?: string | null
+          documents?: Json | null
+          id?: string
+          message?: string | null
+          preferred_move_in_date: string
+          rejection_reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          sublet_listing_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          applicant_id?: string
+          created_at?: string | null
+          documents?: Json | null
+          id?: string
+          message?: string | null
+          preferred_move_in_date?: string
+          rejection_reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          sublet_listing_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sublet_applications_applicant_id_fkey"
+            columns: ["applicant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublet_applications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublet_applications_sublet_listing_id_fkey"
+            columns: ["sublet_listing_id"]
+            isOneToOne: false
+            referencedRelation: "sublet_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sublet_listings: {
+        Row: {
+          application_count: number | null
+          created_at: string | null
+          deposit_required: number | null
+          description: string | null
+          end_date: string
+          id: string
+          original_price: number
+          original_room_id: string
+          owner_id: string
+          published_at: string | null
+          requirements: string[] | null
+          start_date: string
+          status: string | null
+          sublet_price: number
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          application_count?: number | null
+          created_at?: string | null
+          deposit_required?: number | null
+          description?: string | null
+          end_date: string
+          id?: string
+          original_price: number
+          original_room_id: string
+          owner_id: string
+          published_at?: string | null
+          requirements?: string[] | null
+          start_date: string
+          status?: string | null
+          sublet_price: number
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          application_count?: number | null
+          created_at?: string | null
+          deposit_required?: number | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          original_price?: number
+          original_room_id?: string
+          owner_id?: string
+          published_at?: string | null
+          requirements?: string[] | null
+          start_date?: string
+          status?: string | null
+          sublet_price?: number
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sublet_listings_original_room_id_fkey"
+            columns: ["original_room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sublet_listings_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      swap_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string | null
+          proposed_end_date: string
+          proposed_start_date: string
+          recipient_id: string
+          recipient_listing_id: string
+          rejection_reason: string | null
+          requester_id: string
+          requester_listing_id: string
+          responded_at: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          proposed_end_date: string
+          proposed_start_date: string
+          recipient_id: string
+          recipient_listing_id: string
+          rejection_reason?: string | null
+          requester_id: string
+          requester_listing_id: string
+          responded_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          proposed_end_date?: string
+          proposed_start_date?: string
+          recipient_id?: string
+          recipient_listing_id?: string
+          rejection_reason?: string | null
+          requester_id?: string
+          requester_listing_id?: string
+          responded_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "swap_requests_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_recipient_listing_id_fkey"
+            columns: ["recipient_listing_id"]
+            isOneToOne: false
+            referencedRelation: "sublet_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "swap_requests_requester_listing_id_fkey"
+            columns: ["requester_listing_id"]
+            isOneToOne: false
+            referencedRelation: "sublet_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_preferences: {
         Row: {
           budget_max: number | null
@@ -931,6 +1150,7 @@ export type Database = {
           id_card_verified: boolean | null
           is_premium: boolean | null
           last_login_at: string | null
+          last_seen: string | null
           major: string | null
           password_hash: string
           phone: string | null
@@ -961,6 +1181,7 @@ export type Database = {
           id_card_verified?: boolean | null
           is_premium?: boolean | null
           last_login_at?: string | null
+          last_seen?: string | null
           major?: string | null
           password_hash: string
           phone?: string | null
@@ -991,6 +1212,7 @@ export type Database = {
           id_card_verified?: boolean | null
           is_premium?: boolean | null
           last_login_at?: string | null
+          last_seen?: string | null
           major?: string | null
           password_hash?: string
           phone?: string | null
@@ -1079,477 +1301,6 @@ export type Database = {
           },
         ]
       }
-      sublet_listings: {
-        Row: {
-          id: string
-          original_room_id: string
-          owner_id: string
-          start_date: string
-          end_date: string
-          original_price: number
-          sublet_price: number
-          deposit_required: number | null
-          description: string | null
-          requirements: string[] | null
-          status: string | null
-          view_count: number | null
-          application_count: number | null
-          created_at: string | null
-          updated_at: string | null
-          published_at: string | null
-        }
-        Insert: {
-          id?: string
-          original_room_id: string
-          owner_id: string
-          start_date: string
-          end_date: string
-          original_price: number
-          sublet_price: number
-          deposit_required?: number | null
-          description?: string | null
-          requirements?: string[] | null
-          status?: string | null
-          view_count?: number | null
-          application_count?: number | null
-          created_at?: string | null
-          updated_at?: string | null
-          published_at?: string | null
-        }
-        Update: {
-          id?: string
-          original_room_id?: string
-          owner_id?: string
-          start_date?: string
-          end_date?: string
-          original_price?: number
-          sublet_price?: number
-          deposit_required?: number | null
-          description?: string | null
-          requirements?: string[] | null
-          status?: string | null
-          view_count?: number | null
-          application_count?: number | null
-          created_at?: string | null
-          updated_at?: string | null
-          published_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sublet_listings_original_room_id_fkey"
-            columns: ["original_room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sublet_listings_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      swap_requests: {
-        Row: {
-          id: string
-          requester_id: string
-          requester_listing_id: string
-          recipient_id: string
-          recipient_listing_id: string
-          message: string | null
-          proposed_start_date: string
-          proposed_end_date: string
-          status: string | null
-          created_at: string | null
-          updated_at: string | null
-          responded_at: string | null
-          confirmed_at: string | null
-          completed_at: string | null
-          expires_at: string | null
-          rejection_reason: string | null
-          cancellation_reason: string | null
-        }
-        Insert: {
-          id?: string
-          requester_id: string
-          requester_listing_id: string
-          recipient_id: string
-          recipient_listing_id: string
-          message?: string | null
-          proposed_start_date: string
-          proposed_end_date: string
-          status?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-          responded_at?: string | null
-          confirmed_at?: string | null
-          completed_at?: string | null
-          expires_at?: string | null
-          rejection_reason?: string | null
-          cancellation_reason?: string | null
-        }
-        Update: {
-          id?: string
-          requester_id?: string
-          requester_listing_id?: string
-          recipient_id?: string
-          recipient_listing_id?: string
-          message?: string | null
-          proposed_start_date?: string
-          proposed_end_date?: string
-          status?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-          responded_at?: string | null
-          confirmed_at?: string | null
-          completed_at?: string | null
-          expires_at?: string | null
-          rejection_reason?: string | null
-          cancellation_reason?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "swap_requests_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "swap_requests_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "swap_requests_requester_listing_id_fkey"
-            columns: ["requester_listing_id"]
-            isOneToOne: false
-            referencedRelation: "sublet_listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "swap_requests_recipient_listing_id_fkey"
-            columns: ["recipient_listing_id"]
-            isOneToOne: false
-            referencedRelation: "sublet_listings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      swap_matches: {
-        Row: {
-          id: string
-          listing_1_id: string
-          listing_2_id: string
-          match_score: number
-          location_score: number | null
-          price_score: number | null
-          time_score: number | null
-          preference_score: number | null
-          match_reasons: string[] | null
-          is_active: boolean | null
-          shown_to_user1: boolean | null
-          shown_to_user2: boolean | null
-          user1_swiped: boolean | null
-          user2_swiped: boolean | null
-          calculated_at: string | null
-          expires_at: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          listing_1_id: string
-          listing_2_id: string
-          match_score: number
-          location_score?: number | null
-          price_score?: number | null
-          time_score?: number | null
-          preference_score?: number | null
-          match_reasons?: string[] | null
-          is_active?: boolean | null
-          shown_to_user1?: boolean | null
-          shown_to_user2?: boolean | null
-          user1_swiped?: boolean | null
-          user2_swiped?: boolean | null
-          calculated_at?: string | null
-          expires_at?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          listing_1_id?: string
-          listing_2_id?: string
-          match_score?: number
-          location_score?: number | null
-          price_score?: number | null
-          time_score?: number | null
-          preference_score?: number | null
-          match_reasons?: string[] | null
-          is_active?: boolean | null
-          shown_to_user1?: boolean | null
-          shown_to_user2?: boolean | null
-          user1_swiped?: boolean | null
-          user2_swiped?: boolean | null
-          calculated_at?: string | null
-          expires_at?: string | null
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "swap_matches_listing_1_id_fkey"
-            columns: ["listing_1_id"]
-            isOneToOne: false
-            referencedRelation: "sublet_listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "swap_matches_listing_2_id_fkey"
-            columns: ["listing_2_id"]
-            isOneToOne: false
-            referencedRelation: "sublet_listings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sublet_applications: {
-        Row: {
-          id: string
-          sublet_listing_id: string
-          applicant_id: string
-          message: string | null
-          preferred_move_in_date: string
-          preferred_move_out_date: string | null
-          documents: Json | null
-          status: string | null
-          created_at: string | null
-          updated_at: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          review_notes: string | null
-          rejection_reason: string | null
-          expires_at: string | null
-        }
-        Insert: {
-          id?: string
-          sublet_listing_id: string
-          applicant_id: string
-          message?: string | null
-          preferred_move_in_date: string
-          preferred_move_out_date?: string | null
-          documents?: Json | null
-          status?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          review_notes?: string | null
-          rejection_reason?: string | null
-          expires_at?: string | null
-        }
-        Update: {
-          id?: string
-          sublet_listing_id?: string
-          applicant_id?: string
-          message?: string | null
-          preferred_move_in_date?: string
-          preferred_move_out_date?: string | null
-          documents?: Json | null
-          status?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          review_notes?: string | null
-          rejection_reason?: string | null
-          expires_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sublet_applications_sublet_listing_id_fkey"
-            columns: ["sublet_listing_id"]
-            isOneToOne: false
-            referencedRelation: "sublet_listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sublet_applications_applicant_id_fkey"
-            columns: ["applicant_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sublet_applications_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      swap_agreements: {
-        Row: {
-          id: string
-          swap_request_id: string
-          party_a_id: string
-          party_a_listing_id: string
-          party_a_signed_at: string | null
-          party_a_signature_url: string | null
-          party_b_id: string
-          party_b_listing_id: string
-          party_b_signed_at: string | null
-          party_b_signature_url: string | null
-          terms: Json
-          status: string | null
-          created_at: string | null
-          activated_at: string | null
-          completed_at: string | null
-          platform_fee: number | null
-          fee_paid_by: string | null
-          fee_paid_at: string | null
-        }
-        Insert: {
-          id?: string
-          swap_request_id: string
-          party_a_id: string
-          party_a_listing_id: string
-          party_a_signed_at?: string | null
-          party_a_signature_url?: string | null
-          party_b_id: string
-          party_b_listing_id: string
-          party_b_signed_at?: string | null
-          party_b_signature_url?: string | null
-          terms: Json
-          status?: string | null
-          created_at?: string | null
-          activated_at?: string | null
-          completed_at?: string | null
-          platform_fee?: number | null
-          fee_paid_by?: string | null
-          fee_paid_at?: string | null
-        }
-        Update: {
-          id?: string
-          swap_request_id?: string
-          party_a_id?: string
-          party_a_listing_id?: string
-          party_a_signed_at?: string | null
-          party_a_signature_url?: string | null
-          party_b_id?: string
-          party_b_listing_id?: string
-          party_b_signed_at?: string | null
-          party_b_signature_url?: string | null
-          terms?: Json
-          status?: string | null
-          created_at?: string | null
-          activated_at?: string | null
-          completed_at?: string | null
-          platform_fee?: number | null
-          fee_paid_by?: string | null
-          fee_paid_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "swap_agreements_swap_request_id_fkey"
-            columns: ["swap_request_id"]
-            isOneToOne: false
-            referencedRelation: "swap_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "swap_agreements_party_a_id_fkey"
-            columns: ["party_a_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "swap_agreements_party_b_id_fkey"
-            columns: ["party_b_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "swap_agreements_fee_paid_by_fkey"
-            columns: ["fee_paid_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sublet_reviews: {
-        Row: {
-          id: string
-          sublet_listing_id: string
-          reviewer_id: string
-          reviewee_id: string
-          overall_rating: number | null
-          cleanliness_rating: number | null
-          communication_rating: number | null
-          accuracy_rating: number | null
-          comment: string | null
-          would_recommend: boolean | null
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          sublet_listing_id: string
-          reviewer_id: string
-          reviewee_id: string
-          overall_rating?: number | null
-          cleanliness_rating?: number | null
-          communication_rating?: number | null
-          accuracy_rating?: number | null
-          comment?: string | null
-          would_recommend?: boolean | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          sublet_listing_id?: string
-          reviewer_id?: string
-          reviewee_id?: string
-          overall_rating?: number | null
-          cleanliness_rating?: number | null
-          communication_rating?: number | null
-          accuracy_rating?: number | null
-          comment?: string | null
-          would_recommend?: boolean | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sublet_reviews_sublet_listing_id_fkey"
-            columns: ["sublet_listing_id"]
-            isOneToOne: false
-            referencedRelation: "sublet_listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sublet_reviews_reviewer_id_fkey"
-            columns: ["reviewer_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sublet_reviews_reviewee_id_fkey"
-            columns: ["reviewee_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
@@ -1558,28 +1309,53 @@ export type Database = {
       calculate_compatibility_score: {
         Args: { p_user1_id: string; p_user2_id: string }
         Returns: {
+          age_score: number
           budget_score: number
           cleanliness_score: number
           guest_score: number
+          hobby_score: number
           noise_score: number
           sleep_score: number
           total_score: number
           weekend_score: number
         }[]
       }
+      calculate_swap_match_score: {
+        Args: { p_listing1_id: string; p_listing2_id: string }
+        Returns: number
+      }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       decrement_favorite_count: {
         Args: { p_room_id: string }
         Returns: undefined
       }
+      find_potential_swap_matches: {
+        Args: { p_limit?: number; p_listing_id: string }
+        Returns: {
+          listing_id: string
+          match_id: string
+          match_reasons: string[]
+          match_score: number
+        }[]
+      }
       get_or_create_conversation: {
         Args: { user1_id: string; user2_id: string }
         Returns: string
+      }
+      get_potential_matches: {
+        Args: { p_user_id: string }
+        Returns: {
+          listing_id: string
+          match_score: number
+          matched_listing: Json
+          matched_listing_id: string
+        }[]
       }
       get_roommate_matches: {
         Args: { p_limit?: number; p_user_id: string }
         Returns: {
           age: number
+          age_score: number
           avatar_url: string
           bio: string
           budget_score: number
@@ -1591,6 +1367,8 @@ export type Database = {
           gender: string
           guest_score: number
           hobbies: string[]
+          hobby_score: number
+          last_seen: string
           major: string
           matched_user_id: string
           noise_score: number
@@ -1609,8 +1387,69 @@ export type Database = {
         Args: { p_room_id: string }
         Returns: undefined
       }
+      increment_sublet_view_count: {
+        Args: { p_sublet_id: string }
+        Returns: undefined
+      }
       increment_view_count: { Args: { p_room_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
+      map_quiz_value: { Args: { p_val: string }; Returns: number }
+      search_rooms: {
+        Args: {
+          p_amenities?: string[]
+          p_district?: string
+          p_furnished?: boolean
+          p_is_verified?: boolean
+          p_max_price?: number
+          p_min_price?: number
+          p_page?: number
+          p_page_size?: number
+          p_pet_allowed?: boolean
+          p_room_types?: string[]
+          p_search_query?: string
+          p_sort_by?: string
+        }
+        Returns: {
+          address: string
+          area_sqm: number
+          available_from: string
+          bathroom_count: number
+          bedroom_count: number
+          city: string
+          created_at: string
+          deleted_at: string
+          deposit_amount: number
+          description: string
+          district: string
+          favorite_count: number
+          furnished: boolean
+          gender_restriction: string
+          has_360_photos: boolean
+          id: string
+          is_available: boolean
+          is_verified: boolean
+          landlord_avatar: string
+          landlord_email: string
+          landlord_id: string
+          landlord_name: string
+          landlord_phone: string
+          landlord_trust_score: number
+          latitude: number
+          longitude: number
+          max_occupants: number
+          min_lease_term: number
+          pet_allowed: boolean
+          price_per_month: number
+          primary_image_url: string
+          room_type: string
+          search_rank: number
+          status: string
+          title: string
+          total_count: number
+          updated_at: string
+          view_count: number
+        }[]
+      }
     }
     Enums: {
       account_status:
@@ -1633,6 +1472,11 @@ export type Database = {
       | "system"
       | "verification"
       | "roommate_request"
+      | "sublet_request"
+      | "sublet_approved"
+      | "swap_match"
+      | "swap_request"
+      | "swap_confirmed"
       review_type: "room" | "landlord" | "tenant" | "roommate"
       room_status:
       | "draft"
@@ -1812,6 +1656,11 @@ export const Constants = {
         "system",
         "verification",
         "roommate_request",
+        "sublet_request",
+        "sublet_approved",
+        "swap_match",
+        "swap_request",
+        "swap_confirmed",
       ],
       review_type: ["room", "landlord", "tenant", "roommate"],
       room_status: [
@@ -1841,7 +1690,7 @@ export const Constants = {
         "needs_resubmit",
       ],
       verification_type: [
-        "id_card",
+        "id_class",
         "student_card",
         "email",
         "phone",
