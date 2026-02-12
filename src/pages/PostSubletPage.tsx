@@ -5,7 +5,7 @@
  * Step 2: Sublet Details (dates, sublet price, description)
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -19,6 +19,7 @@ import {
     MapPin,
     DollarSign,
     Info,
+    AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +45,13 @@ const ROOM_TYPES = [
     { value: 'studio', label: 'Studio' },
     { value: 'entire', label: 'Nguyên căn' },
 ] as const;
+
+const MAX_IMAGES = 8;
+const MAX_DESCRIPTION_LENGTH = 1000;
+
+function getTodayString(): string {
+    return new Date().toISOString().split('T')[0];
+}
 
 export default function PostSubletPage() {
     const navigate = useNavigate();
@@ -93,7 +101,19 @@ export default function PostSubletPage() {
     // Image handlers
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        const validFiles = files.filter(file => {
+
+        const remaining = MAX_IMAGES - selectedFiles.length;
+        if (remaining <= 0) {
+            toast.error(`Tối đa ${MAX_IMAGES} ảnh`);
+            return;
+        }
+
+        const sliced = files.slice(0, remaining);
+        if (sliced.length < files.length) {
+            toast.info(`Chỉ thêm được ${remaining} ảnh nữa (tối đa ${MAX_IMAGES})`);
+        }
+
+        const validFiles = sliced.filter(file => {
             if (!file.type.startsWith('image/')) {
                 toast.error(`${file.name} không phải là file ảnh`);
                 return false;
@@ -136,8 +156,37 @@ export default function PostSubletPage() {
     };
 
     // Validation
-    const isStep1Valid = roomData.title && roomData.address && roomData.price_per_month;
-    const isStep2Valid = subletData.start_date && subletData.end_date && subletData.sublet_price;
+    const today = useMemo(() => getTodayString(), []);
+
+    const isStep1Valid = roomData.title && roomData.address && roomData.price_per_month && parseFloat(roomData.price_per_month) > 0;
+
+    const dateError = useMemo(() => {
+        if (!subletData.start_date || !subletData.end_date) return null;
+        if (subletData.start_date < today) return 'Ngày bắt đầu không thể trong quá khứ';
+        if (subletData.end_date <= subletData.start_date) return 'Ngày kết thúc phải sau ngày bắt đầu';
+        return null;
+    }, [subletData.start_date, subletData.end_date, today]);
+
+    const priceCapExceeded = useMemo(() => {
+        if (!roomData.price_per_month || !subletData.sublet_price) return false;
+        return parseFloat(subletData.sublet_price) > parseFloat(roomData.price_per_month) * 1.2;
+    }, [roomData.price_per_month, subletData.sublet_price]);
+
+    const isStep2Valid =
+        subletData.start_date &&
+        subletData.end_date &&
+        subletData.sublet_price &&
+        parseFloat(subletData.sublet_price) > 0 &&
+        !dateError &&
+        !priceCapExceeded;
+
+    const handleBack = () => {
+        if (step === 2) {
+            setStep(1);
+        } else {
+            navigate(-1);
+        }
+    };
 
     const handleSubmit = async () => {
         if (!user) {
@@ -151,7 +200,6 @@ export default function PostSubletPage() {
         }
 
         try {
-            // Upload images first
             let imageUrls: string[] = [];
             if (selectedFiles.length > 0) {
                 setIsUploading(true);
@@ -181,9 +229,8 @@ export default function PostSubletPage() {
             });
 
             setIsSuccess(true);
-        } catch (err) {
+        } catch {
             setIsUploading(false);
-            // Error toast is handled in the hook
         }
     };
 
@@ -240,7 +287,7 @@ export default function PostSubletPage() {
             {/* Header */}
             <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-40 px-4 py-3">
                 <div className="max-w-3xl mx-auto flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
+                    <Button variant="ghost" size="icon" onClick={handleBack} className="rounded-full">
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <div>
@@ -344,6 +391,7 @@ export default function PostSubletPage() {
                                         <Input
                                             id="price_per_month"
                                             type="number"
+                                            min="0"
                                             placeholder="3000000"
                                             value={roomData.price_per_month}
                                             onChange={e => handleRoomChange('price_per_month', e.target.value)}
@@ -352,12 +400,13 @@ export default function PostSubletPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
                                         <Label htmlFor="area_sqm">Diện tích (m²)</Label>
                                         <Input
                                             id="area_sqm"
                                             type="number"
+                                            min="0"
                                             placeholder="25"
                                             value={roomData.area_sqm}
                                             onChange={e => handleRoomChange('area_sqm', e.target.value)}
@@ -403,16 +452,26 @@ export default function PostSubletPage() {
 
                                 {/* Image Upload */}
                                 <div>
-                                    <Label>Ảnh phòng</Label>
+                                    <div className="flex items-center justify-between">
+                                        <Label>Ảnh phòng</Label>
+                                        <span className="text-xs text-muted-foreground">
+                                            {selectedFiles.length}/{MAX_IMAGES} ảnh
+                                        </span>
+                                    </div>
                                     <div
-                                        className="mt-1.5 border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
-                                        onDragOver={e => e.preventDefault()}
-                                        onDrop={handleDrop}
-                                        onClick={() => fileInputRef.current?.click()}
+                                        className={`mt-1.5 border-2 border-dashed rounded-xl p-6 text-center transition-colors ${selectedFiles.length >= MAX_IMAGES
+                                                ? 'opacity-50 cursor-not-allowed'
+                                                : 'cursor-pointer hover:border-primary/50 hover:bg-primary/5'
+                                            }`}
+                                        onDragOver={e => { e.preventDefault(); }}
+                                        onDrop={selectedFiles.length >= MAX_IMAGES ? undefined : handleDrop}
+                                        onClick={selectedFiles.length >= MAX_IMAGES ? undefined : () => fileInputRef.current?.click()}
                                     >
                                         <ImagePlus className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                                         <p className="text-sm text-muted-foreground">
-                                            Kéo thả hoặc click để chọn ảnh
+                                            {selectedFiles.length >= MAX_IMAGES
+                                                ? `Đã đạt tối đa ${MAX_IMAGES} ảnh`
+                                                : 'Kéo thả hoặc click để chọn ảnh'}
                                         </p>
                                         <p className="text-xs text-muted-foreground mt-1">Tối đa 5MB / ảnh</p>
                                         <input
@@ -432,7 +491,7 @@ export default function PostSubletPage() {
                                                     <img src={url} alt="" className="w-full h-full object-cover" />
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); removeImage(i); }}
-                                                        className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                                                     >
                                                         <X className="w-3.5 h-3.5" />
                                                     </button>
@@ -463,6 +522,28 @@ export default function PostSubletPage() {
                 {/* Step 2: Sublet Details */}
                 {step === 2 && (
                     <div className="space-y-6 animate-fade-in">
+                        {/* Room Summary */}
+                        <div className="bg-muted/40 rounded-xl p-4 flex items-start gap-3">
+                            <Home className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                            <div className="text-sm space-y-1 min-w-0">
+                                <p className="font-semibold truncate">{roomData.title}</p>
+                                <p className="text-muted-foreground truncate">{roomData.address}{roomData.district ? `, ${roomData.district}` : ''}, {roomData.city}</p>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+                                    <span>{ROOM_TYPES.find(t => t.value === roomData.room_type)?.label}</span>
+                                    <span>{parseFloat(roomData.price_per_month).toLocaleString('vi-VN')} VNĐ/tháng</span>
+                                    {roomData.area_sqm && <span>{roomData.area_sqm} m²</span>}
+                                    {selectedFiles.length > 0 && <span>{selectedFiles.length} ảnh</span>}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setStep(1)}
+                                    className="text-primary text-xs font-medium hover:underline mt-1"
+                                >
+                                    Chỉnh sửa thông tin phòng
+                                </button>
+                            </div>
+                        </div>
+
                         <Card className="border-none shadow-md">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -477,6 +558,7 @@ export default function PostSubletPage() {
                                         <Input
                                             id="start_date"
                                             type="date"
+                                            min={today}
                                             value={subletData.start_date}
                                             onChange={e => handleSubletChange('start_date', e.target.value)}
                                             className="mt-1.5"
@@ -487,12 +569,20 @@ export default function PostSubletPage() {
                                         <Input
                                             id="end_date"
                                             type="date"
+                                            min={subletData.start_date || today}
                                             value={subletData.end_date}
                                             onChange={e => handleSubletChange('end_date', e.target.value)}
                                             className="mt-1.5"
                                         />
                                     </div>
                                 </div>
+
+                                {dateError && (
+                                    <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                                        {dateError}
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -503,14 +593,21 @@ export default function PostSubletPage() {
                                         <Input
                                             id="sublet_price"
                                             type="number"
+                                            min="0"
                                             placeholder="2500000"
                                             value={subletData.sublet_price}
                                             onChange={e => handleSubletChange('sublet_price', e.target.value)}
-                                            className="mt-1.5"
+                                            className={`mt-1.5 ${priceCapExceeded ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                         />
                                         {roomData.price_per_month && (
                                             <p className="text-xs text-muted-foreground mt-1">
                                                 Tối đa {(parseFloat(roomData.price_per_month) * 1.2).toLocaleString('vi-VN')} VNĐ (120% giá gốc)
+                                            </p>
+                                        )}
+                                        {priceCapExceeded && (
+                                            <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                                                <AlertTriangle className="w-3 h-3" />
+                                                Giá vượt quá 120% giá gốc, vui lòng giảm giá
                                             </p>
                                         )}
                                     </div>
@@ -519,6 +616,7 @@ export default function PostSubletPage() {
                                         <Input
                                             id="deposit"
                                             type="number"
+                                            min="0"
                                             placeholder="500000"
                                             value={subletData.deposit_required}
                                             onChange={e => handleSubletChange('deposit_required', e.target.value)}
@@ -528,18 +626,30 @@ export default function PostSubletPage() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="description">Mô tả thêm</Label>
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="description">Mô tả thêm</Label>
+                                        <span className={`text-xs ${subletData.description.length > MAX_DESCRIPTION_LENGTH
+                                                ? 'text-destructive font-medium'
+                                                : 'text-muted-foreground'
+                                            }`}>
+                                            {subletData.description.length}/{MAX_DESCRIPTION_LENGTH}
+                                        </span>
+                                    </div>
                                     <Textarea
                                         id="description"
                                         placeholder="Lý do cho thuê lại, yêu cầu đặc biệt, thông tin thêm về phòng..."
                                         value={subletData.description}
-                                        onChange={e => handleSubletChange('description', e.target.value)}
+                                        onChange={e => {
+                                            if (e.target.value.length <= MAX_DESCRIPTION_LENGTH) {
+                                                handleSubletChange('description', e.target.value);
+                                            }
+                                        }}
                                         className="mt-1.5 min-h-[100px]"
                                     />
                                 </div>
 
                                 {/* Price comparison */}
-                                {roomData.price_per_month && subletData.sublet_price && (
+                                {roomData.price_per_month && subletData.sublet_price && !priceCapExceeded && (
                                     <div className="bg-muted/50 rounded-xl p-4 space-y-2">
                                         <div className="flex items-center gap-2 text-sm font-medium">
                                             <Info className="w-4 h-4 text-primary" />
