@@ -159,12 +159,16 @@ export async function createSublet(
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) throw new Error('User not authenticated');
 
-    // Validate: user must own the room
-    const { data: room, error: roomError } = await supabase
-        .from('rooms')
-        .select('landlord_id, price_per_month')
-        .eq('id', request.original_room_id)
-        .single();
+    // Parallel fetch: verify user identity + validate room ownership
+    const [{ data: profile }, { data: room, error: roomError }] = await Promise.all([
+        supabase.from('users').select('id_card_verified').eq('id', user.user.id).single(),
+        supabase.from('rooms').select('landlord_id, price_per_month').eq('id', request.original_room_id).single(),
+    ]);
+
+    // Guard: user must be identity-verified to post
+    if (!profile?.id_card_verified) {
+        throw new Error('REQUIRE_VERIFICATION');
+    }
 
     if (roomError || !room) {
         throw new Error('Không tìm thấy phòng');

@@ -141,8 +141,20 @@ export function useCreateSublet() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: subletKeys.lists() });
             queryClient.invalidateQueries({ queryKey: subletKeys.mySublets() });
+            toast.success('Thành công', { description: 'Tin đăng đã được tạo.' });
         },
         onError: (error: Error) => {
+            if (error.message === 'REQUIRE_VERIFICATION') {
+                toast.error('Chưa xác thực tài khoản', {
+                    description: 'Bạn cần xác thực CCCD/Thẻ sinh viên để đăng tin.',
+                    action: {
+                        label: 'Xác thực ngay',
+                        onClick: () => window.location.assign('/profile/verify'),
+                    },
+                    duration: 8000,
+                });
+                return;
+            }
             toast.error('Lỗi', { description: error.message || 'Không thể tạo tin đăng.' });
         },
     });
