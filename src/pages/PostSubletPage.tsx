@@ -1,12 +1,10 @@
 /**
  * PostSubletPage
- * 2-step form for non-landlord users to create a sublet listing
- * Step 1: Room Info (address, type, price, images)
- * Step 2: Sublet Details (dates, sublet price, description)
+ * 2-step form for non-landlord users to create a sublet listing.
+ * All state and logic lives in usePostSubletForm hook.
  */
 
-import { useState, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRef } from 'react';
 import {
     ArrowLeft,
     ArrowRight,
@@ -34,207 +32,30 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { useAuth } from '@/contexts';
-import { uploadMultipleRoomImages } from '@/services/roomImages';
-import { useCreateSubletWithRoom } from '@/hooks/useSublets';
-import { toast } from 'sonner';
-
-const ROOM_TYPES = [
-    { value: 'private', label: 'Phòng riêng' },
-    { value: 'shared', label: 'Phòng chung' },
-    { value: 'studio', label: 'Studio' },
-    { value: 'entire', label: 'Nguyên căn' },
-] as const;
-
-const MAX_IMAGES = 8;
-const MAX_DESCRIPTION_LENGTH = 1000;
-
-function getTodayString(): string {
-    return new Date().toISOString().split('T')[0];
-}
+import {
+    usePostSubletForm,
+    ROOM_TYPES,
+    MAX_IMAGES,
+    MAX_DESCRIPTION_LENGTH,
+    MAX_FILE_SIZE_MB,
+} from '@/hooks/usePostSubletForm';
 
 export default function PostSubletPage() {
-    const navigate = useNavigate();
-    const { user } = useAuth();
+    const form = usePostSubletForm();
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const createSublet = useCreateSubletWithRoom();
 
-    const [step, setStep] = useState(1);
-    const [isUploading, setIsUploading] = useState(false);
-    const [isSuccess, setIsSuccess] = useState(false);
-
-    // Image state
-    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-    const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-
-    // Step 1: Room info
-    const [roomData, setRoomData] = useState({
-        title: '',
-        address: '',
-        district: '',
-        city: 'Hà Nội',
-        room_type: 'private' as 'private' | 'shared' | 'studio' | 'entire',
-        price_per_month: '',
-        area_sqm: '',
-        bedroom_count: '1',
-        bathroom_count: '1',
-        furnished: false,
-    });
-
-    // Step 2: Sublet info
-    const [subletData, setSubletData] = useState({
-        start_date: '',
-        end_date: '',
-        sublet_price: '',
-        deposit_required: '',
-        description: '',
-    });
-
-    const handleRoomChange = (field: string, value: string | boolean) => {
-        setRoomData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleSubletChange = (field: string, value: string) => {
-        setSubletData(prev => ({ ...prev, [field]: value }));
-    };
-
-    // Image handlers
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-
-        const remaining = MAX_IMAGES - selectedFiles.length;
-        if (remaining <= 0) {
-            toast.error(`Tối đa ${MAX_IMAGES} ảnh`);
-            return;
-        }
-
-        const sliced = files.slice(0, remaining);
-        if (sliced.length < files.length) {
-            toast.info(`Chỉ thêm được ${remaining} ảnh nữa (tối đa ${MAX_IMAGES})`);
-        }
-
-        const validFiles = sliced.filter(file => {
-            if (!file.type.startsWith('image/')) {
-                toast.error(`${file.name} không phải là file ảnh`);
-                return false;
-            }
-            if (file.size > 5 * 1024 * 1024) {
-                toast.error(`${file.name} vượt quá 5MB`);
-                return false;
-            }
-            return true;
-        });
-
-        if (validFiles.length > 0) {
-            setSelectedFiles(prev => [...prev, ...validFiles]);
-            validFiles.forEach(file => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setPreviewUrls(prev => [...prev, reader.result as string]);
-                };
-                reader.readAsDataURL(file);
-            });
-        }
+    const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        form.processFiles(Array.from(e.target.files || []));
         if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-
-    const removeImage = (index: number) => {
-        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-        setPreviewUrls(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
-        const files = Array.from(e.dataTransfer.files);
-        const input = fileInputRef.current;
-        if (input) {
-            const dt = new DataTransfer();
-            files.forEach(file => dt.items.add(file));
-            input.files = dt.files;
-            handleFileSelect({ target: input } as unknown as React.ChangeEvent<HTMLInputElement>);
-        }
+        form.processFiles(Array.from(e.dataTransfer.files));
     };
 
-    // Validation
-    const today = useMemo(() => getTodayString(), []);
-
-    const isStep1Valid = roomData.title && roomData.address && roomData.price_per_month && parseFloat(roomData.price_per_month) > 0;
-
-    const dateError = useMemo(() => {
-        if (!subletData.start_date || !subletData.end_date) return null;
-        if (subletData.start_date < today) return 'Ngày bắt đầu không thể trong quá khứ';
-        if (subletData.end_date <= subletData.start_date) return 'Ngày kết thúc phải sau ngày bắt đầu';
-        return null;
-    }, [subletData.start_date, subletData.end_date, today]);
-
-    const priceCapExceeded = useMemo(() => {
-        if (!roomData.price_per_month || !subletData.sublet_price) return false;
-        return parseFloat(subletData.sublet_price) > parseFloat(roomData.price_per_month) * 1.2;
-    }, [roomData.price_per_month, subletData.sublet_price]);
-
-    const isStep2Valid =
-        subletData.start_date &&
-        subletData.end_date &&
-        subletData.sublet_price &&
-        parseFloat(subletData.sublet_price) > 0 &&
-        !dateError &&
-        !priceCapExceeded;
-
-    const handleBack = () => {
-        if (step === 2) {
-            setStep(1);
-        } else {
-            navigate(-1);
-        }
-    };
-
-    const handleSubmit = async () => {
-        if (!user) {
-            toast.error('Vui lòng đăng nhập');
-            return;
-        }
-
-        if (!isStep2Valid) {
-            toast.error('Vui lòng điền đầy đủ thông tin');
-            return;
-        }
-
-        try {
-            let imageUrls: string[] = [];
-            if (selectedFiles.length > 0) {
-                setIsUploading(true);
-                imageUrls = await uploadMultipleRoomImages(user.id, selectedFiles);
-                setIsUploading(false);
-            }
-
-            await createSublet.mutateAsync({
-                title: roomData.title,
-                address: roomData.address,
-                district: roomData.district || undefined,
-                city: roomData.city,
-                room_type: roomData.room_type,
-                price_per_month: parseFloat(roomData.price_per_month),
-                area_sqm: roomData.area_sqm ? parseFloat(roomData.area_sqm) : undefined,
-                bedroom_count: parseInt(roomData.bedroom_count) || 1,
-                bathroom_count: parseInt(roomData.bathroom_count) || 1,
-                furnished: roomData.furnished,
-                image_urls: imageUrls.length > 0 ? imageUrls : undefined,
-                start_date: subletData.start_date,
-                end_date: subletData.end_date,
-                sublet_price: parseFloat(subletData.sublet_price),
-                deposit_required: subletData.deposit_required
-                    ? parseFloat(subletData.deposit_required)
-                    : undefined,
-                description: subletData.description || undefined,
-            });
-
-            setIsSuccess(true);
-        } catch {
-            setIsUploading(false);
-        }
-    };
-
-    if (!user) {
+    // -- Not logged in --
+    if (!form.user) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center px-4">
                 <Card className="max-w-md w-full border-none shadow-lg">
@@ -242,14 +63,15 @@ export default function PostSubletPage() {
                         <Home className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                         <h2 className="text-xl font-bold mb-2">Vui lòng đăng nhập</h2>
                         <p className="text-muted-foreground mb-6">Bạn cần đăng nhập để đăng tin cho thuê lại.</p>
-                        <Button onClick={() => navigate('/login')} className="rounded-xl">Đăng nhập ngay</Button>
+                        <Button onClick={() => form.navigate('/login')} className="rounded-xl">Đăng nhập ngay</Button>
                     </CardContent>
                 </Card>
             </div>
         );
     }
 
-    if (isSuccess) {
+    // -- Success --
+    if (form.isSuccess) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center px-4 animate-fade-in">
                 <Card className="max-w-md w-full border-none shadow-lg">
@@ -262,17 +84,10 @@ export default function PostSubletPage() {
                             Tin cho thuê lại đã hiển thị trên SwapRoom. Quản lý tin đăng trong mục <strong>"Tin đăng của tôi"</strong>.
                         </p>
                         <div className="flex flex-col gap-3">
-                            <Button
-                                variant="outline"
-                                className="w-full h-12 rounded-xl"
-                                onClick={() => navigate('/my-sublets')}
-                            >
+                            <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => form.navigate('/my-sublets')}>
                                 Tin đăng của tôi
                             </Button>
-                            <Button
-                                className="w-full h-12 rounded-xl shadow-lg shadow-primary/20"
-                                onClick={() => navigate('/swap')}
-                            >
+                            <Button className="w-full h-12 rounded-xl shadow-lg shadow-primary/20" onClick={() => form.navigate('/swap')}>
                                 Khám phá SwapRoom
                             </Button>
                         </div>
@@ -282,20 +97,21 @@ export default function PostSubletPage() {
         );
     }
 
+    // -- Form --
     return (
         <div className="min-h-screen bg-background pb-24">
             {/* Header */}
             <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-40 px-4 py-3">
                 <div className="max-w-3xl mx-auto flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={handleBack} className="rounded-full">
+                    <Button variant="ghost" size="icon" onClick={form.handleBack} className="rounded-full">
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <div>
                         <h1 className="text-lg font-bold">Đăng tin cho thuê lại</h1>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>Bước {step} / 2</span>
+                            <span>Bước {form.step} / 2</span>
                             <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                            <span>{step === 1 ? 'Thông tin phòng' : 'Chi tiết cho thuê'}</span>
+                            <span>{form.step === 1 ? 'Thông tin phòng' : 'Chi tiết cho thuê'}</span>
                         </div>
                     </div>
                 </div>
@@ -307,14 +123,14 @@ export default function PostSubletPage() {
                     {[1, 2].map(s => (
                         <div
                             key={s}
-                            className={`flex-1 h-1.5 rounded-full transition-all duration-500 ${s <= step ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]' : 'bg-muted'
+                            className={`flex-1 h-1.5 rounded-full transition-all duration-500 ${s <= form.step ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]' : 'bg-muted'
                                 }`}
                         />
                     ))}
                 </div>
 
-                {/* Step 1: Room Info */}
-                {step === 1 && (
+                {/* ===== STEP 1: Room Info ===== */}
+                {form.step === 1 && (
                     <div className="space-y-6 animate-fade-in">
                         <Card className="border-none shadow-md">
                             <CardHeader>
@@ -324,61 +140,74 @@ export default function PostSubletPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-5">
+                                {/* Title */}
                                 <div>
                                     <Label htmlFor="title">Tiêu đề <span className="text-destructive">*</span></Label>
                                     <Input
                                         id="title"
                                         placeholder="VD: Phòng trọ Q.Bình Thạnh gần ĐH Hutech"
-                                        value={roomData.title}
-                                        onChange={e => handleRoomChange('title', e.target.value)}
+                                        value={form.roomData.title}
+                                        onChange={e => form.handleRoomChange('title', e.target.value)}
                                         className="mt-1.5"
                                     />
                                 </div>
 
+                                {/* Address */}
                                 <div>
                                     <Label htmlFor="address">Địa chỉ <span className="text-destructive">*</span></Label>
                                     <Input
                                         id="address"
                                         placeholder="Số nhà, đường, phường"
-                                        value={roomData.address}
-                                        onChange={e => handleRoomChange('address', e.target.value)}
+                                        value={form.roomData.address}
+                                        onChange={e => form.handleRoomChange('address', e.target.value)}
                                         className="mt-1.5"
                                     />
                                 </div>
 
+                                {/* City + District */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <Label htmlFor="district">Quận/Huyện</Label>
-                                        <Input
-                                            id="district"
-                                            placeholder="VD: Bình Thạnh"
-                                            value={roomData.district}
-                                            onChange={e => handleRoomChange('district', e.target.value)}
-                                            className="mt-1.5"
-                                        />
+                                        <Label>Tỉnh/Thành phố <span className="text-destructive">*</span></Label>
+                                        <Select
+                                            value={form.roomData.city}
+                                            onValueChange={v => form.handleRoomChange('city', v)}
+                                            disabled={form.isLoadingProvinces}
+                                        >
+                                            <SelectTrigger className="mt-1.5">
+                                                <SelectValue placeholder={form.isLoadingProvinces ? 'Đang tải...' : 'Chọn tỉnh/thành'} />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-h-60">
+                                                {form.provinces.map(p => (
+                                                    <SelectItem key={p.code} value={p.name}>{p.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div>
-                                        <Label htmlFor="city">Thành phố</Label>
-                                        <Select value={roomData.city} onValueChange={v => handleRoomChange('city', v)}>
+                                        <Label>Quận/Huyện</Label>
+                                        <Select
+                                            value={form.roomData.district}
+                                            onValueChange={v => form.handleRoomChange('district', v)}
+                                            disabled={form.isLoadingDistricts || form.districts.length === 0}
+                                        >
                                             <SelectTrigger className="mt-1.5">
-                                                <SelectValue />
+                                                <SelectValue placeholder={form.isLoadingDistricts ? 'Đang tải...' : 'Chọn quận/huyện'} />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Hà Nội">Hà Nội</SelectItem>
-                                                <SelectItem value="TP.HCM">TP.HCM</SelectItem>
-                                                <SelectItem value="Đà Nẵng">Đà Nẵng</SelectItem>
+                                            <SelectContent className="max-h-60">
+                                                {form.districts.map(d => (
+                                                    <SelectItem key={d.code} value={d.name}>{d.name}</SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
                                 </div>
 
+                                {/* Room type + Price */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <Label>Loại phòng</Label>
-                                        <Select value={roomData.room_type} onValueChange={v => handleRoomChange('room_type', v)}>
-                                            <SelectTrigger className="mt-1.5">
-                                                <SelectValue />
-                                            </SelectTrigger>
+                                        <Select value={form.roomData.room_type} onValueChange={v => form.handleRoomChange('room_type', v as typeof form.roomData.room_type)}>
+                                            <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 {ROOM_TYPES.map(t => (
                                                     <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
@@ -393,13 +222,14 @@ export default function PostSubletPage() {
                                             type="number"
                                             min="0"
                                             placeholder="3000000"
-                                            value={roomData.price_per_month}
-                                            onChange={e => handleRoomChange('price_per_month', e.target.value)}
+                                            value={form.roomData.price_per_month}
+                                            onChange={e => form.handleRoomChange('price_per_month', e.target.value)}
                                             className="mt-1.5"
                                         />
                                     </div>
                                 </div>
 
+                                {/* Area + Bedrooms + Bathrooms */}
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
                                         <Label htmlFor="area_sqm">Diện tích (m²)</Label>
@@ -408,17 +238,15 @@ export default function PostSubletPage() {
                                             type="number"
                                             min="0"
                                             placeholder="25"
-                                            value={roomData.area_sqm}
-                                            onChange={e => handleRoomChange('area_sqm', e.target.value)}
+                                            value={form.roomData.area_sqm}
+                                            onChange={e => form.handleRoomChange('area_sqm', e.target.value)}
                                             className="mt-1.5"
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="bedroom">Phòng ngủ</Label>
-                                        <Select value={roomData.bedroom_count} onValueChange={v => handleRoomChange('bedroom_count', v)}>
-                                            <SelectTrigger className="mt-1.5">
-                                                <SelectValue />
-                                            </SelectTrigger>
+                                        <Label>Phòng ngủ</Label>
+                                        <Select value={form.roomData.bedroom_count} onValueChange={v => form.handleRoomChange('bedroom_count', v)}>
+                                            <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 {[1, 2, 3, 4].map(n => (
                                                     <SelectItem key={n} value={String(n)}>{n}</SelectItem>
@@ -427,11 +255,9 @@ export default function PostSubletPage() {
                                         </Select>
                                     </div>
                                     <div>
-                                        <Label htmlFor="bathroom">Phòng tắm</Label>
-                                        <Select value={roomData.bathroom_count} onValueChange={v => handleRoomChange('bathroom_count', v)}>
-                                            <SelectTrigger className="mt-1.5">
-                                                <SelectValue />
-                                            </SelectTrigger>
+                                        <Label>Phòng tắm</Label>
+                                        <Select value={form.roomData.bathroom_count} onValueChange={v => form.handleRoomChange('bathroom_count', v)}>
+                                            <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 {[1, 2, 3].map(n => (
                                                     <SelectItem key={n} value={String(n)}>{n}</SelectItem>
@@ -441,12 +267,13 @@ export default function PostSubletPage() {
                                     </div>
                                 </div>
 
+                                {/* Furnished */}
                                 <div className="flex items-center justify-between rounded-xl border p-4">
                                     <Label htmlFor="furnished" className="cursor-pointer">Đầy đủ nội thất</Label>
                                     <Switch
                                         id="furnished"
-                                        checked={roomData.furnished}
-                                        onCheckedChange={v => handleRoomChange('furnished', v)}
+                                        checked={form.roomData.furnished}
+                                        onCheckedChange={v => form.handleRoomChange('furnished', v)}
                                     />
                                 </div>
 
@@ -455,42 +282,42 @@ export default function PostSubletPage() {
                                     <div className="flex items-center justify-between">
                                         <Label>Ảnh phòng</Label>
                                         <span className="text-xs text-muted-foreground">
-                                            {selectedFiles.length}/{MAX_IMAGES} ảnh
+                                            {form.selectedFiles.length}/{MAX_IMAGES} ảnh
                                         </span>
                                     </div>
                                     <div
-                                        className={`mt-1.5 border-2 border-dashed rounded-xl p-6 text-center transition-colors ${selectedFiles.length >= MAX_IMAGES
+                                        className={`mt-1.5 border-2 border-dashed rounded-xl p-6 text-center transition-colors ${form.selectedFiles.length >= MAX_IMAGES
                                                 ? 'opacity-50 cursor-not-allowed'
                                                 : 'cursor-pointer hover:border-primary/50 hover:bg-primary/5'
                                             }`}
-                                        onDragOver={e => { e.preventDefault(); }}
-                                        onDrop={selectedFiles.length >= MAX_IMAGES ? undefined : handleDrop}
-                                        onClick={selectedFiles.length >= MAX_IMAGES ? undefined : () => fileInputRef.current?.click()}
+                                        onDragOver={e => e.preventDefault()}
+                                        onDrop={form.selectedFiles.length >= MAX_IMAGES ? undefined : handleDrop}
+                                        onClick={form.selectedFiles.length >= MAX_IMAGES ? undefined : () => fileInputRef.current?.click()}
                                     >
                                         <ImagePlus className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                                         <p className="text-sm text-muted-foreground">
-                                            {selectedFiles.length >= MAX_IMAGES
+                                            {form.selectedFiles.length >= MAX_IMAGES
                                                 ? `Đã đạt tối đa ${MAX_IMAGES} ảnh`
                                                 : 'Kéo thả hoặc click để chọn ảnh'}
                                         </p>
-                                        <p className="text-xs text-muted-foreground mt-1">Tối đa 5MB / ảnh</p>
+                                        <p className="text-xs text-muted-foreground mt-1">Tối đa {MAX_FILE_SIZE_MB}MB / ảnh</p>
                                         <input
                                             ref={fileInputRef}
                                             type="file"
                                             accept="image/*"
                                             multiple
                                             className="hidden"
-                                            onChange={handleFileSelect}
+                                            onChange={handleFileInput}
                                         />
                                     </div>
 
-                                    {previewUrls.length > 0 && (
+                                    {form.previewUrls.length > 0 && (
                                         <div className="grid grid-cols-4 gap-2 mt-3">
-                                            {previewUrls.map((url, i) => (
-                                                <div key={i} className="relative aspect-square rounded-lg overflow-hidden group">
+                                            {form.previewUrls.map((url, i) => (
+                                                <div key={url} className="relative aspect-square rounded-lg overflow-hidden group">
                                                     <img src={url} alt="" className="w-full h-full object-cover" />
                                                     <button
-                                                        onClick={(e) => { e.stopPropagation(); removeImage(i); }}
+                                                        onClick={e => { e.stopPropagation(); form.removeImage(i); }}
                                                         className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                                                     >
                                                         <X className="w-3.5 h-3.5" />
@@ -510,8 +337,8 @@ export default function PostSubletPage() {
 
                         <Button
                             className="w-full h-12 rounded-xl shadow-lg shadow-primary/20"
-                            disabled={!isStep1Valid}
-                            onClick={() => setStep(2)}
+                            disabled={!form.isStep1Valid}
+                            onClick={() => form.setStep(2)}
                         >
                             Tiếp tục
                             <ArrowRight className="w-4 h-4 ml-2" />
@@ -519,24 +346,30 @@ export default function PostSubletPage() {
                     </div>
                 )}
 
-                {/* Step 2: Sublet Details */}
-                {step === 2 && (
+                {/* ===== STEP 2: Sublet Details ===== */}
+                {form.step === 2 && (
                     <div className="space-y-6 animate-fade-in">
                         {/* Room Summary */}
                         <div className="bg-muted/40 rounded-xl p-4 flex items-start gap-3">
                             <Home className="w-5 h-5 text-primary mt-0.5 shrink-0" />
                             <div className="text-sm space-y-1 min-w-0">
-                                <p className="font-semibold truncate">{roomData.title}</p>
-                                <p className="text-muted-foreground truncate">{roomData.address}{roomData.district ? `, ${roomData.district}` : ''}, {roomData.city}</p>
+                                <p className="font-semibold truncate">{form.roomData.title}</p>
+                                <p className="text-muted-foreground truncate">
+                                    {form.roomData.address}
+                                    {form.roomData.district ? `, ${form.roomData.district}` : ''}
+                                    {form.roomData.city ? `, ${form.roomData.city}` : ''}
+                                </p>
                                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
-                                    <span>{ROOM_TYPES.find(t => t.value === roomData.room_type)?.label}</span>
-                                    <span>{parseFloat(roomData.price_per_month).toLocaleString('vi-VN')} VNĐ/tháng</span>
-                                    {roomData.area_sqm && <span>{roomData.area_sqm} m²</span>}
-                                    {selectedFiles.length > 0 && <span>{selectedFiles.length} ảnh</span>}
+                                    <span>{ROOM_TYPES.find(t => t.value === form.roomData.room_type)?.label}</span>
+                                    {form.parsedPrices.original > 0 && (
+                                        <span>{form.parsedPrices.original.toLocaleString('vi-VN')} VNĐ/tháng</span>
+                                    )}
+                                    {form.roomData.area_sqm && <span>{form.roomData.area_sqm} m²</span>}
+                                    {form.selectedFiles.length > 0 && <span>{form.selectedFiles.length} ảnh</span>}
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => setStep(1)}
+                                    onClick={() => form.setStep(1)}
                                     className="text-primary text-xs font-medium hover:underline mt-1"
                                 >
                                     Chỉnh sửa thông tin phòng
@@ -552,15 +385,16 @@ export default function PostSubletPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-5">
-                                <div className="grid grid-cols-2 gap-4">
+                                {/* Dates */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <Label htmlFor="start_date">Ngày bắt đầu <span className="text-destructive">*</span></Label>
                                         <Input
                                             id="start_date"
                                             type="date"
-                                            min={today}
-                                            value={subletData.start_date}
-                                            onChange={e => handleSubletChange('start_date', e.target.value)}
+                                            min={form.today}
+                                            value={form.subletData.start_date}
+                                            onChange={e => form.handleSubletChange('start_date', e.target.value)}
                                             className="mt-1.5"
                                         />
                                     </div>
@@ -569,22 +403,23 @@ export default function PostSubletPage() {
                                         <Input
                                             id="end_date"
                                             type="date"
-                                            min={subletData.start_date || today}
-                                            value={subletData.end_date}
-                                            onChange={e => handleSubletChange('end_date', e.target.value)}
+                                            min={form.subletData.start_date || form.today}
+                                            value={form.subletData.end_date}
+                                            onChange={e => form.handleSubletChange('end_date', e.target.value)}
                                             className="mt-1.5"
                                         />
                                     </div>
                                 </div>
 
-                                {dateError && (
+                                {form.dateError && (
                                     <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
                                         <AlertTriangle className="w-4 h-4 shrink-0" />
-                                        {dateError}
+                                        {form.dateError}
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-2 gap-4">
+                                {/* Prices */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <Label htmlFor="sublet_price" className="flex items-center gap-1">
                                             <DollarSign className="w-3.5 h-3.5" />
@@ -595,16 +430,16 @@ export default function PostSubletPage() {
                                             type="number"
                                             min="0"
                                             placeholder="2500000"
-                                            value={subletData.sublet_price}
-                                            onChange={e => handleSubletChange('sublet_price', e.target.value)}
-                                            className={`mt-1.5 ${priceCapExceeded ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                                            value={form.subletData.sublet_price}
+                                            onChange={e => form.handleSubletChange('sublet_price', e.target.value)}
+                                            className={`mt-1.5 ${form.priceCapExceeded ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                                         />
-                                        {roomData.price_per_month && (
+                                        {form.parsedPrices.original > 0 && (
                                             <p className="text-xs text-muted-foreground mt-1">
-                                                Tối đa {(parseFloat(roomData.price_per_month) * 1.2).toLocaleString('vi-VN')} VNĐ (120% giá gốc)
+                                                Tối đa {(form.parsedPrices.original * 1.2).toLocaleString('vi-VN')} VNĐ (120% giá gốc)
                                             </p>
                                         )}
-                                        {priceCapExceeded && (
+                                        {form.priceCapExceeded && (
                                             <p className="text-xs text-destructive mt-1 flex items-center gap-1">
                                                 <AlertTriangle className="w-3 h-3" />
                                                 Giá vượt quá 120% giá gốc, vui lòng giảm giá
@@ -618,30 +453,31 @@ export default function PostSubletPage() {
                                             type="number"
                                             min="0"
                                             placeholder="500000"
-                                            value={subletData.deposit_required}
-                                            onChange={e => handleSubletChange('deposit_required', e.target.value)}
+                                            value={form.subletData.deposit_required}
+                                            onChange={e => form.handleSubletChange('deposit_required', e.target.value)}
                                             className="mt-1.5"
                                         />
                                     </div>
                                 </div>
 
+                                {/* Description */}
                                 <div>
                                     <div className="flex items-center justify-between">
                                         <Label htmlFor="description">Mô tả thêm</Label>
-                                        <span className={`text-xs ${subletData.description.length > MAX_DESCRIPTION_LENGTH
+                                        <span className={`text-xs ${form.subletData.description.length > MAX_DESCRIPTION_LENGTH
                                                 ? 'text-destructive font-medium'
                                                 : 'text-muted-foreground'
                                             }`}>
-                                            {subletData.description.length}/{MAX_DESCRIPTION_LENGTH}
+                                            {form.subletData.description.length}/{MAX_DESCRIPTION_LENGTH}
                                         </span>
                                     </div>
                                     <Textarea
                                         id="description"
                                         placeholder="Lý do cho thuê lại, yêu cầu đặc biệt, thông tin thêm về phòng..."
-                                        value={subletData.description}
+                                        value={form.subletData.description}
                                         onChange={e => {
                                             if (e.target.value.length <= MAX_DESCRIPTION_LENGTH) {
-                                                handleSubletChange('description', e.target.value);
+                                                form.handleSubletChange('description', e.target.value);
                                             }
                                         }}
                                         className="mt-1.5 min-h-[100px]"
@@ -649,7 +485,7 @@ export default function PostSubletPage() {
                                 </div>
 
                                 {/* Price comparison */}
-                                {roomData.price_per_month && subletData.sublet_price && !priceCapExceeded && (
+                                {form.parsedPrices.original > 0 && form.parsedPrices.sublet > 0 && !form.priceCapExceeded && (
                                     <div className="bg-muted/50 rounded-xl p-4 space-y-2">
                                         <div className="flex items-center gap-2 text-sm font-medium">
                                             <Info className="w-4 h-4 text-primary" />
@@ -659,22 +495,22 @@ export default function PostSubletPage() {
                                             <div>
                                                 <span className="text-muted-foreground">Giá gốc:</span>
                                                 <span className="ml-2 font-semibold">
-                                                    {parseFloat(roomData.price_per_month).toLocaleString('vi-VN')} VNĐ
+                                                    {form.parsedPrices.original.toLocaleString('vi-VN')} VNĐ
                                                 </span>
                                             </div>
                                             <div>
                                                 <span className="text-muted-foreground">Giá pass:</span>
-                                                <span className={`ml-2 font-semibold ${parseFloat(subletData.sublet_price) <= parseFloat(roomData.price_per_month)
+                                                <span className={`ml-2 font-semibold ${form.parsedPrices.sublet <= form.parsedPrices.original
                                                         ? 'text-green-600'
                                                         : 'text-amber-600'
                                                     }`}>
-                                                    {parseFloat(subletData.sublet_price).toLocaleString('vi-VN')} VNĐ
+                                                    {form.parsedPrices.sublet.toLocaleString('vi-VN')} VNĐ
                                                 </span>
                                             </div>
                                         </div>
-                                        {parseFloat(subletData.sublet_price) < parseFloat(roomData.price_per_month) && (
+                                        {form.parsedPrices.sublet < form.parsedPrices.original && (
                                             <p className="text-xs text-green-600 font-medium">
-                                                ✨ Tiết kiệm {(parseFloat(roomData.price_per_month) - parseFloat(subletData.sublet_price)).toLocaleString('vi-VN')} VNĐ so với giá gốc
+                                                ✨ Tiết kiệm {(form.parsedPrices.original - form.parsedPrices.sublet).toLocaleString('vi-VN')} VNĐ so với giá gốc
                                             </p>
                                         )}
                                     </div>
@@ -682,26 +518,23 @@ export default function PostSubletPage() {
                             </CardContent>
                         </Card>
 
+                        {/* Action buttons */}
                         <div className="flex gap-3">
-                            <Button
-                                variant="outline"
-                                className="flex-1 h-12 rounded-xl"
-                                onClick={() => setStep(1)}
-                            >
+                            <Button variant="outline" className="flex-1 h-12 rounded-xl" onClick={() => form.setStep(1)}>
                                 <ArrowLeft className="w-4 h-4 mr-2" />
                                 Quay lại
                             </Button>
                             <Button
                                 className="flex-1 h-12 rounded-xl shadow-lg shadow-primary/20"
-                                disabled={!isStep2Valid || createSublet.isPending || isUploading}
-                                onClick={handleSubmit}
+                                disabled={!form.isStep2Valid || form.isPending || form.isUploading}
+                                onClick={form.handleSubmit}
                             >
-                                {isUploading ? (
+                                {form.isUploading ? (
                                     <>
                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                         Đang tải ảnh...
                                     </>
-                                ) : createSublet.isPending ? (
+                                ) : form.isPending ? (
                                     <>
                                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                         Đang đăng tin...
