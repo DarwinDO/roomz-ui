@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, User, Phone, Mail, DollarSign, CheckCircle2 } from "lucide-react";
+import { formatCurrencyShort } from "@/utils/format";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -20,13 +21,6 @@ interface BookingModalProps {
 
 export function BookingModal({ isOpen, onClose, onConfirm, subletInfo }: BookingModalProps) {
   const [depositAmount] = useState(subletInfo.price);
-
-  const formatCurrency = (value: number) => {
-    if (value >= 1_000_000) {
-      return `${(value / 1_000_000).toFixed(1)}tr`;
-    }
-    return `${Math.round(value / 1_000)}k`;
-  };
 
   const handleConfirm = () => {
     onConfirm();
@@ -53,7 +47,7 @@ export function BookingModal({ isOpen, onClose, onConfirm, subletInfo }: Booking
               <div className="flex items-center gap-2 pt-2">
                 <DollarSign className="w-4 h-4 text-primary" />
                 <span className="text-lg text-primary font-medium">
-                  {formatCurrency(subletInfo.price)}/tháng
+                  {formatCurrencyShort(subletInfo.price)}/tháng
                 </span>
               </div>
             </div>
@@ -62,7 +56,7 @@ export function BookingModal({ isOpen, onClose, onConfirm, subletInfo }: Booking
           {/* Contact Information */}
           <div className="space-y-4">
             <h4 className="text-sm font-medium">Thông tin liên hệ</h4>
-            
+
             <div className="space-y-2">
               <Label htmlFor="fullname" className="flex items-center gap-2">
                 <User className="w-4 h-4 text-primary" />
@@ -144,7 +138,7 @@ export function BookingModal({ isOpen, onClose, onConfirm, subletInfo }: Booking
               <div className="flex-1 space-y-1">
                 <p className="text-sm font-medium">Đặt cọc</p>
                 <p className="text-xs text-gray-600">
-                  Tiền cọc thường bằng 1 tháng tiền thuê ({formatCurrency(depositAmount)}) và sẽ được 
+                  Tiền cọc thường bằng 1 tháng tiền thuê ({formatCurrencyShort(depositAmount)}) và sẽ được
                   hoàn trả khi kết thúc hợp đồng.
                 </p>
               </div>
@@ -177,7 +171,7 @@ export function BookingModal({ isOpen, onClose, onConfirm, subletInfo }: Booking
           {/* Safety Notice */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <p className="text-xs text-gray-700">
-              ⚠️ <strong>Lưu ý an toàn:</strong> Luôn xem phòng trực tiếp và kiểm tra giấy tờ 
+              ⚠️ <strong>Lưu ý an toàn:</strong> Luôn xem phòng trực tiếp và kiểm tra giấy tờ
               chủ nhà trước khi thanh toán bất kỳ khoản tiền nào.
             </p>
           </div>

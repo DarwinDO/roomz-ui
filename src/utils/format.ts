@@ -55,3 +55,14 @@ export function formatPriceRange(min: number, max: number): string {
  */
 export const formatCurrency = (value: number): string =>
   `${value.toLocaleString("vi-VN")}₫`;
+
+/**
+ * Format a VND currency value in short format (for deposits/prices)
+ * Example: 3500000 -> "3.5tr", 500000 -> "500k"
+ */
+export const formatCurrencyShort = (value: number): string => {
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)}tr`;
+  }
+  return `${Math.round(value / 1_000)}k`;
+};

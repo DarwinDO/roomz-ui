@@ -10,7 +10,7 @@ import type { Database } from '@/lib/database.types';
 // ============================================
 
 export type ServiceType = 'moving' | 'cleaning' | 'setup' | 'support';
-export type ServiceLeadStatus = 'submitted' | 'partner_contacted' | 'confirmed' | 'completed' | 'cancelled';
+export type ServiceLeadStatus = 'submitted' | 'assigned' | 'confirmed' | 'completed' | 'cancelled' | 'rejected' | 'rated';
 
 // ============================================
 // Database Row Type
@@ -27,6 +27,10 @@ export type ServiceLeadRow = {
     estimated_price: number | null;
     user_rating: number | null;
     user_review: string | null;
+    admin_notes: string | null;
+    rejection_reason: string | null;
+    assigned_at: string | null;
+    assigned_by: string | null;
     created_at: string;
     updated_at: string;
 };
@@ -63,6 +67,13 @@ export interface UpdateServiceLeadRequest {
     estimated_price?: number;
     user_rating?: number;
     user_review?: string;
+}
+
+export interface AdminUpdateServiceLeadRequest {
+    status?: ServiceLeadStatus;
+    partner_id?: string;
+    rejection_reason?: string;
+    admin_notes?: string;
 }
 
 export interface ServiceLeadFilters {

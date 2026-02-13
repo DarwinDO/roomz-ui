@@ -715,9 +715,7 @@ export type Database = {
           favorite_count: number | null
           furnished: boolean | null
           furniture_details: Json | null
-          gender_restriction:
-          | Database["public"]["Enums"]["gender_restriction"]
-          | null
+          gender_restriction: Database["public"]["Enums"]["gender_restriction"] | null
           has_360_photos: boolean | null
           id: string
           is_available: boolean | null
@@ -756,9 +754,7 @@ export type Database = {
           favorite_count?: number | null
           furnished?: boolean | null
           furniture_details?: Json | null
-          gender_restriction?:
-          | Database["public"]["Enums"]["gender_restriction"]
-          | null
+          gender_restriction?: Database["public"]["Enums"]["gender_restriction"] | null
           has_360_photos?: boolean | null
           id?: string
           is_available?: boolean | null
@@ -797,9 +793,7 @@ export type Database = {
           favorite_count?: number | null
           furnished?: boolean | null
           furniture_details?: Json | null
-          gender_restriction?:
-          | Database["public"]["Enums"]["gender_restriction"]
-          | null
+          gender_restriction?: Database["public"]["Enums"]["gender_restriction"] | null
           has_360_photos?: boolean | null
           id?: string
           is_available?: boolean | null
@@ -834,12 +828,16 @@ export type Database = {
       }
       service_leads: {
         Row: {
+          admin_notes: string | null
+          assigned_at: string | null
+          assigned_by: string | null
           created_at: string | null
           details: Json
           estimated_price: number | null
           id: string
           partner_id: string | null
           preferred_date: string | null
+          rejection_reason: string | null
           service_type: string
           status: string | null
           updated_at: string | null
@@ -848,12 +846,16 @@ export type Database = {
           user_review: string | null
         }
         Insert: {
+          admin_notes?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
           created_at?: string | null
           details?: Json
           estimated_price?: number | null
           id?: string
           partner_id?: string | null
           preferred_date?: string | null
+          rejection_reason?: string | null
           service_type: string
           status?: string | null
           updated_at?: string | null
@@ -862,12 +864,16 @@ export type Database = {
           user_review?: string | null
         }
         Update: {
+          admin_notes?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
           created_at?: string | null
           details?: Json
           estimated_price?: number | null
           id?: string
           partner_id?: string | null
           preferred_date?: string | null
+          rejection_reason?: string | null
           service_type?: string
           status?: string | null
           updated_at?: string | null
@@ -877,10 +883,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "service_leads_assigned_by_users_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "service_leads_partner_id_fkey"
             columns: ["partner_id"]
             isOneToOne: false
             referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_leads_user_id_users_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1108,9 +1128,7 @@ export type Database = {
         Row: {
           budget_max: number | null
           budget_min: number | null
-          cleanliness_level:
-          | Database["public"]["Enums"]["cleanliness_level"]
-          | null
+          cleanliness_level: Database["public"]["Enums"]["cleanliness_level"] | null
           cooking: boolean | null
           created_at: string | null
           guest_frequency: Database["public"]["Enums"]["guest_frequency"] | null
@@ -1122,21 +1140,15 @@ export type Database = {
           smoking: boolean | null
           updated_at: string | null
           user_id: string
-          weekend_activity:
-          | Database["public"]["Enums"]["weekend_activity"]
-          | null
+          weekend_activity: Database["public"]["Enums"]["weekend_activity"] | null
         }
         Insert: {
           budget_max?: number | null
           budget_min?: number | null
-          cleanliness_level?:
-          | Database["public"]["Enums"]["cleanliness_level"]
-          | null
+          cleanliness_level?: Database["public"]["Enums"]["cleanliness_level"] | null
           cooking?: boolean | null
           created_at?: string | null
-          guest_frequency?:
-          | Database["public"]["Enums"]["guest_frequency"]
-          | null
+          guest_frequency?: Database["public"]["Enums"]["guest_frequency"] | null
           id?: string
           noise_tolerance?: Database["public"]["Enums"]["noise_tolerance"] | null
           pets?: boolean | null
@@ -1145,21 +1157,15 @@ export type Database = {
           smoking?: boolean | null
           updated_at?: string | null
           user_id: string
-          weekend_activity?:
-          | Database["public"]["Enums"]["weekend_activity"]
-          | null
+          weekend_activity?: Database["public"]["Enums"]["weekend_activity"] | null
         }
         Update: {
           budget_max?: number | null
           budget_min?: number | null
-          cleanliness_level?:
-          | Database["public"]["Enums"]["cleanliness_level"]
-          | null
+          cleanliness_level?: Database["public"]["Enums"]["cleanliness_level"] | null
           cooking?: boolean | null
           created_at?: string | null
-          guest_frequency?:
-          | Database["public"]["Enums"]["guest_frequency"]
-          | null
+          guest_frequency?: Database["public"]["Enums"]["guest_frequency"] | null
           id?: string
           noise_tolerance?: Database["public"]["Enums"]["noise_tolerance"] | null
           pets?: boolean | null
@@ -1168,9 +1174,7 @@ export type Database = {
           smoking?: boolean | null
           updated_at?: string | null
           user_id?: string
-          weekend_activity?:
-          | Database["public"]["Enums"]["weekend_activity"]
-          | null
+          weekend_activity?: Database["public"]["Enums"]["weekend_activity"] | null
         }
         Relationships: [
           {
@@ -1478,6 +1482,7 @@ export type Database = {
           occupation: string
           sleep_score: number
           university: string
+          weekend_score: number
         }[]
       }
       get_user_conversation_ids: {
@@ -1554,12 +1559,7 @@ export type Database = {
       }
     }
     Enums: {
-      account_status:
-      | "active"
-      | "suspended"
-      | "pending"
-      | "pending_landlord"
-      | "rejected"
+      account_status: "active" | "suspended" | "pending" | "pending_landlord" | "rejected"
       booking_status: "pending" | "confirmed" | "cancelled" | "completed"
       cleanliness_level: "organized" | "moderate" | "relaxed"
       gender_restriction: "none" | "male_only" | "female_only"
@@ -1580,13 +1580,7 @@ export type Database = {
       | "swap_request"
       | "swap_confirmed"
       review_type: "room" | "landlord" | "tenant" | "roommate"
-      room_status:
-      | "draft"
-      | "pending"
-      | "active"
-      | "rented"
-      | "inactive"
-      | "rejected"
+      room_status: "draft" | "pending" | "active" | "rented" | "inactive" | "rejected"
       room_type: "private" | "shared" | "studio" | "entire"
       roommate_profile_status: "looking" | "paused" | "found"
       roommate_request_status:
@@ -1598,11 +1592,7 @@ export type Database = {
       sleep_schedule: "early" | "late" | "flexible"
       user_gender: "male" | "female" | "other"
       user_role: "student" | "landlord" | "admin"
-      verification_status:
-      | "pending"
-      | "approved"
-      | "rejected"
-      | "needs_resubmit"
+      verification_status: "pending" | "approved" | "rejected" | "needs_resubmit"
       verification_type:
       | "id_card"
       | "student_card"

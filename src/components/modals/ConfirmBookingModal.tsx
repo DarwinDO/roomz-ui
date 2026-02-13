@@ -1,8 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, DollarSign } from "lucide-react";
 import { toast } from "sonner";
+import { formatCurrency } from "@/utils/format";
 
 interface ConfirmBookingModalProps {
   isOpen: boolean;
@@ -16,8 +16,6 @@ interface ConfirmBookingModalProps {
 }
 
 export function ConfirmBookingModal({ isOpen, onClose, sublet }: ConfirmBookingModalProps) {
-  const formatCurrency = (value: number) => `${value.toLocaleString("vi-VN")}₫`;
-
   const handleConfirm = () => {
     toast.success("Đã gửi yêu cầu đặt phòng tới chủ nhà!");
     onClose();
@@ -34,7 +32,7 @@ export function ConfirmBookingModal({ isOpen, onClose, sublet }: ConfirmBookingM
           {/* Room Details */}
           <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-4 space-y-3">
             <h3 className="text-base">{sublet.title}</h3>
-            
+
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <MapPin className="w-4 h-4" />
               <span>{sublet.location}</span>

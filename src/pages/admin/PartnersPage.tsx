@@ -2,38 +2,35 @@ import { useState } from "react";
 import { DataTable } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Handshake, Plus, MoreVertical, Eye, Edit, Trash2, BarChart } from "lucide-react";
-import { mockPartners, type Partner } from "@/data/adminData";
+import { Handshake, Plus, MoreVertical, Eye, Edit, Trash2, BarChart, Loader2 } from "lucide-react";
+import { usePartners } from "@/hooks/usePartners";
 import { toast } from "sonner";
+import type { Partner } from "@/services/partners";
 
 export default function PartnersPage() {
-  const [partners, setPartners] = useState(mockPartners);
+  const { data: partners = [], isLoading } = usePartners({ status: 'all' });
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredPartners = partners.filter(partner => 
+  const filteredPartners = partners.filter(partner =>
     partner.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleToggleStatus = (id: string) => {
-    setPartners(partners.map(p => 
-      p.id === id ? { ...p, status: p.status === "active" ? "inactive" : "active" } : p
-    ));
-    toast.success("Đã cập nhật trạng thái đối tác");
+  const handleToggleStatus = (_id: string) => {
+    toast.info("Chức năng đang phát triển");
   };
 
-  const handleDelete = (id: string) => {
-    setPartners(partners.filter(p => p.id !== id));
-    toast.success("Đã xóa đối tác");
+  const handleDelete = (_id: string) => {
+    toast.info("Chức năng đang phát triển");
   };
 
   const getCategoryLabel = (category: string) => {
-    switch(category) {
+    switch (category) {
       case "cafe": return "Quán cà phê";
       case "gym": return "Phòng gym";
       case "laundry": return "Giặt là";
@@ -62,17 +59,17 @@ export default function PartnersPage() {
       key: "discount",
       label: "Ưu đãi",
       render: (item: Partner) => (
-        <Badge className="bg-green-100 text-green-700">{item.discount}</Badge>
+        <Badge className="bg-green-100 text-green-700">{item.discount || 'N/A'}</Badge>
       ),
     },
     {
       key: "status",
       label: "Trạng thái",
       render: (item: Partner) => (
-        <Badge 
+        <Badge
           className={
-            item.status === "active" 
-              ? "bg-green-100 text-green-700" 
+            item.status === "active"
+              ? "bg-green-100 text-green-700"
               : "bg-gray-100 text-gray-700"
           }
         >
@@ -84,15 +81,15 @@ export default function PartnersPage() {
       key: "views",
       label: "Lượt xem",
       render: (item: Partner) => (
-        <span className="text-gray-600">{item.views?.toLocaleString('vi-VN')}</span>
+        <span className="text-gray-600">{(item.views || 0).toLocaleString('vi-VN')}</span>
       ),
     },
     {
-      key: "joinDate",
+      key: "createdAt",
       label: "Ngày tham gia",
       render: (item: Partner) => (
         <span className="text-gray-600 text-sm">
-          {new Date(item.joinDate).toLocaleDateString('vi-VN')}
+          {item.created_at ? new Date(item.created_at).toLocaleDateString('vi-VN') : '-'}
         </span>
       ),
     },
@@ -122,7 +119,7 @@ export default function PartnersPage() {
             <DropdownMenuItem onClick={() => handleToggleStatus(item.id)}>
               {item.status === "active" ? "Ngừng hoạt động" : "Kích hoạt"}
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => handleDelete(item.id)}
               className="text-red-600"
             >
@@ -134,6 +131,14 @@ export default function PartnersPage() {
       ),
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -113,7 +113,6 @@ export async function cancelServiceLead(id: string): Promise<ServiceLead> {
         .from('service_leads')
         .update({
             status: 'cancelled' as ServiceLeadStatus,
-            updated_at: new Date().toISOString()
         })
         .eq('id', id)
         .eq('user_id', user.id)
@@ -125,7 +124,7 @@ export async function cancelServiceLead(id: string): Promise<ServiceLead> {
         throw error;
     }
 
-    return lead;
+    return lead as unknown as ServiceLead;
 }
 
 /**
@@ -147,8 +146,7 @@ export async function rateServiceLead(
         .update({
             user_rating: rating,
             user_review: review || null,
-            status: 'completed' as ServiceLeadStatus,
-            updated_at: new Date().toISOString()
+            status: 'rated' as ServiceLeadStatus,
         })
         .eq('id', id)
         .eq('user_id', user.id)
@@ -160,5 +158,5 @@ export async function rateServiceLead(
         throw error;
     }
 
-    return lead;
+    return lead as unknown as ServiceLead;
 }

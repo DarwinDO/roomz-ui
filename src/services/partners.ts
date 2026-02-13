@@ -11,6 +11,7 @@ export interface PartnerFilters {
     search?: string;
     category?: string;
     sortBy?: 'rating' | 'reviews' | 'name';
+    status?: string; // 'active', 'inactive', 'all'
 }
 
 /**
@@ -19,8 +20,15 @@ export interface PartnerFilters {
 export async function getPartners(filters: PartnerFilters = {}): Promise<Partner[]> {
     let query = supabase
         .from('partners')
-        .select('*')
-        .eq('status', 'active');
+        .select('*');
+
+    // Status filter - default to active only for public, admin can override
+    if (filters.status === undefined) {
+        query = query.eq('status', 'active');
+    } else if (filters.status !== 'all') {
+        query = query.eq('status', filters.status);
+    }
+    // if status === 'all', don't filter by status
 
     // Search filter
     if (filters.search) {

@@ -13,6 +13,7 @@ import {
   BarChart3,
   DollarSign,
   Handshake,
+  ClipboardList,
   Menu,
   X,
   LogOut,
@@ -28,6 +29,7 @@ const navItems = [
   { path: "/admin/analytics", label: "Phân tích", icon: BarChart3 },
   { path: "/admin/revenue", label: "Doanh thu", icon: DollarSign },
   { path: "/admin/partners", label: "Đối tác", icon: Handshake },
+  { path: "/admin/service-leads", label: "Dịch vụ", icon: ClipboardList },
 ];
 
 export default function AdminShell() {

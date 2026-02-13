@@ -58,6 +58,7 @@ const ReportsPage = lazy(() => import('@/pages/admin/ReportsPage'));
 const AnalyticsPage = lazy(() => import('@/pages/admin/AnalyticsPage'));
 const RevenuePage = lazy(() => import('@/pages/admin/RevenuePage'));
 const PartnersPage = lazy(() => import('@/pages/admin/PartnersPage'));
+const ServiceLeadsPage = lazy(() => import('@/pages/admin/ServiceLeadsPage'));
 
 
 
@@ -339,6 +340,10 @@ export const router = createBrowserRouter([
       {
         path: 'partners',
         element: <PartnersPage />,
+      },
+      {
+        path: 'service-leads',
+        element: <ServiceLeadsPage />,
       },
     ],
   },
