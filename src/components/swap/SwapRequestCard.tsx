@@ -47,8 +47,8 @@ export function SwapRequestCard({
     const myListing = isIncoming ? request.recipient_listing : request.requester_listing;
 
     // Access room data via Supabase join alias 'original_room'
-    const myRoom = (myListing as any)?.original_room;
-    const otherRoom = (otherListing as any)?.original_room;
+    const myRoom = myListing?.original_room;
+    const otherRoom = otherListing?.original_room;
 
     return (
         <Card className="p-4 space-y-4 hover:shadow-md transition-shadow">

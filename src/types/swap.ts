@@ -32,6 +32,21 @@ export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
 // ============================================
 
 export interface SubletListing extends SubletListingRow {
+    // Joined data from rooms (original_room alias)
+    original_room?: {
+        id: string;
+        title: string;
+        address: string;
+        district: string;
+        city: string;
+        area_sqm: number | null;
+        bedroom_count: number | null;
+        bathroom_count: number | null;
+        furnished: boolean | null;
+        latitude: number | null;
+        longitude: number | null;
+        room_type: Database['public']['Enums']['room_type'];
+    };
     // Joined data from rooms
     room?: {
         id: string;

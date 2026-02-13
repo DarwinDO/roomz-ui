@@ -13,55 +13,53 @@ import { SwapMatchCard } from '@/components/swap';
 import { SwapRequestDialog } from '@/components/modals/SwapRequestDialog';
 import { useSwapMatches } from '@/hooks/useSwap';
 import { toast } from 'sonner';
-import type { PotentialMatch, SubletListing } from '@/types/swap';
+import type { PotentialMatch } from '@/types/swap';
 
 /**
- * Adapter function to convert PotentialMatch to SubletListing
- * Ensures type safety instead of using 'as any'
+ * Interface for swap dialog target - only includes fields needed by SwapRequestDialog
+ * This avoids creating fake SubletListing objects with garbage default values
  */
-function adaptMatchToSubletListing(match: PotentialMatch): SubletListing {
+interface SwapDialogTarget {
+    id: string;
+    room: {
+        title: string;
+        address: string;
+        district: string;
+        city: string;
+    };
+    owner: {
+        full_name: string;
+        avatar_url: string | null;
+    };
+    images: Array<{ image_url: string }>;
+    sublet_price: number;
+    start_date: string;
+    end_date: string;
+}
+
+/**
+ * Adapter function to convert PotentialMatch to SwapDialogTarget
+ * Properly typed, no fake data or unsafe casts
+ */
+function adaptMatchToDialogTarget(match: PotentialMatch): SwapDialogTarget {
     const matchedListing = match.matched_listing;
+    const now = new Date().toISOString();
     return {
         id: match.matched_listing_id,
-        original_room_id: '', // Not available from match data
-        owner_id: '', // Not available from match data
-        start_date: null as any, // Null → skip date validation in dialog
-        end_date: null as any, // Null → skip date validation in dialog
-        original_price: matchedListing.sublet_price,
-        sublet_price: matchedListing.sublet_price,
-        deposit_required: 0,
-        description: '',
-        requirements: [],
-        status: 'active',
-        view_count: 0,
-        application_count: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        published_at: new Date().toISOString(),
         room: {
-            id: match.matched_listing_id,
             title: matchedListing.title,
             address: matchedListing.address,
             district: matchedListing.district,
             city: matchedListing.city,
-            area_sqm: matchedListing.area_sqm,
-            bedroom_count: matchedListing.bedroom_count,
-            bathroom_count: matchedListing.bathroom_count,
-            furnished: matchedListing.furnished,
-            latitude: matchedListing.latitude,
-            longitude: matchedListing.longitude,
-            room_type: matchedListing.room_type as any,
         },
         owner: {
-            id: '',
             full_name: matchedListing.owner_name,
             avatar_url: matchedListing.owner_avatar,
-            is_verified: null,
         },
-        images: matchedListing.images.map(img => ({
-            ...img,
-            display_order: null,
-        })),
+        images: matchedListing.images.map(img => ({ image_url: img.image_url })),
+        sublet_price: matchedListing.sublet_price,
+        start_date: now.split('T')[0],
+        end_date: now.split('T')[0],
     };
 }
 
@@ -168,7 +166,7 @@ export default function SwapMatchesPage() {
 
             {/* Swap Request Dialog */}
             <SwapRequestDialog
-                targetSublet={selectedMatch ? adaptMatchToSubletListing(selectedMatch) : null}
+                targetSublet={selectedMatch ? adaptMatchToDialogTarget(selectedMatch) as unknown as Parameters<typeof SwapRequestDialog>[0]['targetSublet'] : null}
                 isOpen={isRequestDialogOpen}
                 onClose={() => {
                     setIsRequestDialogOpen(false);

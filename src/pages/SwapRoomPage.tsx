@@ -4,7 +4,7 @@
  * Following UX Psychology principles
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Plus, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { ApplySubletDialog } from '@/components/modals/ApplySubletDialog';
 import { SwapRequestDialog } from '@/components/modals/SwapRequestDialog';
 import { useSublets } from '@/hooks/useSublets';
 import { toast } from 'sonner';
-import type { SubletListingWithDetails } from '@/types/swap';
+import type { SubletListingWithDetails, SubletFilters } from '@/types/swap';
 
 export default function SwapRoomPage() {
   const navigate = useNavigate();
@@ -27,11 +27,11 @@ export default function SwapRoomPage() {
   const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<SubletFilters>({
     city: '',
     district: '',
-    min_price: undefined as number | undefined,
-    max_price: undefined as number | undefined,
+    min_price: undefined,
+    max_price: undefined,
     start_date: '',
     end_date: '',
   });
@@ -65,7 +65,7 @@ export default function SwapRoomPage() {
     }
   };
 
-  const handleResetFilters = () => {
+  const handleResetFilters = useCallback(() => {
     setFilters({
       city: '',
       district: '',
@@ -75,7 +75,11 @@ export default function SwapRoomPage() {
       end_date: '',
     });
     setSearchQuery('');
-  };
+  }, []);
+
+  const handleFilterChange = useCallback((newFilters: typeof filters) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  }, []);
 
   return (
     <div className="pb-20 md:pb-8 min-h-screen bg-background">
@@ -135,7 +139,7 @@ export default function SwapRoomPage() {
           <div className="mb-6">
             <SubletFilter
               filters={filters}
-              onChange={(f) => setFilters({ ...filters, ...f })}
+              onChange={handleFilterChange}
               onReset={handleResetFilters}
             />
           </div>

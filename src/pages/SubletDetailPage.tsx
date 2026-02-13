@@ -3,9 +3,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { BookingModal } from "@/components/modals/BookingModal";
+import { useSublet } from "@/hooks/useSublets";
+import { formatMonthlyPrice } from "@/utils/format";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -14,63 +17,35 @@ import {
   Calendar,
   MapPin,
   CheckCircle2,
-  Wifi,
-  Utensils,
-  Tv,
-  Wind,
   ShieldCheck,
   Star,
   MessageCircle,
+  AlertCircle,
 } from "lucide-react";
 
 const SubletDetailPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  
-  // Mock data - trong thực tế sẽ fetch từ API dựa trên id
-  const sublet = {
-    id: id || "1",
-    title: "Phòng trọ cho thuê ngắn hạn - Gần trường",
-    location: "Cầu Giấy, Hà Nội",
-    price: 2500000,
-    distance: "3 tháng",
-    verified: true,
-    image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWRyb29tJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYwNjM4MzA3fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    available: true,
-    matchPercentage: 85,
-  };
+
+  const { data: sublet, isLoading, error } = useSublet(id);
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
 
-  const images = [
-    sublet.image,
-    "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxraXRjaGVuJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzYwNjM4MzA3fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXRocm9vbSUyMGludGVyaW9yfGVufDF8fHx8MTc2MDYzODMwN3ww&ixlib=rb-4.1.0&q=80&w=1080",
-  ];
+  const images = sublet?.images?.map((img) => img.image_url) || [];
+  const room = sublet?.room;
+  const owner = sublet?.owner;
 
-  const amenities = [
-    { icon: Wifi, label: "WiFi tốc độ cao" },
-    { icon: Utensils, label: "Bếp đầy đủ dụng cụ" },
-    { icon: Tv, label: "Smart TV" },
-    { icon: Wind, label: "Điều hòa & máy sưởi" },
-  ];
-
-  const hostInfo = {
-    name: "Mai Chi",
-    rating: 4.9,
-    reviews: 28,
-    trustScore: 98,
-    role: "Sinh viên năm 3, Kinh tế",
-  };
-
-  const formatMonthlyPrice = (price: number) => {
-    if (price >= 1_000_000) {
-      return `${(price / 1_000_000).toFixed(1)}tr`;
-    }
-    return `${Math.round(price / 1_000)}k`;
-  };
+  // Computed values from API data
+  const title = room?.title || "Phòng cho thuê";
+  const location = room ? `${room.address}, ${room.district}, ${room.city}` : "";
+  const subletPrice = sublet?.sublet_price || 0;
+  const dateRange = sublet
+    ? `${sublet.start_date} - ${sublet.end_date}`
+    : "";
+  const isVerified = owner?.is_verified || false;
 
   const handleBack = () => navigate(-1);
   const handleBookSublet = () => {
@@ -79,10 +54,53 @@ const SubletDetailPage = () => {
   const handleMessageHost = () => {
     setIsChatOpen(true);
   };
-  
+
   const handleBookingConfirm = () => {
     toast.success("Đã gửi yêu cầu đặt chỗ! Chủ nhà sẽ liên hệ lại với bạn sớm.");
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white pb-24 md:pb-24">
+        <div className="sticky top-0 z-20 bg-white border-b px-4 py-3">
+          <div className="max-w-6xl mx-auto flex items-center justify-between">
+            <Skeleton className="w-10 h-10 rounded-full" />
+            <div className="flex gap-2">
+              <Skeleton className="w-10 h-10 rounded-full" />
+              <Skeleton className="w-10 h-10 rounded-full" />
+            </div>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto">
+          <Skeleton className="w-full aspect-[4/3] md:aspect-video" />
+          <div className="px-4 md:px-6 py-6 space-y-6">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !sublet) {
+    return (
+      <div className="min-h-screen bg-white pb-24 md:pb-24 flex items-center justify-center">
+        <div className="text-center space-y-4 p-6">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
+          <h2 className="text-xl font-semibold">Không tìm thấy tin đăng</h2>
+          <p className="text-gray-600">
+            Tin đăng này có thể đã bị xóa hoặc không tồn tại.
+          </p>
+          <Button onClick={() => navigate(-1)} className="rounded-full">
+            Quay lại
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white pb-24 md:pb-24">
@@ -105,16 +123,11 @@ const SubletDetailPage = () => {
               className="rounded-full"
             >
               <Heart
-                className={`w-5 h-5 ${
-                  isFavorite ? "fill-red-500 text-red-500" : ""
-                }`}
+                className={`w-5 h-5 ${isFavorite ? "fill-red-500 text-red-500" : ""
+                  }`}
               />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-            >
+            <Button variant="ghost" size="icon" className="rounded-full">
               <Share2 className="w-5 h-5" />
             </Button>
           </div>
@@ -126,38 +139,41 @@ const SubletDetailPage = () => {
         <div className="bg-black">
           <div className="relative w-full aspect-[4/3] md:aspect-video">
             <ImageWithFallback
-              src={images[currentImageIndex]}
-              alt={sublet.title}
+              src={images[currentImageIndex] || ""}
+              alt={title}
               className="w-full h-full object-cover"
             />
-            
+
             {/* Image Counter */}
-            <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
-              {currentImageIndex + 1} / {images.length}
-            </div>
+            {images.length > 0 && (
+              <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
+                {currentImageIndex + 1} / {images.length}
+              </div>
+            )}
           </div>
 
           {/* Thumbnails */}
-          <div className="grid grid-cols-3 gap-1 md:gap-2 p-2 md:p-3">
-            {images.map((image, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentImageIndex(index)}
-                aria-label={`Xem ảnh ${index + 1}`}
-                className={`relative aspect-video overflow-hidden rounded-lg transition-all ${
-                  index === currentImageIndex
-                    ? "ring-2 ring-primary ring-offset-2 ring-offset-black"
-                    : "opacity-60 hover:opacity-100"
-                }`}
-              >
-                <ImageWithFallback
-                  src={image}
-                  alt={`Góc nhìn ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
-          </div>
+          {images.length > 0 && (
+            <div className="grid grid-cols-3 gap-1 md:gap-2 p-2 md:p-3">
+              {images.map((image, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  aria-label={`Xem ảnh ${index + 1}`}
+                  className={`relative aspect-video overflow-hidden rounded-lg transition-all ${index === currentImageIndex
+                      ? "ring-2 ring-primary ring-offset-2 ring-offset-black"
+                      : "opacity-60 hover:opacity-100"
+                    }`}
+                >
+                  <ImageWithFallback
+                    src={image}
+                    alt={`Góc nhìn ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -166,13 +182,13 @@ const SubletDetailPage = () => {
           <div>
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h1 className="mb-2">{sublet.title}</h1>
+                <h1 className="mb-2">{title}</h1>
                 <div className="flex items-center gap-2 text-gray-600">
                   <MapPin className="w-4 h-4" />
-                  <p className="text-sm">{sublet.location}</p>
+                  <p className="text-sm">{location}</p>
                 </div>
               </div>
-              {sublet.verified && (
+              {isVerified && (
                 <Badge className="bg-primary/10 text-primary border-0">
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
                   Đã xác thực
@@ -183,12 +199,17 @@ const SubletDetailPage = () => {
             {/* Price and Availability */}
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
-                <h2 className="text-primary">{formatMonthlyPrice(sublet.price)}</h2>
+                <h2 className="text-primary">
+                  {formatMonthlyPrice(subletPrice)}
+                </h2>
                 <span className="text-gray-600">/tháng</span>
               </div>
-              <Badge variant="outline" className="bg-gradient-to-br from-primary/5 to-secondary/5">
+              <Badge
+                variant="outline"
+                className="bg-gradient-to-br from-primary/5 to-secondary/5"
+              >
                 <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                Lịch trống: {sublet.distance}
+                Lịch trống: {dateRange}
               </Badge>
             </div>
           </div>
@@ -197,62 +218,41 @@ const SubletDetailPage = () => {
           <div className="bg-gray-50 rounded-2xl p-5">
             <h3 className="mb-3">Giới thiệu về chỗ ở</h3>
             <p className="text-sm text-gray-700 leading-relaxed">
-              Không gian lý tưởng cho kỳ thực tập hoặc học hè! Phòng riêng ấm cúng này có đủ mọi tiện nghi
-              cho thời gian lưu trú ngắn hạn: giường rộng rãi, bàn làm việc và tủ quần áo. Chỉ mất vài phút đi bộ
-              tới khuôn viên trường, trạm xe buýt, siêu thị và những quán cà phê yêu thích. Bạn sẽ ở cùng hai bạn
-              sinh viên thân thiện, tôn trọng nếp sinh hoạt chung.
+              {sublet.description ||
+                "Không gian lý tưởng cho kỳ thực tập hoặc học hè! Phòng riêng ấm cúng này có đủ mọi tiện nghi cho thời gian lưu trú ngắn hạn."}
             </p>
           </div>
 
-          {/* Amenities */}
-          <div>
-            <h3 className="mb-4">Tiện nghi nổi bật</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {amenities.map((amenity, index) => {
-                const Icon = amenity.icon;
-                return (
-                  <div
-                    key={index}
-                    className="bg-white border border-border rounded-xl p-4 flex flex-col items-center text-center gap-2"
-                  >
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-primary" />
-                    </div>
-                    <p className="text-sm">{amenity.label}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Host Information */}
-          <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10">
-            <h3 className="mb-4">Chủ nhà</h3>
-            <div className="flex items-start gap-4">
-              <Avatar className="w-16 h-16">
-                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-xl">
-                  {hostInfo.name.split(" ").map((n) => n[0]).join("")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="font-medium">{hostInfo.name}</p>
-                  <Badge className="bg-secondary text-white text-xs">
-                    <ShieldCheck className="w-3 h-3 mr-1" />
-                    {hostInfo.trustScore}% tin cậy
-                  </Badge>
-                </div>
-                <p className="text-sm text-gray-600 mb-2">{hostInfo.role}</p>
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span>{hostInfo.rating}</span>
+          {owner && (
+            <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10">
+              <h3 className="mb-4">Chủ nhà</h3>
+              <div className="flex items-start gap-4">
+                <Avatar className="w-16 h-16">
+                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-xl">
+                    {owner.full_name
+                      ?.split(" ")
+                      .map((n) => n[0])
+                      .join("") || "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-medium">{owner.full_name}</p>
+                    {owner.is_verified && (
+                      <Badge className="bg-secondary text-white text-xs">
+                        <ShieldCheck className="w-3 h-3 mr-1" />
+                        Đã xác thực
+                      </Badge>
+                    )}
                   </div>
-                  <span className="text-gray-500">{hostInfo.reviews} đánh giá</span>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="text-gray-500">Chủ phòng</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Safety Note */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
@@ -261,8 +261,9 @@ const SubletDetailPage = () => {
               <div>
                 <p className="text-sm mb-1">An toàn trên hết</p>
                 <p className="text-xs text-gray-700">
-                  Hãy gặp trực tiếp và kiểm tra giấy tờ trước khi thanh toán. RoomZ hỗ trợ quy trình thanh toán
-                  an toàn cho các tin đăng đã được xác thực.
+                  Hãy gặp trực tiếp và kiểm tra giấy tờ trước khi thanh
+                  toán. RoomZ hỗ trợ quy trình thanh toán an toàn cho các
+                  tin đăng đã được xác thực.
                 </p>
               </div>
             </div>
@@ -270,7 +271,7 @@ const SubletDetailPage = () => {
         </div>
       </div>
 
-      {/* Sticky Bottom CTA - với padding cho mobile để không bị che bởi BottomNav */}
+      {/* Sticky Bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg px-4 py-3 md:px-6 z-50 mb-16 md:mb-0">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col xs:flex-row gap-3">
@@ -294,12 +295,14 @@ const SubletDetailPage = () => {
       </div>
 
       {/* Chat Drawer */}
-      <ChatDrawer
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        recipientName={hostInfo.name}
-        recipientRole={hostInfo.role}
-      />
+      {owner && (
+        <ChatDrawer
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          recipientName={owner.full_name || "Chủ nhà"}
+          recipientRole="Chủ phòng"
+        />
+      )}
 
       {/* Booking Modal */}
       <BookingModal
@@ -307,10 +310,10 @@ const SubletDetailPage = () => {
         onClose={() => setIsBookingOpen(false)}
         onConfirm={handleBookingConfirm}
         subletInfo={{
-          title: sublet.title,
-          price: sublet.price,
-          location: sublet.location,
-          duration: sublet.distance,
+          title,
+          price: subletPrice,
+          location,
+          duration: dateRange,
         }}
       />
     </div>

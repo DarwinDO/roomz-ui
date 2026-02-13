@@ -4,7 +4,7 @@
  * Following UX Psychology - Hick's Law: limit options
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapPin, Calendar, Tag, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -38,18 +38,26 @@ const ROOM_TYPES = [
 export function SubletFilter({ filters, onChange, onReset }: SubletFilterProps) {
     const [localFilters, setLocalFilters] = useState<SubletFilters>(filters);
 
+    // Use ref to store onChange callback to avoid infinite loop
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
+
     // Debounce the local filters to reduce API calls
     const debouncedFilters = useDebounce(localFilters, 300);
 
     // Trigger onChange when debounced filters change
     useEffect(() => {
-        onChange(debouncedFilters);
-    }, [debouncedFilters, onChange]);
+        onChangeRef.current(debouncedFilters);
+    }, [debouncedFilters]);
 
-    const handleChange = (updates: Partial<SubletFilters>) => {
-        const newFilters = { ...localFilters, ...updates };
-        setLocalFilters(newFilters);
-    };
+    // Sync local filters when external filters change
+    useEffect(() => {
+        setLocalFilters(filters);
+    }, [filters]);
+
+    const handleChange = useCallback((updates: Partial<SubletFilters>) => {
+        setLocalFilters(prev => ({ ...prev, ...updates }));
+    }, []);
 
     const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
         if (key === 'page' || key === 'pageSize') return false;

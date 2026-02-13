@@ -18,17 +18,18 @@ import { SupportRequestModal } from "@/components/modals/SupportRequestModal";
 import { PartnerDetailModal } from "@/components/modals/PartnerDetailModal";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { toast } from "sonner";
+import type { Partner } from "@/services/partners";
 
 export default function SupportServicesPage() {
   const navigate = useNavigate();
   const onBack = () => navigate(-1);
-  
+
   const [isMovingModalOpen, setIsMovingModalOpen] = useState(false);
   const [isCleaningModalOpen, setIsCleaningModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isPartnerDetailOpen, setIsPartnerDetailOpen] = useState(false);
-  const [selectedPartner, setSelectedPartner] = useState<any>(null);
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const handleServiceClick = (serviceId: number) => {
     if (serviceId === 1) setIsMovingModalOpen(true);
     if (serviceId === 2) setIsCleaningModalOpen(true);
@@ -86,27 +87,54 @@ export default function SupportServicesPage() {
     },
   ];
 
-  const partners = [
+  const partners: Partner[] = [
     {
+      id: "1",
       name: "NhanhMove Express",
-      rating: 4.9,
-      reviews: 342,
+      category: "moving",
       specialization: "Chuyển nhà",
+      rating: 4.9,
+      review_count: 342,
       discount: "Giảm 15% cho sinh viên",
+      image_url: null,
+      contact_info: {},
+      status: "active",
+      created_at: null,
+      updated_at: null,
+      views: 0,
+      user_id: null,
     },
     {
+      id: "2",
       name: "SạchPlus",
-      rating: 4.8,
-      reviews: 267,
+      category: "cleaning",
       specialization: "Vệ sinh",
+      rating: 4.8,
+      review_count: 267,
       discount: "Giảm 15% cho sinh viên",
+      image_url: null,
+      contact_info: {},
+      status: "active",
+      created_at: null,
+      updated_at: null,
+      views: 0,
+      user_id: null,
     },
     {
+      id: "3",
       name: "SetupCare",
-      rating: 4.7,
-      reviews: 198,
+      category: "assembly",
       specialization: "Lắp đặt & bố trí",
+      rating: 4.7,
+      review_count: 198,
       discount: "Giảm 15% cho sinh viên",
+      image_url: null,
+      contact_info: {},
+      status: "active",
+      created_at: null,
+      updated_at: null,
+      views: 0,
+      user_id: null,
     },
   ];
 
@@ -180,9 +208,9 @@ export default function SupportServicesPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2>Đối tác RoomZ đề xuất</h2>
-            <Button 
+            <Button
               onClick={handleViewAllPartners}
-              variant="ghost" 
+              variant="ghost"
               className="rounded-full text-primary"
             >
               Xem tất cả
@@ -211,7 +239,7 @@ export default function SupportServicesPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">
-                      {partner.reviews} đánh giá
+                      {partner.review_count} đánh giá
                     </span>
                     <Badge
                       variant="secondary"
