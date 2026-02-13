@@ -832,6 +832,59 @@ export type Database = {
           },
         ]
       }
+      service_leads: {
+        Row: {
+          created_at: string | null
+          details: Json
+          estimated_price: number | null
+          id: string
+          partner_id: string | null
+          preferred_date: string | null
+          service_type: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          user_rating: number | null
+          user_review: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json
+          estimated_price?: number | null
+          id?: string
+          partner_id?: string | null
+          preferred_date?: string | null
+          service_type: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          user_rating?: number | null
+          user_review?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json
+          estimated_price?: number | null
+          id?: string
+          partner_id?: string | null
+          preferred_date?: string | null
+          service_type?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          user_rating?: number | null
+          user_review?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_leads_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sublet_applications: {
         Row: {
           applicant_id: string
@@ -1085,9 +1138,7 @@ export type Database = {
           | Database["public"]["Enums"]["guest_frequency"]
           | null
           id?: string
-          noise_tolerance?:
-          | Database["public"]["Enums"]["noise_tolerance"]
-          | null
+          noise_tolerance?: Database["public"]["Enums"]["noise_tolerance"] | null
           pets?: boolean | null
           preferred_locations?: Json | null
           sleep_schedule?: Database["public"]["Enums"]["sleep_schedule"] | null
@@ -1110,9 +1161,7 @@ export type Database = {
           | Database["public"]["Enums"]["guest_frequency"]
           | null
           id?: string
-          noise_tolerance?:
-          | Database["public"]["Enums"]["noise_tolerance"]
-          | null
+          noise_tolerance?: Database["public"]["Enums"]["noise_tolerance"] | null
           pets?: boolean | null
           preferred_locations?: Json | null
           sleep_schedule?: Database["public"]["Enums"]["sleep_schedule"] | null
@@ -1228,6 +1277,60 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      verification_requests: {
+        Row: {
+          back_image_path: string
+          document_type: string
+          front_image_path: string
+          id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          back_image_path: string
+          document_type?: string
+          front_image_path: string
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          back_image_path?: string
+          document_type?: string
+          front_image_path?: string
+          id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_requests_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       verifications: {
         Row: {
@@ -1375,7 +1478,6 @@ export type Database = {
           occupation: string
           sleep_score: number
           university: string
-          weekend_score: number
         }[]
       }
       get_user_conversation_ids: {
@@ -1690,7 +1792,7 @@ export const Constants = {
         "needs_resubmit",
       ],
       verification_type: [
-        "id_class",
+        "id_card",
         "student_card",
         "email",
         "phone",

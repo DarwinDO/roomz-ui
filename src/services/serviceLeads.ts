@@ -41,7 +41,7 @@ export async function getMyServiceLeads(filters: ServiceLeadFilters = {}): Promi
         throw error;
     }
 
-    return data || [];
+    return (data || []) as ServiceLead[];
 }
 
 /**

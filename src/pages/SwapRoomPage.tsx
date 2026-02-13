@@ -245,7 +245,7 @@ export default function SwapRoomPage() {
               <h3 className="mb-2 font-medium text-lg">Gợi ý hoán đổi phòng</h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 Chúng tôi sẽ tìm những phòng phù hợp để bạn có thể hoán đổi dựa trên
-                vị trí, giá cả và thờ gian.
+                vị trí, giá cả và thời gian.
               </p>
               <Button onClick={() => navigate('/swap-matches')}>
                 Xem gợi ý của tôi
@@ -292,8 +292,8 @@ export default function SwapRoomPage() {
           </h3>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              { step: 1, title: 'Đăng phòng', desc: 'kèm thờ gian và giá mong muốn' },
-              { step: 2, title: 'Nhận gợi ý', desc: 'từ những ngườ thuê đã xác thực' },
+              { step: 1, title: 'Đăng phòng', desc: 'kèm thời gian và giá mong muốn' },
+              { step: 2, title: 'Nhận gợi ý', desc: 'từ những người thuê đã xác thực' },
               { step: 3, title: 'Thanh toán an toàn', desc: 'trên nền tảng RoomZ' },
             ].map((item) => (
               <div key={item.step} className="text-center group">

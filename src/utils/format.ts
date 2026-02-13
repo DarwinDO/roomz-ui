@@ -48,3 +48,10 @@ export function formatPriceRange(min: number, max: number): string {
   }
   return `${formatPriceInMillions(min)} - ${formatPriceInMillions(max)} triệu`;
 }
+
+/**
+ * Format a VND currency value
+ * Example: 3500000 -> "3.500.000₫"
+ */
+export const formatCurrency = (value: number): string =>
+  `${value.toLocaleString("vi-VN")}₫`;

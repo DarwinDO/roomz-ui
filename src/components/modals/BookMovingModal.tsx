@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MapPin, Calendar, DollarSign, Truck, Loader2 } from "lucide-react";
 import { useCreateServiceLead } from "@/hooks/useServiceLeads";
+import { formatCurrency } from "@/utils/format";
 
 interface BookMovingModalProps {
   isOpen: boolean;
@@ -24,8 +25,6 @@ export function BookMovingModal({ isOpen, onClose }: BookMovingModalProps) {
 
   const estimatedPrice = 3_500_000;
   const discountRate = 0.15;
-
-  const formatCurrency = (value: number) => `${value.toLocaleString("vi-VN")}₫`;
 
   const validate = () => {
     const newErrors: Record<string, string> = {};

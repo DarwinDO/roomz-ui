@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { BookMovingModal } from "@/components/modals/BookMovingModal";
 import { CleaningScheduleModal } from "@/components/modals/CleaningScheduleModal";
-import { SupportRequestModal } from "@/components/modals/SupportRequestModal";
 import { PartnerDetailModal } from "@/components/modals/PartnerDetailModal";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { usePartners } from "@/hooks/usePartners";
@@ -28,7 +27,6 @@ export default function SupportServicesPage() {
   const [isMovingModalOpen, setIsMovingModalOpen] = useState(false);
   const [isCleaningModalOpen, setIsCleaningModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isPartnerDetailOpen, setIsPartnerDetailOpen] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
 
@@ -243,14 +241,6 @@ export default function SupportServicesPage() {
         onClose={() => setIsChatOpen(false)}
         recipientName="SetupCare"
         recipientRole="Đối tác - Lắp đặt & sắp xếp"
-      />
-      <SupportRequestModal
-        isOpen={isSupportModalOpen}
-        onClose={() => setIsSupportModalOpen(false)}
-        onSubmit={() => {
-          // Navigate to messages page for support
-          navigate('/messages');
-        }}
       />
       {selectedPartner && (
         <PartnerDetailModal

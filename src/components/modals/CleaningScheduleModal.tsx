@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Calendar, Sparkles, Loader2 } from "lucide-react";
 import { useCreateServiceLead } from "@/hooks/useServiceLeads";
+import { formatCurrency } from "@/utils/format";
 
 interface CleaningScheduleModalProps {
   isOpen: boolean;
@@ -29,8 +30,6 @@ export function CleaningScheduleModal({ isOpen, onClose }: CleaningScheduleModal
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const formatCurrency = (value: number) => `${value.toLocaleString("vi-VN")}₫`;
 
   const cleaningTypes = [
     { id: "move_in", label: "Vệ sinh nhận phòng", price: 900_000 },
@@ -180,7 +179,7 @@ export function CleaningScheduleModal({ isOpen, onClose }: CleaningScheduleModal
                 min={1}
                 max={10}
                 value={numRooms}
-                onChange={(e) => setNumRooms(parseInt(e.target.value) || 1)}
+                onChange={(e) => setNumRooms(parseInt(e.target.value, 10) || 1)}
                 className="rounded-xl"
                 disabled={isLoading}
               />
@@ -193,7 +192,7 @@ export function CleaningScheduleModal({ isOpen, onClose }: CleaningScheduleModal
                 min={1}
                 max={5}
                 value={numBathrooms}
-                onChange={(e) => setNumBathrooms(parseInt(e.target.value) || 1)}
+                onChange={(e) => setNumBathrooms(parseInt(e.target.value, 10) || 1)}
                 className="rounded-xl"
                 disabled={isLoading}
               />

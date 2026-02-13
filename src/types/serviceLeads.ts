@@ -40,10 +40,10 @@ export interface ServiceLead extends ServiceLeadRow {
         id: string;
         name: string;
         category: string;
-        specialization: string;
+        specialization: string | null;
         rating: number | null;
         image_url: string | null;
-    };
+    } | null;
 }
 
 // ============================================

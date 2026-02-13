@@ -218,7 +218,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'support-services',
-        element: <SupportServicesPage />,
+        element: (
+          <ProtectedRoute>
+            <SupportServicesPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'local-passport',

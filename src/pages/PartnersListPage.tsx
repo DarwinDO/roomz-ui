@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PartnerDetailModal } from "@/components/modals/PartnerDetailModal";
 import { PartnerSignUpModal } from "@/components/modals/PartnerSignUpModal";
 import { ArrowLeft, Search, Star, MapPin, Percent } from "lucide-react";
-import { getPartners, type Partner } from "@/services/partners";
+import type { Partner } from "@/services/partners";
+import { usePartners } from "@/hooks/usePartners";
 
 export default function PartnersListPage() {
   const navigate = useNavigate();
@@ -19,36 +20,19 @@ export default function PartnersListPage() {
   const [sortOption, setSortOption] = useState<"rating" | "reviews" | "name">("rating");
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
 
-  // Fetch real partners
-  const [partners, setPartners] = useState<Partner[]>([]);
-  const [loading, setLoading] = useState(true);
-
+  // Debounce search input
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   useEffect(() => {
-    async function fetchPartners() {
-      setLoading(true);
-      try {
-        const data = await getPartners({
-          search: searchQuery,
-          category: selectedCategory,
-          sortBy: sortOption,
-        });
-        setPartners(data);
-      } catch (error) {
-        console.error("Failed to load partners", error);
-        // Fallback or empty state handled by UI
-        setPartners([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    // Debounce search slightly
-    const timer = setTimeout(() => {
-      fetchPartners();
-    }, 300);
-
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
     return () => clearTimeout(timer);
-  }, [searchQuery, selectedCategory, sortOption]);
+  }, [searchQuery]);
+
+  // Fetch partners via hook
+  const { data: partners = [], isLoading: loading } = usePartners({
+    search: debouncedSearch,
+    category: selectedCategory === "all" ? undefined : selectedCategory,
+    sortBy: sortOption,
+  });
 
   const handlePartnerClick = (partner: Partner) => {
     setSelectedPartner(partner);
@@ -127,7 +111,7 @@ export default function PartnersListPage() {
           <p className="text-sm text-gray-600">
             Tìm thấy <strong>{partners.length}</strong> đối tác
           </p>
-          <Select value={sortOption} onValueChange={(v: any) => setSortOption(v)}>
+          <Select value={sortOption} onValueChange={(v: string) => setSortOption(v as "rating" | "reviews" | "name")}>
             <SelectTrigger className="w-40 rounded-xl text-sm">
               <SelectValue />
             </SelectTrigger>
