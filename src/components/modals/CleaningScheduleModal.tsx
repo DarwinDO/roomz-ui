@@ -5,28 +5,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Sparkles } from "lucide-react";
+import { MapPin, Calendar, Sparkles, Loader2 } from "lucide-react";
+import { useCreateServiceLead } from "@/hooks/useServiceLeads";
 
 interface CleaningScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
 }
 
-export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningScheduleModalProps) {
-  const [selectedType, setSelectedType] = useState("move-in");
+export function CleaningScheduleModal({ isOpen, onClose }: CleaningScheduleModalProps) {
+  const createServiceLead = useCreateServiceLead();
+
+  const [address, setAddress] = useState("");
+  const [selectedType, setSelectedType] = useState("move_in");
+  const [cleaningDate, setCleaningDate] = useState("");
+  const [cleaningTime, setCleaningTime] = useState("08:00");
+  const [numRooms, setNumRooms] = useState(1);
+  const [numBathrooms, setNumBathrooms] = useState(1);
   const [addOns, setAddOns] = useState({
     aircon: false,
     laundry: false,
     trash: false,
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const formatCurrency = (value: number) => `${value.toLocaleString("vi-VN")}₫`;
 
   const cleaningTypes = [
-    { id: "move-in", label: "Vệ sinh nhận phòng", price: 900_000 },
-    { id: "move-out", label: "Vệ sinh trả phòng", price: 1_000_000 },
-    { id: "weekly", label: "Vệ sinh định kỳ", price: 650_000 },
+    { id: "move_in", label: "Vệ sinh nhận phòng", price: 900_000 },
+    { id: "move_out", label: "Vệ sinh trả phòng", price: 1_000_000 },
+    { id: "basic", label: "Vệ sinh cơ bản", price: 650_000 },
   ];
 
   const addOnOptions = [
@@ -45,13 +54,68 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
   }, 0);
   const totalPrice = basePrice + addOnPrice;
 
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!address.trim()) {
+      newErrors.address = "Vui lòng nhập địa chỉ";
+    }
+    if (!cleaningDate) {
+      newErrors.cleaningDate = "Vui lòng chọn ngày";
+    } else {
+      const selectedDate = new Date(cleaningDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        newErrors.cleaningDate = "Ngày chọn phải là ngày trong tương lai";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
+  const handleConfirm = async () => {
+    if (!validate()) return;
+
+    try {
+      await createServiceLead.mutateAsync({
+        service_type: 'cleaning',
+        details: {
+          address: address,
+          cleaning_type: selectedType,
+          num_rooms: numRooms,
+          num_bathrooms: numBathrooms,
+          preferred_time: cleaningTime,
+          add_ons: Object.entries(addOns)
+            .filter(([, value]) => value)
+            .map(([key]) => key),
+        },
+        preferred_date: cleaningDate,
+      });
+
+      // Reset form
+      setAddress("");
+      setSelectedType("move_in");
+      setCleaningDate("");
+      setCleaningTime("08:00");
+      setNumRooms(1);
+      setNumBathrooms(1);
+      setAddOns({ aircon: false, laundry: false, trash: false });
+      setErrors({});
+      onClose();
+    } catch (error) {
+      // Error is handled in the mutation
+    }
+  };
+
+  const isLoading = createServiceLead.isPending;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={isLoading ? undefined : onClose}
+    >
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Đặt lịch vệ sinh phòng</DialogTitle>
@@ -65,13 +129,19 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
           <div className="space-y-2">
             <Label htmlFor="cleaning-address" className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-primary" />
-              Địa chỉ / Mã phòng
+              Địa chỉ / Mã phòng <span className="text-red-500">*</span>
             </Label>
             <Input
               id="cleaning-address"
               placeholder="Ví dụ: Căn A203, The Sun Avenue, Quận 2"
               className="rounded-xl"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              disabled={isLoading}
             />
+            {errors.address && (
+              <p className="text-xs text-red-500">{errors.address}</p>
+            )}
           </div>
 
           {/* Cleaning Type */}
@@ -85,11 +155,10 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
                 <Badge
                   key={type.id}
                   variant={selectedType === type.id ? "default" : "outline"}
-                  className={`cursor-pointer text-center justify-center py-3 px-2 rounded-xl transition-all ${
-                    selectedType === type.id
-                      ? "bg-primary text-white hover:bg-primary/90"
-                      : "hover:bg-primary/10"
-                  }`}
+                  className={`cursor-pointer text-center justify-center py-3 px-2 rounded-xl transition-all ${selectedType === type.id
+                    ? "bg-primary text-white hover:bg-primary/90"
+                    : "hover:bg-primary/10"
+                    }`}
                   onClick={() => setSelectedType(type.id)}
                 >
                   <div className="flex flex-col gap-1">
@@ -101,28 +170,67 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
             </div>
           </div>
 
+          {/* Number of rooms */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="num-rooms">Số phòng</Label>
+              <Input
+                id="num-rooms"
+                type="number"
+                min={1}
+                max={10}
+                value={numRooms}
+                onChange={(e) => setNumRooms(parseInt(e.target.value) || 1)}
+                className="rounded-xl"
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="num-bathrooms">Số toilet</Label>
+              <Input
+                id="num-bathrooms"
+                type="number"
+                min={1}
+                max={5}
+                value={numBathrooms}
+                onChange={(e) => setNumBathrooms(parseInt(e.target.value) || 1)}
+                className="rounded-xl"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
           {/* Date & Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cleaning-date" className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-primary" />
-                Ngày
+                Ngày <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="cleaning-date"
                 type="date"
                 className="rounded-xl"
+                value={cleaningDate}
+                onChange={(e) => setCleaningDate(e.target.value)}
+                disabled={isLoading}
               />
+              {errors.cleaningDate && (
+                <p className="text-xs text-red-500">{errors.cleaningDate}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="cleaning-time">Khung giờ</Label>
               <select
                 id="cleaning-time"
                 className="w-full px-3 py-2 rounded-xl border border-input bg-background"
+                value={cleaningTime}
+                onChange={(e) => setCleaningTime(e.target.value)}
+                disabled={isLoading}
               >
-                <option>08:00 - 11:00</option>
-                <option>12:30 - 15:30</option>
-                <option>16:00 - 19:00</option>
+                <option value="08:00">08:00 - 11:00</option>
+                <option value="12:30">12:30 - 15:30</option>
+                <option value="16:00">16:00 - 19:00</option>
               </select>
             </div>
           </div>
@@ -143,14 +251,15 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
                       onCheckedChange={(checked) =>
                         setAddOns({ ...addOns, [addOn.id]: checked === true })
                       }
+                      disabled={isLoading}
                     />
                     <label
                       htmlFor={addOn.id}
                       className="text-sm cursor-pointer"
-                  >
-                    {addOn.label}
-                  </label>
-                </div>
+                    >
+                      {addOn.label}
+                    </label>
+                  </div>
                   <span className="text-sm text-gray-600">+{formatCurrency(addOn.price)}</span>
                 </div>
               ))}
@@ -190,14 +299,23 @@ export function CleaningScheduleModal({ isOpen, onClose, onConfirm }: CleaningSc
               onClick={onClose}
               variant="outline"
               className="flex-1 rounded-full h-12"
+              disabled={isLoading}
             >
               Hủy
             </Button>
             <Button
               onClick={handleConfirm}
               className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
+              disabled={isLoading}
             >
-              Xác nhận đặt lịch
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                "Xác nhận đặt lịch"
+              )}
             </Button>
           </div>
         </div>

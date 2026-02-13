@@ -17,12 +17,13 @@ import { CleaningScheduleModal } from "@/components/modals/CleaningScheduleModal
 import { SupportRequestModal } from "@/components/modals/SupportRequestModal";
 import { PartnerDetailModal } from "@/components/modals/PartnerDetailModal";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
-import { toast } from "sonner";
+import { usePartners } from "@/hooks/usePartners";
 import type { Partner } from "@/services/partners";
 
 export default function SupportServicesPage() {
   const navigate = useNavigate();
-  const onBack = () => navigate(-1);
+
+  const { data: partners, isLoading: isPartnersLoading } = usePartners();
 
   const [isMovingModalOpen, setIsMovingModalOpen] = useState(false);
   const [isCleaningModalOpen, setIsCleaningModalOpen] = useState(false);
@@ -30,25 +31,14 @@ export default function SupportServicesPage() {
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isPartnerDetailOpen, setIsPartnerDetailOpen] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+
   const handleServiceClick = (serviceId: number) => {
     if (serviceId === 1) setIsMovingModalOpen(true);
     if (serviceId === 2) setIsCleaningModalOpen(true);
     if (serviceId === 3) setIsChatOpen(true);
   };
 
-  const handleMovingConfirm = () => {
-    toast.success("Đã đặt lịch chuyển phòng thành công!");
-  };
-
-  const handleCleaningConfirm = () => {
-    toast.success("Đã đặt dịch vụ vệ sinh thành công!");
-  };
-
-  const handleSupportSubmit = () => {
-    toast.success("Cảm ơn bạn! Đội hỗ trợ sẽ liên hệ sớm nhất.");
-  };
-
-  const handlePartnerClick = (partner: any) => {
+  const handlePartnerClick = (partner: Partner) => {
     setSelectedPartner(partner);
     setIsPartnerDetailOpen(true);
   };
@@ -84,57 +74,6 @@ export default function SupportServicesPage() {
       buttonText: "Liên hệ đối tác",
       color: "bg-purple-50",
       iconColor: "text-purple-600",
-    },
-  ];
-
-  const partners: Partner[] = [
-    {
-      id: "1",
-      name: "NhanhMove Express",
-      category: "moving",
-      specialization: "Chuyển nhà",
-      rating: 4.9,
-      review_count: 342,
-      discount: "Giảm 15% cho sinh viên",
-      image_url: null,
-      contact_info: {},
-      status: "active",
-      created_at: null,
-      updated_at: null,
-      views: 0,
-      user_id: null,
-    },
-    {
-      id: "2",
-      name: "SạchPlus",
-      category: "cleaning",
-      specialization: "Vệ sinh",
-      rating: 4.8,
-      review_count: 267,
-      discount: "Giảm 15% cho sinh viên",
-      image_url: null,
-      contact_info: {},
-      status: "active",
-      created_at: null,
-      updated_at: null,
-      views: 0,
-      user_id: null,
-    },
-    {
-      id: "3",
-      name: "SetupCare",
-      category: "assembly",
-      specialization: "Lắp đặt & bố trí",
-      rating: 4.7,
-      review_count: 198,
-      discount: "Giảm 15% cho sinh viên",
-      image_url: null,
-      contact_info: {},
-      status: "active",
-      created_at: null,
-      updated_at: null,
-      views: 0,
-      user_id: null,
     },
   ];
 
@@ -218,40 +157,56 @@ export default function SupportServicesPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {partners.map((partner, idx) => (
-              <Card
-                key={idx}
-                onClick={() => handlePartnerClick(partner)}
-                className="p-5 rounded-2xl shadow-sm hover:shadow-md transition-all border-border cursor-pointer"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <h4>{partner.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {partner.specialization}
-                      </p>
+          {isPartnersLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="p-5 rounded-2xl animate-pulse">
+                  <div className="h-24 bg-muted rounded-lg" />
+                </Card>
+              ))}
+            </div>
+          ) : partners && partners.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {partners.slice(0, 3).map((partner) => (
+                <Card
+                  key={partner.id}
+                  onClick={() => handlePartnerClick(partner)}
+                  className="p-5 rounded-2xl shadow-sm hover:shadow-md transition-all border-border cursor-pointer"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <h4>{partner.name}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {partner.specialization}
+                        </p>
+                      </div>
+                      <Badge className="rounded-full bg-primary text-white">
+                        ★ {partner.rating}
+                      </Badge>
                     </div>
-                    <Badge className="rounded-full bg-primary text-white">
-                      ★ {partner.rating}
-                    </Badge>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        {partner.review_count} đánh giá
+                      </span>
+                      <Badge
+                        variant="secondary"
+                        className="rounded-full bg-amber-50 text-amber-700 text-xs"
+                      >
+                        {partner.discount}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {partner.review_count} đánh giá
-                    </span>
-                    <Badge
-                      variant="secondary"
-                      className="rounded-full bg-amber-50 text-amber-700 text-xs"
-                    >
-                      {partner.discount}
-                    </Badge>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">
+                Chưa có đối tác nào. Hãy quay lại sau!
+              </p>
+            </Card>
+          )}
         </div>
 
         {/* CTA Section */}
@@ -264,7 +219,7 @@ export default function SupportServicesPage() {
               </p>
             </div>
             <Button
-              onClick={() => setIsSupportModalOpen(true)}
+              onClick={() => navigate('/messages')}
               variant="secondary"
               className="rounded-full bg-white text-primary hover:bg-white/90 shrink-0"
             >
@@ -278,12 +233,10 @@ export default function SupportServicesPage() {
       <BookMovingModal
         isOpen={isMovingModalOpen}
         onClose={() => setIsMovingModalOpen(false)}
-        onConfirm={handleMovingConfirm}
       />
       <CleaningScheduleModal
         isOpen={isCleaningModalOpen}
         onClose={() => setIsCleaningModalOpen(false)}
-        onConfirm={handleCleaningConfirm}
       />
       <ChatDrawer
         isOpen={isChatOpen}
@@ -294,7 +247,10 @@ export default function SupportServicesPage() {
       <SupportRequestModal
         isOpen={isSupportModalOpen}
         onClose={() => setIsSupportModalOpen(false)}
-        onSubmit={handleSupportSubmit}
+        onSubmit={() => {
+          // Navigate to messages page for support
+          navigate('/messages');
+        }}
       />
       {selectedPartner && (
         <PartnerDetailModal
