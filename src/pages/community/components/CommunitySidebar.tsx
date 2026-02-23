@@ -1,29 +1,27 @@
+import { useMemo } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { TrendingUp, Hash, UserCheck } from "lucide-react";
+import { TrendingUp, Info } from "lucide-react";
+import { useTopPosts } from "@/hooks/useCommunity";
 
 export function CommunitySidebar() {
-    const topPosts = [
-        { title: "Checklist chuyển phòng cho sinh viên", likes: 342 },
-        { title: "Bí kíp giảm 2 triệu tiền nhà mỗi tháng", likes: 289 },
-        { title: "Mẫu thỏa thuận ở ghép rõ ràng", likes: 234 },
-    ];
+    const { data: topPosts, isLoading } = useTopPosts(5);
 
-    const suggestedTopics = [
-        "#MeoRoommate",
-        "#PhongChoThue",
-        "#DoiSongSinhVien",
-        "#UuDaiSinhVien",
-        "#SanPhongGiaTot",
-        "#BiKipChuyenNha",
-    ];
+    // Get time ago helper
+    const getTimeAgo = (timestamp: string) => {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now.getTime() - date.getTime();
 
-    const followedHosts = [
-        { name: "Ngô Minh Phúc", properties: 5 },
-        { name: "Vũ Hải Yến", properties: 8 },
-        { name: "Đặng Quốc Bảo", properties: 3 },
-    ];
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+
+        if (hours < 1) return "Vừa đăng";
+        if (hours < 24) return `${hours}h`;
+        if (days < 7) return `${days}ng`;
+        return date.toLocaleDateString("vi-VN", { day: "numeric", month: "numeric" });
+    };
 
     return (
         <div className="hidden lg:block space-y-6">
@@ -31,63 +29,58 @@ export function CommunitySidebar() {
             <Card className="p-5 rounded-2xl shadow-soft border border-border">
                 <div className="flex items-center gap-2 mb-4">
                     <TrendingUp className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold">Bài viết nổi bật trong tuần</h3>
+                    <h3 className="font-semibold">Bài viết nổi bật</h3>
                 </div>
                 <div className="space-y-3">
-                    {topPosts.map((post, index) => (
-                        <div key={index} className="flex items-start gap-3 cursor-pointer hover:bg-muted p-2 rounded-xl transition-colors">
-                            <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-primary text-sm shrink-0 font-medium">
-                                {index + 1}
+                    {isLoading ? (
+                        // Loading skeleton
+                        [1, 2, 3].map((i) => (
+                            <div key={i} className="flex items-start gap-3 animate-pulse">
+                                <div className="w-6 h-6 bg-muted rounded-full shrink-0" />
+                                <div className="flex-1">
+                                    <div className="h-4 w-full bg-muted rounded mb-2" />
+                                    <div className="h-3 w-16 bg-muted rounded" />
+                                </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium line-clamp-2">{post.title}</p>
-                                <p className="text-xs text-muted-foreground mt-1">{post.likes} lượt thích</p>
+                        ))
+                    ) : topPosts && topPosts.length > 0 ? (
+                        topPosts.map((post, index) => (
+                            <div
+                                key={post.id}
+                                className="flex items-start gap-3 cursor-pointer hover:bg-muted p-2 rounded-xl transition-colors"
+                            >
+                                <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-primary text-sm shrink-0 font-medium">
+                                    {index + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium line-clamp-2">{post.title}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {post.likes_count} thích • {getTimeAgo(post.created_at)}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    ) : (
+                        <p className="text-sm text-muted-foreground">Chưa có bài viết nổi bật</p>
+                    )}
                 </div>
             </Card>
 
-            {/* Suggested Topics */}
+            {/* Community Guidelines */}
             <Card className="p-5 rounded-2xl shadow-soft border border-border">
                 <div className="flex items-center gap-2 mb-4">
-                    <Hash className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold">Chủ đề gợi ý</h3>
+                    <Info className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold">Nội quy cộng đồng</h3>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                    {suggestedTopics.map((topic, index) => (
-                        <Badge
-                            key={index}
-                            variant="outline"
-                            className="cursor-pointer hover:bg-primary hover:text-white transition-colors py-1 px-3 rounded-lg border-primary/20 text-primary-foreground/80 bg-primary/5"
-                        >
-                            {topic}
-                        </Badge>
-                    ))}
+                <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>• Chia sẻ kinh nghiệm thực tế</p>
+                    <p>• Không đăng tin quảng cáo</p>
+                    <p>• Tôn trọng người khác</p>
+                    <p>• Không vi phạm pháp luật</p>
                 </div>
-            </Card>
-
-            {/* Followed Hosts */}
-            <Card className="p-5 rounded-2xl shadow-soft border border-border">
-                <div className="flex items-center gap-2 mb-4">
-                    <UserCheck className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold">Chủ nhà đang theo dõi</h3>
-                </div>
-                <div className="space-y-3">
-                    {followedHosts.map((host, index) => (
-                        <div key={index} className="flex items-center gap-3 cursor-pointer hover:bg-muted p-2 rounded-xl transition-colors">
-                            <Avatar className="w-8 h-8">
-                                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary text-xs">
-                                    {host.name.split(" ").map((n) => n[0]).join("")}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{host.name}</p>
-                                <p className="text-xs text-muted-foreground">{host.properties} tin đang mở</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                    Bài viết có từ 3 báo cáo sẽ bị ẩn tự động.
+                </p>
             </Card>
         </div>
     );

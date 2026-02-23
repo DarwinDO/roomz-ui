@@ -3,27 +3,36 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
-import { Heart, MessageCircle, Share2, ShieldCheck } from "lucide-react";
+import { Heart, MessageCircle, Share2, ShieldCheck, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Post } from "../types";
 
 interface PostCardProps {
     post: Post;
+    currentUserId?: string;
     onLike: (postId: string) => void;
     onClick: () => void;
+    onEdit?: (post: Post) => void;
+    onDelete?: (postId: string) => void;
     getTimeAgo: (timestamp: string) => string;
     getTypeColor: (type: string) => string;
     getTypeLabel: (type: string) => string;
 }
 
-export function PostCard({ post, onLike, onClick, getTimeAgo, getTypeColor, getTypeLabel }: PostCardProps) {
+export function PostCard({ post, currentUserId, onLike, onClick, onEdit, onDelete, getTimeAgo, getTypeColor, getTypeLabel }: PostCardProps) {
     const [isHovered, setIsHovered] = useState(false);
+    const isOwner = currentUserId && post.user_id === currentUserId;
 
     return (
         <Card
             className="p-5 rounded-2xl transition-all duration-300 cursor-pointer shadow-soft hover:shadow-soft-lg hover-lift border border-border"
             style={{
                 borderColor: isHovered ? 'var(--primary)' : undefined,
-                // Using explicit style for hover border color if preferred, or rely on hover classes
             }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -51,19 +60,60 @@ export function PostCard({ post, onLike, onClick, getTimeAgo, getTypeColor, getT
                             {getTypeLabel(post.type)}
                         </Badge>
                         <span className="text-xs text-muted-foreground">{getTimeAgo(post.timestamp)}</span>
+
+                        {/* Owner actions menu */}
+                        {isOwner && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+                                        aria-label="Tùy chọn bài viết"
+                                    >
+                                        <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-40">
+                                    <DropdownMenuItem
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onEdit?.(post);
+                                        }}
+                                        className="cursor-pointer"
+                                    >
+                                        <Pencil className="w-4 h-4 mr-2" />
+                                        Chỉnh sửa
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (confirm("Bạn có chắc muốn xóa bài viết này?")) {
+                                                onDelete?.(post.id);
+                                            }
+                                        }}
+                                        className="cursor-pointer text-destructive focus:text-destructive"
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Xóa bài viết
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                     </div>
                 </div>
 
                 {/* Post Content */}
                 <div>
                     <h3 className="mb-2 text-lg font-semibold">{post.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{post.preview}</p>
+                    {post.content && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{post.content}</p>
+                    )}
 
                     {/* Images */}
                     {post.images.length > 0 && (
                         <div className={`grid gap-2 mb-4 ${post.images.length === 1 ? "grid-cols-1" :
-                                post.images.length === 2 ? "grid-cols-2" :
-                                    "grid-cols-3"
+                            post.images.length === 2 ? "grid-cols-2" :
+                                "grid-cols-3"
                             }`}>
                             {post.images.slice(0, 3).map((image, index) => (
                                 <div key={index} className="relative aspect-video overflow-hidden rounded-xl">
@@ -79,7 +129,7 @@ export function PostCard({ post, onLike, onClick, getTimeAgo, getTypeColor, getT
                 </div>
             </div>
 
-            {/* Interaction Bar - Not Clickable for Modal */}
+            {/* Interaction Bar */}
             <div
                 className="flex items-center gap-4 pt-3 border-t border-border"
                 onClick={(e) => e.stopPropagation()}
@@ -107,7 +157,6 @@ export function PostCard({ post, onLike, onClick, getTimeAgo, getTypeColor, getT
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        // Handle share action
                     }}
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer group"
                 >

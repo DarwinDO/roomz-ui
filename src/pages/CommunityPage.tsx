@@ -1,132 +1,132 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { CreatePostModal } from "@/components/modals/CreatePostModal";
 import { PostDetailModal } from "@/components/modals/PostDetailModal";
 
-// Components & Types
+// Components
 import { PostCard } from "./community/components/PostCard";
 import { CommunitySidebar } from "./community/components/CommunitySidebar";
+import { usePosts, useToggleLike, useDeletePost } from "@/hooks/useCommunity";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Post } from "./community/types";
+import type { PostRow } from "@/services/community";
+
+// Helper to convert PostRow to Post for PostCard
+function transformToPost(row: PostRow): Post {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    author: row.author,
+    type: row.type as Post['type'],
+    title: row.title,
+    content: row.content,
+    images: row.images,
+    likes: row.likes_count,
+    comments: row.comments_count,
+    shares: 0,
+    timestamp: row.created_at,
+    liked: row.liked || false,
+  };
+}
 
 export default function CommunityPage() {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [posts, setPosts] = useState<Post[]>([
-    {
-      id: "1",
-      author: {
-        name: "Nguyễn Hoàng Linh",
-        role: "Sinh viên • Khoa Công nghệ thông tin",
-        verified: true,
-      },
-      type: "story",
-      title: "Tháng đầu tiên sống ngoài ký túc xá",
-      preview:
-        "Chuyển ra ở riêng vừa háo hức vừa hơi choáng. Mình học cách tự cân đối chi phí, nấu ăn và giữ phòng gọn gàng hơn thế nào...",
-      content:
-        "Sau một tháng sống ngoài ký túc xá, mình đã quen với việc lập bảng chi tiêu, chuẩn bị các bữa ăn đơn giản và phân chia việc nhà với bạn cùng phòng. Hy vọng những kinh nghiệm nhỏ này sẽ giúp các bạn chuẩn bị sớm khi ra ở riêng.",
-      images: [
-        "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800",
-        "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800",
-      ],
-      likes: 124,
-      comments: 18,
-      shares: 5,
-      timestamp: "2 giờ trước",
-      liked: false,
-    },
-    {
-      id: "2",
-      author: {
-        name: "Trần Minh Tuấn",
-        role: "Chủ nhà • Quản lý căn hộ",
-        verified: true,
-      },
-      type: "offer",
-      title: "Phòng riêng full nội thất gần ĐH Bách Khoa",
-      preview:
-        "Phòng 18m² trong căn hộ 3 phòng ngủ, 7.5tr/tháng đã bao gồm điện nước và wifi. Có thể vào ở từ 01/11...",
-      content:
-        "Phòng riêng rộng 18m², đầy đủ nội thất, tủ lạnh mini và bàn học. Giá 7.500.000đ/tháng đã bao gồm điện nước, wifi. Căn hộ có thang máy, bảo vệ 24/7, cách cổng trường 5 phút đi bộ. Giảm 10% cho sinh viên thanh toán 3 tháng/lần.",
-      images: ["https://images.unsplash.com/photo-1668089677938-b52086753f77?w=800"],
-      likes: 89,
-      comments: 23,
-      shares: 12,
-      timestamp: "5 giờ trước",
-      liked: false,
-    },
-    {
-      id: "3",
-      author: {
-        name: "Phạm Thu Hà",
-        role: "Sinh viên • Khoa Kinh tế",
-        verified: false,
-      },
-      type: "qa",
-      title: "Chia tiền điện nước sao cho công bằng?",
-      preview:
-        "Nhà mình có 3 người, 1 bạn làm việc ở nhà nên dùng điện nhiều hơn. Mọi người thường chia tiền như thế nào cho hợp lý?",
-      content:
-        "Nhà mình có 3 người ở chung. Hai bạn đi học cả ngày, một bạn làm việc tại nhà nên dùng điều hòa và máy tính nhiều hơn. Mọi người thường chia tiền điện nước theo đầu người hay theo mức sử dụng? Có mẹo nào theo dõi chỉ số định kỳ không?",
-      images: [],
-      likes: 45,
-      comments: 31,
-      shares: 2,
-      timestamp: "1 ngày trước",
-      liked: true,
-    },
-    {
-      id: "4",
-      author: {
-        name: "Lê Khánh Vy",
-        role: "Sinh viên • Kỹ thuật môi trường",
-        verified: false,
-      },
-      type: "story",
-      title: "5 quán cà phê học bài yêu thích ở Quận 3",
-      preview:
-        "Mình đã đi thử gần hết các quán cà phê quanh trường. Đây là 5 địa điểm học bài có ổ cắm, wifi mạnh và nhạc chill nhất...",
-      content:
-        "Nếu bạn đang tìm địa điểm học bài cuối tuần, đây là 5 quán cà phê mình thích nhất: có ổ cắm đầy đủ, wifi khỏe, không gian yên tĩnh và đồ uống dưới 60k. Một vài quán còn có ưu đãi giảm giá cho sinh viên nữa!",
-      images: [
-        "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800",
-        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800",
-        "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800",
-      ],
-      likes: 156,
-      comments: 42,
-      shares: 28,
-      timestamp: "2 ngày trước",
-      liked: false,
-    },
-  ]);
+  const [editPost, setEditPost] = useState<Post | null>(null);
+  const [activeTab, setActiveTab] = useState("all");
+  const [filterType, setFilterType] = useState<Post['type'] | undefined>(undefined);
+  const observerRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
 
-  const handleLike = (postId: string) => {
-    setPosts(posts.map(post =>
-      post.id === postId
-        ? { ...post, liked: !post.liked, likes: post.liked ? post.likes - 1 : post.likes + 1 }
-        : post
-    ));
+  // Fetch posts based on filter
+  const { posts, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = usePosts({
+    type: filterType,
+  });
+
+  const toggleLikeMutation = useToggleLike();
+  const deletePostMutation = useDeletePost();
+
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    switch (value) {
+      case "all":
+        setFilterType(undefined);
+        break;
+      case "stories":
+        setFilterType("story");
+        break;
+      case "offers":
+        setFilterType("offer");
+        break;
+      case "qa":
+        setFilterType("qa");
+        break;
+      default:
+        setFilterType(undefined);
+    }
   };
 
-  const handlePostCreated = (newPost: Omit<Post, "id" | "likes" | "comments" | "shares" | "timestamp">) => {
-    const post: Post = {
-      ...newPost,
-      id: Date.now().toString(),
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      timestamp: "Vừa đăng",
-    };
-    setPosts([post, ...posts]);
+  // Handle like
+  const handleLike = useCallback((postId: string) => {
+    toggleLikeMutation.mutate(postId);
+  }, [toggleLikeMutation]);
+
+  // Handle post created/updated
+  const handlePostCreated = () => {
+    setIsCreatePostOpen(false);
+    setEditPost(null);
   };
 
+  // Handle edit
+  const handleEdit = useCallback((post: Post) => {
+    setEditPost(post);
+    setIsCreatePostOpen(true);
+  }, []);
+
+  // Handle delete
+  const handleDelete = useCallback((postId: string) => {
+    deletePostMutation.mutate(postId);
+  }, [deletePostMutation]);
+
+  // Infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Get time ago helper
   const getTimeAgo = (timestamp: string) => {
-    return timestamp;
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return "Vừa đăng";
+    if (minutes < 60) return `${minutes} phút trước`;
+    if (hours < 24) return `${hours} giờ trước`;
+    if (days < 7) return `${days} ngày trước`;
+    return date.toLocaleDateString("vi-VN");
   };
 
+  // Type helpers
   const getTypeColor = (type: string) => {
     switch (type) {
       case "story":
@@ -135,6 +135,8 @@ export default function CommunityPage() {
         return "bg-primary/10 text-primary border-primary/20";
       case "qa":
         return "bg-purple-100 text-purple-600 border-purple-200";
+      case "tip":
+        return "bg-green-100 text-green-600 border-green-200";
       default:
         return "bg-muted text-muted-foreground border-border";
     }
@@ -148,26 +150,77 @@ export default function CommunityPage() {
         return "Ưu đãi";
       case "qa":
         return "Hỏi đáp";
+      case "tip":
+        return "Mẹo";
       default:
         return type;
     }
   };
 
-  const renderPostList = (filteredPosts: Post[]) => (
-    <div className="space-y-4 animate-fade-in stagger-children">
-      {filteredPosts.map((post) => (
-        <PostCard
-          key={post.id}
-          post={post}
-          onLike={handleLike}
-          onClick={() => setSelectedPost(post)}
-          getTimeAgo={getTimeAgo}
-          getTypeColor={getTypeColor}
-          getTypeLabel={getTypeLabel}
-        />
+  // Render loading skeleton
+  const renderSkeleton = () => (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="p-5 rounded-2xl border border-border animate-pulse">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-10 h-10 bg-muted rounded-full" />
+            <div className="flex-1">
+              <div className="h-4 w-32 bg-muted rounded mb-2" />
+              <div className="h-3 w-48 bg-muted rounded" />
+            </div>
+          </div>
+          <div className="h-6 w-3/4 bg-muted rounded mb-3" />
+          <div className="h-4 w-full bg-muted rounded mb-2" />
+          <div className="h-4 w-2/3 bg-muted rounded" />
+        </div>
       ))}
     </div>
   );
+
+  // Render empty state
+  const renderEmpty = () => (
+    <div className="text-center py-12">
+      <p className="text-muted-foreground mb-4">Chưa có bài viết nào</p>
+      <Button onClick={() => setIsCreatePostOpen(true)}>
+        <Plus className="w-4 h-4 mr-2" />
+        Viết bài đầu tiên
+      </Button>
+    </div>
+  );
+
+  // Render post list
+  const renderPostList = (postRows: PostRow[]) => {
+    if (postRows.length === 0) {
+      return renderEmpty();
+    }
+
+    return (
+      <div className="space-y-4">
+        {postRows.map((row) => (
+          <PostCard
+            key={row.id}
+            post={transformToPost(row)}
+            currentUserId={user?.id}
+            onLike={handleLike}
+            onClick={() => setSelectedPost(transformToPost(row))}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            getTimeAgo={getTimeAgo}
+            getTypeColor={getTypeColor}
+            getTypeLabel={getTypeLabel}
+          />
+        ))}
+        {/* Load more trigger */}
+        <div ref={observerRef} className="h-4">
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-8">
@@ -175,7 +228,9 @@ export default function CommunityPage() {
       <div className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-30 px-6 py-4 transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Cộng đồng rommz</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              Cộng đồng RoomZ
+            </h1>
             <p className="text-muted-foreground text-sm hidden sm:block">
               Chia sẻ trải nghiệm, săn tin ưu đãi và kết nối với mọi người
             </p>
@@ -195,28 +250,36 @@ export default function CommunityPage() {
           {/* Main Feed */}
           <div className="lg:col-span-2">
             {/* Filter Tabs */}
-            <Tabs defaultValue="all" className="w-full">
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="grid w-full grid-cols-4 mb-6 rounded-xl bg-muted/50 p-1">
-                <TabsTrigger value="all" className="rounded-lg">Tất cả</TabsTrigger>
-                <TabsTrigger value="stories" className="rounded-lg">Chia sẻ</TabsTrigger>
-                <TabsTrigger value="offers" className="rounded-lg">Ưu đãi</TabsTrigger>
-                <TabsTrigger value="qa" className="rounded-lg">Hỏi đáp</TabsTrigger>
+                <TabsTrigger value="all" className="rounded-lg">
+                  Tất cả
+                </TabsTrigger>
+                <TabsTrigger value="stories" className="rounded-lg">
+                  Chia sẻ
+                </TabsTrigger>
+                <TabsTrigger value="offers" className="rounded-lg">
+                  Ưu đãi
+                </TabsTrigger>
+                <TabsTrigger value="qa" className="rounded-lg">
+                  Hỏi đáp
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="all" className="mt-0">
-                {renderPostList(posts)}
+                {isLoading ? renderSkeleton() : renderPostList(posts)}
               </TabsContent>
 
               <TabsContent value="stories" className="mt-0">
-                {renderPostList(posts.filter(p => p.type === "story"))}
+                {isLoading ? renderSkeleton() : renderPostList(posts)}
               </TabsContent>
 
               <TabsContent value="offers" className="mt-0">
-                {renderPostList(posts.filter(p => p.type === "offer"))}
+                {isLoading ? renderSkeleton() : renderPostList(posts)}
               </TabsContent>
 
               <TabsContent value="qa" className="mt-0">
-                {renderPostList(posts.filter(p => p.type === "qa"))}
+                {isLoading ? renderSkeleton() : renderPostList(posts)}
               </TabsContent>
             </Tabs>
           </div>
@@ -230,7 +293,8 @@ export default function CommunityPage() {
       <Button
         onClick={() => setIsCreatePostOpen(true)}
         className="md:hidden fixed bottom-20 right-4 w-14 h-14 rounded-full bg-primary hover:bg-primary/90 shadow-lg z-40"
-        size="icon" aria-label="Viết bài mới"
+        size="icon"
+        aria-label="Viết bài mới"
       >
         <Plus className="w-6 h-6" />
       </Button>
@@ -238,8 +302,9 @@ export default function CommunityPage() {
       {/* Modals */}
       <CreatePostModal
         isOpen={isCreatePostOpen}
-        onClose={() => setIsCreatePostOpen(false)}
+        onClose={() => { setIsCreatePostOpen(false); setEditPost(null); }}
         onPostCreated={handlePostCreated}
+        editPost={editPost}
       />
 
       {selectedPost && (
@@ -248,6 +313,8 @@ export default function CommunityPage() {
           onClose={() => setSelectedPost(null)}
           post={selectedPost}
           onLike={handleLike}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
         />
       )}
     </div>
