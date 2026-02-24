@@ -401,13 +401,23 @@ export default function LocalPassportPage() {
                     </div>
 
                     {/* Button */}
-                    <Button
-                      onClick={(e) => handleGetVoucher(e, perk)}
-                      className="w-full rounded-full"
-                    >
-                      <QrCode className="mr-2 w-4 h-4" />
-                      Nhận voucher
-                    </Button>
+                    {perk.deal ? (
+                      <Button
+                        onClick={(e) => handleGetVoucher(e, perk)}
+                        className="w-full rounded-full"
+                      >
+                        <QrCode className="mr-2 w-4 h-4" />
+                        Nhận voucher
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="w-full rounded-full"
+                        disabled
+                      >
+                        Chưa có ưu đãi
+                      </Button>
+                    )}
                   </div>
                 </Card>
               ))}
