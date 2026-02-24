@@ -19,6 +19,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useMyVouchers, useSaveVoucher } from "@/hooks/useDeals";
+import { useGeolocation } from "@/hooks/useGeolocation";
+import { haversineDistance, formatDistance } from "@/utils/geo";
 import type { DealWithPartner } from "@/services/deals";
 
 interface ShopDetailModalProps {
@@ -35,6 +37,9 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
   const [showVoucher, setShowVoucher] = useState(false);
   // Local state for immediate QR display after claiming (fixes race condition)
   const [claimedVoucher, setClaimedVoucher] = useState<SavedVoucher | null>(null);
+
+  // Geolocation
+  const { position: userPosition } = useGeolocation();
 
   // Fetch user's saved vouchers to check if already claimed
   const { data: savedVouchers = [], isLoading: isVouchersLoading } = useMyVouchers();
@@ -56,6 +61,20 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
     if (!deal) return null;
     return savedVouchers.find((v) => v.deal_id === deal.id) || null;
   }, [savedVouchers, deal]);
+
+  // Calculate distance if user has position and partner has coordinates
+  const distance = useMemo(() => {
+    if (!userPosition || !partner?.latitude || !partner?.longitude) {
+      return undefined;
+    }
+    const km = haversineDistance(
+      userPosition.lat,
+      userPosition.lng,
+      Number(partner.latitude),
+      Number(partner.longitude)
+    );
+    return formatDistance(km);
+  }, [userPosition, partner]);
 
   // Handle getting/claiming voucher
   const handleGetVoucher = async () => {
@@ -133,9 +152,17 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
             <div className="flex items-end justify-between">
               <div>
                 <h1 className="text-white mb-2">{partner?.name || "Shop"}</h1>
-                <Badge className="bg-white/90 text-gray-900 border-0">
-                  {partner?.category || "deal"}
-                </Badge>
+                <div className="flex gap-1">
+                  {distance && (
+                    <Badge className="bg-white/90 text-gray-900 border-0">
+                      <MapPin className="w-3 h-3 mr-1" />
+                      {distance}
+                    </Badge>
+                  )}
+                  <Badge className="bg-white/90 text-gray-900 border-0">
+                    {partner?.category || "deal"}
+                  </Badge>
+                </div>
               </div>
               <Badge
                 variant="secondary"

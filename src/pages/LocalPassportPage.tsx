@@ -20,6 +20,8 @@ import { ShopDetailModal } from "@/components/modals/ShopDetailModal";
 import { HowToRedeemModal } from "@/components/modals/HowToRedeemModal";
 import { usePartners } from "@/hooks/usePartners";
 import { useDeals } from "@/hooks/useDeals";
+import { useGeolocation } from "@/hooks/useGeolocation";
+import { haversineDistance, formatDistance } from "@/utils/geo";
 import type { Partner } from "@/services/partners";
 import type { DealWithPartner as DealWithPartnerType } from "@/services/deals";
 import { toast } from "sonner";
@@ -30,6 +32,7 @@ interface PerkCardData {
   category: string;
   discount: string;
   distance?: string;
+  distanceKm?: number;
   image: string;
   icon: string;
   color: string;
@@ -49,6 +52,9 @@ export default function LocalPassportPage() {
   const [isPartnerSignUpOpen, setIsPartnerSignUpOpen] = useState<boolean>(false);
   const [isHowToRedeemOpen, setIsHowToRedeemOpen] = useState<boolean>(false);
 
+  // Geolocation
+  const { position, loading: geoLoading, denied: geoDenied } = useGeolocation();
+
   // Data fetching - use both partners and deals
   const {
     data: partners,
@@ -62,12 +68,29 @@ export default function LocalPassportPage() {
     error: dealsError,
   } = useDeals({});
 
-  // Combine partners + deals into perk cards
+  // Combine partners + deals into perk cards with distance calculation
   const perkCards: PerkCardData[] = useMemo(() => {
     if (!partners || !deals) return [];
 
+    // Calculate distance if we have user position and partner coordinates
+    const calculateDistanceData = (partner: Partner): { distance?: string; distanceKm?: number } => {
+      if (!position || !partner.latitude || !partner.longitude) {
+        return {};
+      }
+      const distance = haversineDistance(
+        position.lat,
+        position.lng,
+        Number(partner.latitude),
+        Number(partner.longitude)
+      );
+      return {
+        distance: formatDistance(distance),
+        distanceKm: distance,
+      };
+    };
+
     // Map partners with their deals
-    return partners.map((partner): PerkCardData => {
+    const cards = partners.map((partner): PerkCardData => {
       // Find deals for this partner
       const partnerDeals = deals.filter(
         (deal) => deal.partner_id === partner.id
@@ -84,12 +107,15 @@ export default function LocalPassportPage() {
       };
 
       const config = categoryConfig[partner.category] || categoryConfig.food;
+      const distanceData = calculateDistanceData(partner);
 
       return {
         id: partner.id,
         name: partner.name,
         category: partner.category || "other",
         discount: mainDeal?.discount_value || mainDeal?.title || "Khám phá ngay",
+        distance: distanceData.distance,
+        distanceKm: distanceData.distanceKm,
         image: partner.image_url || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=300&fit=crop",
         icon: config.emoji,
         color: config.color,
@@ -97,7 +123,18 @@ export default function LocalPassportPage() {
         deal: mainDeal,
       };
     });
-  }, [partners, deals]);
+
+    // Sort by distance if user has position and it's not denied
+    if (position && !geoDenied) {
+      cards.sort((a, b) => {
+        if (a.distanceKm === undefined) return 1;
+        if (b.distanceKm === undefined) return -1;
+        return a.distanceKm - b.distanceKm; // Sort from nearest to farthest
+      });
+    }
+
+    return cards;
+  }, [partners, deals, position, geoDenied]);
 
   // Filter by category and search
   const filteredPerks = useMemo(() => {
@@ -349,7 +386,14 @@ export default function LocalPassportPage() {
                       alt={perk.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
+                      {/* Distance badge - only show if available */}
+                      {perk.distance && !geoDenied && (
+                        <Badge className="rounded-full bg-white/90 text-gray-900 border-0 shadow-sm">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          {perk.distance}
+                        </Badge>
+                      )}
                       <Badge
                         className={`rounded-full ${perk.color} border-0`}
                       >

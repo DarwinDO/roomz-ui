@@ -4,13 +4,13 @@
  */
 import { useState, useEffect } from "react";
 
-export interface GeolocationPosition {
+export interface GeoPosition {
     lat: number;
     lng: number;
 }
 
 export interface UseGeolocationResult {
-    position: GeolocationPosition | null;
+    position: GeoPosition | null;
     loading: boolean;
     error: string | null;
     denied: boolean;
@@ -22,7 +22,7 @@ export interface UseGeolocationResult {
  * Gracefully handles denial and errors
  */
 export function useGeolocation(): UseGeolocationResult {
-    const [position, setPosition] = useState<GeolocationPosition | null>(null);
+    const [position, setPosition] = useState<GeoPosition | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [denied, setDenied] = useState<boolean>(false);
@@ -35,10 +35,10 @@ export function useGeolocation(): UseGeolocationResult {
             return;
         }
 
-        const handleSuccess = (position: GeolocationPosition) => {
+        const handleSuccess = (pos: GeolocationPosition) => {
             setPosition({
-                lat: position.coords.latitude,
-                lng: position.coords.longitude,
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
             });
             setLoading(false);
             setError(null);
