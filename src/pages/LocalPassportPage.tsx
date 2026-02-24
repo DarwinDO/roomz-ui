@@ -10,7 +10,6 @@ import {
   Gift,
   QrCode,
   ExternalLink,
-  Map,
   Search,
   Loader2,
   AlertCircle,
@@ -234,22 +233,6 @@ export default function LocalPassportPage() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-        {/* Map Preview */}
-        <Card className="p-0 rounded-2xl shadow-md overflow-hidden border-border">
-          <div className="relative h-48 md:h-64 bg-gradient-to-br from-blue-100 to-secondary/20 flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <Map className="w-12 h-12 text-primary mx-auto" />
-              <p className="text-muted-foreground">
-                Bản đồ tương tác sẽ ra mắt sớm
-              </p>
-              <Button variant="outline" className="rounded-full">
-                <MapPin className="mr-2 w-4 h-4" />
-                Xem bản đồ
-              </Button>
-            </div>
-          </div>
-        </Card>
-
         {/* Search Bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />

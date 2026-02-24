@@ -1,7 +1,7 @@
 /**
  * TanStack Query Hooks for Partners
  */
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as partnersService from '@/services/partners';
 import type { PartnerFilters } from '@/services/partners';
 
@@ -32,5 +32,39 @@ export function usePartnersByCategory(category: string) {
         queryKey: partnerKeys.list({ category }),
         queryFn: () => partnersService.getPartners({ category }),
         enabled: !!category,
+    });
+}
+
+// ============================================
+// Partner Mutations
+// ============================================
+
+/**
+ * Toggle partner status (active <-> inactive)
+ */
+export function useTogglePartnerStatus() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (id: string) => partnersService.togglePartnerStatus(id),
+        onSuccess: () => {
+            // Invalidate all partner queries
+            queryClient.invalidateQueries({ queryKey: partnerKeys.all });
+        },
+    });
+}
+
+/**
+ * Delete a partner
+ */
+export function useDeletePartner() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (id: string) => partnersService.deletePartner(id),
+        onSuccess: () => {
+            // Invalidate all partner queries
+            queryClient.invalidateQueries({ queryKey: partnerKeys.all });
+        },
     });
 }

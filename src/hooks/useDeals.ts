@@ -25,10 +25,11 @@ export const dealKeys = {
 /**
  * Get deals with optional filters
  */
-export function useDeals(filters: DealFilters = {}) {
+export function useDeals(filters: DealFilters = {}, options?: { enabled?: boolean }) {
     return useQuery({
         queryKey: dealKeys.list(filters),
         queryFn: () => dealsService.getDeals(filters),
+        enabled: options?.enabled ?? true,
     });
 }
 
@@ -102,5 +103,66 @@ export function useHasVoucher(dealId: string) {
         queryFn: () => dealsService.hasSavedVoucher(dealId),
         enabled: !!dealId,
         retry: false,
+    });
+}
+
+// ============================================
+// Deal Admin Mutations
+// ============================================
+
+/**
+ * Create a new deal
+ */
+export function useCreateDeal() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (input: dealsService.CreateDealInput) => dealsService.createDeal(input),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: dealKeys.all });
+        },
+    });
+}
+
+/**
+ * Update an existing deal
+ */
+export function useUpdateDeal() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<dealsService.Deal> }) =>
+            dealsService.updateDeal(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: dealKeys.all });
+        },
+    });
+}
+
+/**
+ * Delete a deal
+ */
+export function useDeleteDeal() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (id: string) => dealsService.deleteDeal(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: dealKeys.all });
+        },
+    });
+}
+
+/**
+ * Toggle deal active status
+ */
+export function useToggleDealActive() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (id: string) => dealsService.toggleDealActive(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: dealKeys.all });
+        },
     });
 }

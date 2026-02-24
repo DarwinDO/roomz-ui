@@ -1,12 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, lazy, Suspense } from "react";
 import type { SavedVoucher } from "@/services/deals";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+
+// Lazy load map component to avoid blocking initial render
+const ShopMiniMap = lazy(() =>
+  import("@/components/common/ShopMiniMap").then((mod) => ({
+    default: mod.ShopMiniMap,
+  }))
+);
 import {
   MapPin,
   Phone,
@@ -256,6 +264,28 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
               )}
             </div>
           </div>
+
+          <Separator />
+
+          {/* Mini Map - Show only when partner has coordinates */}
+          {partner?.latitude && partner?.longitude && (
+            <div className="space-y-3">
+              <h3>Vị trí trên bản đồ</h3>
+              <Suspense
+                fallback={
+                  <Skeleton className="w-full h-[200px] rounded-2xl" />
+                }
+              >
+                <ShopMiniMap
+                  latitude={Number(partner.latitude)}
+                  longitude={Number(partner.longitude)}
+                  partnerName={partner.name || "Đối tác"}
+                  category={partner.category}
+                  userPosition={userPosition}
+                />
+              </Suspense>
+            </div>
+          )}
 
           <Separator />
 

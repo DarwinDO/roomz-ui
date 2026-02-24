@@ -241,3 +241,125 @@ export async function hasSavedVoucher(dealId: string): Promise<boolean> {
 
     return !!data;
 }
+
+// ============================================
+// Deal Admin Functions
+// ============================================
+
+export interface CreateDealInput {
+    partner_id: string;
+    title: string;
+    discount_value?: string;
+    description?: string;
+    valid_until?: string;
+}
+
+/**
+ * Create a new deal
+ */
+export async function createDeal(input: CreateDealInput): Promise<Deal> {
+    const { data, error } = await supabase
+        .from('deals')
+        .insert({
+            partner_id: input.partner_id,
+            title: input.title,
+            discount_value: input.discount_value || null,
+            description: input.description || null,
+            valid_until: input.valid_until || null,
+            is_active: true,
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error creating deal:', error);
+        throw error;
+    }
+
+    if (!data) {
+        throw new Error('Failed to create deal');
+    }
+
+    return data as Deal;
+}
+
+/**
+ * Update an existing deal
+ */
+export async function updateDeal(id: string, data: Partial<Deal>): Promise<Deal> {
+    const { data: updated, error } = await supabase
+        .from('deals')
+        .update({
+            ...data,
+            updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating deal:', error);
+        throw error;
+    }
+
+    if (!updated) {
+        throw new Error('Failed to update deal');
+    }
+
+    return updated as Deal;
+}
+
+/**
+ * Delete a deal
+ */
+export async function deleteDeal(id: string): Promise<void> {
+    const { error } = await supabase
+        .from('deals')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('Error deleting deal:', error);
+        throw error;
+    }
+}
+
+/**
+ * Toggle deal active status
+ */
+export async function toggleDealActive(id: string): Promise<Deal> {
+    // Get current status
+    const { data: deal, error: fetchError } = await supabase
+        .from('deals')
+        .select('is_active')
+        .eq('id', id)
+        .single();
+
+    if (fetchError || !deal) {
+        console.error('Error fetching deal:', fetchError);
+        throw fetchError || new Error('Deal not found');
+    }
+
+    const newStatus = !deal.is_active;
+
+    const { data: updated, error } = await supabase
+        .from('deals')
+        .update({
+            is_active: newStatus,
+            updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error toggling deal status:', error);
+        throw error;
+    }
+
+    if (!updated) {
+        throw new Error('Failed to toggle deal status');
+    }
+
+    return updated as Deal;
+}

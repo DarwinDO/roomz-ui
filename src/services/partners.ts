@@ -96,3 +96,70 @@ export async function incrementPartnerView(id: string): Promise<void> {
     await supabase.rpc('increment_partner_view_count', { row_id: id });
     */
 }
+
+/**
+ * Update partner information
+ */
+export async function updatePartner(id: string, data: Partial<Partner>): Promise<Partner> {
+    const { data: updated, error } = await supabase
+        .from('partners')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating partner:', error);
+        throw error;
+    }
+
+    return updated;
+}
+
+/**
+ * Toggle partner status (active <-> inactive)
+ */
+export async function togglePartnerStatus(id: string): Promise<Partner> {
+    // First get current status
+    const { data: partner, error: fetchError } = await supabase
+        .from('partners')
+        .select('status')
+        .eq('id', id)
+        .single();
+
+    if (fetchError || !partner) {
+        console.error('Error fetching partner:', fetchError);
+        throw fetchError || new Error('Partner not found');
+    }
+
+    const newStatus = partner.status === 'active' ? 'inactive' : 'active';
+
+    const { data: updated, error } = await supabase
+        .from('partners')
+        .update({ status: newStatus })
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error toggling partner status:', error);
+        throw error;
+    }
+
+    return updated;
+}
+
+/**
+ * Delete a partner (cascade deletes deals and vouchers)
+ */
+export async function deletePartner(id: string): Promise<void> {
+    const { error } = await supabase
+        .from('partners')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('Error deleting partner:', error);
+        throw error;
+    }
+}
