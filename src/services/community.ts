@@ -71,6 +71,34 @@ type CommunityComment = {
 };
 
 /**
+ * Helper: Transform CommunityPost (DB row) to PostRow (app type)
+ * Eliminates DRY violation - single source of truth for transformation
+ */
+function transformCommunityPost(row: CommunityPost, liked: boolean = false): PostRow {
+    return {
+        id: row.id,
+        user_id: row.user_id,
+        type: row.type,
+        title: row.title,
+        content: row.content,
+        images: row.images || [],
+        likes_count: row.likes_count || 0,
+        comments_count: row.comments_count || 0,
+        status: row.status,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        author: {
+            id: row.author?.id || row.user_id,
+            name: row.author?.full_name || 'Unknown',
+            role: row.author?.role || 'Người dùng',
+            avatar: row.author?.avatar_url || undefined,
+            verified: row.author?.email_verified || false,
+        },
+        liked,
+    };
+}
+
+/**
  * Get paginated posts feed with author info
  * @param filters - Filter options including optional userId to check liked status
  */
@@ -118,27 +146,9 @@ export async function getPosts(filters: PostsFilter = {}): Promise<PostsResponse
         }
     }
 
-    const posts = (data || []).map((row: CommunityPost) => ({
-        id: row.id,
-        user_id: row.user_id,
-        type: row.type,
-        title: row.title,
-        content: row.content,
-        images: row.images || [],
-        likes_count: row.likes_count || 0,
-        comments_count: row.comments_count || 0,
-        status: row.status,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        author: {
-            id: row.author?.id || row.user_id,
-            name: row.author?.full_name || 'Unknown',
-            role: row.author?.role || 'Người dùng',
-            avatar: row.author?.avatar_url || undefined,
-            verified: row.author?.email_verified || false,
-        },
-        liked: !!likedMap[row.id],
-    })) as PostRow[];
+    const posts = (data || []).map((row: CommunityPost) =>
+        transformCommunityPost(row, !!likedMap[row.id])
+    );
 
     return {
         posts,
@@ -171,27 +181,7 @@ export async function getPostById(id: string): Promise<PostRow | null> {
         throw error;
     }
 
-    const row = data as CommunityPost;
-    return {
-        id: row.id,
-        user_id: row.user_id,
-        type: row.type,
-        title: row.title,
-        content: row.content,
-        images: row.images || [],
-        likes_count: row.likes_count || 0,
-        comments_count: row.comments_count || 0,
-        status: row.status,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        author: {
-            id: row.author?.id || row.user_id,
-            name: row.author?.full_name || 'Unknown',
-            role: row.author?.role || 'Người dùng',
-            avatar: row.author?.avatar_url || undefined,
-            verified: row.author?.email_verified || false,
-        },
-    } as PostRow;
+    return transformCommunityPost(data as CommunityPost);
 }
 
 /**
@@ -216,26 +206,7 @@ export async function getTopPosts(limit: number = 5): Promise<PostRow[]> {
 
     if (error) throw error;
 
-    return (data || []).map((row: CommunityPost) => ({
-        id: row.id,
-        user_id: row.user_id,
-        type: row.type,
-        title: row.title,
-        content: row.content,
-        images: row.images || [],
-        likes_count: row.likes_count || 0,
-        comments_count: row.comments_count || 0,
-        status: row.status,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        author: {
-            id: row.author?.id || row.user_id,
-            name: row.author?.full_name || 'Unknown',
-            role: row.author?.role || 'Người dùng',
-            avatar: row.author?.avatar_url || undefined,
-            verified: row.author?.email_verified || false,
-        },
-    })) as PostRow[];
+    return (data || []).map((row: CommunityPost) => transformCommunityPost(row));
 }
 
 /**
@@ -271,27 +242,7 @@ export async function createPost(
 
     if (error) throw error;
 
-    const row = post as CommunityPost;
-    return {
-        id: row.id,
-        user_id: row.user_id,
-        type: row.type,
-        title: row.title,
-        content: row.content,
-        images: row.images || [],
-        likes_count: row.likes_count || 0,
-        comments_count: row.comments_count || 0,
-        status: row.status,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        author: {
-            id: row.author?.id || row.user_id,
-            name: row.author?.full_name || 'Unknown',
-            role: row.author?.role || 'Người dùng',
-            avatar: row.author?.avatar_url || undefined,
-            verified: row.author?.email_verified || false,
-        },
-    } as PostRow;
+    return transformCommunityPost(post as CommunityPost);
 }
 
 /**
@@ -331,27 +282,7 @@ export async function updatePost(
 
     if (error) throw error;
 
-    const row = post as CommunityPost;
-    return {
-        id: row.id,
-        user_id: row.user_id,
-        type: row.type,
-        title: row.title,
-        content: row.content,
-        images: row.images || [],
-        likes_count: row.likes_count || 0,
-        comments_count: row.comments_count || 0,
-        status: row.status,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        author: {
-            id: row.author?.id || row.user_id,
-            name: row.author?.full_name || 'Unknown',
-            role: row.author?.role || 'Người dùng',
-            avatar: row.author?.avatar_url || undefined,
-            verified: row.author?.email_verified || false,
-        },
-    } as PostRow;
+    return transformCommunityPost(post as CommunityPost);
 }
 
 /**
@@ -368,37 +299,38 @@ export async function deletePost(postId: string, userId: string): Promise<void> 
 }
 
 /**
- * Toggle like on a post
+ * Toggle like on a post (atomic - race condition safe)
  * Returns true if liked, false if unliked
+ * 
+ * Uses insert-first strategy: try insert, if conflict (already liked) → delete
+ * This avoids the check-then-act race condition on double-click
  */
 export async function toggleLike(postId: string, userId: string): Promise<boolean> {
-    // Check if already liked
-    const { data: existing } = await (supabase as any)
+    // Try to insert (like)
+    const { error: insertError } = await (supabase as any)
         .from('community_likes')
-        .select('*')
-        .eq('post_id', postId)
-        .eq('user_id', userId)
-        .single();
+        .insert({ post_id: postId, user_id: userId });
 
-    if (existing) {
-        // Unlike
-        const { error } = await (supabase as any)
+    if (!insertError) {
+        // Insert succeeded → liked
+        return true;
+    }
+
+    // Check if error is unique violation (already liked)
+    if (insertError.code === '23505') {
+        // Already liked → delete (unlike)
+        const { error: deleteError } = await (supabase as any)
             .from('community_likes')
             .delete()
             .eq('post_id', postId)
             .eq('user_id', userId);
 
-        if (error) throw error;
+        if (deleteError) throw deleteError;
         return false;
-    } else {
-        // Like
-        const { error } = await (supabase as any)
-            .from('community_likes')
-            .insert({ post_id: postId, user_id: userId });
-
-        if (error) throw error;
-        return true;
     }
+
+    // Other error → throw
+    throw insertError;
 }
 
 /**

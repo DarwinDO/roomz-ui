@@ -59,7 +59,7 @@ export function PostCard({ post, currentUserId, onLike, onClick, onEdit, onDelet
                         <Badge className={getTypeColor(post.type)} variant="secondary">
                             {getTypeLabel(post.type)}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">{getTimeAgo(post.timestamp)}</span>
+                        <span className="text-xs text-muted-foreground">{getTimeAgo(post.created_at)}</span>
 
                         {/* Owner actions menu */}
                         {isOwner && (
@@ -142,7 +142,7 @@ export function PostCard({ post, currentUserId, onLike, onClick, onEdit, onDelet
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors cursor-pointer group"
                 >
                     <Heart className={`w-5 h-5 transition-all ${post.liked ? "fill-destructive text-destructive scale-110" : "group-hover:scale-110"}`} />
-                    <span className={post.liked ? "text-destructive" : ""}>{post.likes}</span>
+                    <span className={post.liked ? "text-destructive" : ""}>{post.likes_count}</span>
                 </button>
                 <button
                     onClick={(e) => {
@@ -152,7 +152,7 @@ export function PostCard({ post, currentUserId, onLike, onClick, onEdit, onDelet
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer group"
                 >
                     <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                    <span>{post.comments}</span>
+                    <span>{post.comments_count}</span>
                 </button>
                 <button
                     onClick={(e) => {

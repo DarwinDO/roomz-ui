@@ -184,7 +184,7 @@ export function PostDetailModal({ isOpen, onClose, post, onLike, onEdit, onDelet
                 <span className="text-xs text-muted-foreground">• {post.author.role}</span>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{post.timestamp || post.created_at ? getTimeAgo(post.timestamp || post.created_at || "") : ""}</span>
+                <span>{getTimeAgo(post.created_at)}</span>
                 <Badge className={getTypeColor(post.type)} variant="outline">
                   {getTypeLabel(post.type)}
                 </Badge>
@@ -259,11 +259,11 @@ export function PostDetailModal({ isOpen, onClose, post, onLike, onEdit, onDelet
               className={`flex items-center gap-2 hover:text-primary transition-colors ${post.liked ? "text-primary" : "text-gray-600"}`}
             >
               <Heart className={`w-5 h-5 ${post.liked ? "fill-current" : ""}`} />
-              <span>{post.likes || post.likes_count || 0}</span>
+              <span>{post.likes_count}</span>
             </button>
             <div className="flex items-center gap-2 text-gray-600">
               <MessageCircle className="w-5 h-5" />
-              <span>{post.comments || post.comments_count || 0}</span>
+              <span>{post.comments_count}</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600">
               <Share2 className="w-5 h-5" />

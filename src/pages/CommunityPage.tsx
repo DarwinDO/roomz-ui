@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Loader2 } from "lucide-react";
 import { CreatePostModal } from "@/components/modals/CreatePostModal";
 import { PostDetailModal } from "@/components/modals/PostDetailModal";
@@ -23,10 +23,10 @@ function transformToPost(row: PostRow): Post {
     title: row.title,
     content: row.content,
     images: row.images,
-    likes: row.likes_count,
-    comments: row.comments_count,
+    likes_count: row.likes_count,
+    comments_count: row.comments_count,
     shares: 0,
-    timestamp: row.created_at,
+    created_at: row.created_at,
     liked: row.liked || false,
   };
 }
@@ -266,21 +266,10 @@ export default function CommunityPage() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="all" className="mt-0">
+              {/* Single content block - filtering is handled by filterType state */}
+              <div className="mt-0">
                 {isLoading ? renderSkeleton() : renderPostList(posts)}
-              </TabsContent>
-
-              <TabsContent value="stories" className="mt-0">
-                {isLoading ? renderSkeleton() : renderPostList(posts)}
-              </TabsContent>
-
-              <TabsContent value="offers" className="mt-0">
-                {isLoading ? renderSkeleton() : renderPostList(posts)}
-              </TabsContent>
-
-              <TabsContent value="qa" className="mt-0">
-                {isLoading ? renderSkeleton() : renderPostList(posts)}
-              </TabsContent>
+              </div>
             </Tabs>
           </div>
 
