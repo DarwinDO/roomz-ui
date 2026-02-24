@@ -103,22 +103,60 @@ export async function deleteUploadedFiles(frontPath: string, backPath: string): 
 }
 
 /**
+ * Upload multiple photos to storage
+ * Used for room_photos verification
+ */
+export async function uploadMultiplePhotos(
+  userId: string,
+  files: File[],
+  bucket: string
+): Promise<string[]> {
+  const bucketName = bucket === 'room_photos' ? 'room_photos' : BUCKET;
+  const uploadedUrls: string[] = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const compressed = await compressImage(file);
+    const path = `${userId}/${bucket}_${Date.now()}_${i}.jpg`;
+
+    const { error } = await supabase.storage.from(bucketName).upload(path, compressed, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    });
+
+    if (error) {
+      throw new Error(`Lỗi upload ảnh ${i + 1}: ${error.message}`);
+    }
+
+    uploadedUrls.push(path);
+  }
+
+  return uploadedUrls;
+}
+
+/**
  * Submit verification request to DB
+ * Supports both CCCD (2 photos) and room_photos (multiple photos)
  */
 export async function submitVerificationRequest(
-  frontPath: string,
-  backPath: string
+  userId: string,
+  documentType: string,
+  imagePaths: string[]
 ): Promise<void> {
   const { data: user } = await supabase.auth.getUser();
   if (!user.user) throw new Error('Chưa đăng nhập');
+
+  // For room_photos, use first 2 images as front/back
+  const frontImagePath = imagePaths[0] || '';
+  const backImagePath = imagePaths[1] || '';
 
   const { error } = await supabase
     .from('verification_requests')
     .insert({
       user_id: user.user.id,
-      document_type: 'cccd',
-      front_image_path: frontPath,
-      back_image_path: backPath,
+      document_type: documentType,
+      front_image_path: frontImagePath,
+      back_image_path: backImagePath,
       status: 'pending',
     });
 

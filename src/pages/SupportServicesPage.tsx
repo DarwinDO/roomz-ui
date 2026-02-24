@@ -42,7 +42,7 @@ export default function SupportServicesPage() {
   };
 
   const handleViewAllPartners = () => {
-    navigate('/partners');
+    navigate('/local-passport');
   };
 
   const services = [

@@ -40,7 +40,6 @@ const SupportServicesPage = lazy(() => import('@/pages/SupportServicesPage'));
 const LocalPassportPage = lazy(() => import('@/pages/LocalPassportPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const SubletDetailPage = lazy(() => import('@/pages/SubletDetailPage'));
-const PartnersListPage = lazy(() => import('@/pages/PartnersListPage'));
 const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
 const LandlordDashboardPage = lazy(() => import('@/pages/LandlordDashboardPage'));
 const PostRoomPage = lazy(() => import('@/pages/PostRoomPage'));
@@ -243,7 +242,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'partners',
-        element: <PartnersListPage />,
+        element: <Navigate to="/local-passport" replace />,
       },
       {
         path: 'become-landlord',
