@@ -16,11 +16,12 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { PartnerSignUpModal } from "@/components/modals/PartnerSignUpModal";
+import { ShopDetailModal } from "@/components/modals/ShopDetailModal";
 import { HowToRedeemModal } from "@/components/modals/HowToRedeemModal";
 import { usePartners } from "@/hooks/usePartners";
 import { useDeals } from "@/hooks/useDeals";
 import type { Partner } from "@/services/partners";
-import type { DealWithPartner } from "@/services/deals";
+import type { DealWithPartner as DealWithPartnerType } from "@/services/deals";
 import { toast } from "sonner";
 
 interface PerkCardData {
@@ -34,7 +35,7 @@ interface PerkCardData {
   color: string;
   // Full data for modal
   partner?: Partner;
-  deal?: DealWithPartner;
+  deal?: DealWithPartnerType;
 }
 
 export default function LocalPassportPage() {
@@ -43,6 +44,8 @@ export default function LocalPassportPage() {
   // State
   const [selectedCategory, setSelectedCategory] = useState<string>("Tất cả");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedDeal, setSelectedDeal] = useState<DealWithPartnerType | null>(null);
+  const [isShopDetailOpen, setIsShopDetailOpen] = useState<boolean>(false);
   const [isPartnerSignUpOpen, setIsPartnerSignUpOpen] = useState<boolean>(false);
   const [isHowToRedeemOpen, setIsHowToRedeemOpen] = useState<boolean>(false);
 
@@ -151,7 +154,13 @@ export default function LocalPassportPage() {
   // Handlers
   const handleGetVoucher = (e: React.MouseEvent, perk: PerkCardData) => {
     e.stopPropagation();
-    toast.success(`Đã lưu voucher: ${perk.name}`);
+    // Open ShopDetailModal with the deal data
+    if (perk.deal) {
+      setSelectedDeal(perk.deal);
+      setIsShopDetailOpen(true);
+    } else {
+      toast.error("Không thể nhận voucher");
+    }
   };
 
   const handleSeeAllPerks = () => {
@@ -433,6 +442,11 @@ export default function LocalPassportPage() {
       </div>
 
       {/* Modals */}
+      <ShopDetailModal
+        isOpen={isShopDetailOpen}
+        onClose={() => setIsShopDetailOpen(false)}
+        deal={selectedDeal}
+      />
       <PartnerSignUpModal
         isOpen={isPartnerSignUpOpen}
         onClose={() => setIsPartnerSignUpOpen(false)}
