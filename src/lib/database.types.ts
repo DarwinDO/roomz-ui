@@ -72,6 +72,180 @@ export type Database = {
           },
         ]
       }
+      community_comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          parent_id: string | null
+          post_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          parent_id?: string | null
+          post_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          parent_id?: string | null
+          post_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "community_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_likes: {
+        Row: {
+          created_at: string | null
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_posts: {
+        Row: {
+          comments_count: number | null
+          content: string
+          created_at: string | null
+          id: string
+          images: string[] | null
+          likes_count: number | null
+          status: string
+          title: string
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          comments_count?: number | null
+          content: string
+          created_at?: string | null
+          id?: string
+          images?: string[] | null
+          likes_count?: number | null
+          status?: string
+          title: string
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          comments_count?: number | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          images?: string[] | null
+          likes_count?: number | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_reports: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_reports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compatibility_answers: {
         Row: {
           answer_value: string
@@ -157,6 +331,50 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      deals: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          discount_value: string | null
+          id: string
+          is_active: boolean | null
+          partner_id: string | null
+          title: string
+          updated_at: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          discount_value?: string | null
+          id?: string
+          is_active?: boolean | null
+          partner_id?: string | null
+          title: string
+          updated_at?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          discount_value?: string | null
+          id?: string
+          is_active?: boolean | null
+          partner_id?: string | null
+          title?: string
+          updated_at?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       favorites: {
         Row: {
@@ -282,13 +500,20 @@ export type Database = {
       }
       partners: {
         Row: {
+          address: string | null
           category: string
           contact_info: Json | null
           created_at: string | null
+          description: string | null
           discount: string | null
+          email: string | null
+          hours: string | null
           id: string
           image_url: string | null
+          latitude: number | null
+          longitude: number | null
           name: string
+          phone: string | null
           rating: number | null
           review_count: number | null
           specialization: string | null
@@ -298,13 +523,20 @@ export type Database = {
           views: number | null
         }
         Insert: {
+          address?: string | null
           category: string
           contact_info?: Json | null
           created_at?: string | null
+          description?: string | null
           discount?: string | null
+          email?: string | null
+          hours?: string | null
           id?: string
           image_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name: string
+          phone?: string | null
           rating?: number | null
           review_count?: number | null
           specialization?: string | null
@@ -314,13 +546,20 @@ export type Database = {
           views?: number | null
         }
         Update: {
+          address?: string | null
           category?: string
           contact_info?: Json | null
           created_at?: string | null
+          description?: string | null
           discount?: string | null
+          email?: string | null
+          hours?: string | null
           id?: string
           image_url?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string
+          phone?: string | null
           rating?: number | null
           review_count?: number | null
           specialization?: string | null
@@ -1186,6 +1425,35 @@ export type Database = {
           },
         ]
       }
+      user_saved_vouchers: {
+        Row: {
+          created_at: string | null
+          deal_id: string
+          qr_data: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          deal_id: string
+          qr_data: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          deal_id?: string
+          qr_data?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_saved_vouchers_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           account_status: Database["public"]["Enums"]["account_status"] | null
@@ -1583,22 +1851,12 @@ export type Database = {
       room_status: "draft" | "pending" | "active" | "rented" | "inactive" | "rejected"
       room_type: "private" | "shared" | "studio" | "entire"
       roommate_profile_status: "looking" | "paused" | "found"
-      roommate_request_status:
-      | "pending"
-      | "accepted"
-      | "declined"
-      | "cancelled"
-      | "expired"
+      roommate_request_status: "pending" | "accepted" | "declined" | "cancelled" | "expired"
       sleep_schedule: "early" | "late" | "flexible"
       user_gender: "male" | "female" | "other"
       user_role: "student" | "landlord" | "admin"
       verification_status: "pending" | "approved" | "rejected" | "needs_resubmit"
-      verification_type:
-      | "id_card"
-      | "student_card"
-      | "email"
-      | "phone"
-      | "room_photos"
+      verification_type: "id_card" | "student_card" | "email" | "phone" | "room_photos"
       weekend_activity: "home" | "out" | "mix"
     }
     CompositeTypes: {
