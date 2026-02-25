@@ -43,7 +43,7 @@ export function useSubmitVerification() {
             const { frontPath, backPath } = await uploadCCCDImages(frontFile, backFile);
             // Step 2: Insert DB record (cleanup uploaded files if this fails)
             try {
-                await submitVerificationRequest(frontPath, backPath);
+                await submitVerificationRequest('', 'cccd', [frontPath, backPath]);
             } catch (error) {
                 await deleteUploadedFiles(frontPath, backPath).catch(() => { });
                 throw error;
