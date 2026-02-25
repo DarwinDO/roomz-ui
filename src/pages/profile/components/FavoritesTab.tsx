@@ -5,8 +5,21 @@ import { ServicesBanner } from "@/components/common/ServicesBanner";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+type RoomCardData = {
+    id: string;
+    image: string;
+    title: string;
+    location: string;
+    price: number;
+    distance?: string;
+    verified: boolean;
+    available: boolean;
+    matchPercentage?: number;
+    isFavorited?: boolean;
+};
+
 interface FavoritesTabProps {
-    savedRooms: any[];
+    savedRooms: RoomCardData[];
     loading: boolean;
     error: string | null;
     onRefetch: () => void;

@@ -7,18 +7,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Mail, GraduationCap, Calendar, Upload, Phone, Building, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts";
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { getUserInitials } from "@/utils/user";
+import { useUpdateProfile } from "@/hooks/useProfile";
+import type { UpdateProfileData } from "@/services/profile";
 
 interface ProfileEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: () => void;
 }
 
-export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalProps) {
-  const { user, profile, refreshUser } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+export function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
+  const { user, profile } = useAuth();
+  const { mutate: updateProfile, isPending: isLoading } = useUpdateProfile();
   const [profileData, setProfileData] = useState({
     full_name: "",
     major: "",
@@ -42,62 +42,30 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
     }
   }, [isOpen, profile]);
 
-  // Get user initials for avatar fallback
-  const getUserInitials = () => {
-    if (profile?.full_name) {
-      return profile.full_name
-        .split(' ')
-        .map((n: string) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return user?.email?.charAt(0).toUpperCase() || '?';
-  };
-
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!user) return;
-    
-    setIsLoading(true);
-    try {
-      const updateData: Record<string, unknown> = {
-        full_name: profileData.full_name,
-        major: profileData.major || null,
-        university: profileData.university || null,
-        bio: profileData.bio || null,
-        phone: profileData.phone || null,
-        updated_at: new Date().toISOString(),
-      };
 
-      // Only include graduation_year if it's a valid number
-      if (profileData.graduation_year) {
-        const year = parseInt(profileData.graduation_year);
-        if (!isNaN(year)) {
-          updateData.graduation_year = year;
-        }
+    const updateData: UpdateProfileData = {
+      full_name: profileData.full_name,
+      major: profileData.major || null,
+      university: profileData.university || null,
+      bio: profileData.bio || null,
+      phone: profileData.phone || null,
+    };
+
+    // Only include graduation_year if it's a valid number
+    if (profileData.graduation_year) {
+      const year = parseInt(profileData.graduation_year);
+      if (!isNaN(year)) {
+        updateData.graduation_year = year;
       }
-
-      const { error } = await supabase
-        .from('users')
-        .update(updateData)
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      toast.success("Cập nhật hồ sơ thành công!");
-      
-      // Refresh user data in context
-      await refreshUser();
-      
-      onSave();
-      onClose();
-    } catch (error: unknown) {
-      console.error('Error updating profile:', error);
-      const errorMessage = error instanceof Error ? error.message : "Không thể cập nhật hồ sơ";
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
+
+    updateProfile(updateData, {
+      onSuccess: () => {
+        onClose();
+      },
+    });
   };
 
   const handleClose = () => {
@@ -129,12 +97,12 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
           {/* Profile Picture */}
           <div className="flex flex-col items-center gap-4">
             <Avatar className="w-24 h-24">
-              <AvatarImage 
-                src={profile?.avatar_url || undefined} 
-                alt={profile?.full_name || user?.email || ''} 
+              <AvatarImage
+                src={profile?.avatar_url || undefined}
+                alt={profile?.full_name || user?.email || ''}
               />
               <AvatarFallback className="text-2xl bg-gradient-to-r from-primary to-secondary text-white">
-                {getUserInitials()}
+                {getUserInitials(profile?.full_name, user?.email)}
               </AvatarFallback>
             </Avatar>
             <Button variant="outline" className="rounded-full" size="sm" disabled>
@@ -171,9 +139,9 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
               type="email"
               value={user?.email || ""}
               disabled
-              className="rounded-xl bg-gray-50"
+              className="rounded-xl bg-muted"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Email không thể thay đổi
             </p>
           </div>
@@ -262,14 +230,14 @@ export function ProfileEditModal({ isOpen, onClose, onSave }: ProfileEditModalPr
               className="rounded-xl min-h-32"
               placeholder="Kể về bản thân bạn, sở thích, thói quen sinh hoạt..."
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               {profileData.bio.length}/500 ký tự
             </p>
           </div>
 
           {/* Info Note */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <p className="text-xs text-gray-700">
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+            <p className="text-xs text-muted-foreground">
               💡 Thông tin hồ sơ giúp người khác tìm bạn cùng phòng phù hợp. Hãy giữ
               cho chúng chính xác và cập nhật!
             </p>

@@ -13,13 +13,13 @@ import {
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import type { UserProfile as Profile } from "@/contexts/AuthContext";
+import { getUserInitials } from "@/utils/user";
 
 interface ProfileHeaderProps {
     user: User | null;
     profile: Profile | null;
     isEmailVerified: boolean;
     trustScore: number;
-    getUserInitials: () => string;
     onEditProfile: () => void;
 }
 
@@ -28,7 +28,6 @@ export function ProfileHeader({
     profile,
     isEmailVerified,
     trustScore,
-    getUserInitials,
     onEditProfile,
 }: ProfileHeaderProps) {
     return (
@@ -41,7 +40,7 @@ export function ProfileHeader({
                             alt={profile?.full_name || user?.email || ''}
                         />
                         <AvatarFallback className="text-xl sm:text-2xl bg-gradient-to-r from-primary to-secondary text-white">
-                            {getUserInitials()}
+                            {getUserInitials(profile?.full_name, user?.email)}
                         </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">

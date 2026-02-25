@@ -4,9 +4,15 @@ import { Crown, ShieldCheck } from "lucide-react";
 
 interface UpgradeBannerProps {
     onUpgrade: () => void;
+    isPremium?: boolean | null;
 }
 
-export function UpgradeBanner({ onUpgrade }: UpgradeBannerProps) {
+export function UpgradeBanner({ onUpgrade, isPremium }: UpgradeBannerProps) {
+    // Don't render if user is already premium
+    if (isPremium) {
+        return null;
+    }
+
     return (
         <div className="px-6 py-6 max-w-6xl mx-auto">
             <Card className="p-6 rounded-2xl bg-gradient-to-br from-warning/5 to-warning/10 border border-warning/20">

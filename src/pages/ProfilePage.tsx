@@ -1,127 +1,57 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { UpgradeRoomZPlusModal } from "@/components/modals/UpgradeRoomZPlusModal";
 import { ProfileEditModal } from "@/components/modals/ProfileEditModal";
 import { useAuth } from "@/contexts";
-import { supabase } from "@/lib/supabase";
 import { useFavorites } from "@/hooks/useFavorites";
-import { useProfileMessages } from "@/hooks/useMessages";
+import { transformRoomToCardProps } from "@/utils/room";
 import { toast } from "sonner";
-import type { RoomWithDetails } from "@/services/rooms";
-import { Heart, MessageCircle, Settings, CalendarCheck } from "lucide-react";
+import { Heart, Settings, CalendarCheck } from "lucide-react";
 
 // Components
 import { ProfileHeader } from "./profile/components/ProfileHeader";
 import { UpgradeBanner } from "./profile/components/UpgradeBanner";
 import { FavoritesTab } from "./profile/components/FavoritesTab";
-import { MessagesTab } from "./profile/components/MessagesTab";
 import { SettingsTab } from "./profile/components/SettingsTab";
 import { BookingsTab } from "./profile/components/BookingsTab";
-
-// Helper function to transform room data to RoomCard props
-function transformRoomToCardProps(room: RoomWithDetails) {
-  const primaryImage = room.images?.find(img => img.is_primary) || room.images?.[0];
-  const imageUrl = primaryImage?.image_url || 'https://images.unsplash.com/photo-1668089677938-b52086753f77?w=400';
-  const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
-  const distance = room.latitude && room.longitude ? `${(Math.random() * 5 + 0.5).toFixed(1)} km` : 'N/A';
-
-  return {
-    id: room.id,
-    image: imageUrl,
-    title: room.title,
-    location,
-    price: Number(room.price_per_month),
-    distance,
-    verified: room.is_verified || false,
-    available: room.is_available || false,
-    matchPercentage: Math.floor(Math.random() * 20 + 75),
-  };
-}
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, profile, signOut, isEmailVerified, refreshUser } = useAuth();
+  const { user, profile, signOut, isEmailVerified } = useAuth();
 
   // Data Fetching
   const { favorites, loading: favoritesLoading, error: favoritesError, refetch: refetchFavorites, toggleFavorite } = useFavorites();
-  const { messages: profileMessages, loading: messagesLoading, error: messagesError, unreadCount: messagesUnreadCount } = useProfileMessages();
 
   // Memoized Data
   const savedRooms = useMemo(() => {
-    return favorites.filter(fav => fav.room).map(fav => transformRoomToCardProps(fav.room!));
+    return favorites
+      .filter(fav => fav.room)
+      .map(fav => transformRoomToCardProps(fav.room!, true));
   }, [favorites]);
 
-  // UI States
-  const [activeTab, setActiveTab] = useState("favorites");
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [selectedChatPerson, setSelectedChatPerson] = useState<{
-    name: string;
-    avatar?: string;
-    lastMessage?: string;
-  } | null>(null);
-
-  // Effects
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab === "messages") setActiveTab("messages");
-  }, [searchParams]);
-
-  // Helpers
-  const getUserInitials = () => {
-    if (profile?.full_name) {
-      return profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
-    }
-    return user?.email?.charAt(0).toUpperCase() || '?';
-  };
-
-  const calculateTrustScore = () => {
+  const trustScore = useMemo(() => {
     let score = 0;
     if (isEmailVerified || profile?.email_verified) score += 30;
     if (profile?.phone_verified) score += 20;
     if (profile?.id_card_verified) score += 30;
     if (profile?.student_card_verified) score += 20;
     return score;
-  };
+  }, [isEmailVerified, profile?.email_verified, profile?.phone_verified, profile?.id_card_verified, profile?.student_card_verified]);
 
-  const trustScore = calculateTrustScore();
+  // UI States
+  const [activeTab, setActiveTab] = useState("favorites");
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+
+  // Effects
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "settings") setActiveTab("settings");
+  }, [searchParams]);
 
   // Handlers
-  const handleMessageClick = (message: { name: string; avatar?: string; lastMessage?: string; conversationId?: string }) => {
-    if (message.conversationId) navigate(`/messages?conversation=${message.conversationId}`);
-    else navigate('/messages');
-  };
-
-  const handleUpdateProfile = async (formData: any) => {
-    if (!user) return;
-    setIsUpdating(true);
-    try {
-      const { error } = await supabase.from('users').update({
-        full_name: formData.fullName,
-        major: formData.major,
-        university: formData.university,
-        phone: formData.phone,
-        bio: formData.bio,
-        updated_at: new Date().toISOString(),
-      }).eq('id', user.id);
-
-      if (error) throw error;
-      toast.success("Cập nhật hồ sơ thành công!");
-      await refreshUser();
-      setIsEditProfileOpen(false); // Close modal if open
-    } catch (error: any) {
-      console.error('Error updating profile:', error);
-      toast.error(error.message || "Không thể cập nhật hồ sơ");
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -139,15 +69,17 @@ export default function ProfilePage() {
         profile={profile}
         isEmailVerified={isEmailVerified}
         trustScore={trustScore}
-        getUserInitials={getUserInitials}
         onEditProfile={() => setIsEditProfileOpen(true)}
       />
 
-      <UpgradeBanner onUpgrade={() => setIsUpgradeModalOpen(true)} />
+      <UpgradeBanner
+        onUpgrade={() => setIsUpgradeModalOpen(true)}
+        isPremium={profile?.is_premium}
+      />
 
       <div className="px-6 max-w-6xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6 rounded-xl">
+          <TabsList className="grid w-full grid-cols-3 mb-6 rounded-xl">
             <TabsTrigger value="favorites">
               <Heart className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Yêu thích</span>
@@ -157,16 +89,6 @@ export default function ProfilePage() {
               <CalendarCheck className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Lịch hẹn</span>
               <span className="sm:hidden">Hẹn</span>
-            </TabsTrigger>
-            <TabsTrigger value="messages">
-              <MessageCircle className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Tin nhắn</span>
-              <span className="sm:hidden">Chat</span>
-              {messagesUnreadCount > 0 && (
-                <span className="ml-2 bg-destructive text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px]">
-                  {messagesUnreadCount > 9 ? '9+' : messagesUnreadCount}
-                </span>
-              )}
             </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="w-4 h-4 mr-2" />
@@ -189,23 +111,13 @@ export default function ProfilePage() {
             <BookingsTab />
           </TabsContent>
 
-          <TabsContent value="messages">
-            <MessagesTab
-              messages={profileMessages}
-              loading={messagesLoading}
-              error={messagesError}
-              onMessageClick={handleMessageClick}
-            />
-          </TabsContent>
-
           <TabsContent value="settings">
             <SettingsTab
               profile={profile}
               isEmailVerified={isEmailVerified}
               trustScore={trustScore}
-              onUpdateProfile={handleUpdateProfile}
+              onEditProfile={() => setIsEditProfileOpen(true)}
               onSignOut={handleSignOut}
-              isUpdating={isUpdating}
             />
           </TabsContent>
         </Tabs>
@@ -220,16 +132,7 @@ export default function ProfilePage() {
       <ProfileEditModal
         isOpen={isEditProfileOpen}
         onClose={() => setIsEditProfileOpen(false)}
-        onSave={() => toast.success("Cập nhật hồ sơ thành công!")}
       />
-      {selectedChatPerson && (
-        <ChatDrawer
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          recipientName={selectedChatPerson.name}
-          recipientRole="Người tìm bạn cùng phòng"
-        />
-      )}
     </div>
   );
 }

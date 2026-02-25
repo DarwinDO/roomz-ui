@@ -10,6 +10,7 @@ import { RoomCard } from "@/components/common/RoomCard";
 import { RoomMap } from "@/components/common/RoomMap";
 import { SearchAutocomplete } from "@/components/common/SearchAutocomplete";
 import { formatPriceInMillions } from "@/utils/format";
+import { transformRoomToCardProps } from "@/utils/room";
 import { useSearchRooms, useDebounce } from "@/hooks";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useAuth } from "@/contexts";
@@ -17,30 +18,7 @@ import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, Ute
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import type { RoomWithDetails, SortOption } from "@/services/rooms";
-
-// Helper function to transform room data to RoomCard props
-function transformRoomToCardProps(room: RoomWithDetails, isFavorited: boolean = false) {
-  // Get primary image or first image
-  const primaryImage = room.images?.find(img => img.is_primary) || room.images?.[0];
-  const imageUrl = primaryImage?.image_url || '';
-
-  // Format location
-  const location = [room.district, room.city].filter(Boolean).join(', ') || room.address;
-
-  return {
-    id: room.id,
-    image: imageUrl,
-    title: room.title,
-    location,
-    price: Number(room.price_per_month),
-    distance: undefined,
-    verified: room.is_verified || false,
-    available: room.is_available || false,
-    matchPercentage: undefined,
-    isFavorited,
-  };
-}
+import type { SortOption } from "@/services/rooms";
 
 export default function SearchPage() {
   const navigate = useNavigate();
