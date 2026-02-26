@@ -14,6 +14,12 @@ export interface RoomTypeData {
     value: number;
 }
 
+export interface RecentActivity {
+    type: 'room_created' | 'user_joined' | 'booking_created' | 'report_submitted';
+    description: string | null;
+    created_at: string;
+}
+
 /**
  * Get user growth stats (last 6 months)
  */
@@ -38,4 +44,14 @@ export async function getRoomTypeDistribution(): Promise<RoomTypeData[]> {
     }
 
     return (data || []) as RoomTypeData[];
+}
+
+/**
+ * Get recent admin activities
+ */
+export async function getRecentActivities(limit = 10): Promise<RecentActivity[]> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)('get_recent_admin_activities', { p_limit: limit });
+    if (error) throw error;
+    return (data || []) as RecentActivity[];
 }

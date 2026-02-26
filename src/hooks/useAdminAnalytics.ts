@@ -12,6 +12,7 @@ export const adminAnalyticsKeys = {
     all: ['admin', 'analytics'] as const,
     userGrowth: () => [...adminAnalyticsKeys.all, 'userGrowth'] as const,
     roomDistribution: () => [...adminAnalyticsKeys.all, 'roomDistribution'] as const,
+    recentActivities: () => [...adminAnalyticsKeys.all, 'recentActivities'] as const,
 };
 
 /**
@@ -35,5 +36,16 @@ export function useRoomTypeDistribution() {
         queryFn: () => analyticsService.getRoomTypeDistribution(),
         staleTime: STALE_TIME,
         gcTime: GC_TIME,
+    });
+}
+
+/**
+ * Get recent admin activities
+ */
+export function useRecentActivities() {
+    return useQuery({
+        queryKey: adminAnalyticsKeys.recentActivities(),
+        queryFn: () => analyticsService.getRecentActivities(),
+        staleTime: 2 * 60 * 1000, // 2 min cache (activities update more frequently)
     });
 }
