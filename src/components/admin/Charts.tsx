@@ -12,10 +12,10 @@ interface LineChartProps {
 
 export function LineChartComponent({ title, data, dataKey, xAxisKey }: LineChartProps) {
   // Check if data contains currency values
-  const isCurrency = dataKey.toLowerCase().includes('revenue') || 
-                     dataKey.toLowerCase().includes('amount') || 
-                     dataKey.toLowerCase().includes('price');
-  
+  const isCurrency = dataKey.toLowerCase().includes('revenue') ||
+    dataKey.toLowerCase().includes('amount') ||
+    dataKey.toLowerCase().includes('price');
+
   return (
     <Card className="p-6">
       <h3 className="text-lg font-semibold mb-4">{title}</h3>
@@ -24,9 +24,9 @@ export function LineChartComponent({ title, data, dataKey, xAxisKey }: LineChart
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey={xAxisKey} tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'white', 
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'white',
               border: '1px solid #e5e7eb',
               borderRadius: '8px'
             }}
@@ -37,10 +37,10 @@ export function LineChartComponent({ title, data, dataKey, xAxisKey }: LineChart
               return value.toLocaleString('vi-VN');
             }}
           />
-          <Line 
-            type="monotone" 
-            dataKey={dataKey} 
-            stroke="#6366f1" 
+          <Line
+            type="monotone"
+            dataKey={dataKey}
+            stroke="#6366f1"
             strokeWidth={2}
             dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
             activeDot={{ r: 6 }}
@@ -67,9 +67,9 @@ export function BarChartComponent({ title, data, dataKey, xAxisKey }: BarChartPr
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey={xAxisKey} tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'white', 
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'white',
               border: '1px solid #e5e7eb',
               borderRadius: '8px'
             }}
@@ -104,14 +104,15 @@ export function PieChartComponent({ title, data, dataKey, nameKey }: PieChartPro
             outerRadius={100}
             fill="#8884d8"
             dataKey={dataKey}
+            nameKey={nameKey}
           >
             {data.map((_, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'white', 
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'white',
               border: '1px solid #e5e7eb',
               borderRadius: '8px'
             }}

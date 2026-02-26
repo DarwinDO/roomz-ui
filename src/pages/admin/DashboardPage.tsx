@@ -13,6 +13,18 @@ export default function DashboardPage() {
   const { data: roomDistribution = [] } = useRoomTypeDistribution();
   const { data: activities = [], isLoading: activitiesLoading } = useRecentActivities();
 
+  // Map room type labels to Vietnamese
+  const roomTypeLabels: Record<string, string> = {
+    private: 'Phòng riêng',
+    studio: 'Phòng studio',
+    shared: 'Phòng chung',
+    dormitory: 'Ký túc xá',
+  };
+  const mappedRoomDistribution = roomDistribution.map((item) => ({
+    ...item,
+    type: roomTypeLabels[item.type] || item.type,
+  }));
+
   // Helper functions for recent activities
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -120,7 +132,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <PieChartComponent
             title="Phân bố loại phòng"
-            data={roomDistribution}
+            data={mappedRoomDistribution}
             dataKey="value"
             nameKey="type"
           />
@@ -188,9 +200,9 @@ export default function DashboardPage() {
                 className="flex items-center gap-3 py-3 border-b last:border-0 border-gray-100"
               >
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${activity.type === 'room_created' ? 'bg-blue-50' :
-                    activity.type === 'user_joined' ? 'bg-green-50' :
-                      activity.type === 'booking_created' ? 'bg-indigo-50' :
-                        'bg-red-50'
+                  activity.type === 'user_joined' ? 'bg-green-50' :
+                    activity.type === 'booking_created' ? 'bg-indigo-50' :
+                      'bg-red-50'
                   }`}>
                   {getActivityIcon(activity.type)}
                 </div>

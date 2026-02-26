@@ -1,14 +1,8 @@
 import { StatsCard } from "@/components/admin/StatsCard";
-import { Button } from "@/components/ui/button";
 import { DollarSign, CreditCard, Wallet, Loader2 } from "lucide-react";
 import { useAdminStats } from "@/hooks/useAdmin";
-import { toast } from "sonner";
 
 export default function RevenuePage() {
-  const handleExport = () => {
-    toast.info("Tính năng xuất báo cáo đang phát triển");
-  };
-
   // Get basic stats using centralized hook
   const { data: stats, isLoading } = useAdminStats();
 
@@ -20,10 +14,6 @@ export default function RevenuePage() {
           <h1 className="text-3xl font-bold text-gray-900">Quản lý doanh thu</h1>
           <p className="text-gray-600 mt-1">Theo dõi doanh thu và các giao dịch</p>
         </div>
-        <Button onClick={handleExport}>
-          <Wallet className="w-4 h-4 mr-2" />
-          Xuất báo cáo
-        </Button>
       </div>
 
       {/* Coming Soon State */}

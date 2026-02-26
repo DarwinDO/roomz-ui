@@ -4,6 +4,15 @@ import { DataTable } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -11,8 +20,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Handshake, Plus, MoreVertical, Eye, Edit, Trash2, BarChart, Loader2, Tag, X } from "lucide-react";
-import { usePartners, useTogglePartnerStatus, useDeletePartner } from "@/hooks/usePartners";
+import { Handshake, Plus, MoreVertical, Eye, Edit, Trash2, Loader2, Tag, X } from "lucide-react";
+import { usePartners, useTogglePartnerStatus, useDeletePartner, useCreatePartner, useUpdatePartner } from "@/hooks/usePartners";
 import { useDeals, useCreateDeal, useDeleteDeal, useToggleDealActive } from "@/hooks/useDeals";
 import { useConfirm } from "@/hooks/useConfirm";
 import { toast } from "sonner";
@@ -31,9 +40,26 @@ export default function PartnersPage() {
   const [newDealDiscount, setNewDealDiscount] = useState("");
   const [newDealValidUntil, setNewDealValidUntil] = useState("");
 
+  // Partner form state
+  const [showPartnerForm, setShowPartnerForm] = useState(false);
+  const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
+  const [partnerDetailOpen, setPartnerDetailOpen] = useState(false);
+  const [detailPartner, setDetailPartner] = useState<Partner | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formCategory, setFormCategory] = useState("cafe");
+  const [formSpecialization, setFormSpecialization] = useState("");
+  const [formDiscount, setFormDiscount] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formAddress, setFormAddress] = useState("");
+  const [formPhone, setFormPhone] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formHours, setFormHours] = useState("");
+
   // Mutations
   const toggleStatus = useTogglePartnerStatus();
   const deletePartner = useDeletePartner();
+  const createPartnerMutation = useCreatePartner();
+  const updatePartnerMutation = useUpdatePartner();
   const createDeal = useCreateDeal();
   const deleteDeal = useDeleteDeal();
   const toggleDealActive = useToggleDealActive();
@@ -134,6 +160,70 @@ export default function PartnersPage() {
     }
   };
 
+  const openCreateForm = () => {
+    setEditingPartner(null);
+    setFormName("");
+    setFormCategory("cafe");
+    setFormSpecialization("");
+    setFormDiscount("");
+    setFormDescription("");
+    setFormAddress("");
+    setFormPhone("");
+    setFormEmail("");
+    setFormHours("");
+    setShowPartnerForm(true);
+  };
+
+  const openEditForm = (partner: Partner) => {
+    setEditingPartner(partner);
+    setFormName(partner.name);
+    setFormCategory(partner.category);
+    setFormSpecialization(partner.specialization || "");
+    setFormDiscount(partner.discount || "");
+    setFormDescription(partner.description || "");
+    setFormAddress(partner.address || "");
+    setFormPhone(partner.phone || "");
+    setFormEmail(partner.email || "");
+    setFormHours(partner.hours || "");
+    setShowPartnerForm(true);
+  };
+
+  const openPartnerDetail = (partner: Partner) => {
+    setDetailPartner(partner);
+    setPartnerDetailOpen(true);
+  };
+
+  const handleSubmitPartner = async () => {
+    if (!formName.trim() || !formCategory) {
+      toast.error("Vui lòng nhập tên và danh mục");
+      return;
+    }
+    const data = {
+      name: formName.trim(),
+      category: formCategory,
+      specialization: formSpecialization.trim() || undefined,
+      discount: formDiscount.trim() || undefined,
+      description: formDescription.trim() || undefined,
+      address: formAddress.trim() || undefined,
+      phone: formPhone.trim() || undefined,
+      email: formEmail.trim() || undefined,
+      hours: formHours.trim() || undefined,
+    };
+    try {
+      if (editingPartner) {
+        await updatePartnerMutation.mutateAsync({ id: editingPartner.id, data });
+        toast.success("Đã cập nhật đối tác");
+      } else {
+        await createPartnerMutation.mutateAsync(data);
+        toast.success("Đã tạo đối tác thành công");
+      }
+      setShowPartnerForm(false);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : "Lỗi không xác định";
+      toast.error(editingPartner ? "Lỗi cập nhật" : "Lỗi tạo đối tác", { description: errMsg });
+    }
+  };
+
   const columns: ColumnDef<Partner>[] = [
     {
       id: "partner",
@@ -209,19 +299,15 @@ export default function PartnersPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => openPartnerDetail(item)}>
+                <Eye className="h-4 w-4 mr-2" />
+                Xem chi tiết
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { setSelectedPartner(item); setShowDealsList(true); }}>
                 <Tag className="h-4 w-4 mr-2" />
                 Quản lý deals
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
-                <Eye className="h-4 w-4 mr-2" />
-                Xem chi tiết
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
-                <BarChart className="h-4 w-4 mr-2" />
-                Xem thống kê
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
+              <DropdownMenuItem onClick={() => openEditForm(item)}>
                 <Edit className="h-4 w-4 mr-2" />
                 Chỉnh sửa
               </DropdownMenuItem>
@@ -259,7 +345,7 @@ export default function PartnersPage() {
           <h1 className="text-3xl font-bold text-gray-900">Quản lý đối tác</h1>
           <p className="text-gray-600 mt-1">Quản lý các đối tác Local Passport</p>
         </div>
-        <Button onClick={() => toast.info("Tính năng đang phát triển")}>
+        <Button onClick={openCreateForm}>
           <Plus className="w-4 h-4 mr-2" />
           Thêm đối tác
         </Button>
@@ -426,6 +512,165 @@ export default function PartnersPage() {
 
       {/* Confirmation Dialog */}
       <ConfirmDialog />
+
+      {/* Partner Form Dialog (Create/Edit) */}
+      <Dialog open={showPartnerForm} onOpenChange={setShowPartnerForm}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingPartner ? 'Chỉnh sửa đối tác' : 'Thêm đối tác mới'}</DialogTitle>
+            <DialogDescription>
+              {editingPartner ? 'Cập nhật thông tin đối tác' : 'Nhập thông tin để thêm đối tác mới'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <div className="space-y-2">
+              <Label htmlFor="partner-name">Tên đối tác *</Label>
+              <Input id="partner-name" value={formName} onChange={e => setFormName(e.target.value)} placeholder="VD: Quán Cà Phê ABC" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="partner-category">Danh mục *</Label>
+              <Select value={formCategory} onValueChange={setFormCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cafe">Quán cà phê</SelectItem>
+                  <SelectItem value="gym">Phòng gym</SelectItem>
+                  <SelectItem value="laundry">Giặt là</SelectItem>
+                  <SelectItem value="restaurant">Nhà hàng</SelectItem>
+                  <SelectItem value="food">Đồ ăn</SelectItem>
+                  <SelectItem value="other">Khác</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="partner-specialization">Chuyên môn</Label>
+              <Input id="partner-specialization" value={formSpecialization} onChange={e => setFormSpecialization(e.target.value)} placeholder="VD: Cà phê đặc sản" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="partner-discount">Ưu đãi</Label>
+              <Input id="partner-discount" value={formDiscount} onChange={e => setFormDiscount(e.target.value)} placeholder="VD: Giảm 20%" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="partner-description">Mô tả</Label>
+              <Textarea id="partner-description" value={formDescription} onChange={e => setFormDescription(e.target.value)} placeholder="Mô tả ngắn về đối tác..." />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="partner-phone">Điện thoại</Label>
+                <Input id="partner-phone" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="0901234567" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="partner-email">Email</Label>
+                <Input id="partner-email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="contact@partner.vn" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="partner-address">Địa chỉ</Label>
+              <Input id="partner-address" value={formAddress} onChange={e => setFormAddress(e.target.value)} placeholder="Số nhà, đường, quận..." />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="partner-hours">Giờ mở cửa</Label>
+              <Input id="partner-hours" value={formHours} onChange={e => setFormHours(e.target.value)} placeholder="VD: 7:00 - 22:00" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPartnerForm(false)}>Hủy</Button>
+            <Button
+              onClick={handleSubmitPartner}
+              disabled={createPartnerMutation.isPending || updatePartnerMutation.isPending}
+            >
+              {(createPartnerMutation.isPending || updatePartnerMutation.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {editingPartner ? 'Cập nhật' : 'Tạo đối tác'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Partner Detail Dialog */}
+      <Dialog open={partnerDetailOpen} onOpenChange={setPartnerDetailOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Chi tiết đối tác</DialogTitle>
+          </DialogHeader>
+          {detailPartner && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center">
+                  <Handshake className="w-7 h-7 text-gray-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">{detailPartner.name}</h3>
+                  <p className="text-sm text-gray-500">{getCategoryLabel(detailPartner.category)}</p>
+                </div>
+                <Badge className={detailPartner.status === 'active' ? 'bg-green-100 text-green-700 ml-auto' : 'bg-gray-100 text-gray-700 ml-auto'}>
+                  {detailPartner.status === 'active' ? 'Hoạt động' : 'Ngừng'}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {detailPartner.discount && (
+                  <div>
+                    <p className="text-gray-500">Ưu đãi</p>
+                    <p className="font-medium">{detailPartner.discount}</p>
+                  </div>
+                )}
+                {detailPartner.specialization && (
+                  <div>
+                    <p className="text-gray-500">Chuyên môn</p>
+                    <p className="font-medium">{detailPartner.specialization}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-gray-500">Lượt xem</p>
+                  <p className="font-medium">{(detailPartner.views || 0).toLocaleString('vi-VN')}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Đánh giá</p>
+                  <p className="font-medium">{detailPartner.rating || 0} ⭐ ({detailPartner.review_count || 0})</p>
+                </div>
+                {detailPartner.phone && (
+                  <div>
+                    <p className="text-gray-500">Điện thoại</p>
+                    <p className="font-medium">{detailPartner.phone}</p>
+                  </div>
+                )}
+                {detailPartner.email && (
+                  <div>
+                    <p className="text-gray-500">Email</p>
+                    <p className="font-medium">{detailPartner.email}</p>
+                  </div>
+                )}
+                {detailPartner.address && (
+                  <div className="col-span-2">
+                    <p className="text-gray-500">Địa chỉ</p>
+                    <p className="font-medium">{detailPartner.address}</p>
+                  </div>
+                )}
+                {detailPartner.hours && (
+                  <div>
+                    <p className="text-gray-500">Giờ mở cửa</p>
+                    <p className="font-medium">{detailPartner.hours}</p>
+                  </div>
+                )}
+                {detailPartner.description && (
+                  <div className="col-span-2">
+                    <p className="text-gray-500">Mô tả</p>
+                    <p className="font-medium">{detailPartner.description}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-gray-500">Ngày tham gia</p>
+                  <p className="font-medium">{detailPartner.created_at ? new Date(detailPartner.created_at).toLocaleDateString('vi-VN') : '-'}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setPartnerDetailOpen(false)}>Đóng</Button>
+                <Button onClick={() => { setPartnerDetailOpen(false); openEditForm(detailPartner); }}>
+                  <Edit className="w-4 h-4 mr-2" /> Chỉnh sửa
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -5,13 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Users, TrendingUp, Clock, BarChart2, Download, Loader2 } from "lucide-react";
 import { useAdminStats } from "@/hooks/useAdmin";
 import { useUserGrowthStats, useRoomTypeDistribution } from "@/hooks/useAdminAnalytics";
+import { exportToCsv } from "@/lib/exportCsv";
 import { toast } from "sonner";
 
 export default function AnalyticsPage() {
-  const handleExport = () => {
-    toast.info("Tính năng xuất báo cáo đang phát triển");
-  };
-
   // Get admin stats using centralized hook
   const { data: stats, isLoading: statsLoading } = useAdminStats();
 
@@ -22,6 +19,23 @@ export default function AnalyticsPage() {
   const { data: roomDistribution = [], isLoading: distLoading } = useRoomTypeDistribution();
 
   const isLoading = statsLoading || growthLoading || distLoading;
+
+  const handleExport = () => {
+    const allData = [
+      ...userGrowth.map(d => ({ loai: 'Tăng trưởng người dùng', thang: d.month, gia_tri: d.users })),
+      ...roomDistribution.map(d => ({ loai: 'Phân bố phòng', thang: d.type, gia_tri: d.value })),
+    ];
+    if (allData.length === 0) {
+      toast.info('Không có dữ liệu để xuất');
+      return;
+    }
+    exportToCsv(allData, 'roomz_analytics', {
+      loai: 'Loại dữ liệu',
+      thang: 'Tháng/Loại',
+      gia_tri: 'Giá trị',
+    });
+    toast.success('Đã xuất báo cáo thành công');
+  };
 
   return (
     <div className="space-y-6">

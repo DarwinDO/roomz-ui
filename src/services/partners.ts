@@ -163,3 +163,29 @@ export async function deletePartner(id: string): Promise<void> {
         throw error;
     }
 }
+
+/**
+ * Create a new partner
+ */
+export async function createPartner(data: {
+    name: string;
+    category: string;
+    specialization?: string;
+    discount?: string;
+    description?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    hours?: string;
+}): Promise<Partner> {
+    const { data: partner, error } = await supabase
+        .from('partners')
+        .insert({
+            ...data,
+            status: 'active',
+        })
+        .select()
+        .single();
+    if (error) throw new Error(`Lỗi tạo đối tác: ${error.message}`);
+    return partner;
+}

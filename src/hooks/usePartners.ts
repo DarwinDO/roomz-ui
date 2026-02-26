@@ -68,3 +68,33 @@ export function useDeletePartner() {
         },
     });
 }
+
+/**
+ * Create a new partner
+ */
+export function useCreatePartner() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: Parameters<typeof partnersService.createPartner>[0]) =>
+            partnersService.createPartner(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: partnerKeys.all });
+        },
+    });
+}
+
+/**
+ * Update a partner
+ */
+export function useUpdatePartner() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<partnersService.Partner> }) =>
+            partnersService.updatePartner(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: partnerKeys.all });
+        },
+    });
+}

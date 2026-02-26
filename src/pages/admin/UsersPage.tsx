@@ -5,6 +5,7 @@ import { StatsCard } from "@/components/admin/StatsCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -46,6 +47,8 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [selectedUserForReject, setSelectedUserForReject] = useState<AdminUser | null>(null);
+  const [userDetailOpen, setUserDetailOpen] = useState(false);
+  const [detailUser, setDetailUser] = useState<AdminUser | null>(null);
 
   // Compute stats from data
   const stats = useMemo(() => ({
@@ -211,7 +214,7 @@ export default function UsersPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
+              <DropdownMenuItem onClick={() => { setDetailUser(user); setUserDetailOpen(true); }}>
                 <Eye className="h-4 w-4 mr-2" />
                 Xem chi tiết
               </DropdownMenuItem>
@@ -347,6 +350,98 @@ export default function UsersPage() {
         type="user"
         itemName={selectedUserForReject?.full_name || undefined}
       />
+
+      {/* User Detail Dialog */}
+      <Dialog open={userDetailOpen} onOpenChange={setUserDetailOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Chi tiết người dùng</DialogTitle>
+          </DialogHeader>
+          {detailUser && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-14 w-14">
+                  <AvatarImage src={detailUser.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                    {detailUser.full_name?.charAt(0) || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-bold">{detailUser.full_name || 'N/A'}</h3>
+                  <p className="text-sm text-gray-500">{detailUser.email}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-500">Vai trò</p>
+                  <div className="mt-1">{getRoleBadge(detailUser.role)}</div>
+                </div>
+                <div>
+                  <p className="text-gray-500">Trạng thái</p>
+                  <div className="mt-1">{getStatusBadge(detailUser.account_status)}</div>
+                </div>
+                {detailUser.phone && (
+                  <div>
+                    <p className="text-gray-500">Điện thoại</p>
+                    <p className="font-medium">{detailUser.phone}</p>
+                  </div>
+                )}
+                {detailUser.university && (
+                  <div>
+                    <p className="text-gray-500">Trường</p>
+                    <p className="font-medium">{detailUser.university}</p>
+                  </div>
+                )}
+                {detailUser.major && (
+                  <div>
+                    <p className="text-gray-500">Ngành</p>
+                    <p className="font-medium">{detailUser.major}</p>
+                  </div>
+                )}
+                {detailUser.student_id && (
+                  <div>
+                    <p className="text-gray-500">MSSV</p>
+                    <p className="font-medium">{detailUser.student_id}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-gray-500">Xác minh</p>
+                  <div className="flex gap-1 mt-1 flex-wrap">
+                    {detailUser.email_verified && <Badge variant="outline" className="text-xs">Email ✓</Badge>}
+                    {detailUser.phone_verified && <Badge variant="outline" className="text-xs">SĐT ✓</Badge>}
+                    {detailUser.id_card_verified && <Badge variant="outline" className="text-xs">CCCD ✓</Badge>}
+                    {detailUser.student_card_verified && <Badge variant="outline" className="text-xs">Thẻ SV ✓</Badge>}
+                    {!detailUser.email_verified && !detailUser.phone_verified && !detailUser.id_card_verified && (
+                      <span className="text-gray-400 text-xs">Chưa xác minh</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-gray-500">Điểm uy tín</p>
+                  <p className="font-medium">{detailUser.trust_score || 0}</p>
+                </div>
+                {detailUser.bio && (
+                  <div className="col-span-2">
+                    <p className="text-gray-500">Giới thiệu</p>
+                    <p className="font-medium">{detailUser.bio}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-gray-500">Ngày đăng ký</p>
+                  <p className="font-medium">{detailUser.created_at ? new Date(detailUser.created_at).toLocaleDateString('vi-VN') : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Đăng nhập cuối</p>
+                  <p className="font-medium">{detailUser.last_login_at ? new Date(detailUser.last_login_at).toLocaleDateString('vi-VN') : 'Chưa đăng nhập'}</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setUserDetailOpen(false)}>Đóng</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
