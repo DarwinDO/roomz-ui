@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { Button } from "@/components/ui/button";
@@ -32,8 +31,6 @@ import { toast } from "sonner";
 import { RejectionDialog } from "@/components/admin/RejectionDialog";
 
 export default function UsersPage() {
-  const queryClient = useQueryClient();
-
   // Query hooks
   const { data: users = [], isLoading, error, refetch } = useAdminUsers();
 

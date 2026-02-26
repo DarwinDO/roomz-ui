@@ -270,10 +270,7 @@ export async function rejectUserVerification(userId: string, reason: string): Pr
 export async function getAdminStats(): Promise<AdminStats> {
   const { data, error } = await supabase.rpc('get_admin_stats' as never);
 
-  if (error) {
-    console.error('Error fetching admin stats:', error);
-    throw error;
-  }
+  if (error) throw error;
 
   const stats = data as Record<string, number> | null;
   return {
@@ -343,10 +340,7 @@ export async function getAdminServiceLeads(filters?: ServiceLeadFilters): Promis
 
   const { data, error } = await query;
 
-  if (error) {
-    console.error('Error fetching admin service leads:', error);
-    throw error;
-  }
+  if (error) throw error;
 
   let leads = data || [];
 
@@ -373,10 +367,7 @@ export async function getAdminServiceLeadById(id: string): Promise<AdminServiceL
     .eq('id', id)
     .single();
 
-  if (error) {
-    console.error('Error fetching admin service lead:', error);
-    return null;
-  }
+  if (error) return null;
 
   return data as unknown as AdminServiceLead;
 }
@@ -401,10 +392,7 @@ export async function assignPartnerToLead(leadId: string, partnerId: string): Pr
     })
     .eq('id', leadId);
 
-  if (error) {
-    console.error('Error assigning partner to lead:', error);
-    throw error;
-  }
+  if (error) throw error;
 }
 
 /**
@@ -428,10 +416,7 @@ export async function updateServiceLeadStatus(
     .update(updateData)
     .eq('id', leadId);
 
-  if (error) {
-    console.error('Error updating service lead status:', error);
-    throw error;
-  }
+  if (error) throw error;
 }
 
 /**
@@ -445,10 +430,7 @@ export async function appendAdminNote(leadId: string, note: string, adminName: s
     .eq('id', leadId)
     .single();
 
-  if (fetchError) {
-    console.error('Error fetching lead for note:', fetchError);
-    throw fetchError;
-  }
+  if (fetchError) throw fetchError;
 
   const timestamp = new Date().toLocaleString('vi-VN');
   const existingNotes = lead?.admin_notes || '';
@@ -461,10 +443,7 @@ export async function appendAdminNote(leadId: string, note: string, adminName: s
     .update({ admin_notes: newNotes })
     .eq('id', leadId);
 
-  if (error) {
-    console.error('Error appending admin note:', error);
-    throw error;
-  }
+  if (error) throw error;
 }
 
 /**

@@ -198,7 +198,10 @@ export default function RoomsPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => navigate(`/room/${room.id}`)}>
+            <DropdownMenuItem
+              onClick={() => navigate(`/room/${room.id}`)}
+              onMouseEnter={() => handlePrefetchRoom(room.id)}
+            >
               <Eye className="h-4 w-4 mr-2" />
               Xem chi tiết
             </DropdownMenuItem>
