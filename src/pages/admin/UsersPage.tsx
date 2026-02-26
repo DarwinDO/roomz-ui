@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { Button } from "@/components/ui/button";
@@ -18,66 +19,76 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Users, UserCheck, UserX, MoreVertical, Eye, Ban, Trash2, CheckCircle, Loader2, AlertCircle, Building2, XCircle } from "lucide-react";
-import { useAdminUsers } from "@/hooks/useAdmin";
+import {
+  useAdminUsers,
+  useSuspendUser,
+  useActivateUser,
+  useDeleteUser,
+  useApproveLandlord,
+  useRejectLandlord,
+} from "@/hooks/useAdmin";
 import type { AdminUser } from "@/services/admin";
 import { toast } from "sonner";
 import { RejectionDialog } from "@/components/admin/RejectionDialog";
 
 export default function UsersPage() {
-  const { users, loading, error, stats, suspendUser, activateUser, deleteUser, approveLandlord, rejectLandlord, refetch } = useAdminUsers();
+  const queryClient = useQueryClient();
+
+  // Query hooks
+  const { data: users = [], isLoading, error, refetch } = useAdminUsers();
+
+  // Mutation hooks
+  const suspendMutation = useSuspendUser();
+  const activateMutation = useActivateUser();
+  const deleteMutation = useDeleteUser();
+  const approveLandlordMutation = useApproveLandlord();
+  const rejectLandlordMutation = useRejectLandlord();
+
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [selectedUserForReject, setSelectedUserForReject] = useState<AdminUser | null>(null);
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter =
-      filter === "all" ? true :
-        filter === "active" ? user.account_status === "active" :
-          filter === "suspended" ? user.account_status === "suspended" :
-            filter === "pending_landlord" ? user.account_status === "pending_landlord" :
-              filter === "landlord" ? user.role === "landlord" :
-                filter === "admin" ? user.role === "admin" : true;
+  // Compute stats from data
+  const stats = useMemo(() => ({
+    total: users.length,
+    active: users.filter(u => u.account_status === 'active').length,
+    suspended: users.filter(u => u.account_status === 'suspended').length,
+    verified: users.filter(u => u.account_status === 'active').length,
+    pendingLandlords: users.filter(u => u.account_status === 'pending_landlord').length,
+  }), [users]);
 
-    return matchesSearch && matchesFilter;
-  });
+  // Filter users
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const matchesSearch = user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter =
+        filter === "all" ? true :
+          filter === "active" ? user.account_status === "active" :
+            filter === "suspended" ? user.account_status === "suspended" :
+              filter === "pending_landlord" ? user.account_status === "pending_landlord" :
+                filter === "landlord" ? user.role === "landlord" :
+                  filter === "admin" ? user.role === "admin" : true;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [users, searchTerm, filter]);
 
   const handleSuspend = async (userId: string) => {
-    try {
-      await suspendUser(userId);
-      toast.success("Đã đình chỉ người dùng");
-    } catch {
-      toast.error("Không thể đình chỉ người dùng");
-    }
+    await suspendMutation.mutateAsync(userId);
   };
 
   const handleActivate = async (userId: string) => {
-    try {
-      await activateUser(userId);
-      toast.success("Đã kích hoạt người dùng");
-    } catch {
-      toast.error("Không thể kích hoạt người dùng");
-    }
+    await activateMutation.mutateAsync(userId);
   };
 
   const handleDelete = async (userId: string) => {
-    try {
-      await deleteUser(userId);
-      toast.success("Đã xóa người dùng");
-    } catch {
-      toast.error("Không thể xóa người dùng");
-    }
+    await deleteMutation.mutateAsync(userId);
   };
 
   const handleApproveLandlord = async (userId: string) => {
-    try {
-      await approveLandlord(userId);
-      toast.success("Đã duyệt đăng ký chủ trọ");
-    } catch {
-      toast.error("Không thể duyệt đăng ký");
-    }
+    await approveLandlordMutation.mutateAsync(userId);
   };
 
   const openRejectLandlordDialog = (user: AdminUser) => {
@@ -87,13 +98,11 @@ export default function UsersPage() {
 
   const handleRejectLandlordWithReason = async (reason: string) => {
     if (!selectedUserForReject) return;
-    try {
-      await rejectLandlord(selectedUserForReject.id, reason);
-      toast.success("Đã từ chối đăng ký chủ trọ");
-      setSelectedUserForReject(null);
-    } catch {
-      toast.error("Không thể từ chối đăng ký");
-    }
+    await rejectLandlordMutation.mutateAsync({
+      userId: selectedUserForReject.id,
+      reason
+    });
+    setSelectedUserForReject(null);
   };
 
   const getRoleBadge = (role: string | null) => {
@@ -229,7 +238,7 @@ export default function UsersPage() {
     },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -249,7 +258,7 @@ export default function UsersPage() {
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-red-700">{error.message}</p>
           <Button variant="outline" size="sm" onClick={() => refetch()} className="ml-auto">
             Thử lại
           </Button>

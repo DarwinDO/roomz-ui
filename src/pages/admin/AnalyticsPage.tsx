@@ -3,9 +3,8 @@ import { LineChartComponent, BarChartComponent } from "@/components/admin/Charts
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, TrendingUp, Clock, BarChart2, Download, Loader2 } from "lucide-react";
-import { getAdminStats } from "@/services/admin";
+import { useAdminStats } from "@/hooks/useAdmin";
 import { useUserGrowthStats, useRoomTypeDistribution } from "@/hooks/useAdminAnalytics";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export default function AnalyticsPage() {
@@ -13,12 +12,8 @@ export default function AnalyticsPage() {
     toast.info("Tính năng xuất báo cáo đang phát triển");
   };
 
-  // Get admin stats
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['admin', 'stats'],
-    queryFn: getAdminStats,
-    staleTime: 5 * 60 * 1000,
-  });
+  // Get admin stats using centralized hook
+  const { data: stats, isLoading: statsLoading } = useAdminStats();
 
   // Get user growth data
   const { data: userGrowth = [], isLoading: growthLoading } = useUserGrowthStats();

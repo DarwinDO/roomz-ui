@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { Button } from "@/components/ui/button";
@@ -18,40 +19,61 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Home, CheckCircle, Clock, Star, MoreVertical, Eye, Check, X, Trash2, Loader2, AlertCircle } from "lucide-react";
-import { useAdminRooms } from "@/hooks/useAdmin";
+import {
+  useAdminRooms,
+  useApproveRoom,
+  useRejectRoom,
+  useDeleteRoom,
+  adminKeys,
+} from "@/hooks/useAdmin";
 import type { AdminRoom } from "@/services/admin";
-import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { RejectionDialog } from "@/components/admin/RejectionDialog";
+import * as adminService from "@/services/admin";
 
 export default function RoomsPage() {
   const navigate = useNavigate();
-  const { rooms, loading, error, stats, approveRoom, rejectRoom, deleteRoom, refetch } = useAdminRooms();
+  const queryClient = useQueryClient();
+
+  // Query hooks
+  const { data: rooms = [], isLoading, error, refetch } = useAdminRooms();
+
+  // Mutation hooks
+  const approveMutation = useApproveRoom();
+  const rejectMutation = useRejectRoom();
+  const deleteMutation = useDeleteRoom();
+
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [selectedRoomForReject, setSelectedRoomForReject] = useState<AdminRoom | null>(null);
 
-  const filteredRooms = rooms.filter(room => {
-    const matchesSearch = room.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.district?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter =
-      filter === "all" ? true :
-        filter === "active" ? room.status === "active" :
-          filter === "pending" ? room.status === "pending" :
-            filter === "verified" ? room.is_verified : true;
+  // Compute stats from data
+  const stats = useMemo(() => ({
+    total: rooms.length,
+    active: rooms.filter(r => r.status === 'active').length,
+    pending: rooms.filter(r => r.status === 'pending').length,
+    verified: rooms.filter(r => r.is_verified).length,
+  }), [rooms]);
 
-    return matchesSearch && matchesFilter;
-  });
+  // Filter rooms
+  const filteredRooms = useMemo(() => {
+    return rooms.filter(room => {
+      const matchesSearch = room.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        room.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        room.district?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter =
+        filter === "all" ? true :
+          filter === "active" ? room.status === "active" :
+            filter === "pending" ? room.status === "pending" :
+              filter === "verified" ? room.is_verified : true;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [rooms, searchTerm, filter]);
 
   const handleApprove = async (roomId: string) => {
-    try {
-      await approveRoom(roomId);
-      toast.success("Đã phê duyệt phòng");
-    } catch {
-      toast.error("Không thể phê duyệt phòng");
-    }
+    await approveMutation.mutateAsync(roomId);
   };
 
   const openRejectDialog = (room: AdminRoom) => {
@@ -61,22 +83,23 @@ export default function RoomsPage() {
 
   const handleRejectWithReason = async (reason: string) => {
     if (!selectedRoomForReject) return;
-    try {
-      await rejectRoom(selectedRoomForReject.id, reason);
-      toast.success("Đã từ chối phòng");
-      setSelectedRoomForReject(null);
-    } catch {
-      toast.error("Không thể từ chối phòng");
-    }
+    await rejectMutation.mutateAsync({
+      roomId: selectedRoomForReject.id,
+      reason
+    });
+    setSelectedRoomForReject(null);
   };
 
   const handleDelete = async (roomId: string) => {
-    try {
-      await deleteRoom(roomId);
-      toast.success("Đã xóa phòng");
-    } catch {
-      toast.error("Không thể xóa phòng");
-    }
+    await deleteMutation.mutateAsync(roomId);
+  };
+
+  // Prefetch handler
+  const handlePrefetchRoom = (roomId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: adminKeys.rooms.detail(roomId),
+      queryFn: () => adminService.getAdminRooms().then(rooms => rooms.find(r => r.id === roomId)),
+    });
   };
 
   const getStatusBadge = (status: string | null) => {
@@ -210,7 +233,7 @@ export default function RoomsPage() {
     },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -230,7 +253,7 @@ export default function RoomsPage() {
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-red-700">{error.message}</p>
           <Button variant="outline" size="sm" onClick={() => refetch()} className="ml-auto">
             Thử lại
           </Button>

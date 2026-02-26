@@ -8,7 +8,7 @@ import { useAdminStats } from "@/hooks/useAdmin";
 import { useUserGrowthStats, useRoomTypeDistribution } from "@/hooks/useAdminAnalytics";
 
 export default function DashboardPage() {
-  const { stats, loading } = useAdminStats();
+  const { data: stats, isLoading: loading } = useAdminStats();
   const { data: userGrowth = [] } = useUserGrowthStats();
   const { data: roomDistribution = [] } = useRoomTypeDistribution();
 

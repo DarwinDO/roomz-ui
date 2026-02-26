@@ -1,8 +1,7 @@
 import { StatsCard } from "@/components/admin/StatsCard";
 import { Button } from "@/components/ui/button";
 import { DollarSign, CreditCard, Wallet, Loader2 } from "lucide-react";
-import { getAdminStats } from "@/services/admin";
-import { useQuery } from "@tanstack/react-query";
+import { useAdminStats } from "@/hooks/useAdmin";
 import { toast } from "sonner";
 
 export default function RevenuePage() {
@@ -10,12 +9,8 @@ export default function RevenuePage() {
     toast.info("Tính năng xuất báo cáo đang phát triển");
   };
 
-  // Get basic stats
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['admin', 'stats'],
-    queryFn: getAdminStats,
-    staleTime: 5 * 60 * 1000,
-  });
+  // Get basic stats using centralized hook
+  const { data: stats, isLoading } = useAdminStats();
 
   return (
     <div className="space-y-6">
