@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 export default function RevenuePage() {
   const handleExport = () => {
-    toast.success("Đang xuất báo cáo doanh thu...");
+    toast.info("Tính năng xuất báo cáo đang phát triển");
   };
 
   const revenueData = [
@@ -34,8 +34,8 @@ export default function RevenuePage() {
       label: "Loại giao dịch",
       render: (item: Transaction) => (
         <Badge variant="outline">
-          {item.type === "subscription" ? "Đăng ký RoomZ+" : 
-           item.type === "booking_fee" ? "Phí đặt phòng" : "Tin nổi bật"}
+          {item.type === "subscription" ? "Đăng ký RoomZ+" :
+            item.type === "booking_fee" ? "Phí đặt phòng" : "Tin nổi bật"}
         </Badge>
       ),
     },
@@ -50,15 +50,15 @@ export default function RevenuePage() {
       key: "status",
       label: "Trạng thái",
       render: (item: Transaction) => (
-        <Badge 
+        <Badge
           className={
             item.status === "completed" ? "bg-green-100 text-green-700" :
-            item.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-            "bg-red-100 text-red-700"
+              item.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                "bg-red-100 text-red-700"
           }
         >
-          {item.status === "completed" ? "Hoàn thành" : 
-           item.status === "pending" ? "Đang xử lý" : "Đã hoàn tiền"}
+          {item.status === "completed" ? "Hoàn thành" :
+            item.status === "pending" ? "Đang xử lý" : "Đã hoàn tiền"}
         </Badge>
       ),
     },

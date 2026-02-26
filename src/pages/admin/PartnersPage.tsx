@@ -190,15 +190,15 @@ export default function PartnersPage() {
               <Tag className="h-4 w-4 mr-2" />
               Quản lý deals
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
               <Eye className="h-4 w-4 mr-2" />
               Xem chi tiết
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
               <BarChart className="h-4 w-4 mr-2" />
               Xem thống kê
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
               <Edit className="h-4 w-4 mr-2" />
               Chỉnh sửa
             </DropdownMenuItem>
@@ -234,7 +234,7 @@ export default function PartnersPage() {
           <h1 className="text-3xl font-bold text-gray-900">Quản lý đối tác</h1>
           <p className="text-gray-600 mt-1">Quản lý các đối tác Local Passport</p>
         </div>
-        <Button>
+        <Button onClick={() => toast.info("Tính năng đang phát triển")}>
           <Plus className="w-4 h-4 mr-2" />
           Thêm đối tác
         </Button>

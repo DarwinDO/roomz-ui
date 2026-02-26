@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ErrorBoundary } from "@/components/admin/ErrorBoundary";
 import RommzIcon from "@/assets/logo/rommz-icon.png";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Users,
@@ -36,9 +38,10 @@ export default function AdminShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem("adminAuth");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate("/admin/login");
   };
 
@@ -81,17 +84,17 @@ export default function AdminShell() {
             </nav>
           </div>
 
-          {/* Admin User Info */}
+          {/* Admin User Info - Desktop */}
           <div className="flex flex-shrink-0 border-t border-gray-700/50 p-4">
             <div className="flex items-center w-full">
               <Avatar className="h-10 w-10">
                 <AvatarFallback className="bg-primary text-white">
-                  AD
+                  {profile?.full_name?.charAt(0) || "A"}
                 </AvatarFallback>
               </Avatar>
               <div className="ml-3 flex-1">
-                <p className="text-sm font-medium text-white">Admin</p>
-                <p className="text-xs text-gray-400">admin@roomz.vn</p>
+                <p className="text-sm font-medium text-white">{profile?.full_name || "Admin"}</p>
+                <p className="text-xs text-gray-400">{user?.email || ""}</p>
               </div>
               <Button
                 onClick={handleLogout}
@@ -154,12 +157,12 @@ export default function AdminShell() {
               <div className="flex items-center w-full">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback className="bg-primary text-white">
-                    AD
+                    {profile?.full_name?.charAt(0) || "A"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="ml-3 flex-1">
-                  <p className="text-sm font-medium text-white">Admin</p>
-                  <p className="text-xs text-gray-400">admin@roomz.vn</p>
+                  <p className="text-sm font-medium text-white">{profile?.full_name || "Admin"}</p>
+                  <p className="text-xs text-gray-400">{user?.email || ""}</p>
                 </div>
                 <Button
                   onClick={handleLogout}

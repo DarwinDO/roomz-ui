@@ -37,11 +37,6 @@ export interface AdminStats {
  * Get all rooms for admin (includes pending, all statuses)
  */
 export async function getAdminRooms(): Promise<AdminRoom[]> {
-  // Debug: Check current session
-  const { data: { session } } = await supabase.auth.getSession();
-  console.log('[Admin Debug] Current user:', session?.user?.email);
-  console.log('[Admin Debug] User ID:', session?.user?.id);
-
   const { data, error } = await supabase
     .from('rooms')
     .select(`
@@ -51,9 +46,6 @@ export async function getAdminRooms(): Promise<AdminRoom[]> {
     `)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
-
-  console.log('[Admin Debug] Rooms count:', data?.length);
-  console.log('[Admin Debug] Error:', error);
 
   if (error) throw error;
   return (data || []) as AdminRoom[];
@@ -73,12 +65,7 @@ async function refreshSession(): Promise<void> {
  * Approve a room - sets status to 'active' and is_verified to true
  */
 export async function approveRoom(roomId: string): Promise<void> {
-  // Refresh session to ensure we have latest JWT claims
   await refreshSession();
-
-  const { data: { session } } = await supabase.auth.getSession();
-  console.log('[Admin Debug] Approving room with user:', session?.user?.email);
-  console.log('[Admin Debug] App metadata:', session?.user?.app_metadata);
 
   const { error } = await supabase
     .from('rooms')
@@ -90,10 +77,7 @@ export async function approveRoom(roomId: string): Promise<void> {
     } as never)
     .eq('id', roomId);
 
-  if (error) {
-    console.error('[Admin Debug] Approve error:', error);
-    throw error;
-  }
+  if (error) throw error;
 }
 
 /**
@@ -117,7 +101,6 @@ export async function rejectRoom(roomId: string, reason?: string): Promise<void>
 
   if (error) throw error;
 }
-
 
 /**
  * Toggle room featured status
@@ -233,10 +216,7 @@ export async function approveLandlordApplication(userId: string): Promise<void> 
     } as never)
     .eq('id', userId);
 
-  if (error) {
-    console.error('[Admin] Failed to approve landlord:', error);
-    throw error;
-  }
+  if (error) throw error;
 }
 
 /**
@@ -260,10 +240,7 @@ export async function rejectLandlordApplication(userId: string, reason?: string)
     .update(updateData as never)
     .eq('id', userId);
 
-  if (error) {
-    console.error('[Admin] Failed to reject landlord application:', error);
-    throw error;
-  }
+  if (error) throw error;
 }
 
 /**
@@ -281,61 +258,31 @@ export async function rejectUserVerification(userId: string, reason: string): Pr
     } as never)
     .eq('id', userId);
 
-  if (error) {
-    console.error('[Admin] Failed to reject user verification:', error);
-    throw error;
-  }
+  if (error) throw error;
 }
 
 
 // ============ STATS ============
 
 /**
- * Get admin dashboard statistics
+ * Get admin dashboard statistics using optimized RPC call
  */
 export async function getAdminStats(): Promise<AdminStats> {
-  // Get user counts
-  const { count: totalUsers } = await supabase
-    .from('users')
-    .select('*', { count: 'exact', head: true })
-    .is('deleted_at', null);
+  const { data, error } = await supabase.rpc('get_admin_stats' as never);
 
-  const { count: activeUsers } = await supabase
-    .from('users')
-    .select('*', { count: 'exact', head: true })
-    .eq('account_status', 'active')
-    .is('deleted_at', null);
+  if (error) {
+    console.error('Error fetching admin stats:', error);
+    throw error;
+  }
 
-  // Get room counts
-  const { count: totalRooms } = await supabase
-    .from('rooms')
-    .select('*', { count: 'exact', head: true })
-    .is('deleted_at', null);
-
-  const { count: pendingRooms } = await supabase
-    .from('rooms')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'pending')
-    .is('deleted_at', null);
-
-  const { count: activeRooms } = await supabase
-    .from('rooms')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'active')
-    .is('deleted_at', null);
-
-  // Get booking count
-  const { count: totalBookings } = await supabase
-    .from('bookings')
-    .select('*', { count: 'exact', head: true });
-
+  const stats = data as Record<string, number> | null;
   return {
-    totalUsers: totalUsers || 0,
-    activeUsers: activeUsers || 0,
-    totalRooms: totalRooms || 0,
-    pendingRooms: pendingRooms || 0,
-    activeRooms: activeRooms || 0,
-    totalBookings: totalBookings || 0,
+    totalUsers: stats?.totalUsers || 0,
+    activeUsers: stats?.activeUsers || 0,
+    totalRooms: stats?.totalRooms || 0,
+    pendingRooms: stats?.pendingRooms || 0,
+    activeRooms: stats?.activeRooms || 0,
+    totalBookings: stats?.totalBookings || 0,
   };
 }
 

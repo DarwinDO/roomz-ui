@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 export default function AnalyticsPage() {
   const handleExport = () => {
-    toast.success("Đang xuất báo cáo...");
+    toast.info("Tính năng xuất báo cáo đang phát triển");
   };
 
   return (
@@ -90,7 +90,7 @@ export default function AnalyticsPage() {
                 <span className="text-sm text-gray-600">{feature.usage}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className={`${feature.color} h-2 rounded-full transition-all`}
                   style={{ width: `${feature.usage}%` }}
                 />
