@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { Badge } from "@/components/ui/badge";
@@ -204,120 +205,137 @@ export default function ServiceLeadsPage() {
         return <Badge className={statusInfo.variant}>{statusInfo.label}</Badge>;
     };
 
-    const columns = [
+    const columns: ColumnDef<AdminServiceLead>[] = [
         {
-            key: "lead",
-            label: "Yêu cầu",
-            render: (lead: AdminServiceLead) => (
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Wrench className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                        <div className="font-medium">{SERVICE_TYPE_LABELS[lead.service_type] || lead.service_type}</div>
-                        <div className="text-xs text-gray-500">
-                            {lead.preferred_date ? new Date(lead.preferred_date).toLocaleDateString('vi-VN') : 'Không có ngày ưu tiên'}
+            id: "lead",
+            header: "Yêu cầu",
+            cell: ({ row }) => {
+                const lead = row.original;
+                return (
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Wrench className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                            <div className="font-medium">{SERVICE_TYPE_LABELS[lead.service_type] || lead.service_type}</div>
+                            <div className="text-xs text-gray-500">
+                                {lead.preferred_date ? new Date(lead.preferred_date).toLocaleDateString('vi-VN') : 'Không có ngày ưu tiên'}
+                            </div>
                         </div>
                     </div>
-                </div>
-            ),
+                );
+            },
+            enableSorting: false,
         },
         {
-            key: "user",
-            label: "Khách hàng",
-            render: (lead: AdminServiceLead) => (
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                        <User className="w-4 h-4 text-gray-500" />
+            id: "user",
+            header: "Khách hàng",
+            cell: ({ row }) => {
+                const lead = row.original;
+                return (
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                            <User className="w-4 h-4 text-gray-500" />
+                        </div>
+                        <div>
+                            <span className="text-gray-600">{lead.user?.full_name || "N/A"}</span>
+                            <div className="text-xs text-gray-400">{lead.user?.email}</div>
+                        </div>
                     </div>
-                    <div>
-                        <span className="text-gray-600">{lead.user?.full_name || "N/A"}</span>
-                        <div className="text-xs text-gray-400">{lead.user?.email}</div>
-                    </div>
-                </div>
-            ),
+                );
+            },
+            enableSorting: false,
         },
         {
-            key: "partner",
-            label: "Đối tác",
-            render: (lead: AdminServiceLead) => (
-                lead.partner ? (
+            id: "partner",
+            header: "Đối tác",
+            cell: ({ row }) => {
+                const lead = row.original;
+                return lead.partner ? (
                     <div className="flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-gray-400" />
                         <span className="text-gray-600">{lead.partner.name}</span>
                     </div>
                 ) : (
                     <span className="text-gray-400">Chưa gán</span>
-                )
-            ),
+                );
+            },
+            enableSorting: false,
         },
         {
-            key: "status",
-            label: "Trạng thái",
-            render: (lead: AdminServiceLead) => getStatusBadge(lead.status),
+            accessorKey: "status",
+            header: "Trạng thái",
+            cell: ({ row }) => getStatusBadge(row.original.status),
+            enableSorting: true,
         },
         {
-            key: "price",
-            label: "Giá ước tính",
-            render: (lead: AdminServiceLead) => (
+            accessorKey: "estimated_price",
+            header: "Giá ước tính",
+            cell: ({ row }) => (
                 <span className="font-medium">
-                    {lead.estimated_price ? `${lead.estimated_price.toLocaleString('vi-VN')}đ` : "-"}
+                    {row.original.estimated_price ? `${row.original.estimated_price.toLocaleString('vi-VN')}đ` : "-"}
                 </span>
             ),
+            enableSorting: true,
         },
         {
-            key: "createdAt",
-            label: "Ngày tạo",
-            render: (lead: AdminServiceLead) => (
+            accessorKey: "created_at",
+            header: "Ngày tạo",
+            cell: ({ row }) => (
                 <span className="text-gray-600 text-sm">
-                    {lead.created_at ? new Date(lead.created_at).toLocaleDateString('vi-VN') : "-"}
+                    {row.original.created_at ? new Date(row.original.created_at).toLocaleDateString('vi-VN') : "-"}
                 </span>
             ),
+            enableSorting: true,
         },
         {
-            key: "actions",
-            label: "Thao tác",
-            render: (lead: AdminServiceLead) => (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openDetailDialog(lead)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Xem chi tiết
-                        </DropdownMenuItem>
-                        {!lead.partner_id && lead.status === "submitted" && (
-                            <DropdownMenuItem onClick={() => openAssignDialog(lead)}>
-                                <Building2 className="h-4 w-4 mr-2" />
-                                Gán đối tác
+            id: "actions",
+            header: "Thao tác",
+            cell: ({ row }) => {
+                const lead = row.original;
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openDetailDialog(lead)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Xem chi tiết
                             </DropdownMenuItem>
-                        )}
-                        {lead.status === "assigned" && (
-                            <DropdownMenuItem onClick={() => handleConfirm(lead.id)}>
-                                <Check className="h-4 w-4 mr-2" />
-                                Xác nhận
-                            </DropdownMenuItem>
-                        )}
-                        {lead.status === "confirmed" && (
-                            <DropdownMenuItem onClick={() => handleComplete(lead.id)}>
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Hoàn thành
-                            </DropdownMenuItem>
-                        )}
-                        {lead.status !== "completed" && lead.status !== "cancelled" && lead.status !== "rejected" && (
-                            <>
-                                <DropdownMenuItem onClick={() => openRejectDialog(lead)} className="text-red-600">
-                                    <X className="h-4 w-4 mr-2" />
-                                    Từ chối
+                            {!lead.partner_id && lead.status === "submitted" && (
+                                <DropdownMenuItem onClick={() => openAssignDialog(lead)}>
+                                    <Building2 className="h-4 w-4 mr-2" />
+                                    Gán đối tác
                                 </DropdownMenuItem>
-                            </>
-                        )}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            ),
+                            )}
+                            {lead.status === "assigned" && (
+                                <DropdownMenuItem onClick={() => handleConfirm(lead.id)}>
+                                    <Check className="h-4 w-4 mr-2" />
+                                    Xác nhận
+                                </DropdownMenuItem>
+                            )}
+                            {lead.status === "confirmed" && (
+                                <DropdownMenuItem onClick={() => handleComplete(lead.id)}>
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Hoàn thành
+                                </DropdownMenuItem>
+                            )}
+                            {lead.status !== "completed" && lead.status !== "cancelled" && lead.status !== "rejected" && (
+                                <>
+                                    <DropdownMenuItem onClick={() => openRejectDialog(lead)} className="text-red-600">
+                                        <X className="h-4 w-4 mr-2" />
+                                        Từ chối
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                );
+            },
+            enableSorting: false,
         },
     ];
 

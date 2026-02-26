@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -121,100 +122,112 @@ export default function PartnersPage() {
     }
   };
 
-  const columns = [
+  const columns: ColumnDef<Partner>[] = [
     {
-      key: "partner",
-      label: "Đối tác",
-      render: (item: Partner) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
-            <Handshake className="w-5 h-5 text-gray-600" />
+      id: "partner",
+      header: "Đối tác",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+              <Handshake className="w-5 h-5 text-gray-600" />
+            </div>
+            <div>
+              <div className="font-medium">{item.name}</div>
+              <div className="text-sm text-gray-500">{getCategoryLabel(item.category)}</div>
+            </div>
           </div>
-          <div>
-            <div className="font-medium">{item.name}</div>
-            <div className="text-sm text-gray-500">{getCategoryLabel(item.category)}</div>
-          </div>
-        </div>
-      ),
+        );
+      },
+      enableSorting: false,
     },
     {
-      key: "discount",
-      label: "Ưu đãi",
-      render: (item: Partner) => (
-        <Badge className="bg-green-100 text-green-700">{item.discount || 'N/A'}</Badge>
+      accessorKey: "discount",
+      header: "Ưu đãi",
+      cell: ({ row }) => (
+        <Badge className="bg-green-100 text-green-700">{row.original.discount || 'N/A'}</Badge>
       ),
+      enableSorting: true,
     },
     {
-      key: "status",
-      label: "Trạng thái",
-      render: (item: Partner) => (
+      accessorKey: "status",
+      header: "Trạng thái",
+      cell: ({ row }) => (
         <Badge
           className={
-            item.status === "active"
+            row.original.status === "active"
               ? "bg-green-100 text-green-700"
               : "bg-gray-100 text-gray-700"
           }
         >
-          {item.status === "active" ? "Hoạt động" : "Ngừng"}
+          {row.original.status === "active" ? "Hoạt động" : "Ngừng"}
         </Badge>
       ),
+      enableSorting: true,
     },
     {
-      key: "views",
-      label: "Lượt xem",
-      render: (item: Partner) => (
-        <span className="text-gray-600">{(item.views || 0).toLocaleString('vi-VN')}</span>
+      accessorKey: "views",
+      header: "Lượt xem",
+      cell: ({ row }) => (
+        <span className="text-gray-600">{(row.original.views || 0).toLocaleString('vi-VN')}</span>
       ),
+      enableSorting: true,
     },
     {
-      key: "createdAt",
-      label: "Ngày tham gia",
-      render: (item: Partner) => (
+      accessorKey: "created_at",
+      header: "Ngày tham gia",
+      cell: ({ row }) => (
         <span className="text-gray-600 text-sm">
-          {item.created_at ? new Date(item.created_at).toLocaleDateString('vi-VN') : '-'}
+          {row.original.created_at ? new Date(row.original.created_at).toLocaleDateString('vi-VN') : '-'}
         </span>
       ),
+      enableSorting: true,
     },
     {
-      key: "actions",
-      label: "Thao tác",
-      render: (item: Partner) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => { setSelectedPartner(item); setShowDealsList(true); }}>
-              <Tag className="h-4 w-4 mr-2" />
-              Quản lý deals
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
-              <Eye className="h-4 w-4 mr-2" />
-              Xem chi tiết
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
-              <BarChart className="h-4 w-4 mr-2" />
-              Xem thống kê
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
-              <Edit className="h-4 w-4 mr-2" />
-              Chỉnh sửa
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleToggleStatus(item)}>
-              {item.status === "active" ? "Ngừng hoạt động" : "Kích hoạt"}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleDelete(item)}
-              className="text-red-600"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Xóa
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+      id: "actions",
+      header: "Thao tác",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => { setSelectedPartner(item); setShowDealsList(true); }}>
+                <Tag className="h-4 w-4 mr-2" />
+                Quản lý deals
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
+                <Eye className="h-4 w-4 mr-2" />
+                Xem chi tiết
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
+                <BarChart className="h-4 w-4 mr-2" />
+                Xem thống kê
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
+                <Edit className="h-4 w-4 mr-2" />
+                Chỉnh sửa
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleToggleStatus(item)}>
+                {item.status === "active" ? "Ngừng hoạt động" : "Kích hoạt"}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleDelete(item)}
+                className="text-red-600"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Xóa
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+      enableSorting: false,
     },
   ];
 

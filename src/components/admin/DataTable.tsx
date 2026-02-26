@@ -1,26 +1,47 @@
 import { useState } from "react";
+import type {
+  ColumnDef,
+  SortingState,
+  VisibilityState,
+} from "@tanstack/react-table";
+import {
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  Settings2,
+} from "lucide-react";
 
-interface Column<T> {
-  key: string;
-  label: string;
-  render?: (item: T) => React.ReactNode;
-}
-
-interface DataTableProps<T> {
-  data: T[];
-  columns: Column<T>[];
+interface DataTableProps<TData extends { id: string }> {
+  data: TData[];
+  columns: ColumnDef<TData, any>[];
   searchPlaceholder?: string;
   onSearch?: (term: string) => void;
   selectable?: boolean;
-  onSelectionChange?: (selected: T[]) => void;
+  onSelectionChange?: (selected: TData[]) => void;
   pageSize?: number;
+  enableSorting?: boolean;
+  enableColumnVisibility?: boolean;
 }
 
-export function DataTable<T extends { id: string }>({
+export function DataTable<TData extends { id: string }>({
   data,
   columns,
   searchPlaceholder = "Tìm kiếm...",
@@ -28,51 +49,57 @@ export function DataTable<T extends { id: string }>({
   selectable = false,
   onSelectionChange,
   pageSize = 10,
-}: DataTableProps<T>) {
-  const [currentPage, setCurrentPage] = useState(1);
+  enableSorting = true,
+  enableColumnVisibility = false,
+}: DataTableProps<TData>) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState({});
 
-  const totalPages = Math.ceil(data.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const currentData = data.slice(startIndex, endIndex);
+  const table = useReactTable({
+    data,
+    columns,
+    state: {
+      sorting,
+      columnVisibility,
+      rowSelection,
+    },
+    onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: (updater) => {
+      setRowSelection(updater);
+      // Call onSelectionChange callback when selection changes
+      if (onSelectionChange) {
+        const newSelection = typeof updater === 'function'
+          ? updater(rowSelection)
+          : updater;
+        const selectedIndices = Object.keys(newSelection);
+        const selected = selectedIndices
+          .map((index) => data[parseInt(index)])
+          .filter(Boolean);
+        onSelectionChange(selected);
+      }
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,
+    getPaginationRowModel: getPaginationRowModel(),
+    enableRowSelection: selectable,
+    initialState: {
+      pagination: { pageSize },
+    },
+  });
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1);
     onSearch?.(value);
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const allIds = new Set(currentData.map(item => item.id));
-      setSelectedIds(allIds);
-      onSelectionChange?.(currentData);
-    } else {
-      setSelectedIds(new Set());
-      onSelectionChange?.([]);
-    }
-  };
-
-  const handleSelectRow = (item: T, checked: boolean) => {
-    const newSelected = new Set(selectedIds);
-    if (checked) {
-      newSelected.add(item.id);
-    } else {
-      newSelected.delete(item.id);
-    }
-    setSelectedIds(newSelected);
-    onSelectionChange?.(data.filter(d => newSelected.has(d.id)));
-  };
-
-  const allSelected = currentData.length > 0 && currentData.every(item => selectedIds.has(item.id));
-  const someSelected = currentData.some(item => selectedIds.has(item.id)) && !allSelected;
-
   return (
     <div className="space-y-4">
-      {/* Search */}
+      {/* Toolbar */}
       <div className="flex items-center gap-4">
+        {/* Search */}
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
@@ -82,9 +109,37 @@ export function DataTable<T extends { id: string }>({
             className="pl-10"
           />
         </div>
-        {selectedIds.size > 0 && (
+
+        {/* Column Visibility */}
+        {enableColumnVisibility && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Settings2 className="h-4 w-4 mr-2" />
+                Hiển thị cột
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {table
+                .getAllColumns()
+                .filter((col) => col.getCanHide())
+                .map((col) => (
+                  <DropdownMenuCheckboxItem
+                    key={col.id}
+                    checked={col.getIsVisible()}
+                    onCheckedChange={(value) => col.toggleVisibility(!!value)}
+                  >
+                    {col.id}
+                  </DropdownMenuCheckboxItem>
+                ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {/* Selection count */}
+        {selectable && table.getSelectedRowModel().rows.length > 0 && (
           <div className="text-sm text-gray-600">
-            Đã chọn {selectedIds.size} mục
+            Đã chọn {table.getSelectedRowModel().rows.length} mục
           </div>
         )}
       </div>
@@ -94,30 +149,48 @@ export function DataTable<T extends { id: string }>({
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50/50">
-              <tr>
-                {selectable && (
-                  <th className="w-12 px-6 py-4">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </th>
-                )}
-                {columns.map((column) => (
-                  <th
-                    key={column.key}
-                    className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider"
-                  >
-                    {column.label}
-                  </th>
-                ))}
-              </tr>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider"
+                      onClick={
+                        header.column.getCanSort()
+                          ? header.column.getToggleSortingHandler()
+                          : undefined
+                      }
+                      style={{
+                        cursor: header.column.getCanSort() ? "pointer" : "default",
+                      }}
+                    >
+                      <div className="flex items-center gap-1">
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                        {/* Sort indicators */}
+                        {header.column.getIsSorted() === "asc" && (
+                          <ArrowUp className="h-3 w-3" />
+                        )}
+                        {header.column.getIsSorted() === "desc" && (
+                          <ArrowDown className="h-3 w-3" />
+                        )}
+                        {header.column.getCanSort() &&
+                          !header.column.getIsSorted() && (
+                            <ArrowUpDown className="h-3 w-3 opacity-30" />
+                          )}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              ))}
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {currentData.length === 0 ? (
+              {table.getRowModel().rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={columns.length + (selectable ? 1 : 0)}
+                    colSpan={columns.length}
                     className="text-center py-12 text-muted-foreground"
                   >
                     <div className="flex flex-col items-center gap-2">
@@ -127,22 +200,20 @@ export function DataTable<T extends { id: string }>({
                   </td>
                 </tr>
               ) : (
-                currentData.map((item) => (
+                table.getRowModel().rows.map((row) => (
                   <tr
-                    key={item.id}
+                    key={row.id}
                     className="hover:bg-gray-50/80 transition-colors group"
                   >
-                    {selectable && (
-                      <td className="px-6 py-4">
-                        <Checkbox
-                          checked={selectedIds.has(item.id)}
-                          onCheckedChange={(checked) => handleSelectRow(item, checked as boolean)}
-                        />
-                      </td>
-                    )}
-                    {columns.map((column) => (
-                      <td key={column.key} className="px-6 py-4 text-sm text-gray-700">
-                        {column.render ? column.render(item) : (item as any)[column.key]}
+                    {row.getVisibleCells().map((cell) => (
+                      <td
+                        key={cell.id}
+                        className="px-6 py-4 text-sm text-gray-700"
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -154,32 +225,37 @@ export function DataTable<T extends { id: string }>({
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {table.getPageCount() > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            Hiển thị {startIndex + 1} - {Math.min(endIndex, data.length)} của {data.length} mục
+            Hiển thị{" "}
+            {table.getState().pagination.pageIndex * pageSize + 1} -{" "}
+            {Math.min(
+              (table.getState().pagination.pageIndex + 1) * pageSize,
+              data.length
+            )}{" "}
+            của {data.length} mục
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
             >
-              <ChevronLeft className="h-4 w-4" />
-              Trước
+              <ChevronLeft className="h-4 w-4" /> Trước
             </Button>
             <div className="text-sm text-gray-600">
-              Trang {currentPage} / {totalPages}
+              Trang {table.getState().pagination.pageIndex + 1} /{" "}
+              {table.getPageCount()}
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
             >
-              Sau
-              <ChevronRight className="h-4 w-4" />
+              Sau <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -187,5 +263,3 @@ export function DataTable<T extends { id: string }>({
     </div>
   );
 }
-
-

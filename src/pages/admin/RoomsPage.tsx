@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { Button } from "@/components/ui/button";
@@ -117,122 +118,150 @@ export default function RoomsPage() {
     }
   };
 
-  const columns = [
+  const columns: ColumnDef<AdminRoom>[] = [
     {
-      key: "room",
-      label: "Phòng",
-      render: (room: AdminRoom) => (
-        <div className="flex items-center gap-3">
-          <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-            <ImageWithFallback
-              src={room.images?.[0]?.image_url || ""}
-              alt={room.title}
-              className="w-full h-full object-cover"
-            />
+      accessorKey: "title",
+      header: "Phòng",
+      cell: ({ row }) => {
+        const room = row.original;
+        return (
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+              <ImageWithFallback
+                src={room.images?.[0]?.image_url || ""}
+                alt={room.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div>
+              <div className="font-medium">{room.title}</div>
+              <div className="text-sm text-gray-500">{room.district}, {room.city}</div>
+            </div>
           </div>
+        );
+      },
+      enableSorting: true,
+    },
+    {
+      accessorKey: "price_per_month",
+      header: "Giá",
+      cell: ({ row }) => {
+        const room = row.original;
+        return (
+          <span className="font-medium">
+            {room.price_per_month ? `${(Number(room.price_per_month) / 1000000).toFixed(1)}tr/tháng` : "-"}
+          </span>
+        );
+      },
+      enableSorting: true,
+    },
+    {
+      id: "owner",
+      header: "Chủ nhà",
+      cell: ({ row }) => {
+        const room = row.original;
+        return (
           <div>
-            <div className="font-medium">{room.title}</div>
-            <div className="text-sm text-gray-500">{room.district}, {room.city}</div>
+            <span className="text-gray-600">{room.landlord?.full_name || "N/A"}</span>
+            <div className="text-xs text-gray-400">{room.landlord?.email}</div>
           </div>
-        </div>
-      ),
+        );
+      },
+      enableSorting: false,
     },
     {
-      key: "price",
-      label: "Giá",
-      render: (room: AdminRoom) => (
-        <span className="font-medium">
-          {room.price_per_month ? `${(Number(room.price_per_month) / 1000000).toFixed(1)}tr/tháng` : "-"}
-        </span>
-      ),
+      accessorKey: "status",
+      header: "Trạng thái",
+      cell: ({ row }) => {
+        const room = row.original;
+        return (
+          <div className="flex items-center gap-2">
+            {getStatusBadge(room.status)}
+            {room.is_verified && (
+              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+            )}
+          </div>
+        );
+      },
+      enableSorting: true,
     },
     {
-      key: "owner",
-      label: "Chủ nhà",
-      render: (room: AdminRoom) => (
-        <div>
-          <span className="text-gray-600">{room.landlord?.full_name || "N/A"}</span>
-          <div className="text-xs text-gray-400">{room.landlord?.email}</div>
-        </div>
-      ),
+      id: "stats",
+      header: "Thống kê",
+      cell: ({ row }) => {
+        const room = row.original;
+        return (
+          <div className="text-sm text-gray-500">
+            <div>{room.view_count || 0} lượt xem</div>
+            <div>{room.favorite_count || 0} yêu thích</div>
+          </div>
+        );
+      },
+      enableSorting: false,
     },
     {
-      key: "status",
-      label: "Trạng thái",
-      render: (room: AdminRoom) => (
-        <div className="flex items-center gap-2">
-          {getStatusBadge(room.status)}
-          {room.is_verified && (
-            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-          )}
-        </div>
-      ),
+      accessorKey: "created_at",
+      header: "Ngày đăng",
+      cell: ({ row }) => {
+        const room = row.original;
+        return (
+          <span className="text-gray-600 text-sm">
+            {room.created_at ? new Date(room.created_at).toLocaleDateString('vi-VN') : "-"}
+          </span>
+        );
+      },
+      enableSorting: true,
     },
     {
-      key: "stats",
-      label: "Thống kê",
-      render: (room: AdminRoom) => (
-        <div className="text-sm text-gray-500">
-          <div>{room.view_count || 0} lượt xem</div>
-          <div>{room.favorite_count || 0} yêu thích</div>
-        </div>
-      ),
-    },
-    {
-      key: "postedDate",
-      label: "Ngày đăng",
-      render: (room: AdminRoom) => (
-        <span className="text-gray-600 text-sm">
-          {room.created_at ? new Date(room.created_at).toLocaleDateString('vi-VN') : "-"}
-        </span>
-      ),
-    },
-    {
-      key: "actions",
-      label: "Thao tác",
-      render: (room: AdminRoom) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => navigate(`/room/${room.id}`)}
-              onMouseEnter={() => handlePrefetchRoom(room.id)}
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Xem chi tiết
-            </DropdownMenuItem>
-            {room.status === "pending" && (
-              <>
+      id: "actions",
+      header: "Thao tác",
+      cell: ({ row }) => {
+        const room = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => navigate(`/room/${room.id}`)}
+                onMouseEnter={() => handlePrefetchRoom(room.id)}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Xem chi tiết
+              </DropdownMenuItem>
+              {room.status === "pending" && (
+                <>
+                  <DropdownMenuItem onClick={() => handleApprove(room.id)}>
+                    <Check className="h-4 w-4 mr-2" />
+                    Phê duyệt
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openRejectDialog(room)}>
+                    <X className="h-4 w-4 mr-2" />
+                    Từ chối
+                  </DropdownMenuItem>
+                </>
+              )}
+              {room.status === "inactive" && (
                 <DropdownMenuItem onClick={() => handleApprove(room.id)}>
                   <Check className="h-4 w-4 mr-2" />
-                  Phê duyệt
+                  Kích hoạt lại
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openRejectDialog(room)}>
-                  <X className="h-4 w-4 mr-2" />
-                  Từ chối
-                </DropdownMenuItem>
-              </>
-            )}
-            {room.status === "inactive" && (
-              <DropdownMenuItem onClick={() => handleApprove(room.id)}>
-                <Check className="h-4 w-4 mr-2" />
-                Kích hoạt lại
+              )}
+              <DropdownMenuItem
+                onClick={() => handleDelete(room.id)}
+                className="text-red-600"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Xóa
               </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              onClick={() => handleDelete(room.id)}
-              className="text-red-600"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Xóa
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+      enableSorting: false,
     },
   ];
 

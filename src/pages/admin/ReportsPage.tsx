@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,95 +65,105 @@ export default function ReportsPage() {
     }
   };
 
-  const columns = [
+  const columns: ColumnDef<Report>[] = [
     {
-      key: "reporter",
-      label: "Người báo cáo",
-      render: (item: Report) => (
-        <span className="font-medium">{item.reporter?.full_name || "N/A"}</span>
+      id: "reporter",
+      header: "Người báo cáo",
+      cell: ({ row }) => (
+        <span className="font-medium">{row.original.reporter?.full_name || "N/A"}</span>
       ),
+      enableSorting: false,
     },
     {
-      key: "reported",
-      label: "Bị báo cáo",
-      render: (item: Report) => (
+      id: "reported",
+      header: "Bị báo cáo",
+      cell: ({ row }) => (
         <div>
-          <div className="font-medium">{item.reported_name || item.reported_id.slice(0, 8)}</div>
+          <div className="font-medium">{row.original.reported_name || row.original.reported_id.slice(0, 8)}</div>
           <Badge variant="outline" className="text-xs mt-1">
-            {item.reported_type === "user" ? "Người dùng" : "Phòng"}
+            {row.original.reported_type === "user" ? "Người dùng" : "Phòng"}
           </Badge>
         </div>
       ),
+      enableSorting: false,
     },
     {
-      key: "type",
-      label: "Loại vi phạm",
-      render: (item: Report) => (
-        <Badge variant="outline">{getTypeLabel(item.type)}</Badge>
+      accessorKey: "type",
+      header: "Loại vi phạm",
+      cell: ({ row }) => (
+        <Badge variant="outline">{getTypeLabel(row.original.type)}</Badge>
       ),
+      enableSorting: true,
     },
     {
-      key: "priority",
-      label: "Ưu tiên",
-      render: (item: Report) => (
+      accessorKey: "priority",
+      header: "Ưu tiên",
+      cell: ({ row }) => (
         <Badge
           className={
-            item.priority === "high" ? "bg-red-100 text-red-700" :
-              item.priority === "medium" ? "bg-orange-100 text-orange-700" :
+            row.original.priority === "high" ? "bg-red-100 text-red-700" :
+              row.original.priority === "medium" ? "bg-orange-100 text-orange-700" :
                 "bg-blue-100 text-blue-700"
           }
         >
-          {item.priority === "high" ? "Cao" :
-            item.priority === "medium" ? "Trung bình" : "Thấp"}
+          {row.original.priority === "high" ? "Cao" :
+            row.original.priority === "medium" ? "Trung bình" : "Thấp"}
         </Badge>
       ),
+      enableSorting: true,
     },
     {
-      key: "status",
-      label: "Trạng thái",
-      render: (item: Report) => (
+      accessorKey: "status",
+      header: "Trạng thái",
+      cell: ({ row }) => (
         <Badge
           className={
-            item.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-              item.status === "investigating" ? "bg-blue-100 text-blue-700" :
-                item.status === "resolved" ? "bg-green-100 text-green-700" :
+            row.original.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+              row.original.status === "investigating" ? "bg-blue-100 text-blue-700" :
+                row.original.status === "resolved" ? "bg-green-100 text-green-700" :
                   "bg-gray-100 text-gray-700"
           }
         >
-          {item.status === "pending" ? "Chờ xử lý" :
-            item.status === "investigating" ? "Đang điều tra" :
-              item.status === "resolved" ? "Đã giải quyết" : "Đã bỏ qua"}
+          {row.original.status === "pending" ? "Chờ xử lý" :
+            row.original.status === "investigating" ? "Đang điều tra" :
+              row.original.status === "resolved" ? "Đã giải quyết" : "Đã bỏ qua"}
         </Badge>
       ),
+      enableSorting: true,
     },
     {
-      key: "date",
-      label: "Ngày báo cáo",
-      render: (item: Report) => (
+      accessorKey: "created_at",
+      header: "Ngày báo cáo",
+      cell: ({ row }) => (
         <span className="text-gray-600 text-sm">
-          {new Date(item.created_at).toLocaleDateString('vi-VN')}
+          {new Date(row.original.created_at).toLocaleDateString('vi-VN')}
         </span>
       ),
+      enableSorting: true,
     },
     {
-      key: "actions",
-      label: "Thao tác",
-      render: (item: Report) => (
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setSelectedReport(item)}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
-          {item.status === "pending" && (
-            <Button size="sm" onClick={() => handleInvestigate(item.id)}>
-              Điều tra
+      id: "actions",
+      header: "Thao tác",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedReport(item)}
+            >
+              <Eye className="h-4 w-4" />
             </Button>
-          )}
-        </div>
-      ),
+            {item.status === "pending" && (
+              <Button size="sm" onClick={() => handleInvestigate(item.id)}>
+                Điều tra
+              </Button>
+            )}
+          </div>
+        );
+      },
+      enableSorting: false,
     },
   ];
 

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { Button } from "@/components/ui/button";
@@ -128,110 +129,126 @@ export default function UsersPage() {
     }
   };
 
-  const columns = [
+  const columns: ColumnDef<AdminUser>[] = [
     {
-      key: "user",
-      label: "Người dùng",
-      render: (user: AdminUser) => (
-        <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarImage src={user.avatar_url || undefined} />
-            <AvatarFallback className="bg-primary/10 text-primary">
-              {user.full_name?.charAt(0) || "U"}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="font-medium">{user.full_name || "Chưa cập nhật"}</div>
-            <div className="text-sm text-gray-500">{user.email}</div>
+      id: "user",
+      header: "Người dùng",
+      cell: ({ row }) => {
+        const user = row.original;
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar>
+              <AvatarImage src={user.avatar_url || undefined} />
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {user.full_name?.charAt(0) || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="font-medium">{user.full_name || "Chưa cập nhật"}</div>
+              <div className="text-sm text-gray-500">{user.email}</div>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
+      enableSorting: false,
     },
     {
-      key: "role",
-      label: "Vai trò",
-      render: (user: AdminUser) => getRoleBadge(user.role),
+      accessorKey: "role",
+      header: "Vai trò",
+      cell: ({ row }) => getRoleBadge(row.original.role),
+      enableSorting: true,
     },
     {
-      key: "status",
-      label: "Trạng thái",
-      render: (user: AdminUser) => getStatusBadge(user.account_status),
+      accessorKey: "account_status",
+      header: "Trạng thái",
+      cell: ({ row }) => getStatusBadge(row.original.account_status),
+      enableSorting: true,
     },
     {
-      key: "info",
-      label: "Thông tin",
-      render: (user: AdminUser) => (
-        <div className="text-sm text-gray-500">
-          {user.university && <div>{user.university}</div>}
-          {user.phone && <div>{user.phone}</div>}
-        </div>
-      ),
+      id: "info",
+      header: "Thông tin",
+      cell: ({ row }) => {
+        const user = row.original;
+        return (
+          <div className="text-sm text-gray-500">
+            {user.university && <div>{user.university}</div>}
+            {user.phone && <div>{user.phone}</div>}
+          </div>
+        );
+      },
+      enableSorting: false,
     },
     {
-      key: "joinDate",
-      label: "Ngày tham gia",
-      render: (user: AdminUser) => (
+      accessorKey: "created_at",
+      header: "Ngày tham gia",
+      cell: ({ row }) => (
         <span className="text-gray-600">
-          {user.created_at ? new Date(user.created_at).toLocaleDateString('vi-VN') : "-"}
+          {row.original.created_at ? new Date(row.original.created_at).toLocaleDateString('vi-VN') : "-"}
         </span>
       ),
+      enableSorting: true,
     },
     {
-      key: "lastLogin",
-      label: "Đăng nhập cuối",
-      render: (user: AdminUser) => (
+      accessorKey: "last_login_at",
+      header: "Đăng nhập cuối",
+      cell: ({ row }) => (
         <span className="text-gray-600 text-sm">
-          {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString('vi-VN') : "Chưa đăng nhập"}
+          {row.original.last_login_at ? new Date(row.original.last_login_at).toLocaleDateString('vi-VN') : "Chưa đăng nhập"}
         </span>
       ),
+      enableSorting: true,
     },
     {
-      key: "actions",
-      label: "Thao tác",
-      render: (user: AdminUser) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
-              <Eye className="h-4 w-4 mr-2" />
-              Xem chi tiết
-            </DropdownMenuItem>
-            {user.account_status === "pending_landlord" ? (
-              <>
-                <DropdownMenuItem onClick={() => handleApproveLandlord(user.id)}>
-                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                  Duyệt làm chủ trọ
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openRejectLandlordDialog(user)}>
-                  <XCircle className="h-4 w-4 mr-2 text-red-600" />
-                  Từ chối đăng ký
-                </DropdownMenuItem>
-              </>
-            ) : user.account_status === "suspended" ? (
-              <DropdownMenuItem onClick={() => handleActivate(user.id)}>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Kích hoạt
+      id: "actions",
+      header: "Thao tác",
+      cell: ({ row }) => {
+        const user = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
+                <Eye className="h-4 w-4 mr-2" />
+                Xem chi tiết
               </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onClick={() => handleSuspend(user.id)}>
-                <Ban className="h-4 w-4 mr-2" />
-                Đình chỉ
+              {user.account_status === "pending_landlord" ? (
+                <>
+                  <DropdownMenuItem onClick={() => handleApproveLandlord(user.id)}>
+                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                    Duyệt làm chủ trọ
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openRejectLandlordDialog(user)}>
+                    <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                    Từ chối đăng ký
+                  </DropdownMenuItem>
+                </>
+              ) : user.account_status === "suspended" ? (
+                <DropdownMenuItem onClick={() => handleActivate(user.id)}>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Kích hoạt
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => handleSuspend(user.id)}>
+                  <Ban className="h-4 w-4 mr-2" />
+                  Đình chỉ
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                onClick={() => handleDelete(user.id)}
+                className="text-red-600"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Xóa
               </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              onClick={() => handleDelete(user.id)}
-              className="text-red-600"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Xóa
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+      enableSorting: false,
     },
   ];
 

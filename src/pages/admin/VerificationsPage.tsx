@@ -4,7 +4,7 @@
  * Uses real Supabase data + signed URLs for secure image viewing
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { ShieldCheck, Clock, CheckCircle, XCircle, Eye, Loader2 } from 'lucide-react';
+import { ShieldCheck, Clock, CheckCircle, XCircle, Eye, Loader2, Download, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePendingVerifications, useReviewVerification } from '@/hooks/useVerification';
 import { getSignedImageUrl, type VerificationRequest, type VerificationStatus } from '@/services/verification';
@@ -32,6 +32,18 @@ export default function VerificationsPage() {
   const [loadingImages, setLoadingImages] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+
+  // Handle Escape key for fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && fullscreenImage) {
+        setFullscreenImage(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [fullscreenImage]);
 
   const statusFilter = tab === 'all' ? undefined : tab;
   const { data: verifications = [], isLoading } = usePendingVerifications(statusFilter);
@@ -112,6 +124,10 @@ export default function VerificationsPage() {
       {/* Tabs */}
       <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
         <TabsList>
+          <TabsTrigger value="all">
+            <ShieldCheck className="w-4 h-4 mr-2" />
+            Tất cả
+          </TabsTrigger>
           <TabsTrigger value="pending">
             <Clock className="w-4 h-4 mr-2" />
             Chờ duyệt {pendingCount > 0 && `(${pendingCount})`}
@@ -227,7 +243,12 @@ export default function VerificationsPage() {
                   <p className="text-xs text-gray-500 p-2 bg-gray-50">Mặt trước</p>
                   {frontImageUrl ? (
                     <div className="relative">
-                      <img src={frontImageUrl} alt="Mặt trước CCCD" className="w-full h-56 object-contain bg-white" />
+                      <img
+                        src={frontImageUrl}
+                        alt="Mặt trước CCCD"
+                        className="w-full h-56 object-contain bg-white cursor-zoom-in hover:opacity-90 transition-opacity"
+                        onClick={() => setFullscreenImage(frontImageUrl)}
+                      />
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
                         <span className="text-red-500/20 font-bold text-2xl rotate-[-30deg] whitespace-nowrap">
                           ROOMZ VERIFICATION ONLY
@@ -244,7 +265,12 @@ export default function VerificationsPage() {
                   <p className="text-xs text-gray-500 p-2 bg-gray-50">Mặt sau</p>
                   {backImageUrl ? (
                     <div className="relative">
-                      <img src={backImageUrl} alt="Mặt sau CCCD" className="w-full h-56 object-contain bg-white" />
+                      <img
+                        src={backImageUrl}
+                        alt="Mặt sau CCCD"
+                        className="w-full h-56 object-contain bg-white cursor-zoom-in hover:opacity-90 transition-opacity"
+                        onClick={() => setFullscreenImage(backImageUrl)}
+                      />
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
                         <span className="text-red-500/20 font-bold text-2xl rotate-[-30deg] whitespace-nowrap">
                           ROOMZ VERIFICATION ONLY
@@ -329,6 +355,63 @@ export default function VerificationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Fullscreen Image Lightbox */}
+      {fullscreenImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+          onClick={() => setFullscreenImage(null)}
+        >
+          {/* Controls - top right */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Download image
+                const a = document.createElement('a');
+                a.href = fullscreenImage;
+                a.download = `cccd_${Date.now()}.jpg`;
+                a.target = '_blank';
+                a.click();
+              }}
+            >
+              <Download className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                setFullscreenImage(null);
+              }}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          {/* Watermark */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+            <span className="text-red-500/15 font-bold text-4xl rotate-[-30deg] whitespace-nowrap">
+              ROOMZ VERIFICATION ONLY
+            </span>
+          </div>
+          {/* Image */}
+          <img
+            src={fullscreenImage}
+            alt="CCCD Fullscreen"
+            className="max-w-[95vw] max-h-[90vh] object-contain select-none"
+            onClick={(e) => e.stopPropagation()}
+            style={{ touchAction: 'pinch-zoom' }}
+          />
+          {/* Hint text */}
+          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm">
+            Click bên ngoài hoặc nhấn ✕ để đóng
+          </p>
+        </div>
+      )}
     </div>
   );
 }
