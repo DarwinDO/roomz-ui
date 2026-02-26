@@ -35,6 +35,73 @@ const navItems = [
   { path: "/admin/service-leads", label: "Dịch vụ", icon: ClipboardList },
 ];
 
+// Sidebar navigation component
+function SidebarNav({
+  currentPath,
+  onItemClick,
+}: {
+  currentPath: string;
+  onItemClick?: () => void;
+}) {
+  return (
+    <nav className="flex-1 space-y-1 px-3 py-4">
+      {navItems.map((item) => {
+        const Icon = item.icon;
+        const isActive = currentPath === item.path;
+        return (
+          <Link
+            key={item.path}
+            to={item.path}
+            onClick={onItemClick}
+            className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${isActive
+              ? "bg-primary text-white"
+              : "text-gray-300 hover:bg-gray-700/50 hover:text-white"
+              }`}
+          >
+            <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+// Sidebar user info component
+function SidebarUserInfo({
+  profile,
+  email,
+  onLogout,
+}: {
+  profile: { full_name?: string } | null;
+  email?: string;
+  onLogout: () => void;
+}) {
+  return (
+    <div className="flex flex-shrink-0 border-t border-gray-700/50 p-4">
+      <div className="flex items-center w-full">
+        <Avatar className="h-10 w-10">
+          <AvatarFallback className="bg-primary text-white">
+            {profile?.full_name?.charAt(0) || "A"}
+          </AvatarFallback>
+        </Avatar>
+        <div className="ml-3 flex-1">
+          <p className="text-sm font-medium text-white">{profile?.full_name || "Admin"}</p>
+          <p className="text-xs text-gray-400">{email || ""}</p>
+        </div>
+        <Button
+          onClick={onLogout}
+          variant="ghost"
+          size="icon"
+          className="text-gray-400 hover:text-white hover:bg-gray-700/50"
+        >
+          <LogOut className="h-5 w-5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -67,49 +134,11 @@ export default function AdminShell() {
 
           {/* Navigation */}
           <div className="flex flex-1 flex-col overflow-y-auto">
-            <nav className="flex-1 space-y-1 px-3 py-4">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${isActive
-                      ? "bg-primary text-white"
-                      : "text-gray-300 hover:bg-gray-700/50 hover:text-white"
-                      }`}
-                  >
-                    <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
+            <SidebarNav currentPath={location.pathname} />
           </div>
 
           {/* Admin User Info - Desktop */}
-          <div className="flex flex-shrink-0 border-t border-gray-700/50 p-4">
-            <div className="flex items-center w-full">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-primary text-white">
-                  {profile?.full_name?.charAt(0) || "A"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="ml-3 flex-1">
-                <p className="text-sm font-medium text-white">{profile?.full_name || "Admin"}</p>
-                <p className="text-xs text-gray-400">{user?.email || ""}</p>
-              </div>
-              <Button
-                onClick={handleLogout}
-                variant="ghost"
-                size="icon"
-                className="text-gray-400 hover:text-white hover:bg-gray-700/50"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
+          <SidebarUserInfo profile={profile} email={user?.email} onLogout={handleLogout} />
         </div>
       </aside>
 
@@ -136,48 +165,9 @@ export default function AdminShell() {
               </Button>
             </div>
 
-            <nav className="flex-1 space-y-1 px-3 py-4">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${isActive
-                      ? "bg-primary text-white"
-                      : "text-gray-300 hover:bg-gray-700/50 hover:text-white"
-                      }`}
-                  >
-                    <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
+            <SidebarNav currentPath={location.pathname} onItemClick={() => setSidebarOpen(false)} />
 
-            <div className="flex flex-shrink-0 border-t border-gray-700/50 p-4">
-              <div className="flex items-center w-full">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-primary text-white">
-                    {profile?.full_name?.charAt(0) || "A"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="ml-3 flex-1">
-                  <p className="text-sm font-medium text-white">{profile?.full_name || "Admin"}</p>
-                  <p className="text-xs text-gray-400">{user?.email || ""}</p>
-                </div>
-                <Button
-                  onClick={handleLogout}
-                  variant="ghost"
-                  size="icon"
-                  className="text-gray-400 hover:text-white hover:bg-gray-700/50"
-                >
-                  <LogOut className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
+            <SidebarUserInfo profile={profile} email={user?.email} onLogout={handleLogout} />
           </aside>
         </>
       )}

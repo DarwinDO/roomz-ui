@@ -14,6 +14,7 @@ import {
 import { Handshake, Plus, MoreVertical, Eye, Edit, Trash2, BarChart, Loader2, Tag, X } from "lucide-react";
 import { usePartners, useTogglePartnerStatus, useDeletePartner } from "@/hooks/usePartners";
 import { useDeals, useCreateDeal, useDeleteDeal, useToggleDealActive } from "@/hooks/useDeals";
+import { useConfirm } from "@/hooks/useConfirm";
 import { toast } from "sonner";
 import type { Partner } from "@/services/partners";
 import type { Deal } from "@/services/deals";
@@ -43,6 +44,9 @@ export default function PartnersPage() {
     { enabled: !!selectedPartner }
   );
 
+  // Confirmation dialog
+  const { confirm, ConfirmDialog } = useConfirm();
+
   const filteredPartners = partners.filter(partner =>
     partner.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -57,9 +61,13 @@ export default function PartnersPage() {
   };
 
   const handleDelete = async (partner: Partner) => {
-    if (!confirm(`Bạn có chắc muốn xóa đối tác "${partner.name}"? Tất cả deals và vouchers liên quan cũng sẽ bị xóa.`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Xóa đối tác',
+      description: `Bạn có chắc muốn xóa đối tác "${partner.name}"? Tất cả deals và vouchers liên quan cũng sẽ bị xóa.`,
+      confirmText: 'Xóa',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     try {
       await deletePartner.mutateAsync(partner.id);
       toast.success('Đã xóa đối tác');
@@ -100,9 +108,13 @@ export default function PartnersPage() {
   };
 
   const handleDeleteDeal = async (deal: Deal) => {
-    if (!confirm(`Bạn có chắc muốn xóa deal "${deal.title}"?`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Xóa deal',
+      description: `Bạn có chắc muốn xóa deal "${deal.title}"?`,
+      confirmText: 'Xóa',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     try {
       await deleteDeal.mutateAsync(deal.id);
       toast.success('Đã xóa deal');
@@ -411,6 +423,9 @@ export default function PartnersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog />
     </div>
   );
 }
