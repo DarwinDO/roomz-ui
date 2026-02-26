@@ -1,232 +1,241 @@
 /**
- * Admin Hooks
- * React hooks for admin dashboard data management
+ * TanStack Query Hooks for Admin Dashboard
+ * Migrated from manual useState/useEffect to React Query
  */
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import * as adminService from '@/services/admin';
+import type { AdminRoom, AdminUser, AdminStats } from '@/services/admin';
 
-import { useState, useEffect, useCallback } from 'react';
-import {
-    getAdminRooms,
-    getAdminUsers,
-    getAdminStats,
-    approveRoom,
-    rejectRoom,
-    deleteRoom as deleteRoomApi,
-    updateUserStatus,
-    deleteUser as deleteUserApi,
-    approveLandlordApplication,
-    rejectLandlordApplication,
-    type AdminRoom,
-    type AdminUser,
-    type AdminStats,
-} from '@/services/admin';
-
-interface UseAdminRoomsReturn {
-    rooms: AdminRoom[];
-    loading: boolean;
-    error: string | null;
-    stats: {
-        total: number;
-        active: number;
-        pending: number;
-        verified: number;
-    };
-    approveRoom: (id: string) => Promise<void>;
-    rejectRoom: (id: string, reason?: string) => Promise<void>;
-    deleteRoom: (id: string) => Promise<void>;
-    refetch: () => Promise<void>;
-}
-
-interface UseAdminUsersReturn {
-    users: AdminUser[];
-    loading: boolean;
-    error: string | null;
-    stats: {
-        total: number;
-        active: number;
-        suspended: number;
-        verified: number;
-        pendingLandlords: number;
-    };
-    suspendUser: (id: string) => Promise<void>;
-    activateUser: (id: string) => Promise<void>;
-    deleteUser: (id: string) => Promise<void>;
-    approveLandlord: (id: string) => Promise<void>;
-    rejectLandlord: (id: string, reason?: string) => Promise<void>;
-    refetch: () => Promise<void>;
-}
+// Query key factory
+export const adminKeys = {
+    all: ['admin'] as const,
+    stats: () => [...adminKeys.all, 'stats'] as const,
+    rooms: {
+        all: () => [...adminKeys.all, 'rooms'] as const,
+        list: () => [...adminKeys.rooms.all(), 'list'] as const,
+        detail: (id: string) => [...adminKeys.rooms.all(), 'detail', id] as const,
+    },
+    users: {
+        all: () => [...adminKeys.all, 'users'] as const,
+        list: () => [...adminKeys.users.all(), 'list'] as const,
+        detail: (id: string) => [...adminKeys.users.all(), 'detail', id] as const,
+    },
+};
 
 /**
- * Hook to manage admin rooms
- */
-export function useAdminRooms(): UseAdminRoomsReturn {
-    const [rooms, setRooms] = useState<AdminRoom[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    const fetchRooms = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await getAdminRooms();
-            setRooms(data);
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to fetch rooms';
-            setError(message);
-            console.error('Error fetching admin rooms:', err);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchRooms();
-    }, [fetchRooms]);
-
-    const handleApproveRoom = useCallback(async (id: string) => {
-        await approveRoom(id);
-        setRooms(prev => prev.map(r =>
-            r.id === id ? { ...r, status: 'active' as const, is_verified: true } : r
-        ));
-    }, []);
-
-    const handleRejectRoom = useCallback(async (id: string, reason?: string) => {
-        await rejectRoom(id, reason);
-        setRooms(prev => prev.map(r =>
-            r.id === id ? { ...r, status: 'inactive' as const, is_verified: false } : r
-        ));
-    }, []);
-
-    const handleDeleteRoom = useCallback(async (id: string) => {
-        await deleteRoomApi(id);
-        setRooms(prev => prev.filter(r => r.id !== id));
-    }, []);
-
-    const stats = {
-        total: rooms.length,
-        active: rooms.filter(r => r.status === 'active').length,
-        pending: rooms.filter(r => r.status === 'pending').length,
-        verified: rooms.filter(r => r.is_verified).length,
-    };
-
-    return {
-        rooms,
-        loading,
-        error,
-        stats,
-        approveRoom: handleApproveRoom,
-        rejectRoom: handleRejectRoom,
-        deleteRoom: handleDeleteRoom,
-        refetch: fetchRooms,
-    };
-}
-
-/**
- * Hook to manage admin users
- */
-export function useAdminUsers(): UseAdminUsersReturn {
-    const [users, setUsers] = useState<AdminUser[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    const fetchUsers = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await getAdminUsers();
-            setUsers(data);
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to fetch users';
-            setError(message);
-            console.error('Error fetching admin users:', err);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchUsers();
-    }, [fetchUsers]);
-
-    const handleSuspendUser = useCallback(async (id: string) => {
-        await updateUserStatus(id, 'suspended');
-        setUsers(prev => prev.map(u =>
-            u.id === id ? { ...u, account_status: 'suspended' as const } : u
-        ));
-    }, []);
-
-    const handleActivateUser = useCallback(async (id: string) => {
-        await updateUserStatus(id, 'active');
-        setUsers(prev => prev.map(u =>
-            u.id === id ? { ...u, account_status: 'active' as const } : u
-        ));
-    }, []);
-
-    const handleDeleteUser = useCallback(async (id: string) => {
-        await deleteUserApi(id);
-        setUsers(prev => prev.filter(u => u.id !== id));
-    }, []);
-
-    const handleApproveLandlord = useCallback(async (id: string) => {
-        await approveLandlordApplication(id);
-        setUsers(prev => prev.map(u =>
-            u.id === id ? { ...u, role: 'landlord' as const, account_status: 'active' as const } : u
-        ));
-    }, []);
-
-    const handleRejectLandlord = useCallback(async (id: string, reason?: string) => {
-        await rejectLandlordApplication(id, reason);
-        setUsers(prev => prev.map(u =>
-            u.id === id ? { ...u, account_status: 'active' as const } : u
-        ));
-    }, []);
-
-    const stats = {
-        total: users.length,
-        active: users.filter(u => u.account_status === 'active').length,
-        suspended: users.filter(u => u.account_status === 'suspended').length,
-        verified: users.filter(u => u.account_status === 'active').length,
-        pendingLandlords: users.filter(u => u.account_status === 'pending_landlord').length,
-    };
-
-    return {
-        users,
-        loading,
-        error,
-        stats,
-        suspendUser: handleSuspendUser,
-        activateUser: handleActivateUser,
-        deleteUser: handleDeleteUser,
-        approveLandlord: handleApproveLandlord,
-        rejectLandlord: handleRejectLandlord,
-        refetch: fetchUsers,
-    };
-}
-
-/**
- * Hook to get admin dashboard stats
+ * Get admin dashboard statistics
  */
 export function useAdminStats() {
-    const [stats, setStats] = useState<AdminStats | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    return useQuery({
+        queryKey: adminKeys.stats(),
+        queryFn: () => adminService.getAdminStats(),
+    });
+}
 
-    const fetchStats = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await getAdminStats();
-            setStats(data);
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to fetch stats';
-            setError(message);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+/**
+ * Get all rooms for admin
+ */
+export function useAdminRooms() {
+    return useQuery({
+        queryKey: adminKeys.rooms.list(),
+        queryFn: () => adminService.getAdminRooms(),
+    });
+}
 
-    useEffect(() => {
-        fetchStats();
-    }, [fetchStats]);
+/**
+ * Get all users for admin
+ */
+export function useAdminUsers() {
+    return useQuery({
+        queryKey: adminKeys.users.list(),
+        queryFn: () => adminService.getAdminUsers(),
+    });
+}
 
-    return { stats, loading, error, refetch: fetchStats };
+/**
+ * Approve a room
+ */
+export function useApproveRoom() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (roomId: string) => adminService.approveRoom(roomId),
+        onSuccess: () => {
+            toast.success('Đã duyệt phòng');
+            queryClient.invalidateQueries({ queryKey: adminKeys.rooms.all() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message });
+        },
+    });
+}
+
+/**
+ * Reject a room
+ */
+export function useRejectRoom() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ roomId, reason }: { roomId: string; reason?: string }) =>
+            adminService.rejectRoom(roomId, reason),
+        onSuccess: () => {
+            toast.success('Đã từ chối phòng');
+            queryClient.invalidateQueries({ queryKey: adminKeys.rooms.all() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message });
+        },
+    });
+}
+
+/**
+ * Delete (soft) a room
+ */
+export function useDeleteRoom() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (roomId: string) => adminService.deleteRoom(roomId),
+        onSuccess: () => {
+            toast.success('Đã xóa phòng');
+            queryClient.invalidateQueries({ queryKey: adminKeys.rooms.all() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message });
+        },
+    });
+}
+
+/**
+ * Toggle room featured status
+ */
+export function useToggleRoomFeatured() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ roomId, featured }: { roomId: string; featured: boolean }) =>
+            adminService.toggleRoomFeatured(roomId, featured),
+        onSuccess: () => {
+            toast.success('Đã cập nhật trạng thái nổi bật');
+            queryClient.invalidateQueries({ queryKey: adminKeys.rooms.all() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message });
+        },
+    });
+}
+
+/**
+ * Suspend a user
+ */
+export function useSuspendUser() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (userId: string) =>
+            adminService.updateUserStatus(userId, 'suspended'),
+        onSuccess: () => {
+            toast.success('Đã tạm khóa người dùng');
+            queryClient.invalidateQueries({ queryKey: adminKeys.users.all() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message });
+        },
+    });
+}
+
+/**
+ * Activate a user
+ */
+export function useActivateUser() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (userId: string) =>
+            adminService.updateUserStatus(userId, 'active'),
+        onSuccess: () => {
+            toast.success('Đã kích hoạt người dùng');
+            queryClient.invalidateQueries({ queryKey: adminKeys.users.all() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message });
+        },
+    });
+}
+
+/**
+ * Delete (soft) a user
+ */
+export function useDeleteUser() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (userId: string) => adminService.deleteUser(userId),
+        onSuccess: () => {
+            toast.success('Đã xóa người dùng');
+            queryClient.invalidateQueries({ queryKey: adminKeys.users.all() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message });
+        },
+    });
+}
+
+/**
+ * Approve landlord application
+ */
+export function useApproveLandlord() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (userId: string) =>
+            adminService.approveLandlordApplication(userId),
+        onSuccess: () => {
+            toast.success('Đã phê duyệt chủ trọ');
+            queryClient.invalidateQueries({ queryKey: adminKeys.users.all() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message });
+        },
+    });
+}
+
+/**
+ * Reject landlord application
+ */
+export function useRejectLandlord() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ userId, reason }: { userId: string; reason?: string }) =>
+            adminService.rejectLandlordApplication(userId, reason),
+        onSuccess: () => {
+            toast.success('Đã từ chối yêu cầu làm chủ trọ');
+            queryClient.invalidateQueries({ queryKey: adminKeys.users.all() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message });
+        },
+    });
+}
+
+/**
+ * Reject user verification
+ */
+export function useRejectUserVerification() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ userId, reason }: { userId: string; reason: string }) =>
+            adminService.rejectUserVerification(userId, reason),
+        onSuccess: () => {
+            toast.success('Đã từ chối xác thực');
+            queryClient.invalidateQueries({ queryKey: adminKeys.users.all() });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message });
+        },
+    });
 }

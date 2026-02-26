@@ -6,6 +6,7 @@ import { ErrorBoundary } from "@/components/admin/ErrorBoundary";
 import RommzIcon from "@/assets/logo/rommz-icon.png";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminRealtimeSync } from "@/hooks/useAdminRealtimeSync";
 import {
   LayoutDashboard,
   Users,
@@ -39,6 +40,9 @@ export default function AdminShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+
+  // Enable realtime sync for admin dashboard
+  useAdminRealtimeSync();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
