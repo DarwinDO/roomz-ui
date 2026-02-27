@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts';
+import { toast } from 'sonner';
 import {
   getUserFavorites,
   toggleFavorite,
@@ -90,7 +91,7 @@ export function useFavorites(): UseFavoritesReturn {
 
     try {
       const result = await toggleFavorite(user.id, roomId);
-      
+
       // Verify optimistic update matches server response
       if (result.favorited !== !wasFavorited) {
         // Server state differs, sync with server
@@ -108,7 +109,20 @@ export function useFavorites(): UseFavoritesReturn {
 
       return result.favorited;
     } catch (err: unknown) {
-      // Rollback on error
+      // Handle favorite limit error
+      if (err instanceof Error && err.message === 'FAVORITE_LIMIT_REACHED') {
+        toast.error('Bạn đã đạt giới hạn 5 phòng yêu thích. Nâng cấp RoomZ+ để lưu không giới hạn!', {
+          action: {
+            label: 'Nâng cấp',
+            onClick: () => window.location.href = '/payment',
+          },
+        });
+        // Rollback optimistic update
+        setFavoritedRoomIds(new Set(Array.from(previousFavorites).map(f => f.room_id)));
+        setFavorites(previousFavorites);
+        return false;
+      }
+      // Rollback on other errors
       setFavoritedRoomIds(new Set(Array.from(previousFavorites).map(f => f.room_id)));
       setFavorites(previousFavorites);
       console.error('Error toggling favorite:', err);
@@ -186,13 +200,18 @@ export function useIsFavorited(roomId: string): {
 
     try {
       const result = await toggleFavorite(user.id, roomId);
-      
+
       // Verify with server response
       if (result.favorited !== !previousState) {
         setIsFavorited(result.favorited);
       }
-    } catch (err) {
-      // Rollback on error
+    } catch (err: unknown) {
+      // Handle favorite limit error
+      if (err instanceof Error && err.message === 'FAVORITE_LIMIT_REACHED') {
+        setIsFavorited(previousState);
+        return;
+      }
+      // Rollback on other errors
       setIsFavorited(previousState);
       console.error('Error toggling favorite:', err);
       throw err;

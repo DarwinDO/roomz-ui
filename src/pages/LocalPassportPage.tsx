@@ -13,6 +13,7 @@ import {
   Search,
   Loader2,
   AlertCircle,
+  Crown,
 } from "lucide-react";
 import { PartnerSignUpModal } from "@/components/modals/PartnerSignUpModal";
 import { ShopDetailModal } from "@/components/modals/ShopDetailModal";
@@ -20,7 +21,9 @@ import { HowToRedeemModal } from "@/components/modals/HowToRedeemModal";
 import { usePartners } from "@/hooks/usePartners";
 import { useDeals } from "@/hooks/useDeals";
 import { useGeolocation } from "@/hooks/useGeolocation";
+import { usePremiumLimits } from "@/hooks/usePremiumLimits";
 import { haversineDistance, formatDistance } from "@/utils/geo";
+import { cn } from "@/lib/utils";
 import type { Partner } from "@/services/partners";
 import type { DealWithPartner as DealWithPartnerType } from "@/services/deals";
 import { toast } from "sonner";
@@ -38,6 +41,8 @@ interface PerkCardData {
   // Full data for modal
   partner?: Partner;
   deal?: DealWithPartnerType;
+  // Premium lock
+  isPremiumLocked?: boolean;
 }
 
 export default function LocalPassportPage() {
@@ -66,6 +71,9 @@ export default function LocalPassportPage() {
     isLoading: isDealsLoading,
     error: dealsError,
   } = useDeals({});
+
+  // Premium status
+  const { isPremium } = usePremiumLimits();
 
   // Combine partners + deals into perk cards with distance calculation
   const perkCards: PerkCardData[] = useMemo(() => {
@@ -120,6 +128,7 @@ export default function LocalPassportPage() {
         color: config.color,
         partner,
         deal: mainDeal,
+        isPremiumLocked: mainDeal?.is_premium_only || false,
       };
     });
 
@@ -190,6 +199,13 @@ export default function LocalPassportPage() {
   // Handlers
   const handleGetVoucher = (e: React.MouseEvent, perk: PerkCardData) => {
     e.stopPropagation();
+
+    // If deal is premium-locked and user is not premium, redirect to upgrade
+    if (perk.isPremiumLocked && !isPremium) {
+      navigate('/payment');
+      return;
+    }
+
     // Open ShopDetailModal with the deal data
     if (perk.deal) {
       setSelectedDeal(perk.deal);
@@ -243,6 +259,29 @@ export default function LocalPassportPage() {
             className="pl-10 rounded-full"
           />
         </div>
+
+        {/* Premium Upgrade Banner - show for free users */}
+        {!isPremium && (
+          <Card
+            className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/payment')}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-amber-400 to-orange-500 rounded-full flex items-center justify-center">
+                  <Crown className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-amber-800">RoomZ Premium</h4>
+                  <p className="text-sm text-amber-700">Ưu đãi độc quyền & không giới hạn</p>
+                </div>
+              </div>
+              <Button variant="default" size="sm" className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600">
+                Khám phá
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Error State */}
         {error && (
@@ -367,9 +406,28 @@ export default function LocalPassportPage() {
                     <img
                       src={perk.image}
                       alt={perk.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className={cn(
+                        "w-full h-full object-cover group-hover:scale-105 transition-transform duration-300",
+                        perk.isPremiumLocked && !isPremium && "blur-sm"
+                      )}
                     />
+                    {/* Premium overlay */}
+                    {perk.isPremiumLocked && !isPremium && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div className="bg-white/90 rounded-full px-4 py-2 flex items-center gap-2">
+                          <Crown className="w-5 h-5 text-amber-500" />
+                          <span className="font-semibold text-sm">Premium</span>
+                        </div>
+                      </div>
+                    )}
                     <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
+                      {/* Premium badge */}
+                      {perk.isPremiumLocked && (
+                        <Badge className="rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-white border-0 shadow-sm">
+                          <Crown className="w-3 h-3 mr-1" />
+                          Premium
+                        </Badge>
+                      )}
                       {/* Distance badge - only show if available */}
                       {perk.distance && !geoDenied && (
                         <Badge className="rounded-full bg-white/90 text-gray-900 border-0 shadow-sm">

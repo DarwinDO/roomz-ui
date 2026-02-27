@@ -29,6 +29,7 @@ import {
     useRoommateProfileQuery,
     useRoommateRequestsQuery,
 } from '@/hooks/useRoommatesQuery';
+import { usePremiumLimits } from '@/hooks/usePremiumLimits';
 import { sendIntroMessage } from '@/services/roommates';
 import { useAuth } from '@/contexts/AuthContext';
 import { RoommateCard } from './RoommateCard';
@@ -69,6 +70,9 @@ export function RoommateResults() {
         acceptRequest,
         isAccepting
     } = useRoommateRequestsQuery();
+
+    // Premium status
+    const { isPremium } = usePremiumLimits();
 
     const [sortBy, setSortBy] = useState<SortOption>('compatibility');
     const [selectedMatch, setSelectedMatch] = useState<typeof matches[0] | null>(null);
@@ -262,7 +266,7 @@ export function RoommateResults() {
             )}
 
             {/* Limits Bar */}
-            <LimitsBar limits={limits} />
+            <LimitsBar limits={limits} isPremium={isPremium} onUpgrade={() => navigate('/payment')} />
 
             {/* Sort & Filter */}
             <div className="flex items-center justify-between mb-6">
@@ -393,7 +397,7 @@ export function RoommateResults() {
                 isOpen={isLimitModalOpen}
                 onClose={() => setIsLimitModalOpen(false)}
                 limitType={limitType}
-                onUpgrade={() => navigate('/pricing')}
+                onUpgrade={() => navigate('/payment')}
             />
 
             {/* Intro Message Modal */}

@@ -6,6 +6,8 @@
 import { supabase } from '@/lib/supabase';
 import type { Tables } from '@/lib/database.types';
 import type { RoomWithDetails } from './rooms';
+import { hasPremiumAccess } from './payments';
+import { FREE_LIMITS } from '@/constants/premium';
 
 export type Favorite = Tables<'favorites'>;
 
@@ -72,6 +74,19 @@ export async function addFavorite(userId: string, roomId: string): Promise<Favor
   const exists = await isRoomFavorited(userId, roomId);
   if (exists) {
     throw new Error('Room is already in favorites');
+  }
+
+  // Check favorite limit for free users
+  const isPremium = await hasPremiumAccess(userId);
+  if (!isPremium) {
+    const { count, error: countError } = await supabase
+      .from('favorites')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+    if (countError) throw countError;
+    if ((count || 0) >= FREE_LIMITS.FAVORITES_MAX) {
+      throw new Error('FAVORITE_LIMIT_REACHED');
+    }
   }
 
   const { data, error } = await supabase

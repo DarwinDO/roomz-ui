@@ -386,3 +386,27 @@ export async function getRoomsByLandlord(landlordId: string): Promise<RoomWithDe
     amenities: Array.isArray(room.amenities) ? room.amenities[0] : room.amenities,
   })) as RoomWithDetails[];
 }
+
+/**
+ * Get room contact (phone number) with premium gate logic
+ * Returns masked or unmasked phone based on user's subscription and daily view limit
+ */
+export interface RoomContactResult {
+  phone: string;
+  isMasked: boolean;
+}
+
+export async function getRoomContact(roomId: string): Promise<RoomContactResult> {
+  const { data, error } = await (supabase.rpc as any)('get_room_contact', { p_room_id: roomId });
+
+  if (error) {
+    console.error('Error fetching room contact:', error);
+    return { phone: '', isMasked: true };
+  }
+
+  const result = data?.[0] as { phone?: string; is_masked?: boolean } | null;
+  return {
+    phone: result?.phone || '',
+    isMasked: result?.is_masked ?? true,
+  };
+}

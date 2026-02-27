@@ -17,6 +17,7 @@ export interface Deal {
     description: string | null;
     valid_until: string | null;
     is_active: boolean;
+    is_premium_only: boolean;
     created_at: string;
     updated_at: string;
     // Joined fields

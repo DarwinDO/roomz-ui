@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { PhoneRevealButton } from "@/components/PhoneRevealButton";
 import {
   ArrowLeft,
   MapPin,
@@ -446,11 +447,17 @@ export default function RoomDetailPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <span className="text-sm text-muted-foreground">Điểm tin cậy:</span>
                   <Progress value={Number(room.landlord?.trust_score) || 0} className="flex-1" />
                   <span className="text-sm">{Number(room.landlord?.trust_score) || 0}%</span>
                 </div>
+                {/* Phone Reveal - Premium Feature */}
+                {room.id && (
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <PhoneRevealButton roomId={room.id} />
+                  </div>
+                )}
               </div>
             </div>
 

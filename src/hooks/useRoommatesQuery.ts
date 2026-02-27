@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { FREE_LIMITS } from '@/constants/premium';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
     getRoommateProfile,
@@ -216,7 +217,12 @@ export function useRoommateLimits() {
     }, [user?.id, queryClient]);
 
     return {
-        limits: query.data ?? { views: 0, requests: 0, viewLimit: 10, requestLimit: 5 },
+        limits: query.data ?? {
+            views: 0,
+            requests: 0,
+            viewLimit: FREE_LIMITS.ROOMMATE_VIEWS_PER_DAY,
+            requestLimit: FREE_LIMITS.ROOMMATE_REQUESTS_PER_DAY
+        },
         loading: query.isLoading,
         incrementView,
         incrementRequest,

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Eye, Send, Crown, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router';
 
 interface LimitsBarProps {
     limits: {
@@ -20,6 +21,8 @@ interface LimitsBarProps {
 }
 
 export function LimitsBar({ limits, isPremium = false, onUpgrade }: LimitsBarProps) {
+    const navigate = useNavigate();
+
     // Don't show for premium users
     if (isPremium) {
         return null;
@@ -31,6 +34,14 @@ export function LimitsBar({ limits, isPremium = false, onUpgrade }: LimitsBarPro
     const isViewsLow = limits.views <= 2;
     const isRequestsLow = limits.requests <= 1;
     const isAnyLow = isViewsLow || isRequestsLow;
+
+    const handleUpgrade = () => {
+        if (onUpgrade) {
+            onUpgrade();
+        } else {
+            navigate('/payment');
+        }
+    };
 
     return (
         <Card className={cn(
@@ -90,7 +101,7 @@ export function LimitsBar({ limits, isPremium = false, onUpgrade }: LimitsBarPro
                 <Button
                     variant={isAnyLow ? 'default' : 'outline'}
                     size="sm"
-                    onClick={onUpgrade}
+                    onClick={handleUpgrade}
                     className={cn(
                         'flex-shrink-0',
                         isAnyLow && 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
