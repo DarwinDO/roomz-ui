@@ -158,7 +158,7 @@ When auto-applying an agent, inform the user:
 
 | 1 | Did I identify the correct agent for this domain? | → STOP. Analyze request domain first. |
 
-| 2 | Did I READ the agent's `.md` file (or recall its rules)? | → STOP. Open `.agent/agents/{agent}.md` |
+| 2 | Did I READ the agent's `.md` file (or recall its rules)? | → STOP. Open `.claude/agents/{agent}.md` |
 
 | 3 | Did I announce `🤖 Applying knowledge of @\[agent]...`? | → STOP. Add announcement before response. |
 
@@ -254,11 +254,11 @@ When user's prompt is NOT in English:
 
 
 
-\- Agents: `.agent/` (Project)
+- Agents: `.claude/agents/` (Project)
 
-\- Skills: `.agent/skills/` (Project)
+- Skills: `.claude/skills/` (Project)
 
-\- Runtime Scripts: `.agent/skills/<skill>/scripts/`
+- Runtime Scripts: `.claude/scripts/`
 
 
 
@@ -374,9 +374,9 @@ When user's prompt is NOT in English:
 
 | ---------------- | -------------------------------------------------- | ------------------------------ |
 
-| \*\*Manual Audit\*\* | `python .agent/scripts/checklist.py .`             | Priority-based project audit   |
+| \*\*Manual Audit\*\* | `python .claude/scripts/checklist.py .`             | Priority-based project audit   |
 
-| \*\*Pre-Deploy\*\*   | `python .agent/scripts/checklist.py . --url <URL>` | Full Suite + Performance + E2E |
+| \*\*Pre-Deploy\*\*   | `python .claude/scripts/checklist.py . --url <URL>` | Full Suite + Performance + E2E |
 
 
 
@@ -432,7 +432,7 @@ When user's prompt is NOT in English:
 
 
 
-> 🔴 \*\*Agents \& Skills can invoke ANY script\*\* via `python .agent/skills/<skill>/scripts/<script>.py`
+> 🔴 \*\*Agents \& Skills can invoke ANY script\*\* via `python .claude/skills/<skill>/scripts/<script>.py`
 
 
 
@@ -486,9 +486,9 @@ When user's prompt is NOT in English:
 
 | ------------ | ------------------------------- |
 
-| Web UI/UX    | `.agent/frontend-specialist.md` |
+| Web UI/UX    | `.claude/agents/frontend-specialist.md` |
 
-| Mobile UI/UX | `.agent/mobile-developer.md`    |
+| Mobile UI/UX | `.claude/agents/mobile-developer.md` |
 
 
 
@@ -532,7 +532,7 @@ When user's prompt is NOT in English:
 
 
 
-\- \*\*Verify\*\*: `.agent/scripts/verify\_all.py`, `.agent/scripts/checklist.py`
+\- \*\*Verify\*\*: `.claude/scripts/verify\_all.py`, `.claude/scripts/checklist.py`
 
 \- \*\*Scanners\*\*: `security\_scan.py`, `dependency\_analyzer.py`
 
