@@ -1,6 +1,6 @@
 /**
  * Payment Page
- * RoomZ+ subscription plans and checkout
+ * RoomZ+ subscription plans and checkout with SePay QR
  */
 
 import { useState, useEffect } from "react";
@@ -23,14 +23,15 @@ import { useAuth } from "@/contexts";
 import {
   PLANS,
   getRoomZPlusPlan,
-  createCheckoutSession,
-  handleCheckoutSuccess,
+  createSePayCheckoutSession,
   getUserSubscription,
   getPromoStatus,
   type Subscription,
   type SubscriptionPlan,
   type PromoStatus,
+  type BillingCycle,
 } from "@/services/payments";
+import { QRPaymentModal } from "@/components/modals/QRPaymentModal";
 import { toast } from "sonner";
 
 export default function PaymentPage() {
@@ -43,6 +44,14 @@ export default function PaymentPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "quarterly">("monthly");
   const [promoStatus, setPromoStatus] = useState<PromoStatus | null>(null);
+
+  // QR Modal state
+  const [qrModalData, setQrModalData] = useState<{
+    orderCode: string;
+    qrCodeUrl: string;
+    amount: number;
+    billingCycle: BillingCycle;
+  } | null>(null);
 
   const roomzPlusPlan = getRoomZPlusPlan();
 
@@ -58,14 +67,6 @@ export default function PaymentPage() {
     }
     fetchPromoStatus();
   }, []);
-
-  // Check for checkout success
-  useEffect(() => {
-    const sessionId = searchParams.get("session_id");
-    if (sessionId && user) {
-      handleCheckoutComplete(sessionId);
-    }
-  }, [searchParams, user]);
 
   // Fetch current subscription
   useEffect(() => {
@@ -88,23 +89,6 @@ export default function PaymentPage() {
     fetchSubscription();
   }, [user]);
 
-  const handleCheckoutComplete = async (sessionId: string) => {
-    if (!user) return;
-
-    try {
-      const sub = await handleCheckoutSuccess(user.id, sessionId);
-      setSubscription(sub);
-      setShowSuccess(true);
-      toast.success("Đăng ký RoomZ+ thành công!");
-
-      // Clear URL params
-      window.history.replaceState({}, "", "/payment");
-    } catch (error) {
-      console.error("Checkout error:", error);
-      toast.error("Có lỗi xảy ra. Vui lòng liên hệ hỗ trợ.");
-    }
-  };
-
   const handleSubscribe = async (plan: SubscriptionPlan) => {
     if (!user) {
       toast.error("Vui lòng đăng nhập để đăng ký");
@@ -119,20 +103,40 @@ export default function PaymentPage() {
 
     setProcessingPlan(plan);
     try {
-      const { checkoutUrl } = await createCheckoutSession(
+      // Use SePay QR checkout
+      const result = await createSePayCheckoutSession(
         user.id,
         plan,
-        `${window.location.origin}/payment`,
-        `${window.location.origin}/payment`
+        billingCycle,
+        remainingSlots > 0 // Apply promo if slots available
       );
 
-      // Redirect to checkout
-      window.location.href = checkoutUrl;
+      // Open QR payment modal
+      setQrModalData({
+        orderCode: result.orderCode,
+        qrCodeUrl: result.qrCodeUrl,
+        amount: billingCycle === "monthly"
+          ? (roomzPlusPlan?.price || 49000)
+          : (roomzPlusPlan?.quarterlyPrice || 119000),
+        billingCycle,
+      });
     } catch (error) {
       console.error("Checkout error:", error);
       toast.error("Không thể tạo phiên thanh toán. Vui lòng thử lại.");
     } finally {
       setProcessingPlan(null);
+    }
+  };
+
+  // Handle QR payment success
+  const handlePaymentSuccess = () => {
+    setQrModalData(null);
+    setShowSuccess(true);
+    toast.success("Thanh toán thành công! Chào mừng đến với RoomZ+");
+
+    // Refresh subscription
+    if (user) {
+      getUserSubscription(user.id).then(setSubscription);
     }
   };
 
@@ -423,6 +427,19 @@ export default function PaymentPage() {
           </div>
         </div>
       </div>
+
+      {/* QR Payment Modal */}
+      {qrModalData && (
+        <QRPaymentModal
+          isOpen={true}
+          onClose={() => setQrModalData(null)}
+          orderCode={qrModalData.orderCode}
+          qrCodeUrl={qrModalData.qrCodeUrl}
+          amount={qrModalData.amount}
+          billingCycle={qrModalData.billingCycle}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
     </div>
   );
 }

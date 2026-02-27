@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Eye, Send, Crown, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router';
+import { UPGRADE_SOURCES } from '@/constants/tracking';
 
 interface LimitsBarProps {
     limits: {
@@ -39,7 +40,7 @@ export function LimitsBar({ limits, isPremium = false, onUpgrade }: LimitsBarPro
         if (onUpgrade) {
             onUpgrade();
         } else {
-            navigate('/payment');
+            navigate(`/payment?source=${UPGRADE_SOURCES.CONTEXTUAL_HINT}`);
         }
     };
 

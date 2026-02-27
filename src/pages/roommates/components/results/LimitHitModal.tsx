@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Crown, Sparkles, Eye, Send, Check, ArrowRight } from 'lucide-react';
 import { getRoomZPlusPlan } from '@/services/payments';
 import { useNavigate } from 'react-router';
+import { UPGRADE_SOURCES } from '@/constants/tracking';
 
 interface LimitHitModalProps {
     isOpen: boolean;
@@ -46,7 +47,7 @@ export function LimitHitModal({
         : 'Bạn đã gửi tối đa 5 yêu cầu trong ngày. Nâng cấp Premium để gửi không giới hạn!';
 
     const handleUpgrade = () => {
-        navigate('/payment');
+        navigate(`/payment?source=${UPGRADE_SOURCES.FAVORITES_LIMIT}`);
     };
 
     return (

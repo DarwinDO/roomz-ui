@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UpgradeRoomZPlusModal } from "@/components/modals/UpgradeRoomZPlusModal";
 import { ProfileEditModal } from "@/components/modals/ProfileEditModal";
 import { useAuth } from "@/contexts";
+import { UPGRADE_SOURCES } from "@/constants/tracking";
 import { useFavorites } from "@/hooks/useFavorites";
 import { transformRoomToCardProps } from "@/utils/room";
 import { toast } from "sonner";
@@ -42,7 +42,6 @@ export default function ProfilePage() {
 
   // UI States
   const [activeTab, setActiveTab] = useState("favorites");
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   // Effects
@@ -73,7 +72,7 @@ export default function ProfilePage() {
       />
 
       <UpgradeBanner
-        onUpgrade={() => setIsUpgradeModalOpen(true)}
+        onUpgrade={() => navigate(`/payment?source=${UPGRADE_SOURCES.PROFILE_BANNER}`)}
         isPremium={profile?.is_premium}
       />
 
@@ -124,11 +123,6 @@ export default function ProfilePage() {
       </div>
 
       {/* Modals */}
-      <UpgradeRoomZPlusModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
-        onSuccess={() => toast.success("Thành công! RoomZ+ đã được kích hoạt.")}
-      />
       <ProfileEditModal
         isOpen={isEditProfileOpen}
         onClose={() => setIsEditProfileOpen(false)}

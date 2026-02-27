@@ -5,10 +5,11 @@ import { BottomNav } from '@/components/common/BottomNav';
 import { Chatbot } from '@/components/common/Chatbot';
 import { NotificationBell } from '@/components/common/NotificationBell';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut, User as UserIcon, Building2, Home } from 'lucide-react';
+import { LogIn, LogOut, User as UserIcon, Building2, Home, Crown } from 'lucide-react';
 import RommzLogo from '@/assets/logo/rommz-logo.png';
 import { useAuth } from '@/contexts';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
+import { UPGRADE_SOURCES } from '@/constants/tracking';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,6 +88,18 @@ export default function AppShell() {
                   {item.label}
                 </Button>
               ))}
+
+              {/* Premium CTA - Desktop - Show for logged in non-premium users */}
+              {user && !profile?.is_premium && (
+                <Button
+                  size="sm"
+                  className="rounded-full ml-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm gap-1.5"
+                  onClick={() => navigate(`/payment?source=${UPGRADE_SOURCES.SIDEBAR_CTA}`)}
+                >
+                  <Crown className="w-3.5 h-3.5" />
+                  Nâng cấp Premium
+                </Button>
+              )}
 
               {/* Authentication Section */}
               {loading ? (

@@ -8,6 +8,7 @@ import { Phone, Lock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getRoomContact } from '@/services/rooms';
 import { useNavigate } from 'react-router';
+import { UPGRADE_SOURCES } from '@/constants/tracking';
 
 interface PhoneRevealButtonProps {
     roomId: string;
@@ -38,7 +39,7 @@ export function PhoneRevealButton({ roomId, className = '' }: PhoneRevealButtonP
     };
 
     const handleUpgrade = () => {
-        navigate('/payment');
+        navigate(`/payment?source=${UPGRADE_SOURCES.PHONE_REVEAL}`);
     };
 
     // If already revealed and not masked - show full phone

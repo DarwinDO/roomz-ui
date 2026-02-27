@@ -23,6 +23,7 @@ import { useDeals } from "@/hooks/useDeals";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { usePremiumLimits } from "@/hooks/usePremiumLimits";
 import { haversineDistance, formatDistance } from "@/utils/geo";
+import { UPGRADE_SOURCES } from "@/constants/tracking";
 import { cn } from "@/lib/utils";
 import type { Partner } from "@/services/partners";
 import type { DealWithPartner as DealWithPartnerType } from "@/services/deals";
@@ -202,7 +203,7 @@ export default function LocalPassportPage() {
 
     // If deal is premium-locked and user is not premium, redirect to upgrade
     if (perk.isPremiumLocked && !isPremium) {
-      navigate('/payment');
+      navigate(`/payment?source=${UPGRADE_SOURCES.DEAL_PREMIUM}`);
       return;
     }
 
@@ -264,7 +265,7 @@ export default function LocalPassportPage() {
         {!isPremium && (
           <Card
             className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/payment')}
+            onClick={() => navigate(`/payment?source=${UPGRADE_SOURCES.DEAL_PREMIUM}`)}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
