@@ -1,36 +1,45 @@
 /**
  * Payments API Service
- * Stripe integration for RoomZ+ subscription
+ * RoomZ+ subscription management
  */
 
 import { supabase } from '@/lib/supabase';
 
-export type SubscriptionPlan = 'free' | 'roomz_plus' | 'roomz_pro';
-export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing';
+export type SubscriptionPlan = 'free' | 'roomz_plus';
+export type SubscriptionStatus = 'active' | 'cancelled' | 'expired' | 'past_due';
 
 export interface Subscription {
   id: string;
   userId: string;
   plan: SubscriptionPlan;
   status: SubscriptionStatus;
+  promoApplied: boolean;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
-  currentPeriodStart: string;
-  currentPeriodEnd: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
   cancelAtPeriodEnd: boolean;
+  paymentMethod?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface PlanDetails {
   id: SubscriptionPlan;
   name: string;
-  price: number; // VND per month
+  price: number;
+  quarterlyPrice?: number;
   priceDisplay: string;
   features: string[];
   recommended?: boolean;
 }
 
-// Subscription plans
+export interface PromoStatus {
+  totalSlots: number;
+  claimedSlots: number;
+}
+
+// Subscription plans - 2-tier: Free + RoomZ+
 export const PLANS: PlanDetails[] = [
   {
     id: 'free',
@@ -42,39 +51,38 @@ export const PLANS: PlanDetails[] = [
       'Lưu tối đa 5 phòng yêu thích',
       'Nhắn tin cơ bản',
       'Đặt lịch xem phòng',
+      'Xem số điện thoại chủ nhà (3 lần/ngày)',
     ],
   },
   {
     id: 'roomz_plus',
     name: 'RoomZ+',
-    price: 99000,
-    priceDisplay: '99.000đ/tháng',
+    price: 49000,
+    quarterlyPrice: 119000,
+    priceDisplay: '49.000đ/tháng',
     recommended: true,
     features: [
-      'Tất cả tính năng miễn phí',
-      'Lưu không giới hạn phòng yêu thích',
-      'Xem số điện thoại chủ nhà',
-      'Badge Verified+ miễn phí',
-      'Ưu tiên hiển thị hồ sơ',
-      'Thống kê xem hồ sơ',
-      'Hỗ trợ ưu tiên 24/7',
-    ],
-  },
-  {
-    id: 'roomz_pro',
-    name: 'RoomZ Pro',
-    price: 199000,
-    priceDisplay: '199.000đ/tháng',
-    features: [
-      'Tất cả tính năng RoomZ+',
-      'Đăng tin phòng không giới hạn',
-      'Quảng cáo tin đăng',
-      'Phân tích dữ liệu chi tiết',
-      'API access',
-      'Account manager riêng',
+      '♾️ Xem SĐT không giới hạn',
+      '♾️ Lưu phòng yêu thích không giới hạn',
+      '♾️ Roommate views & requests không giới hạn',
+      '👑 Badge premium trên profile',
+      '🎁 Deal độc quyền Local Passport',
+      '⚡ Ưu tiên hiển thị',
+      '🛡️ Duyệt xác thực nhanh',
+      '📞 Hỗ trợ ưu tiên 24/7',
     ],
   },
 ];
+
+// Get plan by ID
+export function getPlanById(planId: SubscriptionPlan): PlanDetails | undefined {
+  return PLANS.find(p => p.id === planId);
+}
+
+// Get RoomZ+ plan
+export function getRoomZPlusPlan(): PlanDetails | undefined {
+  return PLANS.find(p => p.id === 'roomz_plus');
+}
 
 /**
  * Get user's current subscription
@@ -102,12 +110,15 @@ export async function getUserSubscription(userId: string): Promise<Subscription 
     userId: data.user_id,
     plan: data.plan as SubscriptionPlan,
     status: data.status as SubscriptionStatus,
+    promoApplied: data.promo_applied ?? false,
     stripeCustomerId: data.stripe_customer_id,
     stripeSubscriptionId: data.stripe_subscription_id,
     currentPeriodStart: data.current_period_start,
     currentPeriodEnd: data.current_period_end,
-    cancelAtPeriodEnd: data.cancel_at_period_end,
+    cancelAtPeriodEnd: data.cancel_at_period_end ?? false,
+    paymentMethod: data.payment_method,
     createdAt: data.created_at,
+    updatedAt: data.updated_at,
   };
 }
 
@@ -116,7 +127,7 @@ export async function getUserSubscription(userId: string): Promise<Subscription 
  */
 export async function hasPremiumAccess(userId: string): Promise<boolean> {
   const subscription = await getUserSubscription(userId);
-  return subscription?.plan === 'roomz_plus' || subscription?.plan === 'roomz_pro';
+  return subscription?.plan === 'roomz_plus';
 }
 
 /**
@@ -196,20 +207,23 @@ export async function handleCheckoutSuccess(
         userId,
         plan: 'roomz_plus',
         status: 'active',
+        promoApplied: false,
         currentPeriodStart: now.toISOString(),
         currentPeriodEnd: nextMonth.toISOString(),
         cancelAtPeriodEnd: false,
         createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
       };
     }
     throw error;
   }
 
-  // Update user's subscription status
+  // Update user's subscription status (using existing is_premium + premium_until columns)
   await supabase
     .from('users')
     .update({
-      subscription_plan: 'roomz_plus',
+      is_premium: true,
+      premium_until: nextMonth.toISOString(),
       updated_at: now.toISOString(),
     } as never)
     .eq('id', userId);
@@ -219,10 +233,12 @@ export async function handleCheckoutSuccess(
     userId: data.user_id,
     plan: data.plan as SubscriptionPlan,
     status: data.status as SubscriptionStatus,
+    promoApplied: data.promo_applied ?? false,
     currentPeriodStart: data.current_period_start,
     currentPeriodEnd: data.current_period_end,
-    cancelAtPeriodEnd: data.cancel_at_period_end,
+    cancelAtPeriodEnd: data.cancel_at_period_end ?? false,
     createdAt: data.created_at,
+    updatedAt: data.updated_at,
   };
 }
 
@@ -258,4 +274,37 @@ export async function reactivateSubscription(subscriptionId: string): Promise<vo
   if (error && error.code !== '42P01') {
     throw error;
   }
+}
+
+/**
+ * Get promo status - returns available slots for Early Bird promotion
+ */
+export async function getPromoStatus(): Promise<PromoStatus> {
+  const { data, error } = await (supabase as any)
+    .from('promo_status')
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    // Return default values if view doesn't exist
+    return { totalSlots: 500, claimedSlots: 0 };
+  }
+
+  return {
+    totalSlots: data.total_slots,
+    claimedSlots: data.claimed_slots,
+  };
+}
+
+// ============================================
+// Payment Adapter Interface
+// ============================================
+
+export interface PaymentAdapter {
+  createCheckoutSession(params: {
+    planId: string;
+    userId: string;
+    isPromo?: boolean;
+  }): Promise<{ url: string; sessionId: string }>;
+  verifyPayment(sessionId: string): Promise<{ success: boolean; subscriptionId?: string }>;
 }

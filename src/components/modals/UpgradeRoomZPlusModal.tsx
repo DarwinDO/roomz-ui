@@ -11,40 +11,32 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, Crown, CreditCard, Wallet, Sparkles } from "lucide-react";
+import { CheckCircle2, Crown, CreditCard, Wallet } from "lucide-react";
+import { getRoomZPlusPlan } from "@/services/payments";
+import { useNavigate } from "react-router";
 
 interface UpgradeRoomZPlusModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
-
-const PREMIUM_BENEFITS = [
-  "Ưu tiên hiển thị trong kết quả tìm kiếm",
-  "Thuật toán phù hợp nâng cao",
-  "Truy cập ưu đãi và giảm giá độc quyền",
-  "Không phí đặt phòng cho tất cả đặt chỗ",
-  "Huy hiệu Verified+ trên hồ sơ của bạn",
-  "Hỗ trợ khách hàng ưu tiên 24/7",
-  "Truy cập sớm các tính năng mới",
-];
 
 export function UpgradeRoomZPlusModal({
   isOpen,
   onClose,
-  onSuccess,
 }: UpgradeRoomZPlusModalProps) {
   const headerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState<"card" | "wallet">("card");
-  const [isProcessing, setIsProcessing] = useState(false);
+
+  const roomzPlusPlan = getRoomZPlusPlan();
+  const priceDisplay = roomzPlusPlan?.priceDisplay || '49.000đ/tháng';
+  const promoPrice = roomzPlusPlan ? Math.floor(roomzPlusPlan.price / 2).toLocaleString('vi-VN') + 'đ' : '24.500đ';
 
   const handleUpgrade = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      onSuccess();
-      onClose();
-    }, 2000);
+    // Navigate to payment page instead of mock processing
+    navigate('/payment');
+    onClose();
   };
 
   return (
@@ -86,12 +78,11 @@ export function UpgradeRoomZPlusModal({
             <div className="rounded-3xl border border-border bg-background/70 p-6 shadow-sm backdrop-blur">
               <div className="text-center">
                 <div className="mb-2 flex items-center justify-center gap-2">
-                  <span className="text-3xl font-semibold text-primary">49k</span>
+                  <span className="text-3xl font-semibold text-primary">{roomzPlusPlan ? Math.floor(roomzPlusPlan.price / 1000) + 'k' : '49k'}</span>
                   <span className="text-gray-600">/tháng</span>
                 </div>
                 <Badge className="border-0 bg-secondary/10 text-secondary">
-                  <Sparkles className="mr-1 h-3 w-3" />
-                  Giảm 50% tháng đầu – Chỉ 24.5k!
+                  Giảm 50% tháng đầu – Chỉ {promoPrice}!
                 </Badge>
               </div>
 
@@ -102,7 +93,7 @@ export function UpgradeRoomZPlusModal({
                   Lợi ích cao cấp
                 </h3>
                 <div className="space-y-3">
-                  {PREMIUM_BENEFITS.map((benefit) => (
+                  {roomzPlusPlan?.features.map((benefit: string) => (
                     <div
                       key={benefit}
                       className="flex items-start gap-3 rounded-xl border border-border/60 p-3 transition-colors hover:border-primary hover:bg-primary/5"
@@ -128,11 +119,10 @@ export function UpgradeRoomZPlusModal({
                 >
                   <div className="space-y-3">
                     <div
-                      className={`flex cursor-pointer items-center rounded-xl border-2 p-4 transition-all ${
-                        paymentMethod === "card"
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      }`}
+                      className={`flex cursor-pointer items-center rounded-xl border-2 p-4 transition-all ${paymentMethod === "card"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                        }`}
                       onClick={() => setPaymentMethod("card")}
                     >
                       <RadioGroupItem value="card" id="payment-card" className="mr-3" />
@@ -154,11 +144,10 @@ export function UpgradeRoomZPlusModal({
                     </div>
 
                     <div
-                      className={`flex cursor-pointer items-center rounded-xl border-2 p-4 transition-all ${
-                        paymentMethod === "wallet"
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      }`}
+                      className={`flex cursor-pointer items-center rounded-xl border-2 p-4 transition-all ${paymentMethod === "wallet"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                        }`}
                       onClick={() => setPaymentMethod("wallet")}
                     >
                       <RadioGroupItem value="wallet" id="payment-wallet" className="mr-3" />
@@ -188,26 +177,15 @@ export function UpgradeRoomZPlusModal({
                   onClick={onClose}
                   variant="outline"
                   className="h-12 flex-1 rounded-full"
-                  disabled={isProcessing}
                 >
                   Để sau
                 </Button>
                 <Button
                   onClick={handleUpgrade}
-                  disabled={isProcessing}
                   className="h-12 flex-1 rounded-full bg-gradient-to-r from-primary to-secondary text-white hover:from-primary/90 hover:to-secondary/90"
                 >
-                  {isProcessing ? (
-                    <>
-                      <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Đang xử lý...
-                    </>
-                  ) : (
-                    <>
-                      <Crown className="mr-2 h-4 w-4" />
-                      Xác nhận nâng cấp
-                    </>
-                  )}
+                  <Crown className="mr-2 h-4 w-4" />
+                  Xác nhận nâng cấp
                 </Button>
               </div>
             </div>

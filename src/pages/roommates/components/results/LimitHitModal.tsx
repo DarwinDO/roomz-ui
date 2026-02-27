@@ -11,12 +11,14 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Crown, Sparkles, Eye, Send, Check, ArrowRight } from 'lucide-react';
+import { getRoomZPlusPlan } from '@/services/payments';
+import { useNavigate } from 'react-router';
 
 interface LimitHitModalProps {
     isOpen: boolean;
     onClose: () => void;
     limitType: 'views' | 'requests';
-    onUpgrade: () => void;
+    onUpgrade?: () => void;
 }
 
 const PREMIUM_BENEFITS = [
@@ -30,8 +32,11 @@ export function LimitHitModal({
     isOpen,
     onClose,
     limitType,
-    onUpgrade,
 }: LimitHitModalProps) {
+    const navigate = useNavigate();
+    const roomzPlusPlan = getRoomZPlusPlan();
+    const priceDisplay = roomzPlusPlan?.priceDisplay || '49.000đ/tháng';
+
     const title = limitType === 'views'
         ? 'Đã hết lượt xem profile hôm nay'
         : 'Đã hết lượt gửi yêu cầu hôm nay';
@@ -39,6 +44,10 @@ export function LimitHitModal({
     const description = limitType === 'views'
         ? 'Bạn đã xem tối đa 10 profile trong ngày. Nâng cấp Premium để xem không giới hạn!'
         : 'Bạn đã gửi tối đa 5 yêu cầu trong ngày. Nâng cấp Premium để gửi không giới hạn!';
+
+    const handleUpgrade = () => {
+        navigate('/payment');
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -74,10 +83,10 @@ export function LimitHitModal({
                     <Button
                         className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
                         size="lg"
-                        onClick={onUpgrade}
+                        onClick={handleUpgrade}
                     >
                         <Crown className="w-4 h-4 mr-2" />
-                        Nâng cấp Premium - 49.000đ/tháng
+                        Nâng cấp Premium - {priceDisplay}
                         <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
 

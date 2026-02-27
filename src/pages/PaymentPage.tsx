@@ -12,21 +12,24 @@ import {
   ArrowLeft,
   Check,
   Crown,
-  Sparkles,
   Shield,
   Loader2,
   CheckCircle,
   CreditCard,
   Star,
+  Flame,
 } from "lucide-react";
 import { useAuth } from "@/contexts";
 import {
   PLANS,
+  getRoomZPlusPlan,
   createCheckoutSession,
   handleCheckoutSuccess,
   getUserSubscription,
+  getPromoStatus,
   type Subscription,
   type SubscriptionPlan,
+  type PromoStatus,
 } from "@/services/payments";
 import { toast } from "sonner";
 
@@ -38,6 +41,23 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true);
   const [processingPlan, setProcessingPlan] = useState<SubscriptionPlan | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "quarterly">("monthly");
+  const [promoStatus, setPromoStatus] = useState<PromoStatus | null>(null);
+
+  const roomzPlusPlan = getRoomZPlusPlan();
+
+  // Fetch promo status
+  useEffect(() => {
+    async function fetchPromoStatus() {
+      try {
+        const status = await getPromoStatus();
+        setPromoStatus(status);
+      } catch (error) {
+        console.error("Failed to fetch promo status:", error);
+      }
+    }
+    fetchPromoStatus();
+  }, []);
 
   // Check for checkout success
   useEffect(() => {
@@ -122,12 +142,24 @@ export default function PaymentPage() {
         return Star;
       case "roomz_plus":
         return Crown;
-      case "roomz_pro":
-        return Sparkles;
       default:
         return Star;
     }
   };
+
+  const getCurrentPrice = () => {
+    if (!roomzPlusPlan) return 49000;
+    return billingCycle === "monthly" ? roomzPlusPlan.price : (roomzPlusPlan.quarterlyPrice || 119000);
+  };
+
+  const getSavings = () => {
+    if (!roomzPlusPlan) return 0;
+    const monthlyTotal = roomzPlusPlan.price * 3;
+    const quarterlyPrice = roomzPlusPlan.quarterlyPrice || 119000;
+    return monthlyTotal - quarterlyPrice;
+  };
+
+  const remainingSlots = promoStatus ? promoStatus.totalSlots - promoStatus.claimedSlots : 0;
 
   // Loading state
   if (loading) {
@@ -180,9 +212,9 @@ export default function PaymentPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Hero Section */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-4">
             <Crown className="w-4 h-4" />
             Nâng cấp ngay hôm nay
@@ -191,13 +223,52 @@ export default function PaymentPage() {
             Mở khóa toàn bộ tính năng với RoomZ+
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Tăng cơ hội tìm được phòng phù hợp nhanh hơn 50% với các tính năng premium
+            Trải nghiệm thuê nhà tốt nhất với các tính năng premium độc quyền
           </p>
+        </div>
+
+        {/* Early Bird Promo Bar */}
+        {remainingSlots > 0 && (
+          <div className="flex justify-center mb-6">
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-full flex items-center gap-2 shadow-lg">
+              <Flame className="w-5 h-5" />
+              <span className="font-medium">
+                Chỉ còn <strong>{remainingSlots}</strong> slot giá 24.500đ!
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Billing Toggle */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-gray-100 p-1 rounded-full flex">
+            <button
+              onClick={() => setBillingCycle("monthly")}
+              className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${billingCycle === "monthly"
+                ? "bg-white text-primary shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              Tháng {roomzPlusPlan?.price?.toLocaleString('vi-VN')}đ
+            </button>
+            <button
+              onClick={() => setBillingCycle("quarterly")}
+              className={`px-6 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-1 ${billingCycle === "quarterly"
+                ? "bg-white text-primary shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
+            >
+              Quý {(roomzPlusPlan?.quarterlyPrice || 119000).toLocaleString('vi-VN')}đ
+              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                Tiết kiệm 19%
+              </Badge>
+            </button>
+          </div>
         </div>
 
         {/* Current Plan Badge */}
         {subscription && (
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-6">
             <Badge className="bg-green-100 text-green-700 border-green-300 px-4 py-2">
               <Shield className="w-4 h-4 mr-2" />
               Đang sử dụng: {PLANS.find((p) => p.id === subscription.plan)?.name}
@@ -205,8 +276,8 @@ export default function PaymentPage() {
           </div>
         )}
 
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Pricing Cards - 2 Column */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           {PLANS.map((plan) => {
             const Icon = getPlanIcon(plan.id);
             const isCurrentPlan = subscription?.plan === plan.id;
@@ -215,11 +286,10 @@ export default function PaymentPage() {
             return (
               <Card
                 key={plan.id}
-                className={`relative overflow-hidden transition-all hover:shadow-lg ${
-                  plan.recommended
-                    ? "border-2 border-primary shadow-lg scale-105 md:scale-110"
-                    : ""
-                }`}
+                className={`relative overflow-hidden transition-all hover:shadow-lg ${plan.recommended
+                  ? "border-2 border-primary shadow-lg scale-105 md:scale-110"
+                  : ""
+                  }`}
               >
                 {plan.recommended && (
                   <div className="absolute top-0 left-0 right-0 bg-primary text-white text-center text-sm py-1 font-medium">
@@ -229,17 +299,37 @@ export default function PaymentPage() {
                 <CardHeader className={plan.recommended ? "pt-10" : ""}>
                   <div className="flex items-center gap-3 mb-2">
                     <div
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                        plan.recommended
-                          ? "bg-primary text-white"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center ${plan.recommended
+                        ? "bg-primary text-white"
+                        : "bg-gray-100 text-gray-600"
+                        }`}
                     >
                       <Icon className="w-6 h-6" />
                     </div>
                     <div>
                       <CardTitle className="text-xl">{plan.name}</CardTitle>
-                      <CardDescription>{plan.priceDisplay}</CardDescription>
+                      <CardDescription className={plan.recommended && billingCycle === "quarterly" ? "text-green-600 font-medium" : ""}>
+                        {plan.recommended ? (
+                          <>
+                            {billingCycle === "monthly"
+                              ? `${getCurrentPrice().toLocaleString('vi-VN')}đ/tháng`
+                              : `${Math.floor((roomzPlusPlan?.quarterlyPrice || 119000) / 3).toLocaleString('vi-VN')}đ/tháng`
+                            }
+                            {billingCycle === "quarterly" && (
+                              <span className="text-xs text-gray-500 font-normal ml-1">
+                                ({roomzPlusPlan?.quarterlyPrice?.toLocaleString('vi-VN')}đ/quý)
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          plan.priceDisplay
+                        )}
+                      </CardDescription>
+                      {plan.recommended && billingCycle === "quarterly" && (
+                        <span className="text-xs text-green-600 font-medium">
+                          Tiết kiệm {getSavings().toLocaleString('vi-VN')}đ
+                        </span>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -256,11 +346,10 @@ export default function PaymentPage() {
                   <Button
                     onClick={() => handleSubscribe(plan.id)}
                     disabled={isCurrentPlan || isProcessing}
-                    className={`w-full rounded-full ${
-                      plan.recommended
-                        ? "bg-primary hover:bg-primary/90"
-                        : ""
-                    }`}
+                    className={`w-full rounded-full ${plan.recommended
+                      ? "bg-primary hover:bg-primary/90"
+                      : ""
+                      }`}
                     variant={plan.recommended ? "default" : "outline"}
                   >
                     {isProcessing ? (
@@ -290,15 +379,15 @@ export default function PaymentPage() {
 
         {/* Trust Badges */}
         <div className="mt-12 text-center">
-          <p className="text-sm text-gray-500 mb-4">Thanh toán an toàn với</p>
+          <p className="text-sm text-gray-500 mb-4">Thanh toán an toàn</p>
           <div className="flex items-center justify-center gap-6 opacity-60">
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5" />
-              <span className="text-sm font-medium">SSL Secure</span>
+              <span className="text-sm font-medium">SSL Encrypted</span>
             </div>
             <div className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
-              <span className="text-sm font-medium">Stripe</span>
+              <span className="text-sm font-medium">Secure</span>
             </div>
           </div>
           <p className="text-xs text-gray-400 mt-4">
@@ -317,11 +406,11 @@ export default function PaymentPage() {
               },
               {
                 q: "Có trial miễn phí không?",
-                a: "Sinh viên được miễn phí badge Verified+. Với các gói premium, bạn có thể trải nghiệm 7 ngày miễn phí.",
+                a: "Hiện tại chúng tôi không có trial miễn phí. Bạn có thể hủy bất cứ lúc nào nếu không hài lòng.",
               },
               {
                 q: "Thanh toán có an toàn không?",
-                a: "Mọi giao dịch đều được xử lý qua Stripe với mã hóa SSL. Chúng tôi không lưu thông tin thẻ của bạn.",
+                a: "Mọi giao dịch đều được bảo mật với mã hóa SSL. Chúng tôi không lưu thông tin thẻ của bạn.",
               },
             ].map((faq, index) => (
               <Card key={index}>
