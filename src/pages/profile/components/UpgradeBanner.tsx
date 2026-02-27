@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Crown, Phone, Heart, Users, Star, MapPin, Zap, Shield, Headphones } from "lucide-react";
 import { getRoomZPlusPlan } from "@/services/payments";
 import { useNavigate } from "react-router";
@@ -25,9 +26,26 @@ export function UpgradeBanner({ onUpgrade, isPremium }: UpgradeBannerProps) {
     const roomzPlusPlan = getRoomZPlusPlan();
     const priceDisplay = roomzPlusPlan?.priceDisplay || '49.000đ/tháng';
 
-    // Don't render if user is already premium
+    // Show active status card for premium users
     if (isPremium) {
-        return null;
+        return (
+            <div className="px-6 py-4 max-w-6xl mx-auto">
+                <Card className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center">
+                                <Crown className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h4 className="font-medium text-amber-900">RoomZ+ Premium</h4>
+                                <p className="text-sm text-amber-700">Đang hoạt động</p>
+                            </div>
+                        </div>
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-200">Active</Badge>
+                    </div>
+                </Card>
+            </div>
+        );
     }
 
     const handleUpgrade = () => {

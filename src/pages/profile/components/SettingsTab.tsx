@@ -12,6 +12,7 @@ import {
     Mail,
     GraduationCap,
     Phone,
+    Crown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -161,6 +162,49 @@ export function SettingsTab({
                     {/* TODO: Preferences, Security, Notifications — implement when backend ready */}
                 </div>
             </Card>
+
+            {/* Subscription Card */}
+            {profile?.is_premium ? (
+                // Premium User Card
+                <Card className="p-6 rounded-2xl shadow-soft border border-amber-200 bg-gradient-to-br from-amber-50/50 to-orange-50/50">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Crown className="w-5 h-5 text-amber-500" />
+                        <h3>RoomZ+ Premium</h3>
+                    </div>
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Trạng thái</span>
+                            <Badge className="bg-green-100 text-green-700 border-0">Đang hoạt động</Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Hết hạn</span>
+                            <span className="text-sm font-medium">
+                                {profile?.premium_until
+                                    ? new Date(profile.premium_until).toLocaleDateString('vi-VN')
+                                    : 'Không giới hạn'}
+                            </span>
+                        </div>
+                    </div>
+                </Card>
+            ) : (
+                // Free User Card
+                <Card className="p-6 rounded-2xl shadow-soft border border-border">
+                    <h3 className="mb-4">Gói dịch vụ</h3>
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                        <div>
+                            <p className="font-medium">Gói miễn phí</p>
+                            <p className="text-sm text-muted-foreground">Giới hạn xem profile, SĐT, yêu thích</p>
+                        </div>
+                        <Button
+                            onClick={() => navigate('/payment')}
+                            className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                        >
+                            <Crown className="w-4 h-4 mr-2" />
+                            Nâng cấp
+                        </Button>
+                    </div>
+                </Card>
+            )}
 
             <Button
                 variant="outline"

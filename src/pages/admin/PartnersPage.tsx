@@ -20,7 +20,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Handshake, Plus, MoreVertical, Eye, Edit, Trash2, Loader2, Tag, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Handshake, Plus, MoreVertical, Eye, Edit, Trash2, Loader2, Tag, X, Crown } from "lucide-react";
 import { usePartners, useTogglePartnerStatus, useDeletePartner, useCreatePartner, useUpdatePartner } from "@/hooks/usePartners";
 import { useDeals, useCreateDeal, useDeleteDeal, useToggleDealActive } from "@/hooks/useDeals";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -39,6 +40,7 @@ export default function PartnersPage() {
   const [newDealTitle, setNewDealTitle] = useState("");
   const [newDealDiscount, setNewDealDiscount] = useState("");
   const [newDealValidUntil, setNewDealValidUntil] = useState("");
+  const [newDealIsPremium, setNewDealIsPremium] = useState(false);
 
   // Partner form state
   const [showPartnerForm, setShowPartnerForm] = useState(false);
@@ -113,11 +115,13 @@ export default function PartnersPage() {
         title: newDealTitle.trim(),
         discount_value: newDealDiscount.trim() || undefined,
         valid_until: newDealValidUntil || undefined,
+        is_premium_only: newDealIsPremium,
       });
       toast.success('Đã tạo deal mới');
       setNewDealTitle("");
       setNewDealDiscount("");
       setNewDealValidUntil("");
+      setNewDealIsPremium(false);
       setShowDealDialog(false);
     } catch {
       toast.error('Lỗi khi tạo deal');
@@ -423,7 +427,12 @@ export default function PartnersPage() {
                     className="flex items-center justify-between p-3 border rounded-lg"
                   >
                     <div className="flex-1">
-                      <div className="font-medium">{deal.title}</div>
+                      <div className="font-medium flex items-center gap-2">
+                        {deal.title}
+                        {deal.is_premium_only && (
+                          <Crown className="w-3.5 h-3.5 text-amber-500" />
+                        )}
+                      </div>
                       <div className="text-sm text-gray-500">
                         {deal.discount_value && <span className="mr-2">{deal.discount_value}</span>}
                         {deal.valid_until && (
@@ -495,6 +504,16 @@ export default function PartnersPage() {
                 value={newDealValidUntil}
                 onChange={(e) => setNewDealValidUntil(e.target.value)}
                 className="mt-1"
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="flex items-center gap-2">
+                <Crown className="w-4 h-4 text-amber-600" />
+                <span className="text-sm font-medium text-amber-900">Deal Premium</span>
+              </div>
+              <Switch
+                checked={newDealIsPremium}
+                onCheckedChange={setNewDealIsPremium}
               />
             </div>
           </div>

@@ -197,7 +197,7 @@ export default function AppShell() {
                     <UserIcon className="mr-2 h-4 w-4" />
                     <span>Hồ sơ</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <DropdownMenuItem onClick={() => navigate('/profile?tab=settings')}>
                     <UserIcon className="mr-2 h-4 w-4" />
                     <span>Cài đặt</span>
                   </DropdownMenuItem>

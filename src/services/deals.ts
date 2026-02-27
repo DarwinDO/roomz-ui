@@ -253,6 +253,7 @@ export interface CreateDealInput {
     discount_value?: string;
     description?: string;
     valid_until?: string;
+    is_premium_only?: boolean;
 }
 
 /**
@@ -268,6 +269,7 @@ export async function createDeal(input: CreateDealInput): Promise<Deal> {
             description: input.description || null,
             valid_until: input.valid_until || null,
             is_active: true,
+            is_premium_only: input.is_premium_only || false,
         })
         .select()
         .single();
