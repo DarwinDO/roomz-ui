@@ -1,17 +1,20 @@
 {
-  "name": "roomz-ui",
+  "name": "roomz-monorepo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "test": "playwright test",
-    "test:ui": "playwright test --ui",
-    "test:headed": "playwright test --headed",
-    "test:report": "playwright show-report"
+    "dev": "npm run dev --workspace=@roomz/web",
+    "build": "npm run build --workspace=@roomz/web",
+    "lint": "npm run lint --workspace=@roomz/web",
+    "preview": "npm run preview --workspace=@roomz/web",
+    "test": "npm run test --workspace=@roomz/web",
+    "test:ui": "npm run test:ui --workspace=@roomz/web",
+    "test:headed": "npm run test:headed --workspace=@roomz/web",
+    "test:report": "npm run test:report --workspace=@roomz/web"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.2",
