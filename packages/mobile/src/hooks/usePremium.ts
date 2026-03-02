@@ -62,6 +62,18 @@ export function usePremium(): UsePremiumReturn {
             if (!isMounted) return;
             setIsLoading(true);
             try {
+                // Check if RevenueCat is configured before calling any API
+                const isConfigured = (() => {
+                    try { return Purchases.isConfigured(); }
+                    catch { return false; }
+                })();
+
+                if (!isConfigured) {
+                    console.warn('RevenueCat not configured, skipping premium check');
+                    if (isMounted) setIsLoading(false);
+                    return;
+                }
+
                 await checkPremiumStatus();
                 await loadOfferings();
             } catch (err) {

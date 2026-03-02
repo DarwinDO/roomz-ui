@@ -30,31 +30,36 @@ export function useNotifications(): UseNotificationsReturn {
     const responseListener = useRef<Notifications.Subscription | null>(null);
 
     const registerForPushNotifications = useCallback(async (): Promise<string | null> => {
-        if (!Device.isDevice) {
-            console.warn('Push notifications require a physical device');
-            return null;
-        }
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
-        if (existingStatus !== 'granted') {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
-        }
-        if (finalStatus !== 'granted') {
-            console.warn('Push notification permission not granted');
-            return null;
-        }
-        const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-        const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+        try {
+            if (!Device.isDevice) {
+                console.warn('Push notifications require a physical device');
+                return null;
+            }
+            const { status: existingStatus } = await Notifications.getPermissionsAsync();
+            let finalStatus = existingStatus;
+            if (existingStatus !== 'granted') {
+                const { status } = await Notifications.requestPermissionsAsync();
+                finalStatus = status;
+            }
+            if (finalStatus !== 'granted') {
+                console.warn('Push notification permission not granted');
+                return null;
+            }
+            const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+            const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 
-        if (Platform.OS === 'android') {
-            await Notifications.setNotificationChannelAsync('default', {
-                name: 'default',
-                importance: Notifications.AndroidImportance.MAX,
-                vibrationPattern: [0, 250, 250, 250],
-            });
+            if (Platform.OS === 'android') {
+                await Notifications.setNotificationChannelAsync('default', {
+                    name: 'default',
+                    importance: Notifications.AndroidImportance.MAX,
+                    vibrationPattern: [0, 250, 250, 250],
+                });
+            }
+            return token;
+        } catch (err) {
+            console.warn('Push notification registration failed:', err);
+            return null;
         }
-        return token;
     }, []);
 
     const saveTokenToServer = useCallback(async (token: string) => {
@@ -79,7 +84,7 @@ export function useNotifications(): UseNotificationsReturn {
                 setExpoPushToken(token);
                 saveTokenToServer(token);
             }
-        });
+        }).catch(err => console.warn('Push notification setup failed:', err));
         notificationListener.current = Notifications.addNotificationReceivedListener(n => {
             setNotification(n);
         });
