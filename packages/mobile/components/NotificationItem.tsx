@@ -5,15 +5,24 @@ import { formatRelativeTime } from '../src/utils/relativeTime';
 
 const NOTIFICATION_ICONS = {
     message: MessageCircle,
+    new_message: MessageCircle,
     match: Users,
     verification: Shield,
     deal: Tag,
     system: Bell,
+    booking_request: Bell,
+    booking_status: Bell,
+    roommate_request: Users,
+    sublet_request: Bell,
+    sublet_approved: Bell,
+    swap_match: Users,
+    swap_request: Bell,
+    swap_confirmed: Bell,
 };
 
 interface NotificationItemProps {
     id: string;
-    type: 'message' | 'match' | 'verification' | 'deal' | 'system';
+    type: 'message' | 'match' | 'verification' | 'deal' | 'system' | 'new_message' | 'booking_request' | 'booking_status' | 'roommate_request' | 'sublet_request' | 'sublet_approved' | 'swap_match' | 'swap_request' | 'swap_confirmed';
     title: string;
     body: string;
     created_at: string;

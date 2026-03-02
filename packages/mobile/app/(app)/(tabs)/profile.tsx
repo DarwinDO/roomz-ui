@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../../../src/contexts/AuthContext";
 import { useVerification } from "../../../src/hooks/useVerification";
 import { usePremium } from "../../../src/hooks/usePremium";
-import { useUnreadCount } from "../../../src/hooks/useUnreadCount";
+import { useNotificationCount } from "../../../src/hooks/useNotificationCount";
 import { LogOut, Settings, Shield, ChevronRight, Crown, ShieldCheck, Clock, Bell } from "lucide-react-native";
 
 export default function ProfileScreen() {
@@ -11,9 +11,7 @@ export default function ProfileScreen() {
     const { user, signOut } = useAuth();
     const { status: verificationStatus } = useVerification();
     const { isPremium } = usePremium();
-    // MVP: dùng chat unread count cho notification badge
-    // TODO: Replace với real notification count khi có notifications table
-    const { count: unreadCount } = useUnreadCount();
+    const { count: notifCount } = useNotificationCount();
 
     if (!user) {
         return (
@@ -34,10 +32,10 @@ export default function ProfileScreen() {
                         className="p-2 relative"
                     >
                         <Bell size={24} color="white" />
-                        {unreadCount > 0 && (
+                        {notifCount > 0 && (
                             <View className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 items-center justify-center">
                                 <Text className="text-white text-xs font-bold">
-                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                    {notifCount > 99 ? '99+' : notifCount}
                                 </Text>
                             </View>
                         )}

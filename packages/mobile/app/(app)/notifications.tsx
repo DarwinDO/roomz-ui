@@ -12,9 +12,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 interface Notification {
     id: string;
     user_id: string;
-    type: 'message' | 'match' | 'verification' | 'deal' | 'system';
+    type: 'message' | 'match' | 'verification' | 'deal' | 'system' | 'new_message' | 'booking_request' | 'booking_status' | 'roommate_request' | 'sublet_request' | 'sublet_approved' | 'swap_match' | 'swap_request' | 'swap_confirmed';
     title: string;
-    body: string;
+    body: string;  // maps to 'content' column in DB
     data?: Record<string, unknown>;
     is_read: boolean;
     created_at: string;
@@ -38,7 +38,8 @@ export default function NotificationsScreen() {
                 console.warn('Notifications query failed:', error.message);
                 return [];
             }
-            return data || [];
+            // Map 'content' column to 'body' for interface compatibility
+            return (data || []).map(n => ({ ...n, body: n.content }));
         },
         enabled: !!user?.id,
         retry: false,  // Không retry nếu table không tồn tại
