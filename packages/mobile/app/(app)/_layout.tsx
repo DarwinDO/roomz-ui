@@ -8,6 +8,9 @@ export default function AppLayout() {
             }}
         >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="room/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="sublet/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="search-filter" options={{ headerShown: false, presentation: 'modal' }} />
         </Stack>
     );
 }
