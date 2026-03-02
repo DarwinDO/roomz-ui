@@ -6,9 +6,13 @@ import {
     ActivityIndicator,
     Linking,
     Dimensions,
+    Alert,
 } from 'react-native';
 import React, { useCallback } from 'react';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { startChatConversation } from '@roomz/shared';
+import { useAuth } from '../../../src/contexts/AuthContext';
+import { supabase } from '../../../src/lib/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     ChevronLeft,
@@ -34,6 +38,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function RoomDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const { user } = useAuth();
     const { data: room, isLoading, isError, error, refetch } = useRoomDetail(id);
 
     const handleBack = useCallback(() => {
@@ -50,9 +55,25 @@ export default function RoomDetailScreen() {
         }
     }, [room?.landlord?.phone]);
 
-    const handleMessage = useCallback(() => {
-        // TODO: Navigate to chat with landlord
-    }, []);
+    const handleMessage = useCallback(async () => {
+        if (!user) {
+            Alert.alert('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để nhắn tin với chủ nhà', [
+                { text: 'Hủy', style: 'cancel' },
+                { text: 'Đăng nhập', onPress: () => router.push('/login') },
+            ]);
+            return;
+        }
+        if (!room?.landlord?.id) return;
+
+        try {
+            const { id: conversationId } = await startChatConversation(
+                supabase, room.landlord.id, user.id
+            );
+            router.push(`/chat/${conversationId}` as any);
+        } catch (err) {
+            Alert.alert('Lỗi', 'Không thể tạo cuộc hội thoại. Vui lòng thử lại sau.');
+        }
+    }, [user, room, router]);
 
     if (isLoading) {
         return (
@@ -236,7 +257,8 @@ export default function RoomDetailScreen() {
                 <View className="flex-row gap-3">
                     <Pressable
                         onPress={handleMessage}
-                        className="flex-1 flex-row items-center justify-center bg-primary-50 rounded-xl py-4"
+                        disabled={!room?.landlord?.id}
+                        className="flex-1 flex-row items-center justify-center bg-primary-50 rounded-xl py-4 disabled:opacity-50"
                     >
                         <MessageCircle size={20} color="#2a9d6a" />
                         <Text className="ml-2 font-semibold text-primary-600">Nhắn tin</Text>

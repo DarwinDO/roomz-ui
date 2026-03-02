@@ -1,7 +1,10 @@
 import { Tabs } from "expo-router";
 import { Search, Users, MessageCircle, Compass, User } from "lucide-react-native";
+import { useUnreadCount } from "@/src/hooks/useUnreadCount";
 
 export default function TabLayout() {
+    const { count: unreadCount } = useUnreadCount();
+
     return (
         <Tabs
             screenOptions={{
@@ -36,6 +39,7 @@ export default function TabLayout() {
                 options={{
                     title: "Tin nhắn",
                     tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
+                    tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
                 }}
             />
             <Tabs.Screen

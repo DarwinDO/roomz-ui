@@ -31,7 +31,13 @@ export * from './rooms';
 // ============================================
 
 export { DEFAULT_QUICK_REPLIES } from './chat';
-export type { QuickReply } from './chat';
+export type {
+    QuickReply,
+    Message,
+    MessageWithSender,
+    Conversation,
+    UserInfo,
+} from './chat';
 
 // Re-export chat API functions (they include optimized versions of messages functions)
 export {
