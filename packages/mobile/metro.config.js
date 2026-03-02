@@ -15,7 +15,6 @@ config.resolver.nodeModulesPaths = [
     path.resolve(projectRoot, 'node_modules'),
     path.resolve(monorepoRoot, 'node_modules'),
 ];
-config.resolver.disableHierarchicalLookup = true;
 
 // NativeWind v4: wrap config to enable CSS processing
 module.exports = withNativeWind(config, { input: './global.css' });
