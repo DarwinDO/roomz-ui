@@ -28,6 +28,14 @@ export default function AppLayout() {
                 name="create-post"
                 options={{ headerShown: false, presentation: 'modal' }}
             />
+            <Stack.Screen
+                name="verification"
+                options={{ headerShown: false, presentation: 'modal' }}
+            />
+            <Stack.Screen
+                name="payment"
+                options={{ headerShown: false, presentation: 'modal' }}
+            />
         </Stack>
     );
 }

@@ -1,8 +1,9 @@
 import "../global.css";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, Platform } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Purchases from "react-native-purchases";
 import { AuthProvider, useAuth } from "../src/contexts/AuthContext";
 
 const queryClient = new QueryClient({
@@ -42,6 +43,27 @@ function AuthGuard() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    // Initialize RevenueCat (only on native platforms)
+    if (Platform.OS !== 'web') {
+      try {
+        // Replace with your actual RevenueCat API keys
+        const apiKey = Platform.OS === 'ios'
+          ? process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || ''
+          : process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY || '';
+
+        if (apiKey) {
+          Purchases.configure({ apiKey });
+          console.log('RevenueCat initialized');
+        } else {
+          console.warn('RevenueCat API key not configured');
+        }
+      } catch (error) {
+        console.error('Failed to initialize RevenueCat:', error);
+      }
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

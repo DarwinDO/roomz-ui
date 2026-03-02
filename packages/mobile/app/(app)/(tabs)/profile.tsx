@@ -1,9 +1,15 @@
-import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { useRouter } from "expo-router";
 import { useAuth } from "../../../src/contexts/AuthContext";
-import { LogOut, Settings, Shield, ChevronRight } from "lucide-react-native";
+import { useVerification } from "../../../src/hooks/useVerification";
+import { usePremium } from "../../../src/hooks/usePremium";
+import { LogOut, Settings, Shield, ChevronRight, Crown, ShieldCheck, Clock } from "lucide-react-native";
 
 export default function ProfileScreen() {
+    const router = useRouter();
     const { user, signOut } = useAuth();
+    const { status: verificationStatus } = useVerification();
+    const { isPremium } = usePremium();
 
     if (!user) {
         return (
@@ -18,17 +24,40 @@ export default function ProfileScreen() {
             {/* Header */}
             <View className="bg-primary-500 pt-16 pb-8 px-6 rounded-b-3xl">
                 <View className="items-center">
-                    <View className="w-20 h-20 rounded-full bg-primary-300 items-center justify-center border-4 border-white">
-                        <Text className="text-2xl font-bold text-white">
-                            {user.email?.charAt(0).toUpperCase() || "?"}
-                        </Text>
+                    {/* Avatar with Verification Badge */}
+                    <View className="relative">
+                        <View className="w-20 h-20 rounded-full bg-primary-300 items-center justify-center border-4 border-white">
+                            <Text className="text-2xl font-bold text-white">
+                                {user.email?.charAt(0).toUpperCase() || "?"}
+                            </Text>
+                        </View>
+                        {/* Verification Badge */}
+                        {verificationStatus?.status === 'approved' && (
+                            <View className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-green-500 border-2 border-white items-center justify-center">
+                                <ShieldCheck size={14} color="white" />
+                            </View>
+                        )}
+                        {verificationStatus?.status === 'pending' && (
+                            <View className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-amber-500 border-2 border-white items-center justify-center">
+                                <Clock size={14} color="white" />
+                            </View>
+                        )}
                     </View>
+
                     <Text className="text-xl font-bold text-white mt-3">
                         User Profile
                     </Text>
                     <Text className="text-primary-100 text-sm mt-1">
                         {user.email}
                     </Text>
+
+                    {/* Premium Badge */}
+                    {isPremium && (
+                        <View className="flex-row items-center bg-amber-500/20 px-3 py-1 rounded-full mt-2">
+                            <Crown size={12} color="#fbbf24" />
+                            <Text className="text-amber-300 text-xs font-bold ml-1">RoomZ+</Text>
+                        </View>
+                    )}
                 </View>
             </View>
 
@@ -40,9 +69,27 @@ export default function ProfileScreen() {
                     onPress={() => { }}
                 />
                 <MenuItem
-                    icon={<Shield size={20} color="#64748b" />}
+                    icon={
+                        <Shield
+                            size={20}
+                            color={verificationStatus?.status === 'approved' ? '#22c55e' : '#64748b'}
+                        />
+                    }
                     label="Xác minh tài khoản"
-                    onPress={() => { }}
+                    value={
+                        verificationStatus?.status === 'approved'
+                            ? '✅ Đã xác minh'
+                            : verificationStatus?.status === 'pending'
+                                ? '⏳ Đang chờ'
+                                : ''
+                    }
+                    onPress={() => router.push('/verification' as never)}
+                />
+                <MenuItem
+                    icon={<Crown size={20} color="#f59e0b" />}
+                    label="RoomZ+ Premium"
+                    value={isPremium ? '✅ Đã kích hoạt' : ''}
+                    onPress={() => router.push('/payment' as never)}
                 />
             </View>
 
@@ -60,9 +107,10 @@ export default function ProfileScreen() {
     );
 }
 
-function MenuItem({ icon, label, onPress }: {
+function MenuItem({ icon, label, value, onPress }: {
     icon: React.ReactNode;
     label: string;
+    value?: string;
     onPress: () => void;
 }) {
     return (
@@ -72,6 +120,9 @@ function MenuItem({ icon, label, onPress }: {
         >
             {icon}
             <Text className="flex-1 text-text-primary font-medium ml-3">{label}</Text>
+            {value ? (
+                <Text className="text-text-secondary text-sm mr-2">{value}</Text>
+            ) : null}
             <ChevronRight size={16} color="#94a3b8" />
         </TouchableOpacity>
     );
