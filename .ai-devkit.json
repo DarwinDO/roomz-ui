@@ -11,5 +11,20 @@
     "monitoring"
   ],
   "createdAt": "2025-10-23T05:49:16.970Z",
-  "updatedAt": "2025-10-23T05:49:17.119Z"
+  "updatedAt": "2026-03-02T08:56:23.702Z",
+  "environments": [
+    "cursor",
+    "codex",
+    "kilocode",
+    "antigravity"
+  ],
+  "phases": [
+    "requirements",
+    "design",
+    "planning",
+    "implementation",
+    "testing",
+    "deployment",
+    "monitoring"
+  ]
 }
