@@ -3,13 +3,17 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../../../src/contexts/AuthContext";
 import { useVerification } from "../../../src/hooks/useVerification";
 import { usePremium } from "../../../src/hooks/usePremium";
-import { LogOut, Settings, Shield, ChevronRight, Crown, ShieldCheck, Clock } from "lucide-react-native";
+import { useUnreadCount } from "../../../src/hooks/useUnreadCount";
+import { LogOut, Settings, Shield, ChevronRight, Crown, ShieldCheck, Clock, Bell } from "lucide-react-native";
 
 export default function ProfileScreen() {
     const router = useRouter();
     const { user, signOut } = useAuth();
     const { status: verificationStatus } = useVerification();
     const { isPremium } = usePremium();
+    // MVP: dùng chat unread count cho notification badge
+    // TODO: Replace với real notification count khi có notifications table
+    const { count: unreadCount } = useUnreadCount();
 
     if (!user) {
         return (
@@ -22,13 +26,30 @@ export default function ProfileScreen() {
     return (
         <ScrollView className="flex-1 bg-background">
             {/* Header */}
-            <View className="bg-primary-500 pt-16 pb-8 px-6 rounded-b-3xl">
+            <View className="bg-primary-500 pt-12 pb-8 px-6 rounded-b-3xl">
+                {/* Notification Bell */}
+                <View className="flex-row justify-end mb-2">
+                    <TouchableOpacity
+                        onPress={() => router.push('/(app)/notifications' as never)}
+                        className="p-2 relative"
+                    >
+                        <Bell size={24} color="white" />
+                        {unreadCount > 0 && (
+                            <View className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 items-center justify-center">
+                                <Text className="text-white text-xs font-bold">
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                </View>
+
                 <View className="items-center">
                     {/* Avatar with Verification Badge */}
                     <View className="relative">
                         <View className="w-20 h-20 rounded-full bg-primary-300 items-center justify-center border-4 border-white">
                             <Text className="text-2xl font-bold text-white">
-                                {user.email?.charAt(0).toUpperCase() || "?"}
+                                {(user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0)).toUpperCase() || "?"}
                             </Text>
                         </View>
                         {/* Verification Badge */}
@@ -45,7 +66,7 @@ export default function ProfileScreen() {
                     </View>
 
                     <Text className="text-xl font-bold text-white mt-3">
-                        User Profile
+                        {user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
                     </Text>
                     <Text className="text-primary-100 text-sm mt-1">
                         {user.email}
@@ -66,7 +87,7 @@ export default function ProfileScreen() {
                 <MenuItem
                     icon={<Settings size={20} color="#64748b" />}
                     label="Cài đặt"
-                    onPress={() => { }}
+                    onPress={() => router.push('/(app)/settings' as never)}
                 />
                 <MenuItem
                     icon={

@@ -5,6 +5,8 @@ import { View, ActivityIndicator, Platform } from "react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Purchases from "react-native-purchases";
 import { AuthProvider, useAuth } from "../src/contexts/AuthContext";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { useNotifications } from "../src/hooks/useNotifications";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,7 +30,7 @@ function AuthGuard() {
     } else if (session && inAuthGroup) {
       router.replace("/(app)/(tabs)");
     }
-  }, [session, loading, segments]);
+  }, [session, loading, segments, router]);
 
   // IMPORTANT: Show loading screen while checking auth to prevent flicker
   if (loading) {
@@ -40,6 +42,12 @@ function AuthGuard() {
   }
 
   return <Slot />;
+}
+
+function NotificationProvider({ children }: { children: React.ReactNode }) {
+  // Initialize push notifications when user is authenticated
+  useNotifications();
+  return <>{children}</>;
 }
 
 export default function RootLayout() {
@@ -65,10 +73,14 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AuthGuard />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <NotificationProvider>
+            <AuthGuard />
+          </NotificationProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

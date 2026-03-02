@@ -36,6 +36,14 @@ export default function AppLayout() {
                 name="payment"
                 options={{ headerShown: false, presentation: 'modal' }}
             />
+            <Stack.Screen
+                name="notifications"
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="settings"
+                options={{ headerShown: false }}
+            />
         </Stack>
     );
 }

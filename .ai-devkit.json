@@ -11,7 +11,7 @@
     "monitoring"
   ],
   "createdAt": "2025-10-23T05:49:16.970Z",
-  "updatedAt": "2026-03-02T08:56:23.702Z",
+  "updatedAt": "2026-03-02T10:06:18.328Z",
   "environments": [
     "cursor",
     "codex",
@@ -26,5 +26,11 @@
     "testing",
     "deployment",
     "monitoring"
+  ],
+  "skills": [
+    {
+      "registry": "codeaholicguy/ai-devkit",
+      "name": "dev-lifecycle"
+    }
   ]
 }
