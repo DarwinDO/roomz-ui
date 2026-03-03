@@ -10,6 +10,16 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { SubletCard } from '@/components/swap';
 import { useMySublets, useDeleteSublet } from '@/hooks/useSublets';
 import { toast } from 'sonner';
@@ -22,6 +32,7 @@ export default function MySubletsPage() {
     const deleteSublet = useDeleteSublet();
 
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
     const activeSublets = (sublets as SubletListingWithDetails[])?.filter((s) => s.status === 'active') || [];
     const expiredSublets = (sublets as SubletListingWithDetails[])?.filter((s) => s.status === 'cancelled') || [];
@@ -30,12 +41,11 @@ export default function MySubletsPage() {
         navigate(`/sublet/${sublet.id}/edit`);
     };
 
-    const handleDelete = async (sublet: SubletListing) => {
-        if (!confirm('Bạn có chắc muốn xóa tin đăng này?')) return;
-
-        setDeletingId(sublet.id);
+    const handleDelete = async (subletId: string) => {
+        setDeleteTarget(null);
+        setDeletingId(subletId);
         try {
-            await deleteSublet.mutateAsync(sublet.id);
+            await deleteSublet.mutateAsync(subletId);
             toast.success('Đã xóa', {
                 description: 'Tin đăng đã được xóa thành công.',
             });
@@ -156,13 +166,19 @@ export default function MySubletsPage() {
                                                 <Users className="w-4 h-4 mr-1" />
                                                 {sublet.application_count || 0}
                                             </Button>
-                                            <Button variant="secondary" size="sm" onClick={() => handleEdit(sublet)}>
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                onClick={() => handleEdit(sublet)}
+                                                disabled
+                                                title="Coming soon"
+                                            >
                                                 Sửa
                                             </Button>
                                             <Button
                                                 variant="destructive"
                                                 size="sm"
-                                                onClick={() => handleDelete(sublet)}
+                                                onClick={() => setDeleteTarget(sublet.id)}
                                                 disabled={deletingId === sublet.id}
                                             >
                                                 Xóa
@@ -190,6 +206,27 @@ export default function MySubletsPage() {
                     </TabsContent>
                 </Tabs>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Xóa tin đăng?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tin đăng sẽ bị xóa vĩnh viễn. Bạn có chắc chắn?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => { if (deleteTarget) handleDelete(deleteTarget); }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Xóa
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

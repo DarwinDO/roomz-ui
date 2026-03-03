@@ -86,11 +86,11 @@ export async function createSwapRequest(
         .single();
 
     if (recipientError || !recipientListing) {
-        throw new Error('Không tìm thấy tin đăng của ngườ nhận');
+        throw new Error('Không tìm thấy tin đăng của người nhận');
     }
 
     if (recipientListing.status !== 'active') {
-        throw new Error('Tin đăng của ngườ nhận không khả dụng để hoán đổi');
+        throw new Error('Tin đăng của người nhận không khả dụng để hoán đổi');
     }
 
     if (recipientListing.owner_id === user.user.id) {
@@ -108,7 +108,6 @@ export async function createSwapRequest(
             proposed_start_date: request.proposed_start_date,
             proposed_end_date: request.proposed_end_date,
             status: 'pending',
-            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         })
         .select()
         .single();

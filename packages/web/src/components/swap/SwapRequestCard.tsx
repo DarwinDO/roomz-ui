@@ -100,7 +100,7 @@ export function SwapRequestCard({
 
             {/* Proposed Dates */}
             <div className="bg-muted/50 rounded-lg p-3 text-sm">
-                <p className="text-muted-foreground text-xs mb-1">Thờ gian đề xuất</p>
+                <p className="text-muted-foreground text-xs mb-1">Thời gian đề xuất</p>
                 <p className="font-medium">
                     {format(new Date(request.proposed_start_date), 'dd/MM/yyyy', { locale: vi })} - {' '}
                     {format(new Date(request.proposed_end_date), 'dd/MM/yyyy', { locale: vi })}

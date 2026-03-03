@@ -24,7 +24,8 @@ const PAGE_SIZE = 12;
  */
 export async function fetchSublets(
     filters: SubletFilters,
-    page: number = 1
+    page: number = 1,
+    userId?: string
 ): Promise<SubletSearchResponse> {
     // Start with base query on the view for joined data
     let query = supabase
@@ -32,9 +33,9 @@ export async function fetchSublets(
         .select(
             `
       *,
-      original_room:original_room_id (
-        id, title, address, district, city, area_sqm, 
-        bedroom_count, bathroom_count, furnished, 
+      original_room:original_room_id!inner (
+        id, title, address, district, city, area_sqm,
+        bedroom_count, bathroom_count, furnished,
         latitude, longitude, room_type,
         room_images(image_url, is_primary, display_order)
       ),
@@ -45,6 +46,11 @@ export async function fetchSublets(
             { count: 'exact' }
         )
         .eq('status', 'active');
+
+    // Exclude own listings if userId provided
+    if (userId) {
+        query = query.neq('owner_id', userId);
+    }
 
     // Apply filters
     if (filters.city) {
@@ -75,7 +81,7 @@ export async function fetchSublets(
         .range(from, to);
 
     if (error) {
-        console.error('Error fetching sublets:', error);
+        if (import.meta.env.DEV) console.error('Error fetching sublets:', error);
         throw error;
     }
 
@@ -96,7 +102,11 @@ export async function fetchSublets(
         owner_name: item.owner?.full_name || '',
         owner_avatar: item.owner?.avatar_url,
         owner_verified: item.owner?.id_card_verified,
-        images: [],
+        images: (item.original_room as any)?.room_images?.map((img: any) => ({
+            image_url: img.image_url,
+            is_primary: img.is_primary,
+            display_order: img.display_order,
+        })) || [],
         room: item.original_room,
         owner: item.owner,
     })) as unknown as SubletListingWithDetails[];
@@ -134,7 +144,7 @@ export async function fetchSubletById(id: string): Promise<SubletListing | null>
 
     if (error) {
         if (error.code === 'PGRST116') return null; // Not found
-        console.error('Error fetching sublet:', error);
+        if (import.meta.env.DEV) console.error('Error fetching sublet:', error);
         throw error;
     }
 
@@ -142,7 +152,11 @@ export async function fetchSubletById(id: string): Promise<SubletListing | null>
         ...data,
         room: data.original_room,
         owner: data.owner,
-        images: [],
+        images: (data.original_room as any)?.room_images?.map((img: any) => ({
+            image_url: img.image_url,
+            is_primary: img.is_primary,
+            display_order: img.display_order,
+        })) || [],
     } as unknown as SubletListing;
 }
 
@@ -200,7 +214,7 @@ export async function createSublet(
         .single();
 
     if (error) {
-        console.error('Error creating sublet:', error);
+        if (import.meta.env.DEV) console.error('Error creating sublet:', error);
         throw error;
     }
 
@@ -354,7 +368,7 @@ export async function updateSublet(
         .single();
 
     if (error) {
-        console.error('Error updating sublet:', error);
+        if (import.meta.env.DEV) console.error('Error updating sublet:', error);
         throw error;
     }
 
@@ -376,7 +390,7 @@ export async function deleteSublet(id: string): Promise<void> {
         .eq('owner_id', user.user.id);
 
     if (error) {
-        console.error('Error deleting sublet:', error);
+        if (import.meta.env.DEV) console.error('Error deleting sublet:', error);
         throw error;
     }
 }
@@ -391,7 +405,7 @@ export async function incrementSubletView(id: string): Promise<void> {
     });
 
     if (error) {
-        console.error('Failed to increment sublet view count:', error);
+        if (import.meta.env.DEV) console.error('Failed to increment sublet view count:', error);
     }
 }
 
@@ -408,6 +422,17 @@ export async function createApplication(
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) throw new Error('User not authenticated');
 
+    // Guard: prevent self-application
+    const { data: listing } = await supabase
+        .from('sublet_listings')
+        .select('owner_id')
+        .eq('id', request.sublet_listing_id)
+        .single();
+
+    if (listing?.owner_id === user.user.id) {
+        throw new Error('Bạn không thể đăng ký thuê phòng của chính mình');
+    }
+
     const { data, error } = await supabase
         .from('sublet_applications')
         .insert({
@@ -422,7 +447,7 @@ export async function createApplication(
         .single();
 
     if (error) {
-        console.error('Error creating application:', error);
+        if (import.meta.env.DEV) console.error('Error creating application:', error);
         throw error;
     }
 
@@ -449,7 +474,7 @@ export async function fetchApplicationsForSublet(
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching applications:', error);
+        if (import.meta.env.DEV) console.error('Error fetching applications:', error);
         throw error;
     }
 
@@ -483,7 +508,7 @@ export async function fetchMyApplications(): Promise<SubletApplication[]> {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching my applications:', error);
+        if (import.meta.env.DEV) console.error('Error fetching my applications:', error);
         throw error;
     }
 
@@ -510,7 +535,7 @@ export async function updateApplicationStatus(
         .single();
 
     if (error) {
-        console.error('Error updating application:', error);
+        if (import.meta.env.DEV) console.error('Error updating application:', error);
         throw error;
     }
 
@@ -526,12 +551,12 @@ export async function withdrawApplication(applicationId: string): Promise<void> 
 
     const { error } = await supabase
         .from('sublet_applications')
-        .update({ status: 'rejected' })
+        .update({ status: 'cancelled' })
         .eq('id', applicationId)
         .eq('applicant_id', user.user.id);
 
     if (error) {
-        console.error('Error withdrawing application:', error);
+        if (import.meta.env.DEV) console.error('Error withdrawing application:', error);
         throw error;
     }
 }
@@ -553,7 +578,12 @@ export async function fetchMySublets(): Promise<SubletListing[]> {
             `
       *,
       original_room:original_room_id (
-        id, title, address, district, city
+        id, title, address, district, city,
+        area_sqm, bedroom_count, bathroom_count, room_type, price_per_month,
+        room_images(image_url, is_primary, display_order)
+      ),
+      owner:owner_id (
+        id, full_name, avatar_url, id_card_verified
       )
     `
         )
@@ -561,13 +591,18 @@ export async function fetchMySublets(): Promise<SubletListing[]> {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching my sublets:', error);
+        if (import.meta.env.DEV) console.error('Error fetching my sublets:', error);
         throw error;
     }
 
     return (data || []).map((item) => ({
         ...item,
         room: item.original_room,
-        images: [],
+        owner: item.owner,
+        images: (item.original_room as any)?.room_images?.map((img: any) => ({
+            image_url: img.image_url,
+            is_primary: img.is_primary,
+            display_order: img.display_order,
+        })) || [],
     })) as unknown as SubletListing[];
 }

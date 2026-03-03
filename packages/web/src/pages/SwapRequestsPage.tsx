@@ -56,11 +56,14 @@ export default function SwapRequestsPage() {
     };
 
     const handleReject = async (request: SwapRequest) => {
+        const reason = window.prompt('Lý do từ chối:');
+        if (reason === null) return; // User cancelled
+
         setProcessingId(request.id);
         try {
             await respondToRequest.mutateAsync({
                 requestId: request.id,
-                response: { status: 'rejected', rejection_reason: 'Không phù hợp' },
+                response: { status: 'rejected', rejection_reason: reason || 'Không phù hợp' },
             });
             toast.success('Đã từ chối', {
                 description: 'Yêu cầu đã bị từ chối.',

@@ -4,7 +4,7 @@
  * Following UX Psychology principles
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Plus, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,18 @@ export default function SwapRoomPage() {
   } = useSublets(filters);
 
   const sublets = data?.pages.flatMap((page) => page.sublets) || [];
+
+  // Client-side search filter
+  const filteredSublets = useMemo(() => {
+    if (!searchQuery.trim()) return sublets;
+    const q = searchQuery.toLowerCase();
+    return sublets?.filter(s =>
+      s.room?.title?.toLowerCase().includes(q) ||
+      s.room?.district?.toLowerCase().includes(q) ||
+      s.room?.city?.toLowerCase().includes(q) ||
+      s.room?.address?.toLowerCase().includes(q)
+    );
+  }, [sublets, searchQuery]);
 
   const handleApply = (sublet: SubletListingWithDetails) => {
     setSelectedSublet(sublet);
@@ -117,10 +129,7 @@ export default function SwapRoomPage() {
             <Input
               placeholder="Tìm kiếm theo khu vực..."
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setFilters((prev) => ({ ...prev, district: e.target.value }));
-              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -182,8 +191,8 @@ export default function SwapRoomPage() {
               <h3 className="mb-4 text-lg font-semibold flex items-center gap-2">
                 <RefreshCw className="w-4 h-4 text-primary" />
                 Tin cho thuê đang mở
-                {sublets.length > 0 && (
-                  <Badge variant="secondary">{sublets.length}</Badge>
+                {filteredSublets.length > 0 && (
+                  <Badge variant="secondary">{filteredSublets.length}</Badge>
                 )}
               </h3>
 
@@ -200,7 +209,7 @@ export default function SwapRoomPage() {
                   </p>
                   <Button onClick={() => refetch()}>Thử lại</Button>
                 </Card>
-              ) : sublets.length === 0 ? (
+              ) : filteredSublets.length === 0 ? (
                 <Card className="p-8 text-center">
                   <p className="text-muted-foreground">
                     Chưa có tin đăng nào phù hợp với bộ lọc của bạn
@@ -209,7 +218,7 @@ export default function SwapRoomPage() {
               ) : (
                 <>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {sublets.map((sublet) => (
+                    {filteredSublets.map((sublet) => (
                       <SubletCard
                         key={sublet.id}
                         sublet={sublet}

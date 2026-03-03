@@ -72,7 +72,7 @@ export function SwapRequestDialog({ targetSublet, isOpen, onClose }: SwapRequest
 
             const maxDuration = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
             if (end.getTime() - start.getTime() > maxDuration) {
-                newErrors.proposedEndDate = 'Thờ gian hoán đổi tối đa 30 ngày';
+                newErrors.proposedEndDate = 'Thời gian hoán đổi tối đa 30 ngày';
             }
         }
 
@@ -189,7 +189,7 @@ export function SwapRequestDialog({ targetSublet, isOpen, onClose }: SwapRequest
                             </Alert>
                         ) : (
                             <div className="grid gap-2 max-h-48 overflow-y-auto">
-                                {mySublets.map((sublet) => (
+                                {mySublets?.filter(s => s.status === 'active').map((sublet) => (
                                     <div
                                         key={sublet.id}
                                         className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedListingId === sublet.id

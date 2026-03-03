@@ -6,10 +6,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
-import { BookingModal } from "@/components/modals/BookingModal";
+import { ApplySubletDialog } from "@/components/modals/ApplySubletDialog";
 import { useSublet } from "@/hooks/useSublets";
 import { formatMonthlyPrice } from "@roomz/shared/utils/format";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import {
   ArrowLeft,
   Heart,
@@ -32,7 +33,7 @@ const SubletDetailPage = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [isApplyOpen, setIsApplyOpen] = useState(false);
 
   const images = sublet?.images?.map((img) => img.image_url) || [];
   const room = sublet?.room;
@@ -43,20 +44,16 @@ const SubletDetailPage = () => {
   const location = room ? `${room.address}, ${room.district}, ${room.city}` : "";
   const subletPrice = sublet?.sublet_price || 0;
   const dateRange = sublet
-    ? `${sublet.start_date} - ${sublet.end_date}`
+    ? `${format(new Date(sublet.start_date), 'dd/MM/yyyy')} - ${format(new Date(sublet.end_date), 'dd/MM/yyyy')}`
     : "";
   const isVerified = owner?.id_card_verified || false;
 
   const handleBack = () => navigate(-1);
   const handleBookSublet = () => {
-    setIsBookingOpen(true);
+    setIsApplyOpen(true);
   };
   const handleMessageHost = () => {
     setIsChatOpen(true);
-  };
-
-  const handleBookingConfirm = () => {
-    toast.success("Đã gửi yêu cầu đặt chỗ! Chủ nhà sẽ liên hệ lại với bạn sớm.");
   };
 
   // Loading state
@@ -119,15 +116,13 @@ const SubletDetailPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsFavorite(!isFavorite)}
+              disabled
+              title="Coming soon"
               className="rounded-full"
             >
-              <Heart
-                className={`w-5 h-5 ${isFavorite ? "fill-red-500 text-red-500" : ""
-                  }`}
-              />
+              <Heart className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" disabled title="Coming soon" className="rounded-full">
               <Share2 className="w-5 h-5" />
             </Button>
           </div>
@@ -202,7 +197,6 @@ const SubletDetailPage = () => {
                 <h2 className="text-primary">
                   {formatMonthlyPrice(subletPrice)}
                 </h2>
-                <span className="text-gray-600">/tháng</span>
               </div>
               <Badge
                 variant="outline"
@@ -218,8 +212,7 @@ const SubletDetailPage = () => {
           <div className="bg-gray-50 rounded-2xl p-5">
             <h3 className="mb-3">Giới thiệu về chỗ ở</h3>
             <p className="text-sm text-gray-700 leading-relaxed">
-              {sublet.description ||
-                "Không gian lý tưởng cho kỳ thực tập hoặc học hè! Phòng riêng ấm cúng này có đủ mọi tiện nghi cho thời gian lưu trú ngắn hạn."}
+              {sublet.description || "Chưa có mô tả."}
             </p>
           </div>
 
@@ -249,6 +242,15 @@ const SubletDetailPage = () => {
                   <div className="flex items-center gap-4 text-sm">
                     <span className="text-gray-500">Chủ phòng</span>
                   </div>
+                  <Button
+                    onClick={handleMessageHost}
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 rounded-full border-primary text-primary hover:bg-primary/10"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-1.5" />
+                    Nhắn chủ nhà
+                  </Button>
                 </div>
               </div>
             </div>
@@ -272,25 +274,15 @@ const SubletDetailPage = () => {
       </div>
 
       {/* Sticky Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg px-4 py-3 md:px-6 z-50 mb-16 md:mb-0">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg px-4 py-2 md:px-6 z-50 mb-16 md:mb-0">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col xs:flex-row gap-3">
-            <Button
-              onClick={handleMessageHost}
-              variant="outline"
-              className="flex-1 rounded-full h-12 border-2 border-primary text-primary hover:bg-primary/10"
-            >
-              <MessageCircle className="w-5 h-5 mr-2" />
-              Nhắn chủ nhà
-            </Button>
-            <Button
-              onClick={handleBookSublet}
-              className="flex-1 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-12 text-white shadow-md"
-            >
-              <Calendar className="w-5 h-5 mr-2" />
-              Đặt chỗ
-            </Button>
-          </div>
+          <Button
+            onClick={handleBookSublet}
+            className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-11 text-white shadow-md"
+          >
+            <Calendar className="w-5 h-5 mr-2" />
+            Đăng ký thuê
+          </Button>
         </div>
       </div>
 
@@ -299,22 +291,17 @@ const SubletDetailPage = () => {
         <ChatDrawer
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
+          recipientId={owner.id}
           recipientName={owner.full_name || "Chủ nhà"}
           recipientRole="Chủ phòng"
         />
       )}
 
-      {/* Booking Modal */}
-      <BookingModal
-        isOpen={isBookingOpen}
-        onClose={() => setIsBookingOpen(false)}
-        onConfirm={handleBookingConfirm}
-        subletInfo={{
-          title,
-          price: subletPrice,
-          location,
-          duration: dateRange,
-        }}
+      {/* Apply Sublet Dialog */}
+      <ApplySubletDialog
+        sublet={sublet}
+        isOpen={isApplyOpen}
+        onClose={() => setIsApplyOpen(false)}
       />
     </div>
   );

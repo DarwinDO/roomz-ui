@@ -58,8 +58,8 @@ function adaptMatchToDialogTarget(match: PotentialMatch): SwapDialogTarget {
         },
         images: matchedListing.images.map(img => ({ image_url: img.image_url })),
         sublet_price: matchedListing.sublet_price,
-        start_date: now.split('T')[0],
-        end_date: now.split('T')[0],
+        start_date: (matchedListing as any).start_date || now.split('T')[0],
+        end_date: (matchedListing as any).end_date || now.split('T')[0],
     };
 }
 

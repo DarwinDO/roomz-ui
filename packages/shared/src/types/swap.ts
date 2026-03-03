@@ -49,7 +49,7 @@ export type SubletApplicationRow = SharedDatabase['public']['Tables']['sublet_ap
 // Enums (Simplified - 3 values each)
 // ============================================
 
-export type SubletStatus = 'active' | 'booked' | 'cancelled';
+export type SubletStatus = 'pending' | 'active' | 'booked' | 'cancelled';
 export type SwapRequestStatus = 'pending' | 'accepted' | 'rejected';
 export type ApplicationStatus = 'pending' | 'approved' | 'rejected';
 
