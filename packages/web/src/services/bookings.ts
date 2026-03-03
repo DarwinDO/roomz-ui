@@ -124,11 +124,44 @@ export async function cancelBooking(id: string, reason?: string) {
   return updateBookingStatus(id, 'cancelled', reason);
 }
 
-// Mock available slots for now
+/**
+ * Get available time slots for a room on a specific date
+ * Excludes bookings with status 'pending' or 'confirmed'
+ */
 export async function getAvailableTimeSlots(roomId: string, date: string): Promise<string[]> {
-  // In real app, query existing bookings for this room & date
-  // and exclude them from a generated list of slots (e.g. 8am to 8pm)
-  return ["08:00", "09:00", "10:00", "14:00", "15:00", "16:00", "19:00"];
+  // Generate all possible time slots (8:00 to 20:00)
+  const allSlots: string[] = [];
+  for (let hour = 8; hour <= 20; hour++) {
+    allSlots.push(`${hour.toString().padStart(2, '0')}:00`);
+  }
+
+  // Query existing bookings for this room & date
+  // booking_date is timestamptz, so we need to filter by date
+  const startOfDay = `${date}T00:00:00.000Z`;
+  const endOfDay = `${date}T23:59:59.999Z`;
+
+  const { data: bookings, error } = await supabase
+    .from('bookings')
+    .select('booking_date, status')
+    .eq('room_id', roomId)
+    .gte('booking_date', startOfDay)
+    .lte('booking_date', endOfDay)
+    .in('status', ['pending', 'confirmed']);
+
+  if (error) {
+    console.error('Error fetching bookings:', error);
+    return allSlots; // Return all slots on error
+  }
+
+  // Extract booked time slots
+  const bookedSlots = new Set<string>();
+  bookings?.forEach((booking) => {
+    const bookingTime = new Date(booking.booking_date).getHours();
+    bookedSlots.add(`${bookingTime.toString().padStart(2, '0')}:00`);
+  });
+
+  // Filter out booked slots
+  return allSlots.filter((slot) => !bookedSlots.has(slot));
 }
 
 export async function getBookingStats(userId: string) {

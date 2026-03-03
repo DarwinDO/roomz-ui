@@ -142,7 +142,9 @@ export function QRPaymentModal({
         setIsExpired(false);
         setTimeLeft(15 * 60);
         // In production, this would call createSePayCheckoutSession again
-        console.log('[QRModal] Regenerate QR code');
+        if (import.meta.env.DEV) {
+            console.log('[QRModal] Regenerate QR code');
+        }
     };
 
     const isLowTime = timeLeft < 2 * 60; // Less than 2 minutes

@@ -294,12 +294,16 @@ export function useRoommateRequestsQuery() {
         // Check if channel already exists to prevent duplicates
         const existingChannel = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`);
         if (existingChannel) {
-            console.log('[useRoommateRequestsQuery] Reusing existing channel');
+            if (import.meta.env.DEV) {
+                console.log('[useRoommateRequestsQuery] Reusing existing channel');
+            }
             channelRef.current = existingChannel;
             return;
         }
 
-        console.log('[useRoommateRequestsQuery] Setting up realtime subscription');
+        if (import.meta.env.DEV) {
+            console.log('[useRoommateRequestsQuery] Setting up realtime subscription');
+        }
 
         channelRef.current = supabase
             .channel(channelName)
@@ -325,7 +329,9 @@ export function useRoommateRequestsQuery() {
 
                     if (!isRelevant) return;
 
-                    console.log('[useRoommateRequestsQuery] Relevant request change:', payload.eventType);
+                    if (import.meta.env.DEV) {
+                        console.log('[useRoommateRequestsQuery] Relevant request change:', payload.eventType);
+                    }
 
                     if (payload.eventType === 'UPDATE' && newData?.sender_id === user.id) {
                         queryClient.setQueryData(
@@ -351,7 +357,9 @@ export function useRoommateRequestsQuery() {
             )
             .subscribe((status, err) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log('[useRoommateRequestsQuery] ✅ Subscribed to request updates');
+                    if (import.meta.env.DEV) {
+                        console.log('[useRoommateRequestsQuery] ✅ Subscribed to request updates');
+                    }
                 }
                 if (status === 'CHANNEL_ERROR') {
                     console.error('[useRoommateRequestsQuery] ❌ Channel error:', err);

@@ -41,6 +41,7 @@ import { ContactLandlordModal } from "@/components/modals/ContactLandlordModal";
 import { GalleryModal } from "@/components/modals/GalleryModal";
 import { ViewAllMatchesModal } from "@/components/modals/ViewAllMatchesModal";
 import { RoommateProfileModal } from "@/components/modals/RoommateProfileModal";
+import type { RoommateMatch } from "@/services/roommates";
 import { MapModal } from "@/components/modals/MapModal";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { RoomMap } from "@/components/common/RoomMap";
@@ -542,7 +543,7 @@ export default function RoomDetailPage() {
             isOpen={isRoommateProfileOpen}
             onClose={() => setIsRoommateProfileOpen(false)}
             onMessageClick={() => openChatDrawer(selectedRoommate)}
-            roommate={selectedRoommate}
+            roommate={selectedRoommate as unknown as RoommateMatch}
           />
           <ChatDrawer
             isOpen={isChatDrawerOpen}

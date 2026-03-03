@@ -32,7 +32,7 @@ import { toast } from "sonner";
 export default function CompatibilityPage() {
   const navigate = useNavigate();
   const onBack = () => navigate(-1);
-  
+
   const [currentStep, setCurrentStep] = useState<"quiz" | "results">("quiz");
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [sortBy, setSortBy] = useState<"compatibility" | "distance" | "major">("compatibility");
@@ -270,84 +270,84 @@ export default function CompatibilityPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              transition={{ 
+              transition={{
                 duration: 0.3,
                 ease: "easeOut",
-                delay: index * 0.05 
+                delay: index * 0.05
               }}
             >
-            <Card className="p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow duration-300">
-              <div className="flex items-start gap-4 mb-4">
-                <Avatar className="w-16 h-16">
-                  <AvatarFallback className="text-lg bg-gradient-to-br from-primary/20 to-secondary/20">
-                    {match.name.split(" ").map((n) => n[0]).join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between mb-1">
-                    <div>
-                      <h3 className="mb-0">{match.name}, {match.age}</h3>
-                      <p className="text-sm text-gray-600">{match.school}</p>
+              <Card className="p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow duration-300">
+                <div className="flex items-start gap-4 mb-4">
+                  <Avatar className="w-16 h-16">
+                    <AvatarFallback className="text-lg bg-gradient-to-br from-primary/20 to-secondary/20">
+                      {match.name.split(" ").map((n) => n[0]).join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-1">
+                      <div>
+                        <h3 className="mb-0">{match.name}, {match.age}</h3>
+                        <p className="text-sm text-gray-600">{match.school}</p>
+                      </div>
+                      <Badge className="bg-gradient-to-r from-secondary to-primary text-white px-3 py-1 shadow-md">
+                        {match.match}%
+                      </Badge>
                     </div>
-                    <Badge className="bg-gradient-to-r from-secondary to-primary text-white px-3 py-1 shadow-md">
-                      {match.match}%
-                    </Badge>
                   </div>
                 </div>
-              </div>
 
-              <p className="text-sm text-gray-700 mb-4">{match.bio}</p>
+                <p className="text-sm text-gray-700 mb-4">{match.bio}</p>
 
-              {/* Colored Tags */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {match.personalityTags.map((tag, i) => (
-                  <Badge
-                    key={i}
-                    className="bg-[#E6F0FF] text-[#1557FF] hover:bg-[#E6F0FF] border-0"
-                    style={{ borderRadius: "20px", padding: "6px 12px" }}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                {match.lifestyleTags.map((tag, i) => (
-                  <Badge
-                    key={i}
-                    className="bg-[#EFE6FF] text-[#7B61FF] hover:bg-[#EFE6FF] border-0"
-                    style={{ borderRadius: "20px", padding: "6px 12px" }}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                {match.hobbyTags.map((tag, i) => (
-                  <Badge
-                    key={i}
-                    className="bg-[#E6FFF0] text-[#23A35A] hover:bg-[#E6FFF0] border-0"
-                    style={{ borderRadius: "20px", padding: "6px 12px" }}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+                {/* Colored Tags */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {match.personalityTags.map((tag, i) => (
+                    <Badge
+                      key={i}
+                      className="bg-[#E6F0FF] text-[#1557FF] hover:bg-[#E6F0FF] border-0"
+                      style={{ borderRadius: "20px", padding: "6px 12px" }}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                  {match.lifestyleTags.map((tag, i) => (
+                    <Badge
+                      key={i}
+                      className="bg-[#EFE6FF] text-[#7B61FF] hover:bg-[#EFE6FF] border-0"
+                      style={{ borderRadius: "20px", padding: "6px 12px" }}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                  {match.hobbyTags.map((tag, i) => (
+                    <Badge
+                      key={i}
+                      className="bg-[#E6FFF0] text-[#23A35A] hover:bg-[#E6FFF0] border-0"
+                      style={{ borderRadius: "20px", padding: "6px 12px" }}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
 
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => handleInviteToChat(match)}
-                  className="flex-1 bg-primary hover:bg-primary/90 rounded-full transition-colors duration-200"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Invite to Chat
-                </Button>
-                <Button
-                  onClick={() => handleViewProfile(match)}
-                  variant="outline"
-                  className="rounded-full transition-colors duration-200"
-                >
-                  View Profile
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
-        ))}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleInviteToChat(match)}
+                    className="flex-1 bg-primary hover:bg-primary/90 rounded-full transition-colors duration-200"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Invite to Chat
+                  </Button>
+                  <Button
+                    onClick={() => handleViewProfile(match)}
+                    variant="outline"
+                    className="rounded-full transition-colors duration-200"
+                  >
+                    View Profile
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
         </div>
       </AnimatePresence>
 
@@ -374,13 +374,28 @@ export default function CompatibilityPage() {
             handleInviteToChat(selectedRoommate);
           }}
           roommate={{
-            name: selectedRoommate.name,
-            role: selectedRoommate.school,
-            match: selectedRoommate.match,
-            age: selectedRoommate.age,
+            matched_user_id: '',
+            compatibility_score: selectedRoommate.match,
+            full_name: selectedRoommate.name,
+            avatar_url: null,
+            bio: selectedRoommate.bio,
             university: selectedRoommate.university,
             major: selectedRoommate.major,
-            bio: selectedRoommate.bio,
+            city: '',
+            district: null,
+            age: selectedRoommate.age,
+            gender: null,
+            occupation: null,
+            hobbies: [],
+            sleep_score: 0,
+            cleanliness_score: 0,
+            noise_score: 0,
+            guest_score: 0,
+            weekend_score: 0,
+            budget_score: 0,
+            hobby_score: 0,
+            age_score: 0,
+            last_seen: null,
           }}
         />
       )}

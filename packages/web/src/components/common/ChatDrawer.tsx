@@ -67,7 +67,7 @@ export function ChatDrawer({
 
       setIsInitializing(true);
       try {
-        const convo = await startConversation(recipientId);
+        const convo = await startConversation(recipientId, user.id);
         setConversationId(convo.id);
       } catch (error) {
         console.error("Failed to initialize chat", error);

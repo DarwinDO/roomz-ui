@@ -91,7 +91,7 @@ export function ContactLandlordModal({
         setMessages(prev => {
           // Avoid duplicates
           if (prev.some(m => m.id === newMessage.id)) return prev;
-          return [...prev, newMessage];
+          return [...prev, newMessage as MessageWithUsers];
         });
       },
       onError: (err) => {

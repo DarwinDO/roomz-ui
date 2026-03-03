@@ -44,9 +44,9 @@ const getSePayConfig = (): SePayConfig => ({
 
 // Bank account for VietQR (from user config)
 const getBankConfig = (): { bank: string; account: string; accountName: string } => ({
-    bank: import.meta.env.VITE_SEPAY_BANK || 'Vietcombank',
-    account: import.meta.env.VITE_SEPAY_ACCOUNT || '9363565884',
-    accountName: import.meta.env.VITE_SEPAY_ACCOUNT_NAME || 'RoomZ',
+    bank: import.meta.env.VITE_SEPAY_BANK || 'MB',
+    account: import.meta.env.VITE_SEPAY_ACCOUNT || '0363565884',
+    accountName: import.meta.env.VITE_SEPAY_ACCOUNT_NAME || 'NGUYEN HOANG VIET DO',
 });
 
 /**
@@ -73,7 +73,9 @@ export function createPaymentOrder(params: CreateOrderParams): SePayOrder {
     // Generate VietQR URL
     const qrCodeUrl = generateQRUrl(orderCode, amount);
 
-    console.log('[SePay] Creating order:', { orderCode, amount, qrCodeUrl });
+    if (import.meta.env.DEV) {
+        console.log('[SePay] Creating order:', { orderCode, amount, qrCodeUrl });
+    }
 
     return {
         orderCode,
@@ -86,7 +88,9 @@ export function createPaymentOrder(params: CreateOrderParams): SePayOrder {
  * In production, this would call SePay API to check transaction status
  */
 export async function verifyPayment(orderCode: string): Promise<{ success: boolean; transactionId?: string }> {
-    console.log('[SePay] Verifying payment:', orderCode);
+    if (import.meta.env.DEV) {
+        console.log('[SePay] Verifying payment:', orderCode);
+    }
 
     // TODO: Implement actual API call to SePay when credentials are ready
     // For now, always return false (payment verification happens via webhook)

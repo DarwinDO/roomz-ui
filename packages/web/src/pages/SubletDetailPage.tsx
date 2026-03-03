@@ -45,7 +45,7 @@ const SubletDetailPage = () => {
   const dateRange = sublet
     ? `${sublet.start_date} - ${sublet.end_date}`
     : "";
-  const isVerified = owner?.is_verified || false;
+  const isVerified = owner?.id_card_verified || false;
 
   const handleBack = () => navigate(-1);
   const handleBookSublet = () => {
@@ -239,7 +239,7 @@ const SubletDetailPage = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <p className="font-medium">{owner.full_name}</p>
-                    {owner.is_verified && (
+                    {owner.id_card_verified && (
                       <Badge className="bg-secondary text-white text-xs">
                         <ShieldCheck className="w-3 h-3 mr-1" />
                         Đã xác thực

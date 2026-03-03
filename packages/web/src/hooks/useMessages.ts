@@ -100,7 +100,7 @@ export function useConversations(): UseConversationsReturn {
               lastMessage: {
                 ...updated[existingIndex].lastMessage,
                 content: newMessage.content,
-                created_at: newMessage.created_at,
+                created_at: newMessage.created_at || '',
                 sender_id: newMessage.sender_id,
               },
               unreadCount: isIncoming

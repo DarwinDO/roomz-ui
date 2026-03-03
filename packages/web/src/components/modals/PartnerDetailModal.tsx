@@ -1,8 +1,10 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, MapPin, Phone, Mail, Clock, CheckCircle2, Percent, ExternalLink } from "lucide-react";
+import { Star, MapPin, Phone, Mail, Clock, CheckCircle2, Percent, ExternalLink, ShieldCheck } from "lucide-react";
 import type { Partner } from "@/services/partners";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface PartnerDetailModalProps {
   isOpen: boolean;
@@ -11,38 +13,19 @@ interface PartnerDetailModalProps {
 }
 
 export function PartnerDetailModal({ isOpen, onClose, partner }: PartnerDetailModalProps) {
-  const handleBookService = () => {
-    // TODO: Implement booking flow
-    onClose();
-  };
+  const navigate = useNavigate();
 
   const handleContactPartner = () => {
-    // TODO: Implement contact flow
+    if (partner.phone) {
+      window.open(`tel:${partner.phone}`, '_blank');
+    } else {
+      toast.error("Chưa có SĐT");
+    }
   };
 
-  // Mock additional data - trong thực tế sẽ fetch từ API
-  const partnerDetails = {
-    description:
-      "Đối tác uy tín của RoomZ với hơn 5 năm kinh nghiệm trong lĩnh vực dịch vụ hỗ trợ sinh viên. Đội ngũ chuyên nghiệp, tận tâm, cam kết mang đến trải nghiệm tốt nhất cho khách hàng.",
-    address: "123 Nguyễn Văn Linh, Quận 7, TP.HCM",
-    phone: "1900 6868",
-    email: "support@partner.com",
-    workingHours: "Thứ 2 - Chủ nhật: 7:00 - 22:00",
-    services: [
-      "Chuyển nhà trong nội thành",
-      "Chuyển nhà liên tỉnh",
-      "Đóng gói đồ đạc chuyên nghiệp",
-      "Vệ sinh sau xây dựng",
-      "Vệ sinh định kỳ",
-      "Lắp đặt nội thất",
-    ],
-    features: [
-      "Đội ngũ được đào tạo chuyên nghiệp",
-      "Bảo hiểm đầy đủ cho hàng hóa",
-      "Thanh toán linh hoạt",
-      "Hỗ trợ khẩn cấp 24/7",
-      "Giá ưu đãi cho sinh viên",
-    ],
+  const handleBookService = () => {
+    navigate('/support-services');
+    onClose();
   };
 
   return (
@@ -79,7 +62,7 @@ export function PartnerDetailModal({ isOpen, onClose, partner }: PartnerDetailMo
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Giới thiệu</h4>
             <p className="text-sm text-gray-600 leading-relaxed">
-              {partnerDetails.description}
+              {partner.description || <span className="text-gray-400">Chưa cập nhật</span>}
             </p>
           </div>
 
@@ -89,53 +72,36 @@ export function PartnerDetailModal({ isOpen, onClose, partner }: PartnerDetailMo
             <div className="space-y-2">
               <div className="flex items-start gap-3 text-sm">
                 <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span className="text-gray-600">{partnerDetails.address}</span>
+                <span className="text-gray-600">
+                  {partner.address || <span className="text-gray-400">Chưa cập nhật</span>}
+                </span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Phone className="w-4 h-4 text-primary shrink-0" />
-                <a href={`tel:${partnerDetails.phone}`} className="text-primary hover:underline">
-                  {partnerDetails.phone}
-                </a>
+                {partner.phone ? (
+                  <a href={`tel:${partner.phone}`} className="text-primary hover:underline">
+                    {partner.phone}
+                  </a>
+                ) : (
+                  <span className="text-gray-400">Chưa cập nhật</span>
+                )}
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Mail className="w-4 h-4 text-primary shrink-0" />
-                <a href={`mailto:${partnerDetails.email}`} className="text-primary hover:underline">
-                  {partnerDetails.email}
-                </a>
+                {partner.email ? (
+                  <a href={`mailto:${partner.email}`} className="text-primary hover:underline">
+                    {partner.email}
+                  </a>
+                ) : (
+                  <span className="text-gray-400">Chưa cập nhật</span>
+                )}
               </div>
               <div className="flex items-start gap-3 text-sm">
                 <Clock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <span className="text-gray-600">{partnerDetails.workingHours}</span>
+                <span className="text-gray-600">
+                  {partner.hours || <span className="text-gray-400">Chưa cập nhật</span>}
+                </span>
               </div>
-            </div>
-          </div>
-
-          {/* Services */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium">Dịch vụ cung cấp</h4>
-            <div className="grid grid-cols-2 gap-2">
-              {partnerDetails.services.map((service, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start gap-2 text-sm bg-gray-50 rounded-xl p-3"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                  <span className="text-gray-700">{service}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Key Features */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium">Điểm nổi bật</h4>
-            <div className="space-y-2">
-              {partnerDetails.features.map((feature, idx) => (
-                <div key={idx} className="flex items-start gap-2 text-sm">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span className="text-gray-600">{feature}</span>
-                </div>
-              ))}
             </div>
           </div>
 
@@ -143,12 +109,12 @@ export function PartnerDetailModal({ isOpen, onClose, partner }: PartnerDetailMo
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-                🏆
+                <ShieldCheck className="w-5 h-5 text-blue-700" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-blue-900">Đối tác được xác thực</p>
                 <p className="text-xs text-blue-700">
-                  Đã được RoomZ kiểm tra và phê duyệt theo tiêu chuẩn chất lượng cao
+                  Đã được RommZ kiểm tra và phê duyệt theo tiêu chuẩn chất lượng cao
                 </p>
               </div>
             </div>
@@ -162,20 +128,6 @@ export function PartnerDetailModal({ isOpen, onClose, partner }: PartnerDetailMo
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                 <span className="text-sm font-medium">{partner.rating || 0}</span>
                 <span className="text-xs text-gray-500">({partner.review_count || 0} đánh giá)</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="bg-white rounded-lg p-2">
-                <p className="text-lg font-medium text-primary">98%</p>
-                <p className="text-xs text-gray-600">Hài lòng</p>
-              </div>
-              <div className="bg-white rounded-lg p-2">
-                <p className="text-lg font-medium text-primary">95%</p>
-                <p className="text-xs text-gray-600">Đúng hẹn</p>
-              </div>
-              <div className="bg-white rounded-lg p-2">
-                <p className="text-lg font-medium text-primary">100%</p>
-                <p className="text-xs text-gray-600">Chuyên nghiệp</p>
               </div>
             </div>
           </div>
@@ -203,4 +155,3 @@ export function PartnerDetailModal({ isOpen, onClose, partner }: PartnerDetailMo
     </Dialog>
   );
 }
-

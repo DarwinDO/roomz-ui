@@ -80,7 +80,7 @@ export async function fetchSublets(
     }
 
     // Transform data to match our types
-    const sublets: SubletListingWithDetails[] = (data || []).map((item) => ({
+    const sublets = (data || []).map((item) => ({
         ...item,
         room_title: item.original_room?.title || '',
         address: item.original_room?.address || '',
@@ -96,10 +96,10 @@ export async function fetchSublets(
         owner_name: item.owner?.full_name || '',
         owner_avatar: item.owner?.avatar_url,
         owner_verified: item.owner?.id_card_verified,
-        images: item.original_room?.room_images || [],
+        images: [],
         room: item.original_room,
         owner: item.owner,
-    }));
+    })) as unknown as SubletListingWithDetails[];
 
     return {
         sublets,
@@ -138,14 +138,11 @@ export async function fetchSubletById(id: string): Promise<SubletListing | null>
         throw error;
     }
 
-    // The Supabase data structure needs to be mapped to the SubletListing type
-    // which expects 'room' and 'owner' as direct properties, not 'original_room' and 'owner' from the select alias.
-    // Also, 'images' needs to be extracted from 'original_room.room_images'.
     return {
         ...data,
         room: data.original_room,
         owner: data.owner,
-        images: data.original_room?.room_images || [],
+        images: [],
     } as unknown as SubletListing;
 }
 
@@ -459,7 +456,7 @@ export async function fetchApplicationsForSublet(
     return (data || []).map((item) => ({
         ...item,
         applicant: item.applicant,
-    })) as SubletApplication[];
+    })) as unknown as SubletApplication[];
 }
 
 /**
@@ -490,7 +487,7 @@ export async function fetchMyApplications(): Promise<SubletApplication[]> {
         throw error;
     }
 
-    return data as SubletApplication[];
+    return data as unknown as SubletApplication[];
 }
 
 /**

@@ -38,7 +38,6 @@ const AuthCallbackPage = lazy(() => import('@/pages/AuthCallbackPage'));
 const VerificationPage = lazy(() => import('@/pages/VerificationPage'));
 const SupportServicesPage = lazy(() => import('@/pages/SupportServicesPage'));
 const LocalPassportPage = lazy(() => import('@/pages/LocalPassportPage'));
-const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const SubletDetailPage = lazy(() => import('@/pages/SubletDetailPage'));
 const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
 const LandlordDashboardPage = lazy(() => import('@/pages/LandlordDashboardPage'));
@@ -230,11 +229,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: (
-          <ProtectedRoute>
-            <SettingsPage />
-          </ProtectedRoute>
-        ),
+        element: <Navigate to="/profile" replace />,
       },
       {
         path: 'sublet/:id',

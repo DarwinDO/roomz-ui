@@ -35,6 +35,7 @@ export interface Room {
     view_count: number;
     favorite_count: number;
     status: string;
+    rejection_reason: string | null;
     min_lease_term: number | null;
     available_from: string | null;
     created_at: string;

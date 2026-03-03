@@ -70,7 +70,9 @@ export default function MessagesPage() {
         setSelectedConversation(found);
       } else {
         // No existing conversation - user might need to start from roommate feature
-        console.log('[MessagesPage] No conversation found with user:', targetUserId);
+        if (import.meta.env.DEV) {
+          console.log('[MessagesPage] No conversation found with user:', targetUserId);
+        }
       }
     }
   }, [searchParams, conversations]);

@@ -71,7 +71,9 @@ export async function uploadCommunityImage(
     const randomId = Math.random().toString(36).substring(2, 8);
     const fileName = `${userId}/${timestamp}-${randomId}.webp`;
 
-    console.log('[CommunityImages] Uploading:', fileName, 'Original size:', file.size, 'Compressed:', compressedBlob.size);
+    if (import.meta.env.DEV) {
+        console.log('[CommunityImages] Uploading:', fileName, 'Original size:', file.size, 'Compressed:', compressedBlob.size);
+    }
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
@@ -96,7 +98,9 @@ export async function uploadCommunityImage(
         throw error;
     }
 
-    console.log('[CommunityImages] Upload successful:', data?.path);
+    if (import.meta.env.DEV) {
+        console.log('[CommunityImages] Upload successful:', data?.path);
+    }
 
     // Get public URL
     const { data: urlData } = supabase.storage

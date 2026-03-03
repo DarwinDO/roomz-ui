@@ -3,6 +3,7 @@
  * Interact with 'service_leads' table
  */
 import { supabase } from '@/lib/supabase';
+import type { Json } from '@/lib/database.types';
 import type {
     ServiceLead,
     CreateServiceLeadRequest,
@@ -66,7 +67,7 @@ export async function getServiceLeadById(id: string): Promise<ServiceLead | null
         return null;
     }
 
-    return data;
+    return data as unknown as ServiceLead;
 }
 
 /**
@@ -85,7 +86,7 @@ export async function createServiceLead(data: CreateServiceLeadRequest): Promise
             user_id: user.id,
             service_type: data.service_type,
             partner_id: data.partner_id || null,
-            details: data.details,
+            details: data.details as Json,
             preferred_date: data.preferred_date || null,
         })
         .select('*, partner:partners(id, name, category, specialization, rating, image_url)')
@@ -96,7 +97,7 @@ export async function createServiceLead(data: CreateServiceLeadRequest): Promise
         throw error;
     }
 
-    return lead;
+    return lead as unknown as ServiceLead;
 }
 
 /**

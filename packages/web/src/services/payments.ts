@@ -257,7 +257,9 @@ export async function createSePayCheckoutSession(
       expires_at: expiresAt.toISOString(),
     } as never);
 
-  console.log('[Payment] Created order:', { orderCode, amount, billingCycle, isPromo });
+  if (import.meta.env.DEV) {
+    console.log('[Payment] Created order:', { orderCode, amount, billingCycle, isPromo });
+  }
 
   return {
     orderCode,
@@ -285,7 +287,9 @@ export function subscribeToPaymentStatus(
       },
       (payload: any) => {
         if (payload.new?.status === 'paid') {
-          console.log('[Payment] Payment received for order:', orderCode);
+          if (import.meta.env.DEV) {
+            console.log('[Payment] Payment received for order:', orderCode);
+          }
           onPaid();
         }
       }

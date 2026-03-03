@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { SubletCard } from '@/components/swap';
 import { useMySublets, useDeleteSublet } from '@/hooks/useSublets';
 import { toast } from 'sonner';
-import type { SubletListingWithDetails } from '@roomz/shared/types/swap';
+import type { SubletListing, SubletListingWithDetails } from '@roomz/shared/types/swap';
 
 export default function MySubletsPage() {
     const navigate = useNavigate();
@@ -23,14 +23,14 @@ export default function MySubletsPage() {
 
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const activeSublets = sublets?.filter((s) => s.status === 'active') || [];
-    const expiredSublets = sublets?.filter((s) => s.status === 'cancelled') || [];
+    const activeSublets = (sublets as SubletListingWithDetails[])?.filter((s) => s.status === 'active') || [];
+    const expiredSublets = (sublets as SubletListingWithDetails[])?.filter((s) => s.status === 'cancelled') || [];
 
-    const handleEdit = (sublet: SubletListingWithDetails) => {
+    const handleEdit = (sublet: SubletListing) => {
         navigate(`/sublet/${sublet.id}/edit`);
     };
 
-    const handleDelete = async (sublet: SubletListingWithDetails) => {
+    const handleDelete = async (sublet: SubletListing) => {
         if (!confirm('Bạn có chắc muốn xóa tin đăng này?')) return;
 
         setDeletingId(sublet.id);
@@ -48,7 +48,7 @@ export default function MySubletsPage() {
         }
     };
 
-    const handleViewApplications = (sublet: SubletListingWithDetails) => {
+    const handleViewApplications = (sublet: SubletListing) => {
         navigate(`/sublet/${sublet.id}/applications`);
     };
 
@@ -145,7 +145,7 @@ export default function MySubletsPage() {
                             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {activeSublets.map((sublet) => (
                                     <div key={sublet.id} className="relative group">
-                                        <SubletCard sublet={sublet} />
+                                        <SubletCard sublet={sublet as SubletListingWithDetails} />
                                         {/* Action Buttons */}
                                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                                             <Button

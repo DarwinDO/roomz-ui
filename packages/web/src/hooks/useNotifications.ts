@@ -117,12 +117,16 @@ export function useNotifications(): UseNotificationsReturn {
         // Check if channel already exists to prevent duplicates
         const existingChannel = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`);
         if (existingChannel) {
-            console.log('[useNotifications] Reusing existing channel');
+            if (import.meta.env.DEV) {
+                console.log('[useNotifications] Reusing existing channel');
+            }
             channelRef.current = existingChannel;
             return;
         }
 
-        console.log('[useNotifications] Setting up realtime subscription:', channelName);
+        if (import.meta.env.DEV) {
+            console.log('[useNotifications] Setting up realtime subscription:', channelName);
+        }
 
         // Subscribe to INSERT events
         channelRef.current = supabase
@@ -141,14 +145,18 @@ export function useNotifications(): UseNotificationsReturn {
                     // Client-side filter: only process notifications for current user
                     if (newNotification.user_id !== user.id) return;
 
-                    console.log('[useNotifications] Received new notification:', payload);
+                    if (import.meta.env.DEV) {
+                        console.log('[useNotifications] Received new notification:', payload);
+                    }
                     setNotifications(prev => [newNotification, ...prev]);
                     setUnreadCount(prev => prev + 1);
                 }
             )
             .subscribe((status, err) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log('[useNotifications] ✅ Successfully subscribed to notifications');
+                    if (import.meta.env.DEV) {
+                        console.log('[useNotifications] ✅ Successfully subscribed to notifications');
+                    }
                 }
                 if (status === 'CHANNEL_ERROR') {
                     console.error('[useNotifications] ❌ Channel error:', err);
@@ -157,7 +165,9 @@ export function useNotifications(): UseNotificationsReturn {
 
         return () => {
             isMounted = false;
-            console.log('[useNotifications] Cleaning up subscription:', channelName);
+            if (import.meta.env.DEV) {
+                console.log('[useNotifications] Cleaning up subscription:', channelName);
+            }
             if (channelRef.current) {
                 supabase.removeChannel(channelRef.current);
                 channelRef.current = null;

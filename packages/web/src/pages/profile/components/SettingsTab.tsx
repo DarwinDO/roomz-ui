@@ -159,7 +159,10 @@ export function SettingsTab({
                         </CollapsibleContent>
                     </Collapsible>
 
-                    {/* TODO: Preferences, Security, Notifications — implement when backend ready */}
+                    {/* Coming Soon */}
+                    <div className="p-4 bg-muted/20 rounded-xl text-center">
+                        <p className="text-sm text-muted-foreground">Cài đặt tuỳ chỉnh, bảo mật và thông báo sẽ sớm ra mắt</p>
+                    </div>
                 </div>
             </Card>
 

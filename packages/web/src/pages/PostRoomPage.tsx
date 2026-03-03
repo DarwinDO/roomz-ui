@@ -108,7 +108,7 @@ export default function PostRoomPage() {
           bedroomCount: room.bedroom_count?.toString() || "1",
           bathroomCount: room.bathroom_count?.toString() || "1",
           maxOccupants: room.max_occupants?.toString() || "1",
-          roomType: room.room_type || "private",
+          roomType: (room.room_type as 'private' | 'shared' | 'studio' | 'entire') || "private",
           furnished: room.furnished || false,
           availableFrom: room.available_from || "",
           minLeaseTerm: "1",

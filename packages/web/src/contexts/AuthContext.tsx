@@ -49,12 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
-      
-      console.log('Auth state changed:', event, session?.user?.id);
-      
+
+      // Auth state changed, update session
+
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       // Update email verification status
       setIsEmailVerified(!!session?.user?.email_confirmed_at);
 
@@ -94,16 +94,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser?.email_confirmed_at) {
         // Email just got verified!
-        console.log('Email verified detected via polling');
+        if (import.meta.env.DEV) {
+          console.log('Email verified detected via polling');
+        }
         setIsEmailVerified(true);
         setUser(currentUser);
-        
+
         // Refresh session to get updated data
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           setSession(session);
         }
-        
+
         // Refresh profile to sync email_verified status
         await fetchProfile(currentUser.id);
       }
@@ -159,16 +161,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!data.user) throw new Error('Không nhận được thông tin user');
 
     // Note: session might be null if email confirmation is required
-    return { 
-      user: data.user, 
-      session: data.session || {} as Session 
+    return {
+      user: data.user,
+      session: data.session || {} as Session
     };
   };
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
-    
+
     // Clear local state
     setUser(null);
     setSession(null);
@@ -190,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = async () => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
-      
+
       if (error) {
         console.error('Error refreshing user:', error);
         return;

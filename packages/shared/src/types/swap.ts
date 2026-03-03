@@ -61,9 +61,10 @@ export interface SubletListing {
     // Base fields from sublet_listings table
     id: string;
     original_room_id: string;
-    user_id: string;
+    owner_id: string;
     start_date: string;
     end_date: string;
+    original_price: number;
     sublet_price: number;
     deposit_required: number | null;
     description: string | null;
@@ -71,6 +72,9 @@ export interface SubletListing {
     status: SubletStatus;
     created_at: string;
     updated_at: string;
+    published_at: string | null;
+    application_count: number | null;
+    view_count: number | null;
 
     // Joined data from rooms (original_room alias)
     original_room?: {
@@ -107,7 +111,7 @@ export interface SubletListing {
         id: string;
         full_name: string;
         avatar_url: string | null;
-        is_verified: boolean | null;
+        id_card_verified: boolean | null;
     };
     // Joined data from room_images
     images?: Array<{
@@ -133,6 +137,11 @@ export interface SubletListingWithDetails extends SubletListing {
     owner_avatar: string | null;
     owner_verified: boolean | null;
     matchPercentage?: number; // For swap matches
+    images?: Array<{
+        image_url: string;
+        is_primary: boolean | null;
+        display_order: number | null;
+    }>;
 }
 
 export interface SwapRequest {

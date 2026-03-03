@@ -88,12 +88,16 @@ export function useRealtimeChat(options: UseRealtimeChatOptions): UseRealtimeCha
     useEffect(() => {
         if (!conversationId || !user) return;
 
-        console.log('[useRealtimeChat] Setting up message subscription');
+        if (import.meta.env.DEV) {
+            console.log('[useRealtimeChat] Setting up message subscription');
+        }
         setConnectionStatus('connecting');
 
         messageSubRef.current = subscribeToConversationMessages(conversationId, {
             onNewMessage: (message) => {
-                console.log('[useRealtimeChat] New message received:', message.id);
+                if (import.meta.env.DEV) {
+                    console.log('[useRealtimeChat] New message received:', message.id);
+                }
                 setMessages(prev => {
                     // Avoid duplicates
                     if (prev.some(m => m.id === message.id)) return prev;
@@ -101,7 +105,9 @@ export function useRealtimeChat(options: UseRealtimeChatOptions): UseRealtimeCha
                 });
             },
             onMessageUpdate: (message) => {
-                console.log('[useRealtimeChat] Message updated:', message.id);
+                if (import.meta.env.DEV) {
+                    console.log('[useRealtimeChat] Message updated:', message.id);
+                }
                 setMessages(prev => prev.map(m =>
                     m.id === message.id ? { ...m, ...message } : m
                 ));
@@ -116,7 +122,9 @@ export function useRealtimeChat(options: UseRealtimeChatOptions): UseRealtimeCha
         setConnectionStatus('connected');
 
         return () => {
-            console.log('[useRealtimeChat] Cleaning up message subscription');
+            if (import.meta.env.DEV) {
+                console.log('[useRealtimeChat] Cleaning up message subscription');
+            }
             messageSubRef.current?.unsubscribe();
         };
     }, [conversationId, user]);
@@ -125,7 +133,9 @@ export function useRealtimeChat(options: UseRealtimeChatOptions): UseRealtimeCha
     useEffect(() => {
         if (!conversationId || !user || !enableTypingIndicator) return;
 
-        console.log('[useRealtimeChat] Setting up typing channel');
+        if (import.meta.env.DEV) {
+            console.log('[useRealtimeChat] Setting up typing channel');
+        }
 
         typingSubRef.current = createTypingChannel(
             conversationId,
@@ -150,7 +160,9 @@ export function useRealtimeChat(options: UseRealtimeChatOptions): UseRealtimeCha
         );
 
         return () => {
-            console.log('[useRealtimeChat] Cleaning up typing channel');
+            if (import.meta.env.DEV) {
+                console.log('[useRealtimeChat] Cleaning up typing channel');
+            }
             typingSubRef.current?.subscription.unsubscribe();
         };
     }, [conversationId, user, enableTypingIndicator]);

@@ -96,11 +96,13 @@ export function NotificationBell() {
         }
 
         // Debug: Check link value
-        console.log('[NotificationBell] Clicked notification:', {
-            id: notification.id,
-            link: notification.link,
-            type: notification.type,
-        });
+        if (import.meta.env.DEV) {
+            console.log('[NotificationBell] Clicked notification:', {
+                id: notification.id,
+                link: notification.link,
+                type: notification.type,
+            });
+        }
 
         if (notification.link) {
             setOpen(false);
