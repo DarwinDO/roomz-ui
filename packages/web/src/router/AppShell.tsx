@@ -1,11 +1,13 @@
 import { Suspense } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import { BottomNav } from '@/components/common/BottomNav';
 import { Chatbot } from '@/components/common/Chatbot';
 import { NotificationBell } from '@/components/common/NotificationBell';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut, User as UserIcon, Building2, Home, Crown } from 'lucide-react';
+import { LogIn, LogOut, User as UserIcon, Building2, Home, Crown, MessageCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useConversations } from '@/hooks/chat/useConversations';
 import RommzLogo from '@/assets/logo/rommz-logo.png';
 import { useAuth } from '@/contexts';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
@@ -24,6 +26,7 @@ export default function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
+  const { unreadCount: messagesUnreadCount } = useConversations();
 
   // Track user activity - updates last_seen every 5 minutes
   useActivityTracker();
@@ -106,6 +109,24 @@ export default function AppShell() {
                 <div className="w-9 h-9 ml-2 rounded-full bg-muted animate-skeleton"></div>
               ) : user ? (
                 <div className="flex items-center gap-1 ml-2">
+                  {/* Messages Icon - Desktop */}
+                  <Link to="/messages">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="relative rounded-full"
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                      {messagesUnreadCount > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                        >
+                          {messagesUnreadCount > 9 ? '9+' : messagesUnreadCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </Link>
                   <NotificationBell />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -184,6 +205,24 @@ export default function AppShell() {
             <div className="w-8 h-8 rounded-full bg-muted animate-skeleton"></div>
           ) : user ? (
             <div className="flex items-center gap-1">
+              {/* Messages Icon - Mobile */}
+              <Link to="/messages">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative h-8 w-8 rounded-full"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  {messagesUnreadCount > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                    >
+                      {messagesUnreadCount > 9 ? '9+' : messagesUnreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

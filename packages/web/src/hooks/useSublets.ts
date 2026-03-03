@@ -12,6 +12,7 @@ import {
     keepPreviousData,
 } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts';
 import {
     fetchSublets,
     fetchSubletById,
@@ -34,6 +35,7 @@ import type {
     SubletListing,
     SubletApplication,
     CreateSubletRequest,
+    UpdateSubletRequest,
     CreateApplicationRequest,
     UpdateApplicationStatusRequest,
     ApplicationStatus,
@@ -65,9 +67,10 @@ export const subletKeys = {
  * Hook to search sublet listings with infinite pagination
  */
 export function useSublets(filters: SubletFilters = {}) {
+    const { user } = useAuth();
     return useInfiniteQuery<SubletSearchResponse>({
         queryKey: subletKeys.list(filters),
-        queryFn: ({ pageParam }) => fetchSublets(filters, pageParam as number),
+        queryFn: ({ pageParam }) => fetchSublets(filters, pageParam as number, user?.id),
         initialPageParam: 1,
         getNextPageParam: (lastPage, allPages) => {
             if (!lastPage.hasMore) return undefined;
@@ -199,7 +202,7 @@ export function useUpdateSublet() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, updates }: { id: string; updates: Partial<CreateSubletRequest> }) =>
+        mutationFn: ({ id, updates }: { id: string; updates: UpdateSubletRequest }) =>
             updateSublet(id, updates),
         onSuccess: (_, { id }) => {
             queryClient.invalidateQueries({ queryKey: subletKeys.detail(id) });
@@ -311,6 +314,41 @@ export function useWithdrawApplication() {
         },
         onError: (error: Error) => {
             toast.error('Lỗi', { description: error.message || 'Không thể rút đơn đăng ký.' });
+        },
+    });
+}
+
+/**
+ * Hook alias for useApplicationsForSublet - for sublet applications page
+ */
+export function useSubletApplications(subletId: string | undefined) {
+    return useApplicationsForSublet(subletId);
+}
+
+/**
+ * Hook to respond to an application (approve/reject)
+ * Simplified API for SubletApplicationsPage
+ */
+export function useRespondToApplication() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({
+            applicationId,
+            status,
+        }: {
+            applicationId: string;
+            status: Extract<ApplicationStatus, 'approved' | 'rejected'>;
+        }) =>
+            updateApplicationStatus(applicationId, {
+                status,
+            }),
+        onSuccess: () => {
+            // Invalidate all application queries
+            queryClient.invalidateQueries({ queryKey: subletKeys.all });
+        },
+        onError: (error: Error) => {
+            toast.error('Lỗi', { description: error.message || 'Không thể cập nhật trạng thái.' });
         },
     });
 }

@@ -50,6 +50,8 @@ import { useIsFavorited } from "@/hooks/useFavorites";
 import { useAuth } from "@/contexts";
 import { toast } from "sonner";
 import { formatPriceInMillions } from "@roomz/shared/utils/format";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 
 export default function RoomDetailPage() {
   const navigate = useNavigate();
@@ -59,6 +61,24 @@ export default function RoomDetailPage() {
   // Fetch room data
   const { data: room, isLoading: loading, error: queryError, refetch } = useRoom(id);
   const error = queryError?.message || null;
+
+  // Query sublet data for this room (if any)
+  const { data: subletData } = useQuery({
+    queryKey: ['sublet-by-room', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from('sublet_listings')
+        .select('id, status')
+        .eq('original_room_id', id)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+    staleTime: 60_000,
+  });
 
   // Favorite state
   const { isFavorited, toggle: toggleFavorite, loading: favoriteLoading } = useIsFavorited(id || '');
@@ -334,6 +354,29 @@ export default function RoomDetailPage() {
         <div className="px-4 md:px-6 py-6">
           <div className="grid md:grid-cols-3 gap-8">
             <div className="md:col-span-2 space-y-6">
+              {/* Sublet Banner */}
+              {subletData && (
+                <div className="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-accent-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-accent-foreground">Cho thuê ngắn hạn</p>
+                      <p className="text-sm text-muted-foreground">Phòng này có sẵn cho thuê ngắn hạn</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/sublet/${subletData.id}`)}
+                    className="rounded-full border-accent text-accent-foreground hover:bg-accent/20"
+                  >
+                    Xem tin cho thuê
+                  </Button>
+                </div>
+              )}
+
               {/* Title & Location */}
               <div>
                 <h1 className="mb-3">{room.title}</h1>

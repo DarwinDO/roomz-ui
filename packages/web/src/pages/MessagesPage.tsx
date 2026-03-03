@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,24 +13,27 @@ import {
   Check,
   CheckCheck,
   ChevronLeft,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
-import { useConversations, useConversationMessages, type MessageWithSender } from "@/hooks/useMessages";
 import { useAuth } from "@/contexts";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
-import type { Conversation } from "@/services/messages";
+import type { Conversation, MessageWithSender } from "@/services/chat";
+
+// TanStack Query hooks
+import { useConversations } from "@/hooks/chat/useConversations";
+import { useMessages } from "@/hooks/chat/useMessages";
+import { useTypingIndicator } from "@/hooks/chat/useTypingIndicator";
 
 export default function MessagesPage() {
   const navigate = useNavigate();
   const { conversationId: urlConversationId } = useParams();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const { conversations, loading, unreadCount, refetch } = useConversations();
+  const { conversations, isLoading: conversationsLoading, unreadCount } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+  const hasAutoSelectedRef = useRef(false);
 
   // Handle resize
   useEffect(() => {
@@ -39,15 +42,16 @@ export default function MessagesPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Auto-select conversation from URL parameter
+  // Auto-select conversation from URL parameter (only once on initial load)
   useEffect(() => {
-    if (conversations.length === 0) return;
+    if (conversations.length === 0 || hasAutoSelectedRef.current) return;
 
     // Priority 1: Handle :conversationId from URL path
     if (urlConversationId) {
       const found = conversations.find(c => c.id === urlConversationId);
       if (found) {
         setSelectedConversation(found);
+        hasAutoSelectedRef.current = true;
         return;
       }
     }
@@ -58,6 +62,7 @@ export default function MessagesPage() {
       const found = conversations.find(c => c.id === conversationId);
       if (found) {
         setSelectedConversation(found);
+        hasAutoSelectedRef.current = true;
         return;
       }
     }
@@ -68,6 +73,7 @@ export default function MessagesPage() {
       const found = conversations.find(c => c.participant.id === targetUserId);
       if (found) {
         setSelectedConversation(found);
+        hasAutoSelectedRef.current = true;
       } else {
         // No existing conversation - user might need to start from roommate feature
         if (import.meta.env.DEV) {
@@ -75,7 +81,7 @@ export default function MessagesPage() {
         }
       }
     }
-  }, [searchParams, conversations]);
+  }, [searchParams, conversations, urlConversationId]);
 
   // Filter conversations
   const filteredConversations = conversations.filter((conv) =>
@@ -171,7 +177,7 @@ export default function MessagesPage() {
 
               {/* Conversation List */}
               <div className="flex-1 overflow-y-auto">
-                {loading ? (
+                {conversationsLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                   </div>
@@ -209,7 +215,6 @@ export default function MessagesPage() {
                 <ChatPanel
                   conversation={selectedConversation}
                   currentUserId={user?.id || ""}
-                  onMarkAsRead={refetch}
                 />
               ) : (
                 <div className="hidden md:flex flex-1 items-center justify-center bg-muted/50">
@@ -244,11 +249,11 @@ function ConversationItem({ conversation, isSelected, onClick, currentUserId }: 
     .toUpperCase()
     .slice(0, 2);
 
-  const timeAgo = lastMessage.created_at
+  const timeAgo = lastMessage?.created_at
     ? formatDistanceToNow(parseISO(lastMessage.created_at), { addSuffix: true, locale: vi })
     : "";
 
-  const isFromMe = lastMessage.sender_id === currentUserId;
+  const isFromMe = lastMessage?.sender_id === currentUserId;
 
   return (
     <button
@@ -283,7 +288,7 @@ function ConversationItem({ conversation, isSelected, onClick, currentUserId }: 
             }`}
         >
           {isFromMe && <span className="text-muted-foreground">Bạn: </span>}
-          {lastMessage.content}
+          {lastMessage?.content}
         </p>
       </div>
     </button>
@@ -294,48 +299,45 @@ function ConversationItem({ conversation, isSelected, onClick, currentUserId }: 
 interface ChatPanelProps {
   conversation: Conversation;
   currentUserId: string;
-  onMarkAsRead?: () => void;
 }
 
-function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps) {
+function ChatPanel({ conversation, currentUserId }: ChatPanelProps) {
   const {
     messages,
-    loading,
-    sendMessage: sendNewMessage,
+    isLoading,
+    sendMessage,
     markAsRead,
-  } = useConversationMessages(conversation.id, conversation.roomId);
+    isSending,
+  } = useMessages(conversation.id);
   const [newMessage, setNewMessage] = useState("");
-  const [isSending, setIsSending] = useState(false);
-
-  // Mark as read when opening conversation
-  useEffect(() => {
-    if (conversation.unreadCount > 0) {
-      markAsRead().then(() => {
-        // Refresh conversations list to update unread count
-        onMarkAsRead?.();
-      });
-    }
-  }, [conversation.id, conversation.unreadCount, markAsRead, onMarkAsRead]);
+  const { typingUsers } = useTypingIndicator(conversation.id);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto scroll to bottom
   useEffect(() => {
-    const messagesContainer = document.getElementById("messages-container");
-    if (messagesContainer) {
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Mark as read when opening conversation
+  const hasMarkedAsReadRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (conversation.unreadCount > 0 && !hasMarkedAsReadRef.current.has(conversation.id)) {
+      hasMarkedAsReadRef.current.add(conversation.id);
+      markAsRead();
+    }
+  }, [conversation.id, conversation.unreadCount, markAsRead]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || isSending) return;
 
-    setIsSending(true);
+    const content = newMessage.trim();
+    setNewMessage("");
+
     try {
-      await sendNewMessage(newMessage.trim());
-      setNewMessage("");
+      await sendMessage(content);
     } catch (error) {
       console.error("Failed to send message:", error);
-    } finally {
-      setIsSending(false);
+      setNewMessage(content); // Restore on error
     }
   };
 
@@ -345,6 +347,8 @@ function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps
       handleSend();
     }
   };
+
+  const isOtherTyping = typingUsers.length > 0;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -370,11 +374,8 @@ function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps
       </div>
 
       {/* Messages */}
-      <div
-        id="messages-container"
-        className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-muted/30"
-      >
-        {loading ? (
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-muted/30">
+        {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
@@ -384,14 +385,24 @@ function ChatPanel({ conversation, currentUserId, onMarkAsRead }: ChatPanelProps
             <p className="text-muted-foreground">Bắt đầu cuộc trò chuyện</p>
           </div>
         ) : (
-          messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              isFromMe={message.sender_id === currentUserId}
-            />
-          ))
+          <>
+            {messages.map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                isFromMe={message.sender_id === currentUserId}
+              />
+            ))}
+            {isOtherTyping && (
+              <div className="flex justify-start">
+                <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-2">
+                  <span className="text-sm text-muted-foreground">Đang nhập...</span>
+                </div>
+              </div>
+            )}
+          </>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input - Fixed at bottom */}
@@ -439,13 +450,11 @@ function MessageBubble({ message, isFromMe }: MessageBubbleProps) {
         className={`max-w-[80%] rounded-2xl px-4 py-2 ${isFromMe
           ? "bg-primary text-primary-foreground rounded-br-sm"
           : "bg-card border border-border rounded-bl-sm"
-          }`}
-      >
+          }`}>
         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         <div
           className={`flex items-center gap-1 mt-1 text-xs ${isFromMe ? "text-primary-foreground/70 justify-end" : "text-muted-foreground"
-            }`}
-        >
+            }`}>
           <span>{timeAgo}</span>
           {isFromMe && (
             message.is_read ? (

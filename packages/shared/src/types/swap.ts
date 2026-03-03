@@ -263,6 +263,16 @@ export interface CreateSubletRequest {
     requirements?: string[];
 }
 
+export interface UpdateSubletRequest {
+    start_date?: string;
+    end_date?: string;
+    sublet_price?: number;
+    deposit_required?: number;
+    description?: string;
+    requirements?: string[];
+    status?: SubletStatus;
+}
+
 export interface CreateSwapRequest {
     requester_listing_id: string;
     recipient_listing_id: string;

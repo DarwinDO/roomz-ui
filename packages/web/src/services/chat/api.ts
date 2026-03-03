@@ -17,8 +17,9 @@ export const getUnreadCount = (userId: string) =>
 
 export const sendMessage = (
     conversationId: string,
-    content: string
-) => chatApi.sendMessage(supabase, conversationId, content, '');
+    content: string,
+    senderId: string
+) => chatApi.sendMessage(supabase, conversationId, content, senderId);
 
 export const markMessagesAsRead = (conversationId: string, userId: string) =>
     chatApi.markMessagesAsRead(supabase, conversationId, userId);

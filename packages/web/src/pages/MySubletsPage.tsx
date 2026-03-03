@@ -154,24 +154,26 @@ export default function MySubletsPage() {
                         ) : (
                             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {activeSublets.map((sublet) => (
-                                    <div key={sublet.id} className="relative group">
+                                    <div key={sublet.id} className="flex flex-col">
                                         <SubletCard sublet={sublet as SubletListingWithDetails} />
-                                        {/* Action Buttons */}
-                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                        {/* Always-visible Action Bar */}
+                                        <div className="flex items-center gap-2 mt-2 px-1">
                                             <Button
-                                                variant="secondary"
+                                                variant="outline"
                                                 size="sm"
+                                                className="flex-1"
                                                 onClick={() => handleViewApplications(sublet)}
                                             >
-                                                <Users className="w-4 h-4 mr-1" />
-                                                {sublet.application_count || 0}
+                                                <Users className="w-4 h-4 mr-1.5" />
+                                                Đơn đăng ký
+                                                <Badge variant="secondary" className="ml-1.5">
+                                                    {sublet.application_count || 0}
+                                                </Badge>
                                             </Button>
                                             <Button
                                                 variant="secondary"
                                                 size="sm"
                                                 onClick={() => handleEdit(sublet)}
-                                                disabled
-                                                title="Coming soon"
                                             >
                                                 Sửa
                                             </Button>

@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
-import { ChatDrawer } from "@/components/common/ChatDrawer";
+import { ContactLandlordModal } from "@/components/modals/ContactLandlordModal";
 import { ApplySubletDialog } from "@/components/modals/ApplySubletDialog";
 import { useSublet } from "@/hooks/useSublets";
+import { useAuth } from "@/contexts";
 import { formatMonthlyPrice } from "@roomz/shared/utils/format";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -22,6 +23,9 @@ import {
   Star,
   MessageCircle,
   AlertCircle,
+  Edit,
+  Users,
+  Info,
 } from "lucide-react";
 
 const SubletDetailPage = () => {
@@ -29,10 +33,11 @@ const SubletDetailPage = () => {
   const { id } = useParams();
 
   const { data: sublet, isLoading, error } = useSublet(id);
+  const { user } = useAuth();
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
   const [isApplyOpen, setIsApplyOpen] = useState(false);
 
   const images = sublet?.images?.map((img) => img.image_url) || [];
@@ -47,13 +52,18 @@ const SubletDetailPage = () => {
     ? `${format(new Date(sublet.start_date), 'dd/MM/yyyy')} - ${format(new Date(sublet.end_date), 'dd/MM/yyyy')}`
     : "";
   const isVerified = owner?.id_card_verified || false;
+  const isOwner = !!(user?.id && owner?.id && user.id === owner.id);
 
   const handleBack = () => navigate(-1);
   const handleBookSublet = () => {
     setIsApplyOpen(true);
   };
   const handleMessageHost = () => {
-    setIsChatOpen(true);
+    if (!owner?.id) {
+      toast.error('Không thể nhắn tin. Thông tin chủ nhà không khả dụng.');
+      return;
+    }
+    setIsContactOpen(true);
   };
 
   // Loading state
@@ -132,47 +142,71 @@ const SubletDetailPage = () => {
       <div className="max-w-6xl mx-auto">
         {/* Image Gallery */}
         <div className="bg-black">
-          <div className="relative w-full aspect-[4/3] md:aspect-video">
-            <ImageWithFallback
-              src={images[currentImageIndex] || ""}
-              alt={title}
-              className="w-full h-full object-cover"
-            />
-
-            {/* Image Counter */}
-            {images.length > 0 && (
-              <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
-                {currentImageIndex + 1} / {images.length}
-              </div>
-            )}
-          </div>
-
-          {/* Thumbnails */}
-          {images.length > 0 && (
-            <div className="grid grid-cols-3 gap-1 md:gap-2 p-2 md:p-3">
-              {images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentImageIndex(index)}
-                  aria-label={`Xem ảnh ${index + 1}`}
-                  className={`relative aspect-video overflow-hidden rounded-lg transition-all ${index === currentImageIndex
-                    ? "ring-2 ring-primary ring-offset-2 ring-offset-black"
-                    : "opacity-60 hover:opacity-100"
-                    }`}
-                >
-                  <ImageWithFallback
-                    src={image}
-                    alt={`Góc nhìn ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
+          {images.length <= 1 ? (
+            <div className="w-full aspect-[4/3] md:aspect-video overflow-hidden bg-muted">
+              {images[0] ? (
+                <ImageWithFallback
+                  src={images[0]}
+                  alt={title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-gray-100">
+                  <span className="text-sm">Không có ảnh</span>
+                </div>
+              )}
             </div>
+          ) : (
+            <>
+              <div className="relative w-full aspect-[4/3] md:aspect-video">
+                <ImageWithFallback
+                  src={images[currentImageIndex] || ""}
+                  alt={title}
+                  className="w-full h-full object-cover"
+                />
+
+                {/* Image Counter */}
+                <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
+                  {currentImageIndex + 1} / {images.length}
+                </div>
+              </div>
+
+              {/* Thumbnails */}
+              <div className="grid grid-cols-3 gap-1 md:gap-2 p-2 md:p-3">
+                {images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    aria-label={`Xem ảnh ${index + 1}`}
+                    className={`relative aspect-video overflow-hidden rounded-lg transition-all ${index === currentImageIndex
+                      ? "ring-2 ring-primary ring-offset-2 ring-offset-black"
+                      : "opacity-60 hover:opacity-100"
+                      }`}
+                  >
+                    <ImageWithFallback
+                      src={image}
+                      alt={`Góc nhìn ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
         {/* Content */}
         <div className="px-4 md:px-6 py-6 space-y-6">
+          {/* Owner Banner */}
+          {isOwner && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+              <Info className="w-5 h-5 text-blue-600 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">Đây là tin đăng của bạn</p>
+                <p className="text-xs text-blue-700">Bạn đang xem tin đăng của mình. Sử dụng các nút bên dưới để quản lý.</p>
+              </div>
+            </div>
+          )}
           {/* Title and Location */}
           <div>
             <div className="flex items-start justify-between mb-3">
@@ -242,15 +276,17 @@ const SubletDetailPage = () => {
                   <div className="flex items-center gap-4 text-sm">
                     <span className="text-gray-500">Chủ phòng</span>
                   </div>
-                  <Button
-                    onClick={handleMessageHost}
-                    variant="outline"
-                    size="sm"
-                    className="mt-3 rounded-full border-primary text-primary hover:bg-primary/10"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-1.5" />
-                    Nhắn chủ nhà
-                  </Button>
+                  {!isOwner && (
+                    <Button
+                      onClick={handleMessageHost}
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 rounded-full border-primary text-primary hover:bg-primary/10"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-1.5" />
+                      Nhắn chủ nhà
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -276,33 +312,59 @@ const SubletDetailPage = () => {
       {/* Sticky Bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg px-4 py-2 md:px-6 z-50 mb-16 md:mb-0">
         <div className="max-w-6xl mx-auto">
-          <Button
-            onClick={handleBookSublet}
-            className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-11 text-white shadow-md"
-          >
-            <Calendar className="w-5 h-5 mr-2" />
-            Đăng ký thuê
-          </Button>
+          {isOwner ? (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => navigate(`/sublet/${id}/applications`)}
+                variant="outline"
+                className="flex-1 rounded-full h-11"
+              >
+                <Users className="w-5 h-5 mr-2" />
+                Xem đơn đăng ký
+              </Button>
+              <Button
+                onClick={() => navigate(`/sublet/${id}/edit`)}
+                className="flex-1 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-11 text-white shadow-md"
+              >
+                <Edit className="w-5 h-5 mr-2" />
+                Chỉnh sửa tin đăng
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={handleBookSublet}
+              className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-11 text-white shadow-md"
+            >
+              <Calendar className="w-5 h-5 mr-2" />
+              Đăng ký thuê
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Chat Drawer */}
-      {owner && (
-        <ChatDrawer
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          recipientId={owner.id}
-          recipientName={owner.full_name || "Chủ nhà"}
-          recipientRole="Chủ phòng"
+      {/* Contact Landlord Modal - only for non-owners */}
+      {!isOwner && owner && (
+        <ContactLandlordModal
+          isOpen={isContactOpen}
+          onClose={() => setIsContactOpen(false)}
+          landlord={{
+            id: owner.id,
+            full_name: owner.full_name || "Chủ nhà",
+            avatar_url: owner.avatar_url || null,
+          }}
+          roomId={sublet?.room?.id}
+          roomTitle={sublet?.room?.title}
         />
       )}
 
-      {/* Apply Sublet Dialog */}
-      <ApplySubletDialog
-        sublet={sublet}
-        isOpen={isApplyOpen}
-        onClose={() => setIsApplyOpen(false)}
-      />
+      {/* Apply Sublet Dialog - only for non-owners */}
+      {!isOwner && (
+        <ApplySubletDialog
+          sublet={sublet}
+          isOpen={isApplyOpen}
+          onClose={() => setIsApplyOpen(false)}
+        />
+      )}
     </div>
   );
 };

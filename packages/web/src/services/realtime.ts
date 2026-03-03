@@ -169,8 +169,38 @@ export function subscribeToUserMessages(
     }
 ): RealtimeSubscription {
     const channelName = `messages:user:${userId}`;
+    let isProcessing = false;
+    const pendingMessages: Message[] = [];
 
+    const processMessage = async (newMessage: Message) => {
+        // Skip own messages — they're handled by the conversation-level subscription
+        if (newMessage.sender_id === userId) return;
 
+        try {
+            const { data: participant } = await supabase
+                .from('conversation_participants')
+                .select('conversation_id')
+                .eq('conversation_id', newMessage.conversation_id)
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (participant) {
+                callbacks.onNewMessage(newMessage, newMessage.conversation_id);
+            }
+        } catch {
+            // User not in this conversation, ignore
+        }
+    };
+
+    const processPending = async () => {
+        if (isProcessing) return;
+        isProcessing = true;
+        while (pendingMessages.length > 0) {
+            const msg = pendingMessages.shift()!;
+            await processMessage(msg);
+        }
+        isProcessing = false;
+    };
 
     const channel = supabase
         .channel(channelName)
@@ -181,26 +211,10 @@ export function subscribeToUserMessages(
                 schema: 'public',
                 table: 'messages',
             },
-            async (payload: RealtimePostgresChangesPayload<Message>) => {
+            (payload: RealtimePostgresChangesPayload<Message>) => {
                 const newMessage = payload.new as Message;
-
-                // Check if this message involves the user
-                // We need to check conversation_participants
-                try {
-                    const { data: participant } = await supabase
-                        .from('conversation_participants')
-                        .select('conversation_id')
-                        .eq('conversation_id', newMessage.conversation_id)
-                        .eq('user_id', userId)
-                        .maybeSingle();
-
-                    if (participant) {
-
-                        callbacks.onNewMessage(newMessage, newMessage.conversation_id);
-                    }
-                } catch {
-                    // User not in this conversation, ignore
-                }
+                pendingMessages.push(newMessage);
+                processPending();
             }
         )
         .subscribe((status, err) => {

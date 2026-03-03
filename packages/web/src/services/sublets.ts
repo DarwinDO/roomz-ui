@@ -12,6 +12,7 @@ import type {
     SubletFilters,
     SubletSearchResponse,
     CreateSubletRequest,
+    UpdateSubletRequest,
     CreateApplicationRequest,
     UpdateApplicationStatusRequest,
 } from '@roomz/shared/types/swap';
@@ -342,7 +343,7 @@ export async function createSubletWithRoom(
  */
 export async function updateSublet(
     id: string,
-    updates: Partial<CreateSubletRequest>
+    updates: UpdateSubletRequest
 ): Promise<SubletListing> {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) throw new Error('User not authenticated');
@@ -358,6 +359,7 @@ export async function updateSublet(
     if (updates.description !== undefined)
         updateData.description = updates.description;
     if (updates.requirements) updateData.requirements = updates.requirements;
+    if (updates.status) updateData.status = updates.status;
 
     const { data, error } = await supabase
         .from('sublet_listings')
@@ -415,6 +417,7 @@ export async function incrementSubletView(id: string): Promise<void> {
 
 /**
  * Create an application for a sublet
+ * Handles unique constraint: (sublet_listing_id, applicant_id)
  */
 export async function createApplication(
     request: CreateApplicationRequest
@@ -433,6 +436,39 @@ export async function createApplication(
         throw new Error('Bạn không thể đăng ký thuê phòng của chính mình');
     }
 
+    // Check for existing application (handle unique constraint)
+    const { data: existing } = await supabase
+        .from('sublet_applications')
+        .select('id, status')
+        .eq('sublet_listing_id', request.sublet_listing_id)
+        .eq('applicant_id', user.user.id)
+        .single();
+
+    if (existing) {
+        if (existing.status === 'pending') {
+            throw new Error('Bạn đã gửi đơn đăng ký cho tin đăng này rồi');
+        }
+        if (existing.status === 'approved') {
+            throw new Error('Đơn đăng ký của bạn đã được duyệt');
+        }
+        // If rejected → update existing record instead of insert
+        const { data, error } = await supabase
+            .from('sublet_applications')
+            .update({
+                message: request.message,
+                preferred_move_in_date: request.preferred_move_in_date,
+                documents: request.documents || [],
+                status: 'pending',
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
+        if (error) throw error;
+        return data as SubletApplication;
+    }
+
+    // Normal insert for new applications
     const { data, error } = await supabase
         .from('sublet_applications')
         .insert({
@@ -584,7 +620,8 @@ export async function fetchMySublets(): Promise<SubletListing[]> {
       ),
       owner:owner_id (
         id, full_name, avatar_url, id_card_verified
-      )
+      ),
+      sublet_applications(count)
     `
         )
         .eq('owner_id', user.user.id)
@@ -597,6 +634,19 @@ export async function fetchMySublets(): Promise<SubletListing[]> {
 
     return (data || []).map((item) => ({
         ...item,
+        room_title: item.original_room?.title || '',
+        address: item.original_room?.address || '',
+        district: item.original_room?.district || '',
+        city: item.original_room?.city || '',
+        area_sqm: item.original_room?.area_sqm,
+        bedroom_count: item.original_room?.bedroom_count,
+        bathroom_count: item.original_room?.bathroom_count,
+        room_type: item.original_room?.room_type,
+        original_price: item.original_room?.price_per_month || 0,
+        owner_name: item.owner?.full_name || '',
+        owner_avatar: item.owner?.avatar_url,
+        owner_verified: item.owner?.id_card_verified,
+        application_count: (item as any).sublet_applications?.[0]?.count || 0,
         room: item.original_room,
         owner: item.owner,
         images: (item.original_room as any)?.room_images?.map((img: any) => ({

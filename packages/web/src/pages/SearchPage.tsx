@@ -14,6 +14,8 @@ import { transformRoomToCardProps } from "@/utils/room";
 import { useSearchRooms, useDebounce } from "@/hooks";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useAuth } from "@/contexts";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, UtensilsCrossed, PawPrint, Armchair, CheckCircle2, Loader2, AlertCircle, ChevronDown } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
@@ -62,8 +64,28 @@ export default function SearchPage() {
   // Fetch favorites
   const { isFavorited, toggleFavorite } = useFavorites();
 
+  // Query active sublet room IDs for badge display + navigation
+  const { data: subletRoomMap } = useQuery({
+    queryKey: ['active-sublet-room-map'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('sublet_listings')
+        .select('id, original_room_id')
+        .eq('status', 'active');
+      const result: Record<string, string> = {};
+      data?.forEach(s => { result[s.original_room_id] = s.id; });
+      return result;
+    },
+    staleTime: 60_000,
+  });
+
   const onRoomClick = (id: string) => {
-    navigate(`/room/${id}`);
+    const subletId = subletRoomMap?.[id];
+    if (subletId) {
+      navigate(`/sublet/${subletId}`);
+    } else {
+      navigate(`/room/${id}`);
+    }
   };
 
   const handleFavorite = async (roomId: string) => {
@@ -421,6 +443,7 @@ export default function SearchPage() {
                 <RoomCard
                   key={room.id}
                   {...room}
+                  isSublet={!!(subletRoomMap?.[room.id])}
                   onClick={onRoomClick}
                   onFavorite={handleFavorite}
                 />

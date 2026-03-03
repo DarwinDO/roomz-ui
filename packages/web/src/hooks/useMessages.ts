@@ -49,7 +49,7 @@ export function useConversations(): UseConversationsReturn {
   const subscriptionRef = useRef<RealtimeSubscription | null>(null);
 
   const fetchConversations = useCallback(async () => {
-    if (!user) {
+    if (!user?.id) {
       setConversations([]);
       setLoading(false);
       return;
@@ -71,7 +71,7 @@ export function useConversations(): UseConversationsReturn {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   // Initial fetch
   useEffect(() => {
@@ -180,7 +180,7 @@ export function useConversationMessages(
   const subscriptionRef = useRef<RealtimeSubscription | null>(null);
 
   const fetchMessages = useCallback(async () => {
-    if (!user || !conversationId) {
+    if (!user?.id || !conversationId) {
       setMessages([]);
       setLoading(false);
       return;
@@ -202,7 +202,7 @@ export function useConversationMessages(
     } finally {
       setLoading(false);
     }
-  }, [user, conversationId]);
+  }, [user?.id, conversationId]);
 
   // Initial fetch
   useEffect(() => {
@@ -250,10 +250,10 @@ export function useConversationMessages(
   }, [user?.id, conversationId]);
 
   const handleSendMessage = useCallback(async (content: string) => {
-    if (!user || !conversationId) return;
+    if (!user?.id || !conversationId) return;
 
     try {
-      const newMessage = await sendMessageApi(conversationId, content);
+      const newMessage = await sendMessageApi(conversationId, content, user.id);
 
       // Optimistically add the message (realtime will also add)
       setMessages(prev => {
@@ -271,10 +271,10 @@ export function useConversationMessages(
       console.error('[useConversationMessages] Send error:', err);
       throw err;
     }
-  }, [user, profile, conversationId]);
+  }, [user?.id, profile?.full_name, profile?.avatar_url, conversationId]);
 
   const handleMarkAsRead = useCallback(async () => {
-    if (!user || !conversationId) return;
+    if (!user?.id || !conversationId) return;
 
     try {
       // Mark messages as read via API
@@ -295,7 +295,7 @@ export function useConversationMessages(
     } catch (err: unknown) {
       console.error('[useConversationMessages] Mark as read error:', err);
     }
-  }, [user, conversationId]);
+  }, [user?.id, conversationId]);
 
   return {
     messages,

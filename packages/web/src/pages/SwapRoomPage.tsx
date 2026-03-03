@@ -15,7 +15,8 @@ import { Input } from '@/components/ui/input';
 import { SubletCard, SubletFilter } from '@/components/swap';
 import { ApplySubletDialog } from '@/components/modals/ApplySubletDialog';
 import { SwapRequestDialog } from '@/components/modals/SwapRequestDialog';
-import { useSublets } from '@/hooks/useSublets';
+import { useSublets, useMySublets } from '@/hooks/useSublets';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import type { SubletListingWithDetails, SubletFilters } from '@roomz/shared/types/swap';
 
@@ -35,6 +36,9 @@ export default function SwapRoomPage() {
     start_date: '',
     end_date: '',
   });
+
+  // Fetch my sublets for "Tin đăng" tab
+  const { data: mySublets, isLoading: isMySubletsLoading } = useMySublets();
 
   // Fetch sublets with infinite scroll
   const {
@@ -179,7 +183,7 @@ export default function SwapRoomPage() {
                   </p>
                   <div className="flex flex-wrap gap-3">
                     <Badge variant="secondary">1-3 tháng</Badge>
-                    <Badge variant="secondary">Thờ gian linh hoạt</Badge>
+                    <Badge variant="secondary">Thời gian linh hoạt</Badge>
                     <Badge variant="secondary">Không cọc dài hạn</Badge>
                   </div>
                 </div>
@@ -266,31 +270,62 @@ export default function SwapRoomPage() {
           <TabsContent value="mylistings" className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Tin đăng của bạn</h3>
-              <Button
-                className="bg-primary hover:bg-primary/90 rounded-xl md:hidden"
-                onClick={() => navigate('/my-sublets')}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Đăng
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/my-sublets')}
+                >
+                  Quản lý
+                </Button>
+                <Button
+                  className="bg-primary hover:bg-primary/90 rounded-xl"
+                  size="sm"
+                  onClick={() => navigate('/create-sublet')}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Đăng mới
+                </Button>
+              </div>
             </div>
 
-            <Card className="p-12 rounded-2xl text-center border-dashed border-2 border-muted">
-              <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <RefreshCw className="w-8 h-8 text-muted-foreground" />
+            {isMySubletsLoading ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3].map(i => (
+                  <Card key={i} className="p-4 space-y-3">
+                    <Skeleton className="aspect-[4/3] w-full rounded-lg" />
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </Card>
+                ))}
               </div>
-              <h3 className="mb-2 font-medium">Quản lý tin đăng</h3>
-              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                Xem và quản lý tất cả tin đăng cho thuê phòng của bạn ở đây.
-              </p>
-              <Button
-                className="bg-primary hover:bg-primary/90 rounded-xl"
-                onClick={() => navigate('/my-sublets')}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Quản lý tin đăng
-              </Button>
-            </Card>
+            ) : !mySublets || mySublets.length === 0 ? (
+              <Card className="p-12 rounded-2xl text-center border-dashed border-2 border-muted">
+                <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Plus className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="mb-2 font-medium">Chưa có tin đăng nào</h3>
+                <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                  Đăng tin cho thuê phòng ngắn hạn để bắt đầu nhận đơn đăng ký.
+                </p>
+                <Button
+                  className="bg-primary hover:bg-primary/90 rounded-xl"
+                  onClick={() => navigate('/create-sublet')}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Đăng phòng mới
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(mySublets as unknown as SubletListingWithDetails[]).map((sublet) => (
+                  <SubletCard
+                    key={sublet.id}
+                    sublet={sublet}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 

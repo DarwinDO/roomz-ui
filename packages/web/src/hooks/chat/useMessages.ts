@@ -48,12 +48,13 @@ export function useMessages(conversationId: string): UseMessagesResult {
         queryKey: messageKeys.conversation(conversationId),
         queryFn: () => getMessages(conversationId),
         enabled: !!conversationId,
-        staleTime: 0, // Always fresh for active chat
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+        gcTime: 10 * 60 * 1000, // Keep in garbage collection for 10 minutes
     });
 
     // Send message mutation
     const sendMutation = useMutation({
-        mutationFn: (content: string) => sendMessageApi(conversationId, content),
+        mutationFn: (content: string) => sendMessageApi(conversationId, content, user!.id),
         onSuccess: (newMessage) => {
             // Add message to cache
             queryClient.setQueryData<MessageWithSender[]>(

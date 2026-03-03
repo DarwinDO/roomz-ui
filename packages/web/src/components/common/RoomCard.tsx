@@ -16,6 +16,7 @@ interface RoomCardProps {
   matchPercentage?: number;
   isFavorited?: boolean;
   showFavoriteButton?: boolean;
+  isSublet?: boolean;
   onFavorite?: (id: string) => void;
   onClick?: (id: string) => void;
 }
@@ -32,6 +33,7 @@ export function RoomCard({
   matchPercentage,
   isFavorited: isFavoritedProp = false,
   showFavoriteButton = true,
+  isSublet = false,
   onFavorite,
   onClick,
 }: RoomCardProps) {
@@ -73,6 +75,11 @@ export function RoomCard({
         {verified && (
           <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground shadow-sm">
             Verified+
+          </Badge>
+        )}
+        {isSublet && (
+          <Badge className="absolute bottom-3 left-3 bg-accent text-accent-foreground shadow-sm">
+            Cho thuê ngắn hạn
           </Badge>
         )}
         {matchPercentage && (
