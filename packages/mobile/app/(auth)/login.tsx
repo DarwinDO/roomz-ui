@@ -40,10 +40,23 @@ export default function LoginScreen() {
             });
             if (error) throw error;
             if (data?.url) {
-                await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+                const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+                if (result.type === "success" && result.url) {
+                    // Extract tokens from redirect URL hash fragment
+                    const url = result.url;
+                    const params = new URLSearchParams(
+                        url.includes("#") ? url.split("#")[1] : url.split("?")[1]
+                    );
+                    const access_token = params.get("access_token");
+                    const refresh_token = params.get("refresh_token");
+
+                    if (access_token && refresh_token) {
+                        await supabase.auth.setSession({ access_token, refresh_token });
+                    }
+                }
             }
         } catch (err: any) {
-            Alert.alert("Google Login", err.message || "Chưa cấu hình Google OAuth cho mobile. Cần thêm client IDs trong Google Cloud Console.");
+            Alert.alert("Google Login", err.message || "Chưa cấu hình Google OAuth cho mobile.");
         }
     };
 

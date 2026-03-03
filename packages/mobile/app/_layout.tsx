@@ -35,7 +35,7 @@ function AuthGuard() {
   // IMPORTANT: Show loading screen while checking auth to prevent flicker
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-background">
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' }}>
         <ActivityIndicator size="large" color="#2a9d6a" />
       </View>
     );

@@ -37,22 +37,22 @@ export class ErrorBoundary extends Component<Props, State> {
             }
 
             return (
-                <View className="flex-1 items-center justify-center bg-background px-8">
-                    <View className="w-20 h-20 rounded-full bg-red-100 items-center justify-center mb-4">
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', paddingHorizontal: 32 }}>
+                    <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#fee2e2', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
                         <AlertTriangle size={40} color="#ef4444" />
                     </View>
-                    <Text className="text-xl font-bold text-text-primary text-center mb-2">
+                    <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1f2937', textAlign: 'center', marginBottom: 8 }}>
                         Đã có lỗi xảy ra
                     </Text>
-                    <Text className="text-sm text-text-secondary text-center mb-6">
+                    <Text style={{ fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 24 }}>
                         {this.state.error?.message || 'Ứng dụng gặp sự cố không mong muốn'}
                     </Text>
                     <TouchableOpacity
                         onPress={this.resetError}
-                        className="flex-row items-center bg-primary-500 px-6 py-3 rounded-xl"
+                        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#2a9d6a', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
                     >
                         <RotateCcw size={20} color="white" />
-                        <Text className="text-white font-medium ml-2">Thử lại</Text>
+                        <Text style={{ color: 'white', fontWeight: '500', marginLeft: 8 }}>Thử lại</Text>
                     </TouchableOpacity>
                 </View>
             );
