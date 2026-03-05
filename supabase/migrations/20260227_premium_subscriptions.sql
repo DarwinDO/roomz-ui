@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'roomz_plus')),
+    plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'rommz_plus')),
     status TEXT NOT NULL DEFAULT 'active' CHECK (
         status IN ('active', 'cancelled', 'expired', 'past_due')
     ),
@@ -87,7 +87,7 @@ SELECT EXISTS(
         SELECT 1
         FROM subscriptions
         WHERE user_id = v_user_id
-            AND plan = 'roomz_plus'
+            AND plan = 'rommz_plus'
             AND status = 'active'
             AND (
                 current_period_end IS NULL

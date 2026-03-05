@@ -300,7 +300,7 @@ const SubletDetailPage = () => {
                 <p className="text-sm mb-1">An toàn trên hết</p>
                 <p className="text-xs text-gray-700">
                   Hãy gặp trực tiếp và kiểm tra giấy tờ trước khi thanh
-                  toán. RoomZ hỗ trợ quy trình thanh toán an toàn cho các
+                  toán. RommZ hỗ trợ quy trình thanh toán an toàn cho các
                   tin đăng đã được xác thực.
                 </p>
               </div>

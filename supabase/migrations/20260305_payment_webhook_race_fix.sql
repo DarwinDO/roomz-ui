@@ -224,7 +224,7 @@ GRANT EXECUTE ON FUNCTION process_payment_order(TEXT, NUMERIC, TEXT, JSONB) TO s
 COMMENT ON FUNCTION process_payment_order(TEXT, NUMERIC, TEXT, JSONB) IS 'Atomically processes a payment order with row locking to prevent race conditions.
 Called by the SePay webhook handler.
 Parameters:
-  - p_order_code: The ROOMZ order code
+  - p_order_code: The ROMMZ order code
   - p_amount: The received payment amount
   - p_transaction_id: The provider transaction reference
   - p_payload: Optional full webhook payload for audit

@@ -19,7 +19,7 @@ export function VoucherModal({ isOpen, onClose, partner }: VoucherModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Voucher ưu đãi RoomZ</DialogTitle>
+          <DialogTitle>Voucher ưu đãi RommZ</DialogTitle>
           <DialogDescription>
             Quét mã QR này khi thanh toán để áp dụng ưu đãi thành viên
           </DialogDescription>
@@ -41,7 +41,7 @@ export function VoucherModal({ isOpen, onClose, partner }: VoucherModalProps) {
           <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl p-5 text-center border-2 border-primary/20">
             <p className="text-sm text-gray-600 mb-2">Ưu đãi dành riêng cho bạn</p>
             <h1 className="text-primary mb-1">{partner.discount}</h1>
-            <p className="text-xs text-gray-600">Áp dụng cho thành viên RoomZ</p>
+            <p className="text-xs text-gray-600">Áp dụng cho thành viên RommZ</p>
           </div>
 
           {/* QR Code */}

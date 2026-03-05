@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Crown, Phone, Heart, Users, Star, MapPin, Zap, Shield, Headphones } from "lucide-react";
-import { getRoomZPlusPlan } from "@/services/payments";
+import { getRommZPlusPlan } from "@/services/payments";
 import { useNavigate } from "react-router";
 
 interface UpgradeBannerProps {
@@ -23,8 +23,8 @@ const ROMMZ_PLUS_FEATURES = [
 
 export function UpgradeBanner({ onUpgrade, isPremium }: UpgradeBannerProps) {
     const navigate = useNavigate();
-    const roomzPlusPlan = getRoomZPlusPlan();
-    const priceDisplay = roomzPlusPlan?.priceDisplay || '49.000đ/tháng';
+    const rommzPlusPlan = getRommZPlusPlan();
+    const priceDisplay = rommzPlusPlan?.priceDisplay || '49.000đ/tháng';
 
     // Show active status card for premium users
     if (isPremium) {
@@ -66,7 +66,7 @@ export function UpgradeBanner({ onUpgrade, isPremium }: UpgradeBannerProps) {
                     <div className="flex-1">
                         <h3 className="mb-1">Nâng cấp lên RommZ+</h3>
                         <p className="text-sm text-muted-foreground mb-3">
-                            Trải nghiệm thuê nhà tốt nhất với {roomzPlusPlan?.price?.toLocaleString('vi-VN')}đ/tháng
+                            Trải nghiệm thuê nhà tốt nhất với {rommzPlusPlan?.price?.toLocaleString('vi-VN')}đ/tháng
                         </p>
                         <ul className="space-y-1 mb-4 text-sm">
                             {ROMMZ_PLUS_FEATURES.slice(0, 3).map((feature, i) => {

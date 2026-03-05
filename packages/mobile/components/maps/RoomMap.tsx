@@ -1,5 +1,5 @@
 /**
- * RoomMap - React Native Map Component cho RoomZ
+ * RoomMap - React Native Map Component cho RommZ
  * Sử dụng react-native-maps với Google Maps provider
  * 
  * Features:

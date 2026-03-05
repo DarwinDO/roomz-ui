@@ -70,7 +70,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Tổng quan</h1>
-        <p className="text-gray-600 mt-1">Chào mừng trở lại! Đây là tổng quan hệ thống RoomZ.</p>
+        <p className="text-gray-600 mt-1">Chào mừng trở lại! Đây là tổng quan hệ thống RommZ.</p>
       </div>
 
       {/* Stats Cards */}

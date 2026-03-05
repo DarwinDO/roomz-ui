@@ -192,7 +192,7 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
                 <Gift className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-1">Ưu đãi dành riêng cho thành viên RoomZ</p>
+                <p className="text-sm text-gray-600 mb-1">Ưu đãi dành riêng cho thành viên RommZ</p>
                 <h2 className="text-primary">{deal.title || deal.discount_value || "Khám phá ngay"}</h2>
               </div>
             </div>

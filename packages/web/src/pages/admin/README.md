@@ -1,6 +1,6 @@
-# RoomZ Admin Panel
+# RommZ Admin Panel
 
-Hệ thống quản trị toàn diện cho RoomZ với giao diện modern minimal aesthetic (Vercel/Stripe inspired).
+Hệ thống quản trị toàn diện cho RommZ với giao diện modern minimal aesthetic (Vercel/Stripe inspired).
 
 ## 🚀 Truy cập Admin Panel
 
@@ -10,7 +10,7 @@ Hệ thống quản trị toàn diện cho RoomZ với giao diện modern minima
 
 ### Demo Credentials
 ```
-Email: admin@roomz.vn
+Email: admin@rommz.vn
 Password: admin123
 ```
 
@@ -73,7 +73,7 @@ Password: admin123
 - **Export**: Export reports button
 
 ### 7. Revenue Management (`/admin/revenue`)
-- **Overview**: Total revenue, MRR, RoomZ+ subscriptions, Refund requests
+- **Overview**: Total revenue, MRR, RommZ+ subscriptions, Refund requests
 - **Charts**: Revenue trend, Revenue by source
 - **Transactions table**: Recent transactions với filter và search
 - **Export**: Export revenue reports
@@ -219,7 +219,7 @@ Admin panel responsive cho:
 ## 📞 Support
 
 Nếu có vấn đề hoặc câu hỏi, liên hệ:
-- **Email**: admin@roomz.vn
+- **Email**: admin@rommz.vn
 - **GitHub Issues**: [Create an issue](../../issues)
 
 ---

@@ -338,7 +338,7 @@ export default function SwapRoomPage() {
             {[
               { step: 1, title: 'Đăng phòng', desc: 'kèm thời gian và giá mong muốn' },
               { step: 2, title: 'Nhận gợi ý', desc: 'từ những người thuê đã xác thực' },
-              { step: 3, title: 'Thanh toán an toàn', desc: 'trên nền tảng RoomZ' },
+              { step: 3, title: 'Thanh toán an toàn', desc: 'trên nền tảng RommZ' },
             ].map((item) => (
               <div key={item.step} className="text-center group">
                 <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-4 text-xl font-bold group-hover:scale-110 transition-transform">

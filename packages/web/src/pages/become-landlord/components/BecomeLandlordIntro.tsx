@@ -23,7 +23,7 @@ export function BecomeLandlordIntro() {
                     <Building2 className="w-10 h-10 text-white" />
                 </div>
                 <h1 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                    Trở thành Chủ trọ trên RoomZ
+                    Trở thành Chủ trọ trên RommZ
                 </h1>
                 <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
                     Đăng ký để đăng tin cho thuê phòng, quản lý khách thuê và tiếp cận hàng nghìn sinh viên đang tìm phòng.
@@ -39,7 +39,7 @@ export function BecomeLandlordIntro() {
                         </div>
                         <h3 className="font-semibold text-lg mb-2">Tiếp cận khách thuê</h3>
                         <p className="text-sm text-muted-foreground">
-                            Hàng nghìn sinh viên và người đi làm trẻ đang tìm phòng mỗi ngày trên RoomZ
+                            Hàng nghìn sinh viên và người đi làm trẻ đang tìm phòng mỗi ngày trên RommZ
                         </p>
                     </CardContent>
                 </Card>

@@ -52,7 +52,7 @@ export default function VerifyEmailPage() {
 
   const handleResendEmail = async () => {
     if (!user?.email) return;
-    
+
     setLoading(true);
     setResendStatus('sending');
 
@@ -102,7 +102,7 @@ export default function VerifyEmailPage() {
               <div className="text-sm text-blue-900">
                 <p className="font-medium mb-1">Vui lòng kiểm tra hộp thư của bạn</p>
                 <ul className="space-y-1 list-disc list-inside text-blue-800">
-                  <li>Mở email từ RoomZ</li>
+                  <li>Mở email từ RommZ</li>
                   <li>Nhấp vào link xác nhận</li>
                   <li>Bạn sẽ được tự động chuyển hướng về trang chủ</li>
                 </ul>

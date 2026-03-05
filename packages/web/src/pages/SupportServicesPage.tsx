@@ -144,7 +144,7 @@ export default function SupportServicesPage() {
         {/* All Partners Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2>Đối tác RoomZ đề xuất</h2>
+            <h2>Đối tác RommZ đề xuất</h2>
             <Button
               onClick={handleViewAllPartners}
               variant="ghost"
@@ -213,7 +213,7 @@ export default function SupportServicesPage() {
             <div className="space-y-2 text-center md:text-left">
               <h2 className="text-white">Cần hỗ trợ theo nhu cầu?</h2>
               <p className="text-white/90">
-                Liên hệ RoomZ để được hỗ trợ chuyển phòng và sắp xếp riêng cho bạn
+                Liên hệ RommZ để được hỗ trợ chuyển phòng và sắp xếp riêng cho bạn
               </p>
             </div>
             <Button

@@ -113,7 +113,7 @@ export function VerifyLandlordModal({ isOpen, onClose, onComplete }: VerifyLandl
           {/* Info Note */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <p className="text-xs text-gray-700">
-              <strong>Bảo mật thông tin:</strong> RoomZ chỉ sử dụng dữ liệu này cho mục đích xác minh
+              <strong>Bảo mật thông tin:</strong> RommZ chỉ sử dụng dữ liệu này cho mục đích xác minh
               và sẽ bảo mật hoàn toàn thông tin chủ nhà. Chúng tôi có thể liên hệ để xác nhận chi tiết khi cần.
             </p>
           </div>

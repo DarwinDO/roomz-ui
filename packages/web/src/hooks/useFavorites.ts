@@ -111,7 +111,7 @@ export function useFavorites(): UseFavoritesReturn {
     } catch (err: unknown) {
       // Handle favorite limit error
       if (err instanceof Error && err.message === 'FAVORITE_LIMIT_REACHED') {
-        toast.error('Bạn đã đạt giới hạn 5 phòng yêu thích. Nâng cấp RoomZ+ để lưu không giới hạn!', {
+        toast.error('Bạn đã đạt giới hạn 5 phòng yêu thích. Nâng cấp RommZ+ để lưu không giới hạn!', {
           action: {
             label: 'Nâng cấp',
             onClick: () => window.location.href = '/payment',

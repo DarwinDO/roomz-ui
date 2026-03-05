@@ -65,7 +65,7 @@ export default function PaymentScreen() {
 
         try {
             const customerInfo = await purchasePackage(packageToBuy);
-            if (customerInfo.entitlements.active['roomz_plus']) {
+            if (customerInfo.entitlements.active['rommz_plus']) {
                 Alert.alert('Thành công!', 'Chào mừng bạn đến RommZ+', [
                     { text: 'OK', onPress: () => router.back() }
                 ]);
@@ -85,7 +85,7 @@ export default function PaymentScreen() {
 
         try {
             const customerInfo = await restorePurchases();
-            if (customerInfo.entitlements.active['roomz_plus']) {
+            if (customerInfo.entitlements.active['rommz_plus']) {
                 Alert.alert('Đã khôi phục', 'Tài khoản RommZ+ đã được kích hoạt');
             } else {
                 Alert.alert('Thông báo', 'Không tìm thấy giao dịch nào');
@@ -96,11 +96,11 @@ export default function PaymentScreen() {
     }, [revenueCatAvailable, restorePurchases]);
 
     const openTerms = useCallback(() => {
-        Linking.openURL('https://roomz.vn/terms');
+        Linking.openURL('https://rommz.vn/terms');
     }, []);
 
     const openPrivacy = useCallback(() => {
-        Linking.openURL('https://roomz.vn/privacy');
+        Linking.openURL('https://rommz.vn/privacy');
     }, []);
 
     // Already premium state

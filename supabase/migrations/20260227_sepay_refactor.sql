@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS payment_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     order_code TEXT NOT NULL UNIQUE,
-    plan TEXT NOT NULL DEFAULT 'roomz_plus',
+    plan TEXT NOT NULL DEFAULT 'rommz_plus',
     billing_cycle TEXT NOT NULL DEFAULT 'monthly' CHECK (billing_cycle IN ('monthly', 'quarterly')),
     amount INTEGER NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (

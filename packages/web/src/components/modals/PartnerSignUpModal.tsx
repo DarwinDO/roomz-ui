@@ -82,7 +82,7 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
         <div className="bg-gradient-to-r from-primary to-secondary px-6 pb-16 pt-10 text-white">
           <DialogHeader className="space-y-3 text-white">
             <DialogTitle className="text-2xl font-semibold text-white">
-              Đăng ký đối tác RoomZ
+              Đăng ký đối tác RommZ
             </DialogTitle>
             <DialogDescription className="text-white/80">
               Kết nối với mạng lưới sinh viên và khách thuê trên toàn quốc
@@ -91,7 +91,7 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
           <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-white/80">
             <Badge variant="secondary" className="bg-white/20 text-white">
               <Users className="mr-2 h-4 w-4" />
-              50.000+ người dùng RoomZ
+              50.000+ người dùng RommZ
             </Badge>
             <Badge variant="secondary" className="bg-white/20 text-white">
               <CheckCircle2 className="mr-2 h-4 w-4" />
@@ -114,7 +114,7 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
                 Đã nhận thông tin đăng ký
               </h3>
               <p className="text-sm text-green-700/80">
-                Đội ngũ RoomZ sẽ liên hệ với bạn trong 1-2 ngày làm việc để hoàn tất quy
+                Đội ngũ RommZ sẽ liên hệ với bạn trong 1-2 ngày làm việc để hoàn tất quy
                 trình xác thực đối tác.
               </p>
               <Button onClick={resetAndClose} className="mt-6 rounded-full">
@@ -207,7 +207,7 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
                 <div className="flex items-start gap-3 text-sm text-muted-foreground">
                   <Phone className="mt-0.5 h-4 w-4 text-primary" />
                   <p>
-                    Sau khi gửi thông tin, đội ngũ RoomZ sẽ gọi xác nhận trong vòng 24
+                    Sau khi gửi thông tin, đội ngũ RommZ sẽ gọi xác nhận trong vòng 24
                     giờ làm việc.
                   </p>
                 </div>

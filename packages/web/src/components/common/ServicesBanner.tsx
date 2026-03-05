@@ -9,7 +9,7 @@ export function ServicesBanner() {
     <div className="space-y-4">
       {/* Section Header */}
       <div>
-        <h2>Dịch vụ RoomZ</h2>
+        <h2>Dịch vụ RommZ</h2>
         <p className="text-muted-foreground">
           Làm cho việc chuyển nhà dễ dàng hơn với đối tác tin cậy của chúng tôi
         </p>

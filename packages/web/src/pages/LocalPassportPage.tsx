@@ -223,7 +223,7 @@ export default function LocalPassportPage() {
 
   const handlePartnerSubmit = () => {
     toast.success(
-      "Cảm ơn bạn đã tham gia RoomZ Passport! Đội ngũ RoomZ sẽ liên hệ sớm nhất."
+      "Cảm ơn bạn đã tham gia RommZ Passport! Đội ngũ RommZ sẽ liên hệ sớm nhất."
     );
   };
 
@@ -244,7 +244,7 @@ export default function LocalPassportPage() {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h3 className="ml-3">RoomZ Passport</h3>
+          <h3 className="ml-3">RommZ Passport</h3>
         </div>
       </div>
 
@@ -273,7 +273,7 @@ export default function LocalPassportPage() {
                   <Crown className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-amber-800">RoomZ Premium</h4>
+                  <h4 className="font-semibold text-amber-800">RommZ Premium</h4>
                   <p className="text-sm text-amber-700">Ưu đãi độc quyền & không giới hạn</p>
                 </div>
               </div>
@@ -519,7 +519,7 @@ export default function LocalPassportPage() {
             {/* Bottom CTA */}
             <Card className="p-8 rounded-2xl bg-gradient-to-r from-primary to-secondary text-white shadow-lg border-0">
               <div className="text-center space-y-4">
-                <h2 className="text-white">Trở thành đối tác của RoomZ</h2>
+                <h2 className="text-white">Trở thành đối tác của RommZ</h2>
                 <p className="text-white/90 max-w-2xl mx-auto">
                   Bạn là doanh nghiệp địa phương? Tham gia Local Passport để
                   kết nối với hàng nghìn sinh viên quanh khu vực.

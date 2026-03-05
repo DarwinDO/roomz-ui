@@ -17,7 +17,7 @@ interface SEOProps {
 
 const DEFAULT_TITLE = 'RommZ - Nền tảng tìm phòng trọ và bạn cùng phòng hàng đầu Việt Nam';
 const DEFAULT_DESCRIPTION = 'RommZ giúp bạn tìm phòng trọ, căn hộ cho thuê và bạn cùng phòng phù hợp. Tin đăng xác thực, giá tốt, khu vực Hà Nội, HCM, Đà Nẵng.';
-const SITE_URL = 'https://roomz.vn';
+const SITE_URL = 'https://rommz.vn';
 
 export function SEO({
   title,

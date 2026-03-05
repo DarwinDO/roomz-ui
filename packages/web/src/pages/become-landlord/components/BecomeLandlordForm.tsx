@@ -126,7 +126,7 @@ export function BecomeLandlordForm({ formData, setFormData, handleSubmit, isSubm
                             )}
                         </Button>
                         <p className="text-center text-xs text-muted-foreground mt-4">
-                            Bằng việc gửi đơn, bạn đồng ý với <a href="#" className="underline hover:text-primary">Điều khoản sử dụng</a> của RoomZ dành cho đối tác.
+                            Bằng việc gửi đơn, bạn đồng ý với <a href="#" className="underline hover:text-primary">Điều khoản sử dụng</a> của RommZ dành cho đối tác.
                         </p>
                     </div>
                 </form>

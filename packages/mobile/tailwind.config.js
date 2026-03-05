@@ -9,7 +9,7 @@ module.exports = {
     theme: {
         extend: {
             colors: {
-                // RoomZ brand colors — match web
+                // RommZ brand colors — match web
                 primary: {
                     50: '#eef8f4',
                     100: '#d5ede3',

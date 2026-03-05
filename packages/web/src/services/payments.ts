@@ -11,7 +11,7 @@ import {
   ORDER,
   PRICING,
   getPlanById,
-  getRoomZPlusPlan,
+  getRommZPlusPlan,
   getCurrentPrice,
   type SubscriptionPlan,
   type BillingCycle,
@@ -47,7 +47,7 @@ export interface PromoStatus {
 }
 
 // Re-export config functions and values for backward compatibility
-export { PLANS, getPlanById, getRoomZPlusPlan, getCurrentPrice, PRICING, PROMO, ORDER };
+export { PLANS, getPlanById, getRommZPlusPlan, getCurrentPrice, PRICING, PROMO, ORDER };
 
 /**
  * Get user's current subscription
@@ -94,7 +94,7 @@ export async function getUserSubscription(userId: string): Promise<Subscription 
  */
 export async function hasPremiumAccess(userId: string): Promise<boolean> {
   const subscription = await getUserSubscription(userId);
-  return subscription?.plan === 'roomz_plus';
+  return subscription?.plan === 'rommz_plus';
 }
 
 /**
@@ -187,8 +187,8 @@ export async function createSePayCheckoutSession(
     throw new Error('Cannot create checkout for free plan');
   }
 
-  const roomzPlusPlan = getRoomZPlusPlan();
-  if (!roomzPlusPlan) {
+  const rommzPlusPlan = getRommZPlusPlan();
+  if (!rommzPlusPlan) {
     throw new Error('Plan not found');
   }
 

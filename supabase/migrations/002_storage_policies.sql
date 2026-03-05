@@ -1,5 +1,5 @@
 -- ============================================
--- ROOMZ - Storage RLS Policies & Realtime Setup
+-- ROMMZ - Storage RLS Policies & Realtime Setup
 -- ============================================
 -- 
 -- LƯU Ý QUAN TRỌNG:
@@ -7,7 +7,6 @@
 -- Phải tạo qua Supabase Dashboard > Storage > Policies
 --
 -- ============================================
-
 -- ============================================
 -- HƯỚNG DẪN TẠO STORAGE POLICIES QUA DASHBOARD
 -- ============================================
@@ -70,52 +69,43 @@
 --   USING: (storage.foldername(name))[1] = (auth.uid())::text
 --
 -- ============================================
-
 -- ============================================
 -- PHẦN NÀY CÓ THỂ CHẠY QUA SQL EDITOR
 -- ============================================
-
 -- Enable Realtime cho messages table
-DO $$
-BEGIN
-  ALTER PUBLICATION supabase_realtime ADD TABLE messages;
-  RAISE NOTICE 'OK: Đã thêm messages vào realtime publication';
-EXCEPTION WHEN duplicate_object THEN
-  RAISE NOTICE 'INFO: Table messages đã có trong realtime publication';
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime
+ADD TABLE messages;
+RAISE NOTICE 'OK: Đã thêm messages vào realtime publication';
+EXCEPTION
+WHEN duplicate_object THEN RAISE NOTICE 'INFO: Table messages đã có trong realtime publication';
 END $$;
-
 -- ============================================
 -- KIỂM TRA BUCKET TỒN TẠI
 -- ============================================
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'verifications') THEN
-    RAISE NOTICE '⚠️ CẢNH BÁO: Bucket "verifications" chưa tồn tại!';
-    RAISE NOTICE '   Vui lòng tạo trong Dashboard > Storage > New Bucket';
-  ELSE
-    RAISE NOTICE '✓ OK: Bucket "verifications" đã tồn tại';
-  END IF;
+DO $$ BEGIN IF NOT EXISTS (
+  SELECT 1
+  FROM storage.buckets
+  WHERE id = 'verifications'
+) THEN RAISE NOTICE '⚠️ CẢNH BÁO: Bucket "verifications" chưa tồn tại!';
+RAISE NOTICE '   Vui lòng tạo trong Dashboard > Storage > New Bucket';
+ELSE RAISE NOTICE '✓ OK: Bucket "verifications" đã tồn tại';
+END IF;
 END $$;
-
 -- ============================================
 -- KIỂM TRA STORAGE POLICIES
 -- ============================================
 DO $$
-DECLARE
-  policy_count INTEGER;
+DECLARE policy_count INTEGER;
 BEGIN
-  SELECT COUNT(*) INTO policy_count
-  FROM pg_policies 
-  WHERE schemaname = 'storage' 
-    AND tablename = 'objects'
-    AND policyname LIKE '%verification%';
-  
-  IF policy_count = 0 THEN
-    RAISE NOTICE '⚠️ CẢNH BÁO: Chưa có Storage policies cho verifications!';
-    RAISE NOTICE '   Vui lòng tạo qua Dashboard > Storage > Policies';
-  ELSE
-    RAISE NOTICE '✓ OK: Đã có % Storage policies', policy_count;
-  END IF;
+SELECT COUNT(*) INTO policy_count
+FROM pg_policies
+WHERE schemaname = 'storage'
+  AND tablename = 'objects'
+  AND policyname LIKE '%verification%';
+IF policy_count = 0 THEN RAISE NOTICE '⚠️ CẢNH BÁO: Chưa có Storage policies cho verifications!';
+RAISE NOTICE '   Vui lòng tạo qua Dashboard > Storage > Policies';
+ELSE RAISE NOTICE '✓ OK: Đã có % Storage policies',
+policy_count;
+END IF;
 END $$;
-
 SELECT 'Hoàn tất! Nhớ tạo Storage policies qua Dashboard nếu chưa có.' as result;

@@ -9,10 +9,10 @@
 // ============================================
 export const PRICING = {
     // RommZ+ monthly subscription
-    ROOMZ_PLUS_MONTHLY: 49_000,
+    ROMMZ_PLUS_MONTHLY: 49_000,
 
     // RommZ+ quarterly subscription (3 months)
-    ROOMZ_PLUS_QUARTERLY: 119_000,
+    ROMMZ_PLUS_QUARTERLY: 119_000,
 
     // Promo discount percentage (0.5 = 50% off)
     PROMO_DISCOUNT: 0.5,
@@ -24,8 +24,8 @@ export const PRICING = {
     // Get price by billing cycle
     getPrice: (billingCycle: 'monthly' | 'quarterly'): number =>
         billingCycle === 'quarterly'
-            ? PRICING.ROOMZ_PLUS_QUARTERLY
-            : PRICING.ROOMZ_PLUS_MONTHLY,
+            ? PRICING.ROMMZ_PLUS_QUARTERLY
+            : PRICING.ROMMZ_PLUS_MONTHLY,
 } as const;
 
 // ============================================
@@ -50,7 +50,7 @@ export const ORDER = {
     EXPIRATION_MINUTES: 20,
 
     // Order code prefix
-    CODE_PREFIX: 'ROOMZ',
+    CODE_PREFIX: 'ROMMZ',
 
     // Status values
     STATUS: {
@@ -64,7 +64,7 @@ export const ORDER = {
 // ============================================
 // Plan Definitions
 // ============================================
-export type SubscriptionPlan = 'free' | 'roomz_plus';
+export type SubscriptionPlan = 'free' | 'rommz_plus';
 export type BillingCycle = 'monthly' | 'quarterly';
 
 export interface PlanDetails {
@@ -92,11 +92,11 @@ export const PLANS: PlanDetails[] = [
         ],
     },
     {
-        id: 'roomz_plus',
-        name: 'RoomZ+',
-        price: PRICING.ROOMZ_PLUS_MONTHLY,
-        quarterlyPrice: PRICING.ROOMZ_PLUS_QUARTERLY,
-        priceDisplay: `${(PRICING.ROOMZ_PLUS_MONTHLY / 1000).toFixed(0)}.000đ/tháng`,
+        id: 'rommz_plus',
+        name: 'RommZ+',
+        price: PRICING.ROMMZ_PLUS_MONTHLY,
+        quarterlyPrice: PRICING.ROMMZ_PLUS_QUARTERLY,
+        priceDisplay: `${(PRICING.ROMMZ_PLUS_MONTHLY / 1000).toFixed(0)}.000đ/tháng`,
         recommended: true,
         features: [
             '♾️ Xem SĐT không giới hạn',
@@ -118,15 +118,15 @@ export function getPlanById(planId: SubscriptionPlan): PlanDetails | undefined {
     return PLANS.find((p) => p.id === planId);
 }
 
-export function getRoomZPlusPlan(): PlanDetails | undefined {
-    return PLANS.find((p) => p.id === 'roomz_plus');
+export function getRommZPlusPlan(): PlanDetails | undefined {
+    return PLANS.find((p) => p.id === 'rommz_plus');
 }
 
 export function getCurrentPrice(
     billingCycle: BillingCycle = 'monthly',
     isPromo: boolean = false
 ): number {
-    const plan = getRoomZPlusPlan();
+    const plan = getRommZPlusPlan();
     if (!plan) return 0;
 
     let price = PRICING.getPrice(billingCycle);

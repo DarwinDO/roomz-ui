@@ -101,7 +101,7 @@ export async function verifyPayment(orderCode: string): Promise<{ success: boole
  * Extract order code from payment content
  */
 export function extractOrderCode(content: string): string | null {
-    const match = content.match(/ROOMZ\d+/i);
+    const match = content.match(/ROMMZ\d+/i);
     return match ? match[0] : null;
 }
 
@@ -109,7 +109,7 @@ export function extractOrderCode(content: string): string | null {
  * Create a new order code
  */
 export function generateOrderCode(): string {
-    return `ROOMZ${Date.now()}`;
+    return `ROMMZ${Date.now()}`;
 }
 
 /**

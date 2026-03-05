@@ -37,7 +37,7 @@ export function usePremium(): UsePremiumReturn {
         try {
             const customer = info || await Purchases.getCustomerInfo();
             setCustomerInfo(customer);
-            const hasPremium = customer.entitlements.active['roomz_plus'] !== undefined;
+            const hasPremium = customer.entitlements.active['rommz_plus'] !== undefined;
             setIsPremium(hasPremium);
         } catch (err) {
             console.error('Failed to check premium status:', err);

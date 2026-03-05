@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Crown, Sparkles, Eye, Send, Check, ArrowRight } from 'lucide-react';
-import { getRoomZPlusPlan } from '@/services/payments';
+import { getRommZPlusPlan } from '@/services/payments';
 import { useNavigate } from 'react-router';
 import { UPGRADE_SOURCES } from '@roomz/shared/constants/tracking';
 
@@ -35,8 +35,8 @@ export function LimitHitModal({
     limitType,
 }: LimitHitModalProps) {
     const navigate = useNavigate();
-    const roomzPlusPlan = getRoomZPlusPlan();
-    const priceDisplay = roomzPlusPlan?.priceDisplay || '49.000đ/tháng';
+    const rommzPlusPlan = getRommZPlusPlan();
+    const priceDisplay = rommzPlusPlan?.priceDisplay || '49.000đ/tháng';
 
     const title = limitType === 'views'
         ? 'Đã hết lượt xem profile hôm nay'

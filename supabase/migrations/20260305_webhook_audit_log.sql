@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS webhook_audit_logs (
     -- Event type (e.g., 'payment.received')
     -- Order/payment reference
     order_code TEXT,
-    -- Our internal order code (e.g., ROOMZ123)
+    -- Our internal order code (e.g., ROMMZ123)
     transaction_id TEXT,
     -- Provider's transaction ID
     amount NUMERIC,

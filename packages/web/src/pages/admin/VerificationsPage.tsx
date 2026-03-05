@@ -251,7 +251,7 @@ export default function VerificationsPage() {
                       />
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
                         <span className="text-red-500/20 font-bold text-2xl rotate-[-30deg] whitespace-nowrap">
-                          ROOMZ VERIFICATION ONLY
+                          ROMMZ VERIFICATION ONLY
                         </span>
                       </div>
                     </div>
@@ -273,7 +273,7 @@ export default function VerificationsPage() {
                       />
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
                         <span className="text-red-500/20 font-bold text-2xl rotate-[-30deg] whitespace-nowrap">
-                          ROOMZ VERIFICATION ONLY
+                          ROMMZ VERIFICATION ONLY
                         </span>
                       </div>
                     </div>
@@ -395,7 +395,7 @@ export default function VerificationsPage() {
           {/* Watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
             <span className="text-red-500/15 font-bold text-4xl rotate-[-30deg] whitespace-nowrap">
-              ROOMZ VERIFICATION ONLY
+              ROMMZ VERIFICATION ONLY
             </span>
           </div>
           {/* Image */}

@@ -13,7 +13,7 @@ export function HowToRedeemModal({ isOpen, onClose }: HowToRedeemModalProps) {
     {
       number: 1,
       title: "Tìm ưu đãi phù hợp",
-      description: "Duyệt qua danh sách các ưu đãi gần bạn trên trang RoomZ Local Passport",
+      description: "Duyệt qua danh sách các ưu đãi gần bạn trên trang RommZ Local Passport",
       icon: MapPin,
       iconColor: "text-blue-600",
       iconBg: "bg-blue-100",
@@ -71,7 +71,7 @@ export function HowToRedeemModal({ isOpen, onClose }: HowToRedeemModalProps) {
     },
     {
       question: "Điều gì xảy ra nếu mã QR không hoạt động?",
-      answer: "Hãy liên hệ nhân viên cửa hàng hoặc hỗ trợ RoomZ qua app để được giúp đỡ ngay.",
+      answer: "Hãy liên hệ nhân viên cửa hàng hoặc hỗ trợ RommZ qua app để được giúp đỡ ngay.",
     },
     {
       question: "Tôi có cần thẻ sinh viên không?",
@@ -89,7 +89,7 @@ export function HowToRedeemModal({ isOpen, onClose }: HowToRedeemModalProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gift className="w-6 h-6 text-primary" />
-            Cách sử dụng ưu đãi RoomZ Passport
+            Cách sử dụng ưu đãi RommZ Passport
           </DialogTitle>
           <DialogDescription>
             Hướng dẫn chi tiết từng bước để tận dụng tối đa các ưu đãi dành cho sinh viên
@@ -120,7 +120,7 @@ export function HowToRedeemModal({ isOpen, onClose }: HowToRedeemModalProps) {
                   <div className="flex-1 space-y-2">
                     <h4>{step.title}</h4>
                     <p className="text-sm text-gray-600">{step.description}</p>
-                    
+
                     {/* Tips */}
                     <div className="space-y-1 pt-2">
                       {step.tips.map((tip, tipIdx) => (
@@ -205,7 +205,7 @@ export function HowToRedeemModal({ isOpen, onClose }: HowToRedeemModalProps) {
             <div className="text-center space-y-2">
               <p className="text-sm font-medium">Cần hỗ trợ thêm?</p>
               <p className="text-xs text-gray-600">
-                Liên hệ đội ngũ RoomZ qua chat trong app hoặc email support@roomz.vn
+                Liên hệ đội ngũ RommZ qua chat trong app hoặc email support@rommz.vn
               </p>
             </div>
           </Card>

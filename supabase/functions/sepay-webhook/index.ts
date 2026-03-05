@@ -89,8 +89,8 @@ Deno.serve(async (req: Request) => {
         });
 
         // Extract order code from content
-        // Format: ROOMZ1234567890
-        const orderCodeMatch = payload.content?.match(/ROOMZ\d+/i);
+        // Format: ROMMZ1234567890
+        const orderCodeMatch = payload.content?.match(/ROMMZ\d+/i);
         if (!orderCodeMatch) {
             console.warn("[SePay] No valid order code found in content:", payload.content);
             return new Response(

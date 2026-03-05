@@ -22,7 +22,7 @@ import {
 import { useAuth } from "@/contexts";
 import {
   PLANS,
-  getRoomZPlusPlan,
+  getRommZPlusPlan,
   createSePayCheckoutSession,
   getUserSubscription,
   getPromoStatus,
@@ -53,7 +53,7 @@ export default function PaymentPage() {
     billingCycle: BillingCycle;
   } | null>(null);
 
-  const roomzPlusPlan = getRoomZPlusPlan();
+  const rommzPlusPlan = getRommZPlusPlan();
 
   // Fetch promo status
   useEffect(() => {
@@ -116,8 +116,8 @@ export default function PaymentPage() {
         orderCode: result.orderCode,
         qrCodeUrl: result.qrCodeUrl,
         amount: billingCycle === "monthly"
-          ? (roomzPlusPlan?.price || 49000)
-          : (roomzPlusPlan?.quarterlyPrice || 119000),
+          ? (rommzPlusPlan?.price || 49000)
+          : (rommzPlusPlan?.quarterlyPrice || 119000),
         billingCycle,
       });
     } catch (error) {
@@ -144,7 +144,7 @@ export default function PaymentPage() {
     switch (planId) {
       case "free":
         return Star;
-      case "roomz_plus":
+      case "rommz_plus":
         return Crown;
       default:
         return Star;
@@ -152,14 +152,14 @@ export default function PaymentPage() {
   };
 
   const getCurrentPrice = () => {
-    if (!roomzPlusPlan) return 49000;
-    return billingCycle === "monthly" ? roomzPlusPlan.price : (roomzPlusPlan.quarterlyPrice || 119000);
+    if (!rommzPlusPlan) return 49000;
+    return billingCycle === "monthly" ? rommzPlusPlan.price : (rommzPlusPlan.quarterlyPrice || 119000);
   };
 
   const getSavings = () => {
-    if (!roomzPlusPlan) return 0;
-    const monthlyTotal = roomzPlusPlan.price * 3;
-    const quarterlyPrice = roomzPlusPlan.quarterlyPrice || 119000;
+    if (!rommzPlusPlan) return 0;
+    const monthlyTotal = rommzPlusPlan.price * 3;
+    const quarterlyPrice = rommzPlusPlan.quarterlyPrice || 119000;
     return monthlyTotal - quarterlyPrice;
   };
 
@@ -253,7 +253,7 @@ export default function PaymentPage() {
                 : "text-gray-500 hover:text-gray-700"
                 }`}
             >
-              Tháng {roomzPlusPlan?.price?.toLocaleString('vi-VN')}đ
+              Tháng {rommzPlusPlan?.price?.toLocaleString('vi-VN')}đ
             </button>
             <button
               onClick={() => setBillingCycle("quarterly")}
@@ -262,7 +262,7 @@ export default function PaymentPage() {
                 : "text-gray-500 hover:text-gray-700"
                 }`}
             >
-              Quý {(roomzPlusPlan?.quarterlyPrice || 119000).toLocaleString('vi-VN')}đ
+              Quý {(rommzPlusPlan?.quarterlyPrice || 119000).toLocaleString('vi-VN')}đ
               <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
                 Tiết kiệm 19%
               </Badge>
@@ -317,11 +317,11 @@ export default function PaymentPage() {
                           <>
                             {billingCycle === "monthly"
                               ? `${getCurrentPrice().toLocaleString('vi-VN')}đ/tháng`
-                              : `${Math.floor((roomzPlusPlan?.quarterlyPrice || 119000) / 3).toLocaleString('vi-VN')}đ/tháng`
+                              : `${Math.floor((rommzPlusPlan?.quarterlyPrice || 119000) / 3).toLocaleString('vi-VN')}đ/tháng`
                             }
                             {billingCycle === "quarterly" && (
                               <span className="text-xs text-gray-500 font-normal ml-1">
-                                ({roomzPlusPlan?.quarterlyPrice?.toLocaleString('vi-VN')}đ/quý)
+                                ({rommzPlusPlan?.quarterlyPrice?.toLocaleString('vi-VN')}đ/quý)
                               </span>
                             )}
                           </>
