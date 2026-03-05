@@ -8,10 +8,10 @@
 // Plan Pricing (in VND)
 // ============================================
 export const PRICING = {
-    // RoomZ+ monthly subscription
+    // RommZ+ monthly subscription
     ROOMZ_PLUS_MONTHLY: 49_000,
 
-    // RoomZ+ quarterly subscription (3 months)
+    // RommZ+ quarterly subscription (3 months)
     ROOMZ_PLUS_QUARTERLY: 119_000,
 
     // Promo discount percentage (0.5 = 50% off)

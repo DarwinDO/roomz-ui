@@ -9,7 +9,7 @@ export * from './payment.config';
 // App-wide constants
 export const APP_CONFIG = {
     // App info
-    NAME: 'RoomZ',
+    NAME: 'RommZ',
     VERSION: '1.0.0',
 
     // Pagination defaults

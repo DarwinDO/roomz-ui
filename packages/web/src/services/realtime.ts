@@ -1,6 +1,6 @@
 /**
  * =============================================
- * ROOMZ REALTIME SERVICE
+ * ROMMZ REALTIME SERVICE
  * =============================================
  * Centralized realtime subscription management for messaging
  * Uses Supabase Realtime Postgres Changes (CDC) and Broadcast

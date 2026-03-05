@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * RoomZ E2E Tests Configuration
+ * RommZ E2E Tests Configuration
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
@@ -11,7 +11,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
-  
+
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',

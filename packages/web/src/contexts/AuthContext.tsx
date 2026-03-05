@@ -1,5 +1,5 @@
 /**
- * Authentication Context for RoomZ
+ * Authentication Context for RommZ
  * Manages user authentication state and provides auth methods
  * 
  * Best practices based on Supabase docs:

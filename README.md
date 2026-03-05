@@ -1,6 +1,6 @@
-# RoomZ - Find Your Perfect Room & Roommate
+# RommZ - Find Your Perfect Room & Roommate
 
-RoomZ là một nền tảng tìm kiếm phòng trọ và bạn cùng phòng hiện đại, được xây dựng với React, TypeScript, và Vite.
+RommZ là một nền tảng tìm kiếm phòng trọ và bạn cùng phòng hiện đại, được xây dựng với React, TypeScript, và Vite.
 
 ## 🚀 Tính năng
 
@@ -197,4 +197,4 @@ Nếu bạn gặp vấn đề hoặc có câu hỏi, vui lòng tạo issue trên
 
 ---
 
-Made with ❤️ by RoomZ Team
+Made with ❤️ by RommZ Team

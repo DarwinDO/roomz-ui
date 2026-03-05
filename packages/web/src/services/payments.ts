@@ -1,6 +1,6 @@
 /**
  * Payments API Service
- * RoomZ+ subscription management with SePay integration
+ * RommZ+ subscription management with SePay integration
  */
 
 import { supabase } from '@/lib/supabase';

@@ -1,6 +1,6 @@
 /**
  * ============================================
- * ROOMZ FRONTEND - SUPABASE CLIENT
+ * ROMMZ FRONTEND - SUPABASE CLIENT
  * ============================================
  */
 
