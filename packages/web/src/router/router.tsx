@@ -47,6 +47,8 @@ const BecomeLandlordPage = lazy(() => import('@/pages/BecomeLandlordPage'));
 const PostSubletPage = lazy(() => import('@/pages/PostSubletPage'));
 const EditSubletPage = lazy(() => import('@/pages/EditSubletPage'));
 const SubletApplicationsPage = lazy(() => import('@/pages/SubletApplicationsPage'));
+const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'));
 
 // Admin pages
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
@@ -59,6 +61,7 @@ const AnalyticsPage = lazy(() => import('@/pages/admin/AnalyticsPage'));
 const RevenuePage = lazy(() => import('@/pages/admin/RevenuePage'));
 const PartnersPage = lazy(() => import('@/pages/admin/PartnersPage'));
 const ServiceLeadsPage = lazy(() => import('@/pages/admin/ServiceLeadsPage'));
+const PartnerLeadsPage = lazy(() => import('@/pages/admin/PartnerLeadsPage'));
 
 
 
@@ -98,6 +101,22 @@ export const router = createBrowserRouter([
     element: (
       <Suspense fallback={<PageLoader />}>
         <AuthCallbackPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/forgot-password',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ForgotPasswordPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/reset-password',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <ResetPasswordPage />
       </Suspense>
     ),
   },
@@ -352,6 +371,10 @@ export const router = createBrowserRouter([
       {
         path: 'partners',
         element: <PartnersPage />,
+      },
+      {
+        path: 'partner-leads',
+        element: <PartnerLeadsPage />,
       },
       {
         path: 'service-leads',

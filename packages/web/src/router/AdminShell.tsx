@@ -32,6 +32,7 @@ const navItems = [
   { path: "/admin/analytics", label: "Phân tích", icon: BarChart3 },
   { path: "/admin/revenue", label: "Doanh thu", icon: DollarSign },
   { path: "/admin/partners", label: "Đối tác", icon: Handshake },
+  { path: "/admin/partner-leads", label: "Đơn đăng ký", icon: ClipboardList },
   { path: "/admin/service-leads", label: "Dịch vụ", icon: ClipboardList },
 ];
 

@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, Mail, MapPin, Phone, Users } from "lucide-react";
+import { CheckCircle2, Mail, MapPin, Phone, Users, Loader2 } from "lucide-react";
+import { useCreatePartnerLead } from "@/hooks/usePartnerLeads";
 
 interface PartnerSignUpModalProps {
   isOpen: boolean;
@@ -40,8 +41,10 @@ const initialFormState: PartnerFormState = {
 
 export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpModalProps) {
   const [formState, setFormState] = useState<PartnerFormState>(initialFormState);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Use React Query mutation for partner lead creation
+  const createLead = useCreatePartnerLead();
 
   const handleChange = (field: keyof PartnerFormState) => (value: string) => {
     setFormState((prev) => ({
@@ -52,22 +55,33 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
 
   const resetAndClose = () => {
     setFormState(initialFormState);
-    setIsSubmitting(false);
     setIsSubmitted(false);
     onClose();
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setIsSubmitting(true);
 
-    // Simulate async submission
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await createLead.mutateAsync({
+        companyName: formState.companyName,
+        contactName: formState.contactName,
+        email: formState.email,
+        phone: formState.phone,
+        serviceArea: formState.serviceArea,
+        notes: formState.notes,
+      });
+
+      // Success - show success state
       setIsSubmitted(true);
       onSubmit?.();
-    }, 1500);
+    } catch (error) {
+      // Error is already handled by the mutation's onError callback
+      console.error('Partner signup failed:', error);
+    }
   };
+
+  const isSubmitting = createLead.isPending;
 
   return (
     <Dialog
@@ -227,7 +241,14 @@ export function PartnerSignUpModal({ isOpen, onClose, onSubmit }: PartnerSignUpM
                     className="rounded-full"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "Đang gửi..." : "Gửi đăng ký"}
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Đang gửi...
+                      </>
+                    ) : (
+                      "Gửi đăng ký"
+                    )}
                   </Button>
                 </div>
               </div>

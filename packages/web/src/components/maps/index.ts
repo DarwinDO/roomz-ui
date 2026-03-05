@@ -1,6 +1,6 @@
 /**
  * Maps Components Export
- * 
+ *
  * Các components liên quan đến Maps (Google Maps & Mapbox)
  */
 
@@ -13,3 +13,4 @@ export { MapErrorBoundary } from './MapErrorBoundary';
 // Mapbox (recommended - tiết kiệm chi phí)
 export { MapboxRoomMap } from './MapboxRoomMap';
 export { MapboxGeocoding } from './MapboxGeocoding';
+export { ShopMiniMapbox } from './ShopMiniMapbox';

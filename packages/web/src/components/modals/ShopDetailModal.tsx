@@ -9,10 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
-// Lazy load map component to avoid blocking initial render
-const ShopMiniMap = lazy(() =>
-  import("@/components/common/ShopMiniMap").then((mod) => ({
-    default: mod.ShopMiniMap,
+// Lazy load Mapbox map component to avoid blocking initial render
+const ShopMiniMapbox = lazy(() =>
+  import("@/components/maps/ShopMiniMapbox").then((mod) => ({
+    default: mod.ShopMiniMapbox,
   }))
 );
 import {
@@ -186,23 +186,23 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
         {/* Content */}
         <div className="p-6 space-y-6">
           {/* Offer Banner */}
-          <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl p-5 border-2 border-primary/20">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shrink-0">
-                <Gift className="w-6 h-6 text-white" />
+          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 rounded-2xl p-5 border border-primary/20 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shrink-0 shadow-md">
+                <Gift className="w-7 h-7 text-white" />
               </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Ưu đãi dành riêng cho thành viên RommZ</p>
-                <h2 className="text-primary">{deal.title || deal.discount_value || "Khám phá ngay"}</h2>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-500 mb-1 font-medium">Ưu đãi dành riêng cho thành viên RommZ</p>
+                <h2 className="text-lg font-bold text-primary leading-tight">{deal.title || deal.discount_value || "Khám phá ngay"}</h2>
               </div>
             </div>
           </div>
 
           {/* Description from deal */}
           {deal.description && (
-            <div>
-              <h3 className="mb-2">Về {partner?.name}</h3>
-              <p className="text-sm text-gray-600">{deal.description}</p>
+            <div className="space-y-2">
+              <h3 className="text-base font-semibold text-gray-900">Về {partner?.name}</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">{deal.description}</p>
             </div>
           )}
 
@@ -210,55 +210,61 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
 
           {/* Contact Information - from partner */}
           <div className="space-y-3">
-            <h3>Liên hệ & địa chỉ</h3>
+            <h3 className="text-base font-semibold">Liên hệ & địa chỉ</h3>
             <div className="space-y-2">
               {partner?.hours && (
-                <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50">
-                  <Clock className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Giờ mở cửa</p>
-                    <p className="text-xs text-gray-600">{partner.hours}</p>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Clock className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">Giờ mở cửa</p>
+                    <p className="text-sm text-gray-600">{partner.hours}</p>
                   </div>
                 </div>
               )}
               {partner?.phone && (
-                <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50">
-                  <Phone className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Điện thoại</p>
-                    <p className="text-xs text-gray-600">{partner.phone}</p>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Phone className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">Điện thoại</p>
+                    <p className="text-sm text-gray-600">{partner.phone}</p>
                   </div>
                 </div>
               )}
               {partner?.email && (
-                <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50">
-                  <Mail className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Email</p>
-                    <p className="text-xs text-gray-600">{partner.email}</p>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Mail className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">Email</p>
+                    <p className="text-sm text-gray-600 truncate">{partner.email}</p>
                   </div>
                 </div>
               )}
               {partner?.address && (
-                <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50">
-                  <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Địa chỉ</p>
-                    <p className="text-xs text-gray-600">{partner.address}</p>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <MapPin className="w-4 h-4 text-primary" />
                   </div>
-                  <Button variant="ghost" size="sm" className="rounded-full">
-                    <Navigation className="w-4 h-4 mr-1" />
-                    Chỉ đường
-                  </Button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">Địa chỉ</p>
+                    <p className="text-sm text-gray-600">{partner.address}</p>
+                  </div>
                 </div>
               )}
               {/* Fallback if no contact info */}
               {!partner?.hours && !partner?.phone && !partner?.email && !partner?.address && (
-                <div className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50">
-                  <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Địa chỉ</p>
-                    <p className="text-xs text-gray-600">Liên hệ để biết địa chỉ chi tiết</p>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <MapPin className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">Địa chỉ</p>
+                    <p className="text-sm text-gray-600">Liên hệ để biết địa chỉ chi tiết</p>
                   </div>
                 </div>
               )}
@@ -270,13 +276,13 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
           {/* Mini Map - Show only when partner has coordinates */}
           {partner?.latitude && partner?.longitude && (
             <div className="space-y-3">
-              <h3>Vị trí trên bản đồ</h3>
+              <h3 className="text-base font-semibold">Vị trí trên bản đồ</h3>
               <Suspense
                 fallback={
                   <Skeleton className="w-full h-[200px] rounded-2xl" />
                 }
               >
-                <ShopMiniMap
+                <ShopMiniMapbox
                   latitude={Number(partner.latitude)}
                   longitude={Number(partner.longitude)}
                   partnerName={partner.name || "Đối tác"}
@@ -291,13 +297,13 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
 
           {/* Voucher Section */}
           <div className="space-y-4">
-            <h3>Nhận voucher ưu đãi</h3>
+            <h3 className="text-base font-semibold">Nhận voucher ưu đãi</h3>
 
             {/* Show QR if user has voucher OR is claiming now - use claimedVoucher for immediate display */}
             {(showVoucher || hasVoucher) && (claimedVoucher || savedVoucher) ? (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 {/* QR Code - Real QR from saved voucher */}
-                <div className="bg-white rounded-2xl p-6 border-2 border-dashed border-gray-300">
+                <div className="bg-white rounded-2xl p-6 border-2 border-dashed border-primary/30 shadow-sm">
                   <div className="w-48 h-48 bg-white rounded-xl flex items-center justify-center mx-auto mb-3">
                     <QRCodeSVG
                       value={(claimedVoucher || savedVoucher)?.qr_data || ""}
@@ -306,35 +312,42 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
                       includeMargin={false}
                     />
                   </div>
-                  <p className="text-xs text-center text-gray-600">
+                  <p className="text-sm text-center text-gray-600 font-medium">
                     Quét mã này tại {partner?.name}
                   </p>
                 </div>
 
                 {/* Instructions */}
-                <div className="bg-gradient-to-br from-secondary/5 to-primary/5 rounded-xl p-4 space-y-2">
-                  <p className="text-sm mb-2">Cách sử dụng:</p>
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2 text-xs">
-                      <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                      <span>Đưa mã QR cho nhân viên trước khi thanh toán</span>
+                <div className="bg-gradient-to-br from-secondary/5 to-primary/5 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-medium text-gray-900">Cách sử dụng:</p>
+                  <div className="space-y-2.5">
+                    <div className="flex items-start gap-3 text-sm">
+                      <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-3 h-3 text-secondary" />
+                      </div>
+                      <span className="text-gray-700">Đưa mã QR cho nhân viên trước khi thanh toán</span>
                     </div>
-                    <div className="flex items-start gap-2 text-xs">
-                      <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                      <span>Xuất trình thẻ sinh viên khi được yêu cầu</span>
+                    <div className="flex items-start gap-3 text-sm">
+                      <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-3 h-3 text-secondary" />
+                      </div>
+                      <span className="text-gray-700">Xuất trình thẻ sinh viên khi được yêu cầu</span>
                     </div>
-                    <div className="flex items-start gap-2 text-xs">
-                      <CheckCircle2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                      <span>Ưu đãi sẽ được áp dụng trực tiếp vào hóa đơn</span>
+                    <div className="flex items-start gap-3 text-sm">
+                      <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-3 h-3 text-secondary" />
+                      </div>
+                      <span className="text-gray-700">Ưu đãi sẽ được áp dụng trực tiếp vào hóa đơn</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Validity - from deal.valid_until */}
                 {deal.valid_until && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-center">
-                    <p className="text-xs text-gray-700">
-                      ⏰ Hiệu lực đến: {formatExpiryDate(deal.valid_until)}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-center gap-2">
+                    <span className="text-amber-600">⏰</span>
+                    <p className="text-sm text-amber-800 font-medium">
+                      Hiệu lực đến: {formatExpiryDate(deal.valid_until)}
                     </p>
                   </div>
                 )}
@@ -344,7 +357,7 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
               <Button
                 onClick={handleGetVoucher}
                 disabled={isSaving || isVouchersLoading}
-                className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-12"
+                className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-12 text-base font-medium shadow-md hover:shadow-lg transition-all"
               >
                 {isSaving ? (
                   <>
@@ -361,18 +374,27 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+          {/* Action Buttons - Fixed layout to prevent text cutoff */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 sticky bottom-0 bg-white pb-2">
             <Button
               variant="outline"
-              className="flex-1 rounded-full h-12"
+              className="flex-1 rounded-full h-12 text-base font-medium"
               onClick={handleClose}
             >
               Đóng
             </Button>
-            <Button className="flex-1 rounded-full h-12 bg-primary hover:bg-primary/90">
-              <Navigation className="w-4 h-4 mr-2" />
-              Chỉ đường
+            <Button
+              className="flex-1 rounded-full h-12 bg-primary hover:bg-primary/90 text-base font-medium shadow-md"
+              onClick={() => {
+                if (partner?.latitude && partner?.longitude) {
+                  const dest = `${partner.latitude},${partner.longitude}`;
+                  window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}`, '_blank');
+                }
+              }}
+              disabled={!partner?.latitude || !partner?.longitude}
+            >
+              <Navigation className="w-4 h-4 mr-2 shrink-0" />
+              <span className="whitespace-nowrap">Chỉ đường</span>
             </Button>
           </div>
         </div>
