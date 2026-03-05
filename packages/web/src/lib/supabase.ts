@@ -5,7 +5,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from './database.types';
+import type { Database } from '@roomz/shared/services/database.types';
 
 // Supabase configuration
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vevnoxlgwisdottaifdn.supabase.co';
@@ -28,13 +28,13 @@ export const storage = {
   async uploadRoomImage(roomId: string, file: File) {
     const fileExt = file.name.split('.').pop();
     const fileName = `${roomId}/${Date.now()}.${fileExt}`;
-    
+
     const { data, error } = await supabase.storage
       .from('room-images')
       .upload(fileName, file);
-    
+
     if (error) throw error;
-    
+
     return {
       path: data.path,
       url: supabase.storage.from('room-images').getPublicUrl(data.path).data.publicUrl,
@@ -47,15 +47,15 @@ export const storage = {
   async uploadAvatar(userId: string, file: File) {
     const fileExt = file.name.split('.').pop();
     const fileName = `${userId}.${fileExt}`;
-    
+
     const { data, error } = await supabase.storage
       .from('user-avatars')
       .upload(fileName, file, {
         upsert: true, // Replace existing avatar
       });
-    
+
     if (error) throw error;
-    
+
     return {
       path: data.path,
       url: supabase.storage.from('user-avatars').getPublicUrl(data.path).data.publicUrl,
@@ -91,7 +91,7 @@ export const auth = {
         data: userData,
       },
     });
-    
+
     if (error) throw error;
     return data;
   },
@@ -104,7 +104,7 @@ export const auth = {
       email,
       password,
     });
-    
+
     if (error) throw error;
     return data;
   },
@@ -119,7 +119,7 @@ export const auth = {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
-    
+
     if (error) throw error;
     return data;
   },
@@ -157,7 +157,7 @@ export const auth = {
     const { data, error } = await supabase.auth.updateUser({
       data: updates,
     });
-    
+
     if (error) throw error;
     return data;
   },
@@ -169,7 +169,7 @@ export const auth = {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
-    
+
     if (error) throw error;
   },
 };
@@ -190,7 +190,7 @@ export const db = {
       `)
       .eq('status', 'active')
       .is('deleted_at', null);
-    
+
     // Apply filters
     if (filters.district) {
       query = query.eq('district', filters.district);
@@ -201,9 +201,9 @@ export const db = {
     if (filters.roomType) {
       query = query.eq('room_type', filters.roomType);
     }
-    
+
     const { data, error } = await query.order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return data;
   },
@@ -223,7 +223,7 @@ export const db = {
       `)
       .eq('id', id)
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -237,7 +237,7 @@ export const db = {
       .insert(roomData)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -255,7 +255,7 @@ export const db = {
       `)
       .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return data;
   },
@@ -269,7 +269,7 @@ export const db = {
       .insert(messageData)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -285,14 +285,14 @@ export const db = {
       .eq('user_id', userId)
       .eq('room_id', roomId)
       .single();
-    
+
     if (existing) {
       // Remove favorite
       const { error } = await supabase
         .from('favorites')
         .delete()
         .eq('id', existing.id);
-      
+
       if (error) throw error;
       return { favorited: false };
     } else {
@@ -300,7 +300,7 @@ export const db = {
       const { error } = await supabase
         .from('favorites')
         .insert({ user_id: userId, room_id: roomId });
-      
+
       if (error) throw error;
       return { favorited: true };
     }

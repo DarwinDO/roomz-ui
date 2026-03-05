@@ -1,9 +1,15 @@
 /**
  * useNotifications Hook
- * Realtime notifications with Supabase subscription
+ * Realtime notifications with TanStack Query + Supabase subscription
+ * 
+ * IMPROVEMENTS:
+ * - Uses TanStack Query for initial data fetch (caching, background refetch)
+ * - Keeps realtime subscription for live updates
+ * - Optimistic updates for markAsRead operations
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -16,13 +22,61 @@ export type NotificationType =
     | 'booking_status'
     | 'new_message'
     | 'system'
-    | 'verification';
+    | 'verification'
+    | 'roommate_request'
+    | 'sublet_request'
+    | 'sublet_approved'
+    | 'swap_match'
+    | 'swap_request'
+    | 'swap_confirmed';
+
+// Query keys for TanStack Query
+const notificationsKeys = {
+    all: ['notifications'] as const,
+    lists: () => [...notificationsKeys.all, 'list'] as const,
+    list: (userId: string) => [...notificationsKeys.lists(), userId] as const,
+    unread: (userId: string) => [...notificationsKeys.list(userId), 'unread'] as const,
+};
+
+// Fetch notifications from API
+const fetchNotifications = async (userId: string): Promise<Notification[]> => {
+    const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+    if (error) throw error;
+    return data || [];
+};
+
+// Mark single notification as read
+const markNotificationAsRead = async (notificationId: string): Promise<void> => {
+    const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+
+    if (error) throw error;
+};
+
+// Mark all notifications as read
+const markAllNotificationsAsRead = async (userId: string): Promise<void> => {
+    const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+
+    if (error) throw error;
+};
 
 interface UseNotificationsReturn {
     notifications: Notification[];
     unreadCount: number;
     loading: boolean;
-    error: string | null;
+    error: Error | null;
     markAsRead: (notificationId: string) => Promise<void>;
     markAllAsRead: () => Promise<void>;
     refetch: () => Promise<void>;
@@ -30,92 +84,106 @@ interface UseNotificationsReturn {
 
 export function useNotifications(): UseNotificationsReturn {
     const { user } = useAuth();
-    const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
     const channelRef = useRef<RealtimeChannel | null>(null);
+    const userId = user?.id;
 
-    // Fetch notifications
-    const fetchNotifications = useCallback(async () => {
-        if (!user?.id) return;
+    // TanStack Query for initial data fetch
+    const {
+        data: notifications = [],
+        isLoading: loading,
+        error,
+        refetch,
+    } = useQuery({
+        queryKey: notificationsKeys.list(userId || ''),
+        queryFn: () => fetchNotifications(userId!),
+        enabled: !!userId,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        gcTime: 1000 * 60 * 30, // 30 minutes
+    });
 
-        try {
-            setLoading(true);
-            setError(null);
+    // Calculate unread count
+    const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-            const { data, error: fetchError } = await supabase
-                .from('notifications')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false })
-                .limit(50);
+    // Optimistic mutation for marking single notification as read
+    const markAsReadMutation = useMutation({
+        mutationFn: markNotificationAsRead,
+        onMutate: async (notificationId) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: notificationsKeys.list(userId || '') });
 
-            if (fetchError) throw fetchError;
+            // Snapshot previous value
+            const previousNotifications = queryClient.getQueryData<Notification[]>(
+                notificationsKeys.list(userId || '')
+            );
 
-            const notifs = data || [];
-            setNotifications(notifs);
-            setUnreadCount(notifs.filter(n => !n.is_read).length);
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Không thể tải thông báo';
-            setError(message);
-        } finally {
-            setLoading(false);
-        }
-    }, [user?.id]);
+            // Optimistically update
+            queryClient.setQueryData<Notification[]>(
+                notificationsKeys.list(userId || ''),
+                (old) =>
+                    old?.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n)) || []
+            );
 
-    // Mark single notification as read
-    const markAsRead = useCallback(async (notificationId: string) => {
-        const { error: updateError } = await supabase
-            .from('notifications')
-            .update({ is_read: true })
-            .eq('id', notificationId);
+            return { previousNotifications };
+        },
+        onError: (_err, _notificationId, context) => {
+            // Rollback on error
+            if (context?.previousNotifications) {
+                queryClient.setQueryData(
+                    notificationsKeys.list(userId || ''),
+                    context.previousNotifications
+                );
+            }
+        },
+        onSettled: () => {
+            // Always refetch after error or success to ensure sync
+            queryClient.invalidateQueries({ queryKey: notificationsKeys.list(userId || '') });
+        },
+    });
 
-        if (updateError) {
-            console.error('[useNotifications] Mark as read error:', updateError);
-            return;
-        }
+    // Optimistic mutation for marking all as read
+    const markAllAsReadMutation = useMutation({
+        mutationFn: () => markAllNotificationsAsRead(userId!),
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: notificationsKeys.list(userId || '') });
 
-        // Optimistic update
-        setNotifications(prev =>
-            prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
-        );
-        setUnreadCount(prev => Math.max(0, prev - 1));
-    }, []);
+            const previousNotifications = queryClient.getQueryData<Notification[]>(
+                notificationsKeys.list(userId || '')
+            );
 
-    // Mark all notifications as read
-    const markAllAsRead = useCallback(async () => {
-        if (!user?.id) return;
+            queryClient.setQueryData<Notification[]>(
+                notificationsKeys.list(userId || ''),
+                (old) => old?.map((n) => ({ ...n, is_read: true })) || []
+            );
 
-        const { error: updateError } = await supabase
-            .from('notifications')
-            .update({ is_read: true })
-            .eq('user_id', user.id)
-            .eq('is_read', false);
+            return { previousNotifications };
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previousNotifications) {
+                queryClient.setQueryData(
+                    notificationsKeys.list(userId || ''),
+                    context.previousNotifications
+                );
+            }
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: notificationsKeys.list(userId || '') });
+        },
+    });
 
-        if (updateError) {
-            console.error('[useNotifications] Mark all as read error:', updateError);
-            return;
-        }
-
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-        setUnreadCount(0);
-    }, [user?.id]);
-
-    // Setup realtime subscription
+    // Realtime subscription for new notifications
     useEffect(() => {
-        if (!user?.id) return;
+        if (!userId) return;
 
         let isMounted = true;
 
-        // Initial fetch
-        fetchNotifications();
+        // Stable channel name
+        const channelName = `notifications-${userId}`;
 
-        // Stable channel name - reuse same channel for same user
-        const channelName = `notifications-${user.id}`;
-
-        // Check if channel already exists to prevent duplicates
-        const existingChannel = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`);
+        // Check if channel already exists
+        const existingChannel = supabase
+            .getChannels()
+            .find((c) => c.topic === `realtime:${channelName}`);
         if (existingChannel) {
             if (import.meta.env.DEV) {
                 console.log('[useNotifications] Reusing existing channel');
@@ -142,20 +210,29 @@ export function useNotifications(): UseNotificationsReturn {
                     if (!isMounted) return;
 
                     const newNotification = payload.new as Notification;
-                    // Client-side filter: only process notifications for current user
-                    if (newNotification.user_id !== user.id) return;
+                    // Client-side filter
+                    if (newNotification.user_id !== userId) return;
 
                     if (import.meta.env.DEV) {
                         console.log('[useNotifications] Received new notification:', payload);
                     }
-                    setNotifications(prev => [newNotification, ...prev]);
-                    setUnreadCount(prev => prev + 1);
+
+                    // Add to query cache
+                    queryClient.setQueryData<Notification[]>(
+                        notificationsKeys.list(userId),
+                        (old) => {
+                            if (!old) return [newNotification];
+                            // Avoid duplicates
+                            if (old.some((n) => n.id === newNotification.id)) return old;
+                            return [newNotification, ...old];
+                        }
+                    );
                 }
             )
             .subscribe((status, err) => {
                 if (status === 'SUBSCRIBED') {
                     if (import.meta.env.DEV) {
-                        console.log('[useNotifications] ✅ Successfully subscribed to notifications');
+                        console.log('[useNotifications] ✅ Successfully subscribed');
                     }
                 }
                 if (status === 'CHANNEL_ERROR') {
@@ -173,16 +250,33 @@ export function useNotifications(): UseNotificationsReturn {
                 channelRef.current = null;
             }
         };
-    }, [user?.id]); // Remove fetchNotifications from deps - it's stable via useCallback
+    }, [userId, queryClient]);
+
+    // Wrapped handlers
+    const handleMarkAsRead = useCallback(
+        async (notificationId: string) => {
+            await markAsReadMutation.mutateAsync(notificationId);
+        },
+        [markAsReadMutation]
+    );
+
+    const handleMarkAllAsRead = useCallback(async () => {
+        await markAllAsReadMutation.mutateAsync();
+    }, [markAllAsReadMutation]);
+
+    // Wrap refetch to match expected return type
+    const handleRefetch = useCallback(async () => {
+        await refetch();
+    }, [refetch]);
 
     return {
         notifications,
         unreadCount,
         loading,
-        error,
-        markAsRead,
-        markAllAsRead,
-        refetch: fetchNotifications,
+        error: error || null,
+        markAsRead: handleMarkAsRead,
+        markAllAsRead: handleMarkAllAsRead,
+        refetch: handleRefetch,
     };
 }
 

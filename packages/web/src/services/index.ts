@@ -61,13 +61,16 @@ export type { Favorite } from '@roomz/shared/services/favorites';
 
 // Bookings
 import * as bookingsShared from '@roomz/shared/services/bookings';
-export const getUserBookings = (userId: string) => bookingsShared.getUserBookings(supabase, userId);
+export const getRenterBookings = (renterId: string) => bookingsShared.getRenterBookings(supabase, renterId);
+export const getLandlordBookings = (landlordId: string) => bookingsShared.getLandlordBookings(supabase, landlordId);
 export const getRoomBookings = (roomId: string) => bookingsShared.getRoomBookings(supabase, roomId);
-export const createBooking = (data: { user_id: string; room_id: string; type: 'viewing' | 'moving' | 'deposit'; scheduled_date: string; scheduled_time: string; notes?: string; contact_phone?: string }) => bookingsShared.createBooking(supabase, data);
-export const updateBooking = (id: string, data: Partial<{ scheduled_date: string; scheduled_time: string; status: 'pending' | 'confirmed' | 'cancelled' | 'completed'; notes: string }>) => bookingsShared.updateBooking(supabase, id, data);
-export const cancelBooking = (id: string) => bookingsShared.cancelBooking(supabase, id);
+export const getBookingById = (bookingId: string) => bookingsShared.getBookingById(supabase, bookingId);
+export const createBooking = (input: bookingsShared.CreateBookingInput) => bookingsShared.createBooking(supabase, input);
+export const updateBookingStatus = (id: string, status: bookingsShared.BookingStatus, note?: string) => bookingsShared.updateBookingStatus(supabase, id, status, note);
+export const cancelBooking = (id: string, reason?: string) => bookingsShared.cancelBooking(supabase, id, reason);
 export const confirmBooking = (id: string) => bookingsShared.confirmBooking(supabase, id);
-export type { Booking, BookingStatus, BookingType } from '@roomz/shared/services/bookings';
+export const completeBooking = (id: string) => bookingsShared.completeBooking(supabase, id);
+export type { Booking, BookingStatus, CreateBookingInput } from '@roomz/shared/services/bookings';
 
 // Deals
 import * as dealsShared from '@roomz/shared/services/deals';
@@ -226,4 +229,4 @@ export * from './communityImages';
 export * from './verification';
 
 // Backward compatibility - re-export from local files that may have different implementations
-export * from './roommates';
+// export * from './roommates'; // Removed - use @roomz/shared/services/roommates instead
