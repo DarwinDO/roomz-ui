@@ -6,10 +6,10 @@
       "@/*": [
         "./*"
       ],
-      "@roomz/shared": [
+      "@rommz/shared": [
         "../shared/src/index.ts"
       ],
-      "@roomz/shared/*": [
+      "@rommz/shared/*": [
         "../shared/src/*"
       ]
     }
