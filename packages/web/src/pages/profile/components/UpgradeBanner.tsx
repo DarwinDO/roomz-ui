@@ -10,7 +10,7 @@ interface UpgradeBannerProps {
     isPremium?: boolean | null;
 }
 
-const ROOMZ_PLUS_FEATURES = [
+const ROMMZ_PLUS_FEATURES = [
     { icon: Phone, text: 'Xem SĐT không giới hạn' },
     { icon: Heart, text: 'Lưu phòng yêu thích không giới hạn' },
     { icon: Users, text: 'Roommate views & requests không giới hạn' },
@@ -37,7 +37,7 @@ export function UpgradeBanner({ onUpgrade, isPremium }: UpgradeBannerProps) {
                                 <Crown className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <h4 className="font-medium text-amber-900">RoomZ+ Premium</h4>
+                                <h4 className="font-medium text-amber-900">RommZ+ Premium</h4>
                                 <p className="text-sm text-amber-700">Đang hoạt động</p>
                             </div>
                         </div>
@@ -64,12 +64,12 @@ export function UpgradeBanner({ onUpgrade, isPremium }: UpgradeBannerProps) {
                         <Crown className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1">
-                        <h3 className="mb-1">Nâng cấp lên RoomZ+</h3>
+                        <h3 className="mb-1">Nâng cấp lên RommZ+</h3>
                         <p className="text-sm text-muted-foreground mb-3">
                             Trải nghiệm thuê nhà tốt nhất với {roomzPlusPlan?.price?.toLocaleString('vi-VN')}đ/tháng
                         </p>
                         <ul className="space-y-1 mb-4 text-sm">
-                            {ROOMZ_PLUS_FEATURES.slice(0, 3).map((feature, i) => {
+                            {ROMMZ_PLUS_FEATURES.slice(0, 3).map((feature, i) => {
                                 const Icon = feature.icon;
                                 return (
                                     <li key={i} className="flex items-center gap-2">

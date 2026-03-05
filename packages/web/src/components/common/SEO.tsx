@@ -15,8 +15,8 @@ interface SEOProps {
   noindex?: boolean;
 }
 
-const DEFAULT_TITLE = 'RoomZ - Nền tảng tìm phòng trọ và bạn cùng phòng hàng đầu Việt Nam';
-const DEFAULT_DESCRIPTION = 'RoomZ giúp bạn tìm phòng trọ, căn hộ cho thuê và bạn cùng phòng phù hợp. Tin đăng xác thực, giá tốt, khu vực Hà Nội, HCM, Đà Nẵng.';
+const DEFAULT_TITLE = 'RommZ - Nền tảng tìm phòng trọ và bạn cùng phòng hàng đầu Việt Nam';
+const DEFAULT_DESCRIPTION = 'RommZ giúp bạn tìm phòng trọ, căn hộ cho thuê và bạn cùng phòng phù hợp. Tin đăng xác thực, giá tốt, khu vực Hà Nội, HCM, Đà Nẵng.';
 const SITE_URL = 'https://roomz.vn';
 
 export function SEO({
@@ -28,7 +28,7 @@ export function SEO({
   type = 'website',
   noindex = false,
 }: SEOProps) {
-  const pageTitle = title ? `${title} | RoomZ` : DEFAULT_TITLE;
+  const pageTitle = title ? `${title} | RommZ` : DEFAULT_TITLE;
   const pageUrl = url ? `${SITE_URL}${url}` : SITE_URL;
   const imageUrl = image.startsWith('http') ? image : `${SITE_URL}${image}`;
 
@@ -40,7 +40,7 @@ export function SEO({
     const updateMeta = (name: string, content: string, isProperty = false) => {
       const attr = isProperty ? 'property' : 'name';
       let element = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement;
-      
+
       if (!element) {
         element = document.createElement('meta');
         element.setAttribute(attr, name);
@@ -107,7 +107,7 @@ export function RoomStructuredData({ room }: RoomStructuredDataProps) {
     const script = document.createElement('script');
     script.type = 'application/ld+json';
     script.id = `room-${room.id}-structured-data`;
-    
+
     const structuredData = {
       '@context': 'https://schema.org',
       '@type': 'Product',
@@ -123,7 +123,7 @@ export function RoomStructuredData({ room }: RoomStructuredDataProps) {
       },
       brand: {
         '@type': 'Organization',
-        name: 'RoomZ',
+        name: 'RommZ',
       },
     };
 
@@ -154,7 +154,7 @@ export function BreadcrumbStructuredData({ items }: { items: BreadcrumbItem[] })
     const script = document.createElement('script');
     script.type = 'application/ld+json';
     script.id = 'breadcrumb-structured-data';
-    
+
     const structuredData = {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',

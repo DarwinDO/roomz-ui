@@ -1,6 +1,6 @@
 /**
  * Payment Page
- * RoomZ+ subscription plans and checkout with SePay QR
+ * RommZ+ subscription plans and checkout with SePay QR
  */
 
 import { useState, useEffect } from "react";
@@ -132,7 +132,7 @@ export default function PaymentPage() {
   const handlePaymentSuccess = () => {
     setQrModalData(null);
     setShowSuccess(true);
-    toast.success("Thanh toán thành công! Chào mừng đến với RoomZ+");
+    toast.success("Thanh toán thành công! Chào mừng đến với RommZ+");
 
     // Refresh subscription
     if (user) {
@@ -183,7 +183,7 @@ export default function PaymentPage() {
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Chào mừng đến RoomZ+!</h2>
+            <h2 className="text-2xl font-bold mb-2">Chào mừng đến RommZ+!</h2>
             <p className="text-gray-600 mb-6">
               Tài khoản của bạn đã được nâng cấp thành công. Hãy tận hưởng các tính năng premium!
             </p>
@@ -224,7 +224,7 @@ export default function PaymentPage() {
             Nâng cấp ngay hôm nay
           </div>
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Mở khóa toàn bộ tính năng với RoomZ+
+            Mở khóa toàn bộ tính năng với RommZ+
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Trải nghiệm thuê nhà tốt nhất với các tính năng premium độc quyền

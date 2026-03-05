@@ -229,7 +229,7 @@ export default function CommunityPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Cộng đồng RoomZ
+              Cộng đồng RommZ
             </h1>
             <p className="text-muted-foreground text-sm hidden sm:block">
               Chia sẻ trải nghiệm, săn tin ưu đãi và kết nối với mọi người

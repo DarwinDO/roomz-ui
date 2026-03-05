@@ -154,7 +154,7 @@ export function QRPaymentModal({
             <Dialog open={isOpen} onOpenChange={handleClose}>
                 <DialogContent className="max-w-sm mx-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-center">Thanh toán RoomZ+</DialogTitle>
+                        <DialogTitle className="text-center">Thanh toán RommZ+</DialogTitle>
                         <DialogDescription className="text-center">
                             Quét mã QR để thanh toán
                         </DialogDescription>

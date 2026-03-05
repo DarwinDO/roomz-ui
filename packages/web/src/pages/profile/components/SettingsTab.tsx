@@ -172,7 +172,7 @@ export function SettingsTab({
                 <Card className="p-6 rounded-2xl shadow-soft border border-amber-200 bg-gradient-to-br from-amber-50/50 to-orange-50/50">
                     <div className="flex items-center gap-2 mb-4">
                         <Crown className="w-5 h-5 text-amber-500" />
-                        <h3>RoomZ+ Premium</h3>
+                        <h3>RommZ+ Premium</h3>
                     </div>
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
