@@ -44,7 +44,7 @@ import { RoommateProfileModal } from "@/components/modals/RoommateProfileModal";
 import type { RoommateMatch } from "@/services/roommates";
 import { MapModal } from "@/components/modals/MapModal";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
-import { RoomMap } from "@/components/common/RoomMap";
+import { MapboxRoomMap } from "@/components/maps";
 import { useRoom } from "@/hooks/useRooms";
 import { useIsFavorited } from "@/hooks/useFavorites";
 import { useAuth } from "@/contexts";
@@ -398,7 +398,7 @@ export default function RoomDetailPage() {
               {/* Desktop: Inline Map Section */}
               <div className="hidden md:block">
                 <h3 className="mb-3">Vị trí trên bản đồ</h3>
-                <RoomMap
+                <MapboxRoomMap
                   rooms={[room]}
                   singleRoom
                   interactive={false}

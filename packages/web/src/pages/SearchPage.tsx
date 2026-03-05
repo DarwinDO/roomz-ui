@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RoomCard } from "@/components/common/RoomCard";
-import { RoomMap } from "@/components/common/RoomMap";
+import { MapboxRoomMap } from "@/components/maps";
 import { SearchAutocomplete } from "@/components/common/SearchAutocomplete";
 import { formatPriceInMillions } from "@roomz/shared/utils/format";
 import { transformRoomToCardProps } from "@/utils/room";
@@ -473,7 +473,7 @@ export default function SearchPage() {
 
         {/* Map View */}
         {!isLoading && !error && viewMode === "map" && (
-          <RoomMap
+          <MapboxRoomMap
             rooms={rooms}
             className="h-[calc(100vh-200px)] min-h-[500px]"
           />

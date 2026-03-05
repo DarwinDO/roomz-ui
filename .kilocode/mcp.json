@@ -8,6 +8,13 @@
         "--access-token",
         "sbp_39e25b4467767c2701c770a08c9427110d7284dc"
       ]
+    },
+    "google-maps-platform-code-assist": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@googlemaps/code-assist-mcp@0.2.0"
+      ]
     }
   }
 }

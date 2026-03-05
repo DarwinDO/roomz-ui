@@ -10,7 +10,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { RoomMap } from "@/components/common/RoomMap";
+import { MapboxRoomMap } from "@/components/maps";
 import type { RoomWithDetails } from "@/services/rooms";
 import { MapPin, X, Navigation } from "lucide-react";
 
@@ -60,7 +60,7 @@ export function MapModal({ isOpen, onClose, room }: MapModalProps) {
                 {/* Map Container */}
                 <div className="flex-1 relative min-h-0">
                     {room ? (
-                        <RoomMap
+                        <MapboxRoomMap
                             rooms={[room]}
                             singleRoom
                             interactive
