@@ -25,7 +25,7 @@ const PREMIUM_FEATURES = [
 ];
 
 /**
- * Payment Screen - RoomZ+ Premium subscription
+ * Payment Screen - RommZ+ Premium subscription
  * RevenueCat IAP integration
  */
 export default function PaymentScreen() {
@@ -66,7 +66,7 @@ export default function PaymentScreen() {
         try {
             const customerInfo = await purchasePackage(packageToBuy);
             if (customerInfo.entitlements.active['roomz_plus']) {
-                Alert.alert('Thành công!', 'Chào mừng bạn đến RoomZ+', [
+                Alert.alert('Thành công!', 'Chào mừng bạn đến RommZ+', [
                     { text: 'OK', onPress: () => router.back() }
                 ]);
             }
@@ -86,7 +86,7 @@ export default function PaymentScreen() {
         try {
             const customerInfo = await restorePurchases();
             if (customerInfo.entitlements.active['roomz_plus']) {
-                Alert.alert('Đã khôi phục', 'Tài khoản RoomZ+ đã được kích hoạt');
+                Alert.alert('Đã khôi phục', 'Tài khoản RommZ+ đã được kích hoạt');
             } else {
                 Alert.alert('Thông báo', 'Không tìm thấy giao dịch nào');
             }
@@ -112,7 +112,7 @@ export default function PaymentScreen() {
                         <ChevronLeft size={24} color="#374151" />
                     </TouchableOpacity>
                     <Text className="flex-1 text-lg font-bold text-text-primary text-center mr-8">
-                        RoomZ+ Premium
+                        RommZ+ Premium
                     </Text>
                 </View>
 
@@ -121,7 +121,7 @@ export default function PaymentScreen() {
                         <Crown size={48} color="#f59e0b" />
                     </View>
                     <Text className="text-2xl font-bold text-text-primary mb-2">
-                        Bạn đã là thành viên RoomZ+
+                        Bạn đã là thành viên RommZ+
                     </Text>
                     <Text className="text-text-secondary text-center">
                         Cảm ơn bạn đã đăng ký. Tận hưởng tất cả các tính năng premium!
@@ -155,7 +155,7 @@ export default function PaymentScreen() {
                     <ChevronLeft size={24} color="#374151" />
                 </TouchableOpacity>
                 <Text className="flex-1 text-lg font-bold text-text-primary text-center mr-8">
-                    RoomZ+ Premium
+                    RommZ+ Premium
                 </Text>
             </View>
 
@@ -167,7 +167,7 @@ export default function PaymentScreen() {
                             <Crown size={32} color="white" />
                         </View>
                         <Text className="text-2xl font-bold text-white text-center">
-                            RoomZ+ Premium
+                            RommZ+ Premium
                         </Text>
                         <Text className="text-primary-100 text-center mt-2">
                             Mở khóa toàn bộ tính năng

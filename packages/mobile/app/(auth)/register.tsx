@@ -45,7 +45,7 @@ export default function RegisterScreen() {
             <View className="flex-1 justify-center px-6">
                 {/* Logo */}
                 <View className="items-center mb-8">
-                    <Text className="text-4xl font-bold text-primary-500">RoomZ</Text>
+                    <Text className="text-4xl font-bold text-primary-500">RommZ</Text>
                     <Text className="text-base text-text-secondary mt-2">
                         Tạo tài khoản mới
                     </Text>

@@ -158,7 +158,7 @@ export default function VerificationScreen() {
                         Xác minh danh tính của bạn
                     </Text>
                     <Text className="text-text-secondary text-center mt-2">
-                        Giúp tăng độ tin cậy và bảo vệ cộng đồng RoomZ
+                        Giúp tăng độ tin cậy và bảo vệ cộng đồng RommZ
                     </Text>
                 </View>
 

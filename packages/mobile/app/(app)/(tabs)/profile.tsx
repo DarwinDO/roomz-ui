@@ -74,7 +74,7 @@ export default function ProfileScreen() {
                     {isPremium && (
                         <View className="flex-row items-center bg-amber-500/20 px-3 py-1 rounded-full mt-2">
                             <Crown size={12} color="#fbbf24" />
-                            <Text className="text-amber-300 text-xs font-bold ml-1">RoomZ+</Text>
+                            <Text className="text-amber-300 text-xs font-bold ml-1">RommZ+</Text>
                         </View>
                     )}
                 </View>
@@ -106,7 +106,7 @@ export default function ProfileScreen() {
                 />
                 <MenuItem
                     icon={<Crown size={20} color="#f59e0b" />}
-                    label="RoomZ+ Premium"
+                    label="RommZ+ Premium"
                     value={isPremium ? '✅ Đã kích hoạt' : ''}
                     onPress={() => router.push('/payment' as never)}
                 />

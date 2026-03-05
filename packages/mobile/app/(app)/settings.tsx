@@ -12,7 +12,7 @@ interface SettingsState {
     darkMode: boolean;
 }
 
-const STORAGE_KEY = '@roomz_settings';
+const STORAGE_KEY = '@rommz_settings';
 
 export default function SettingsScreen() {
     const router = useRouter();
@@ -201,7 +201,7 @@ export default function SettingsScreen() {
 
                 {/* Version */}
                 <View className="items-center py-4">
-                    <Text className="text-text-tertiary text-sm">RoomZ v1.0.0</Text>
+                    <Text className="text-text-tertiary text-sm">RommZ v1.0.0</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>

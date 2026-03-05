@@ -68,7 +68,7 @@ export default function LoginScreen() {
             <View className="flex-1 justify-center px-6">
                 {/* Logo */}
                 <View className="items-center mb-10">
-                    <Text className="text-4xl font-bold text-primary-500">RoomZ</Text>
+                    <Text className="text-4xl font-bold text-primary-500">RommZ</Text>
                     <Text className="text-base text-text-secondary mt-2">
                         Tìm phòng trọ sinh viên
                     </Text>
