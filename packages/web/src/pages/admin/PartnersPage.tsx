@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
-import { Handshake, Plus, MoreVertical, Eye, Edit, Trash2, Loader2, Tag, X, Crown } from "lucide-react";
+import { Handshake, Plus, MoreVertical, Eye, Edit, Trash2, Loader2, Tag, X, Crown, Upload, ImageIcon } from "lucide-react";
 import { usePartners, useTogglePartnerStatus, useDeletePartner, useCreatePartner, useUpdatePartner } from "@/hooks/usePartners";
 import { useDeals, useCreateDeal, useDeleteDeal, useToggleDealActive } from "@/hooks/useDeals";
 import { useConfirm } from "@/hooks/useConfirm";
+import { useUploadPartnerImage, useDeletePartnerImage, validatePartnerImage } from "@/hooks/usePartnerImages";
 import { toast } from "sonner";
 import type { Partner } from "@/services/partners";
 import type { Deal } from "@/services/deals";
@@ -56,6 +57,14 @@ export default function PartnersPage() {
   const [formPhone, setFormPhone] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formHours, setFormHours] = useState("");
+  const [formImageUrl, setFormImageUrl] = useState("");
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Image upload
+  const uploadImageMutation = useUploadPartnerImage();
+  const deleteImageMutation = useDeletePartnerImage();
 
   // Mutations
   const toggleStatus = useTogglePartnerStatus();
@@ -175,6 +184,9 @@ export default function PartnersPage() {
     setFormPhone("");
     setFormEmail("");
     setFormHours("");
+    setFormImageUrl("");
+    setSelectedImageFile(null);
+    setImagePreview(null);
     setShowPartnerForm(true);
   };
 
@@ -189,7 +201,40 @@ export default function PartnersPage() {
     setFormPhone(partner.phone || "");
     setFormEmail(partner.email || "");
     setFormHours(partner.hours || "");
+    setFormImageUrl(partner.image_url || "");
+    setSelectedImageFile(null);
+    setImagePreview(partner.image_url || null);
     setShowPartnerForm(true);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validation = validatePartnerImage(file);
+    if (!validation.isValid) {
+      toast.error(validation.error || 'File không hợp lệ');
+      // Clear the file input if invalid
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    setSelectedImageFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImageFile(null);
+    setImagePreview(null);
+    setFormImageUrl("");
   };
 
   const openPartnerDetail = (partner: Partner) => {
@@ -202,6 +247,83 @@ export default function PartnersPage() {
       toast.error("Vui lòng nhập tên và danh mục");
       return;
     }
+
+    const isUploading = selectedImageFile && uploadImageMutation.isPending;
+    const isSubmitting = createPartnerMutation.isPending || updatePartnerMutation.isPending;
+
+    if (isUploading || isSubmitting) {
+      return; // Prevent double submission
+    }
+
+    let imageUrl = formImageUrl;
+
+    // For new partners: Create partner first, then upload image with real ID
+    // For existing partners: Upload image first, then update
+    if (selectedImageFile) {
+      try {
+        let partnerId: string;
+
+        if (editingPartner) {
+          // Edit mode: delete old image first, then upload new one
+          partnerId = editingPartner.id;
+
+          // Delete old image if exists (ignore errors - old image may not exist in storage)
+          if (editingPartner.image_url) {
+            try {
+              await deleteImageMutation.mutateAsync(editingPartner.image_url);
+            } catch (e) {
+              console.warn('Failed to delete old image:', e);
+            }
+          }
+
+          imageUrl = await uploadImageMutation.mutateAsync({
+            file: selectedImageFile,
+            partnerId,
+          });
+        } else {
+          // Create mode: create partner first, then upload image
+          const dataWithoutImage = {
+            name: formName.trim(),
+            category: formCategory,
+            specialization: formSpecialization.trim() || undefined,
+            discount: formDiscount.trim() || undefined,
+            description: formDescription.trim() || undefined,
+            address: formAddress.trim() || undefined,
+            phone: formPhone.trim() || undefined,
+            email: formEmail.trim() || undefined,
+            hours: formHours.trim() || undefined,
+          };
+
+          // Create partner first
+          const newPartner = await createPartnerMutation.mutateAsync(dataWithoutImage);
+          partnerId = newPartner.id;
+
+          // Then upload image with real ID
+          imageUrl = await uploadImageMutation.mutateAsync({
+            file: selectedImageFile,
+            partnerId,
+          });
+
+          // Update partner with image URL
+          await updatePartnerMutation.mutateAsync({
+            id: partnerId,
+            data: { image_url: imageUrl },
+          });
+
+          toast.success("Đã tạo đối tác và upload ảnh thành công");
+          setShowPartnerForm(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+        toast.success("Đã upload ảnh thành công");
+      } catch (error) {
+        toast.error("Lỗi upload ảnh", {
+          description: error instanceof Error ? error.message : "Vui lòng thử lại",
+        });
+        return;
+      }
+    }
+
     const data = {
       name: formName.trim(),
       category: formCategory,
@@ -212,6 +334,7 @@ export default function PartnersPage() {
       phone: formPhone.trim() || undefined,
       email: formEmail.trim() || undefined,
       hours: formHours.trim() || undefined,
+      image_url: imageUrl || undefined,
     };
     try {
       if (editingPartner) {
@@ -222,6 +345,7 @@ export default function PartnersPage() {
         toast.success("Đã tạo đối tác thành công");
       }
       setShowPartnerForm(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : "Lỗi không xác định";
       toast.error(editingPartner ? "Lỗi cập nhật" : "Lỗi tạo đối tác", { description: errMsg });
@@ -542,6 +666,49 @@ export default function PartnersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            {/* Image Upload Section */}
+            <div className="space-y-2">
+              <Label>Ảnh đại diện</Label>
+              <div className="flex items-center gap-4">
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Partner preview"
+                      className="w-24 h-24 object-cover rounded-lg border"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border border-dashed">
+                    <ImageIcon className="w-8 h-8 text-gray-400" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <label className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg cursor-pointer hover:bg-primary/90 transition-colors w-fit">
+                    <Upload className="w-4 h-4" />
+                    <span>Chọn ảnh</span>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">
+                    JPEG, PNG, WebP. Tối đa 5MB
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="partner-name">Tên đối tác *</Label>
               <Input id="partner-name" value={formName} onChange={e => setFormName(e.target.value)} placeholder="VD: Quán Cà Phê ABC" />
@@ -595,10 +762,10 @@ export default function PartnersPage() {
             <Button variant="outline" onClick={() => setShowPartnerForm(false)}>Hủy</Button>
             <Button
               onClick={handleSubmitPartner}
-              disabled={createPartnerMutation.isPending || updatePartnerMutation.isPending}
+              disabled={createPartnerMutation.isPending || updatePartnerMutation.isPending || uploadImageMutation.isPending}
             >
-              {(createPartnerMutation.isPending || updatePartnerMutation.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editingPartner ? 'Cập nhật' : 'Tạo đối tác'}
+              {(createPartnerMutation.isPending || updatePartnerMutation.isPending || uploadImageMutation.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {uploadImageMutation.isPending ? 'Đang upload ảnh...' : editingPartner ? 'Cập nhật' : 'Tạo đối tác'}
             </Button>
           </DialogFooter>
         </DialogContent>

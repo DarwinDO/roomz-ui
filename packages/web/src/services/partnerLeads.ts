@@ -33,10 +33,14 @@ export interface CreatePartnerLeadRequest {
  * Lưu thông tin đăng ký đối tác vào database
  */
 export async function createPartnerLead(data: CreatePartnerLeadRequest): Promise<PartnerLead> {
-    // Use type assertion to bypass Supabase type checking
-    // TODO: Remove type assertion after regenerating Supabase types\n  const client = supabase as any;
+    // Check if we're in browser environment
+    if (typeof window === 'undefined') {
+        throw new Error('Không thể gửi đăng ký từ server. Vui lòng tải lại trang.');
+    }
 
-    // Insert without select - anonymous users can't read due to RLS
+    // Use type assertion because partner_leads table might not be in generated types
+    const client = supabase as any;
+
     const { error } = await client
         .from('partner_leads')
         .insert({
@@ -84,7 +88,8 @@ export async function createPartnerLead(data: CreatePartnerLeadRequest): Promise
  * Check if email already exists in partner leads
  */
 export async function checkPartnerLeadExists(email: string): Promise<boolean> {
-    // TODO: Remove type assertion after regenerating Supabase types\n  const client = supabase as any;
+    // Use type assertion because partner_leads table might not be in generated types
+    const client = supabase as any;
 
     const { data, error } = await client
         .from('partner_leads')
@@ -111,7 +116,8 @@ export async function getPartnerLeads(): Promise<PartnerLead[]> {
         throw new Error('Not authenticated');
     }
 
-    // TODO: Remove type assertion after regenerating Supabase types\n  const client = supabase as any;
+    // Use type assertion because partner_leads table might not be in generated types
+    const client = supabase as any;
 
     const { data, error } = await client
         .from('partner_leads')
@@ -140,7 +146,8 @@ export async function updatePartnerLeadStatus(
         throw new Error('Not authenticated');
     }
 
-    // TODO: Remove type assertion after regenerating Supabase types\n  const client = supabase as any;
+    // Use type assertion because partner_leads table might not be in generated types
+    const client = supabase as any;
 
     const { data, error } = await client
         .from('partner_leads')
