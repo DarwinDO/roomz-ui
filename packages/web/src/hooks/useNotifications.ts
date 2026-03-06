@@ -196,7 +196,7 @@ export function useNotifications(): UseNotificationsReturn {
             console.log('[useNotifications] Setting up realtime subscription:', channelName);
         }
 
-        // Subscribe to INSERT events
+        // Subscribe to INSERT events with server-side filter for better performance
         channelRef.current = supabase
             .channel(channelName)
             .on(
@@ -205,13 +205,13 @@ export function useNotifications(): UseNotificationsReturn {
                     event: 'INSERT',
                     schema: 'public',
                     table: 'notifications',
+                    filter: `user_id=eq.${userId}`,
                 },
                 (payload) => {
                     if (!isMounted) return;
 
                     const newNotification = payload.new as Notification;
-                    // Client-side filter
-                    if (newNotification.user_id !== userId) return;
+                    // No client-side filter needed - server already filtered by user_id
 
                     if (import.meta.env.DEV) {
                         console.log('[useNotifications] Received new notification:', payload);
