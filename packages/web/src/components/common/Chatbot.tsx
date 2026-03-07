@@ -57,12 +57,12 @@ export function Chatbot() {
   const handleSendMessage = async () => {
     const trimmed = inputValue.trim();
     if (!trimmed || isLoading || isSendingRef.current) return;
-    isSendingRef.current = true;
 
     if (!user) {
       setError("Vui lòng đăng nhập để sử dụng chatbot.");
       return;
     }
+    isSendingRef.current = true;
 
     setError(null);
     const userMsg: DisplayMessage = {

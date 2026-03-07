@@ -13,6 +13,7 @@ export interface AIChatMessage {
             result: unknown;
         }>;
         sources?: string[];
+        geminiCallCount?: number;
     };
     created_at: string;
 }
@@ -39,10 +40,11 @@ export interface AIChatResponse {
             result: unknown;
         }>;
         sources?: string[];
+        geminiCallCount?: number;
     };
 }
 
 export interface AIChatError {
     error: string;
-    code: 'RATE_LIMITED' | 'GEMINI_ERROR' | 'AUTH_ERROR' | 'INVALID_INPUT';
+    code: 'RATE_LIMITED' | 'GEMINI_ERROR' | 'AUTH_ERROR' | 'INVALID_INPUT' | 'INVALID_SESSION';
 }

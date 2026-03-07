@@ -253,8 +253,25 @@ Deno.serve(async (req) => {
 
         const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-        // Get or create session
+        // Get or create session, always enforce ownership when client passes sessionId
         let currentSessionId = sessionId;
+        if (currentSessionId) {
+            const { data: existingSession, error: existingSessionError } = await adminClient
+                .from('ai_chat_sessions')
+                .select('id')
+                .eq('id', currentSessionId)
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            if (existingSessionError) throw existingSessionError;
+            if (!existingSession) {
+                return new Response(
+                    JSON.stringify({ error: 'Phiên chat không hợp lệ.', code: 'INVALID_SESSION' }),
+                    { status: 403, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
+                );
+            }
+        }
+
         if (!currentSessionId) {
             const { data: newSession, error: sessionError } = await adminClient
                 .from('ai_chat_sessions')
@@ -306,6 +323,9 @@ Deno.serve(async (req) => {
             ],
         };
 
+        let geminiCallCount = 0;
+
+        geminiCallCount++;
         let geminiResponse = await fetchWithRetry(geminiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -341,6 +361,7 @@ Deno.serve(async (req) => {
                     parts: [{ functionResponse: { name, response: { content: result } } }],
                 } as any);
 
+                geminiCallCount++;
                 geminiResponse = await fetchWithRetry(geminiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -371,12 +392,20 @@ Deno.serve(async (req) => {
                 'Xin lỗi, mình không thể xử lý yêu cầu này lúc này. Bạn có thể thử lại không? 🙏';
         }
 
+        const responseMetadata: Record<string, unknown> = {
+            geminiCallCount,
+        };
+
+        if (functionCallResults.length > 0) {
+            responseMetadata.functionCalls = functionCallResults;
+        }
+
         // Save assistant response
         await adminClient.from('ai_chat_messages').insert({
             session_id: currentSessionId,
             role: 'assistant',
             content: responseText,
-            metadata: functionCallResults.length > 0 ? { functionCalls: functionCallResults } : {},
+            metadata: responseMetadata,
         });
 
         // Update session timestamp
@@ -389,7 +418,7 @@ Deno.serve(async (req) => {
             JSON.stringify({
                 message: responseText,
                 sessionId: currentSessionId,
-                metadata: functionCallResults.length > 0 ? { functionCalls: functionCallResults } : undefined,
+                metadata: responseMetadata,
             }),
             { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
         );
