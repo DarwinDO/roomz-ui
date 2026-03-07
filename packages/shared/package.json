@@ -9,6 +9,8 @@
         ".": "./src/index.ts",
         "./services": "./src/services/index.ts",
         "./services/*": "./src/services/*.ts",
+        "./services/ai-chatbot": "./src/services/ai-chatbot/index.ts",
+        "./services/ai-chatbot/*": "./src/services/ai-chatbot/*.ts",
         "./hooks": "./src/hooks/index.ts",
         "./types": "./src/types/index.ts",
         "./types/*": "./src/types/*.ts",
