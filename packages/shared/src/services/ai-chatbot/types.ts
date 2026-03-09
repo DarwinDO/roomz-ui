@@ -46,5 +46,12 @@ export interface AIChatResponse {
 
 export interface AIChatError {
     error: string;
-    code: 'RATE_LIMITED' | 'GEMINI_ERROR' | 'AUTH_ERROR' | 'INVALID_INPUT' | 'INVALID_SESSION';
+    code:
+        | 'RATE_LIMITED'
+        | 'GEMINI_ERROR'
+        | 'AUTH_ERROR'
+        | 'INVALID_INPUT'
+        | 'INVALID_SESSION'
+        | 'DB_SCHEMA_MISSING';
+    details?: string | null;
 }

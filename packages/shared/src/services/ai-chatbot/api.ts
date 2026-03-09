@@ -19,12 +19,47 @@ export async function sendAIChatMessage(
     message: string,
     sessionId?: string
 ): Promise<AIChatResponse> {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+
+    if (!accessToken) {
+        throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+    }
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+        throw new Error('Phiên đăng nhập không hợp lệ. Vui lòng đăng xuất và đăng nhập lại.');
+    }
+
     const { data, error } = await supabase.functions.invoke('ai-chatbot', {
         body: { message, sessionId } as AIChatRequest,
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
     });
 
     if (error) {
-        throw new Error(error.message || 'Failed to send message');
+        const context = (error as { context?: Response }).context;
+        let detailedMessage: string | null = null;
+
+        if (context) {
+            const payload = await context.clone().json().catch(() => null) as
+                | { error?: string; message?: string; code?: string | number; details?: string | null }
+                | null;
+
+            const serverMessage = payload?.error || payload?.message;
+            if (serverMessage) {
+                detailedMessage = payload.code
+                    ? `${serverMessage} (${payload.code})`
+                    : serverMessage;
+
+                if (payload.details) {
+                    detailedMessage = `${detailedMessage}: ${payload.details}`;
+                }
+            }
+        }
+
+        throw new Error(detailedMessage || error.message || 'Failed to send message');
     }
 
     return data as AIChatResponse;

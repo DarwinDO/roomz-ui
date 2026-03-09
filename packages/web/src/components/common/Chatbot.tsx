@@ -4,14 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessageCircle, Send, Bot, User, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { MessageCircle, Send, User, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts";
 import {
   sendAIChatMessage,
-  getAIChatSessions,
-  getAIChatMessages,
-  deleteAIChatSession,
 } from "@roomz/shared/services/ai-chatbot";
 import type { AIChatResponse } from "@roomz/shared/services/ai-chatbot";
 
@@ -95,6 +92,12 @@ export function Chatbot() {
       setMessages(prev => [...prev, botMsg]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Đã xảy ra lỗi. Vui lòng thử lại.";
+
+      if (/Invalid JWT|đăng nhập/i.test(errorMessage)) {
+        await supabase.auth.signOut().catch(() => undefined);
+        setSessionId(null);
+      }
+
       setError(errorMessage);
     } finally {
       setIsLoading(false);

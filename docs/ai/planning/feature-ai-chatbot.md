@@ -44,6 +44,7 @@ description: Task breakdown, dependencies, and implementation order for AI chatb
   - Rate limiting (10 req/min)
 - [ ] Task 2.5: Add `GEMINI_API_KEY` to Supabase secrets
 - [ ] Task 2.6: Deploy & test Edge Function
+- [x] Task 2.7: Migrate model orchestration to Vercel AI SDK (`ai` + `@ai-sdk/google`) with bounded tool loop (`stepCountIs(1)`)
 
 ### Phase 3: Shared API Layer (`@roomz/shared`)
 
