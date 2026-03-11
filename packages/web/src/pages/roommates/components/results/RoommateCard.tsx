@@ -1,24 +1,28 @@
-import { Badge } from '@/components/ui/badge';
+﻿import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Check,
-  Coffee,
   Eye,
   GraduationCap,
   Heart,
   Loader2,
   MapPin,
   MessageCircle,
-  Moon,
   Send,
-  Sparkles,
-  Users,
-  Volume2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RoommateMatch } from '@/services/roommates';
+import {
+  buildConcernSignals,
+  buildMatchFactors,
+  buildTopSignals,
+  getConfidenceLabel,
+  getConfidenceTone,
+  getMatchScopeLabel,
+  getMissingDataLabels,
+} from '@/components/modals/roommateProfileModal.utils';
 
 interface RoommateCardProps {
   match: RoommateMatch;
@@ -36,71 +40,16 @@ interface RoommateCardProps {
 
 function getScoreTone(score: number): string {
   if (score >= 80) return 'text-emerald-700 bg-emerald-50';
-  if (score >= 60) return 'text-amber-700 bg-amber-50';
-  return 'text-orange-700 bg-orange-50';
+  if (score >= 65) return 'text-sky-700 bg-sky-50';
+  if (score >= 50) return 'text-amber-700 bg-amber-50';
+  return 'text-rose-700 bg-rose-50';
 }
 
 function getScoreLabel(score: number): string {
   if (score >= 90) return 'Rất phù hợp';
   if (score >= 75) return 'Phù hợp cao';
-  if (score >= 60) return 'Phù hợp';
-  return 'Cân nhắc';
-}
-
-function getMatchScopeLabel(scope: RoommateMatch['match_scope']): string {
-  if (scope === 'same_district') return 'Cùng khu vực';
-  if (scope === 'same_city') return 'Cùng thành phố';
-  return 'Ngoài khu vực ưu tiên';
-}
-
-function getConfidenceLabel(score: number): string {
-  if (score >= 80) return 'Dữ liệu đầy đủ';
-  if (score >= 60) return 'Dữ liệu khá đầy đủ';
-  return 'Cần bổ sung dữ liệu';
-}
-
-function getConfidenceTone(score: number): string {
-  if (score >= 80) return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (score >= 60) return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-rose-200 bg-rose-50 text-rose-700';
-}
-
-function ScoreBreakdown({
-  sleepScore,
-  cleanlinessScore,
-  noiseScore,
-  guestScore,
-  weekendScore,
-}: {
-  sleepScore: number;
-  cleanlinessScore: number;
-  noiseScore: number;
-  guestScore: number;
-  weekendScore: number;
-}) {
-  const scores = [
-    { label: 'Ngủ', value: sleepScore, icon: Moon },
-    { label: 'Gọn gàng', value: cleanlinessScore, icon: Sparkles },
-    { label: 'Tiếng ồn', value: noiseScore, icon: Volume2 },
-    { label: 'Khách', value: guestScore, icon: Users },
-    { label: 'Cuối tuần', value: weekendScore, icon: Coffee },
-  ];
-
-  return (
-    <div className="mt-2 flex flex-wrap gap-2">
-      {scores.map((score) => {
-        const Icon = score.icon;
-        const colorClass = score.value >= 80 ? 'text-emerald-600' : score.value >= 50 ? 'text-amber-600' : 'text-rose-500';
-
-        return (
-          <div key={score.label} className="flex items-center gap-1 text-xs" title={`${score.label}: ${score.value}%`}>
-            <Icon className={cn('h-3 w-3', colorClass)} />
-            <span className={colorClass}>{score.value}%</span>
-          </div>
-        );
-      })}
-    </div>
-  );
+  if (score >= 60) return 'Khá hợp';
+  return 'Cần hỏi kỹ';
 }
 
 export function RoommateCard({
@@ -123,6 +72,11 @@ export function RoommateCard({
     .toUpperCase()
     .slice(0, 2);
 
+  const factors = buildMatchFactors(match);
+  const topSignals = buildTopSignals(factors).slice(0, 2);
+  const concernSignals = buildConcernSignals(factors).slice(0, 2);
+  const missingDataLabels = getMissingDataLabels(factors, 2);
+
   return (
     <Card className="p-4 transition-shadow hover:shadow-md">
       <div className="flex gap-4">
@@ -144,7 +98,7 @@ export function RoommateCard({
 
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-start justify-between gap-2">
-            <div>
+            <div className="min-w-0">
               <h3 className="truncate text-base font-semibold sm:text-lg">{match.full_name}</h3>
               {match.age && <p className="text-xs text-muted-foreground sm:text-sm">{match.age} tuổi</p>}
             </div>
@@ -182,7 +136,7 @@ export function RoommateCard({
           {match.bio && <p className="mb-1 hidden line-clamp-2 text-sm text-muted-foreground md:block">{match.bio}</p>}
 
           {match.hobbies.length > 0 && (
-            <div className="mb-1 flex flex-wrap gap-1">
+            <div className="mb-2 flex flex-wrap gap-1">
               {match.hobbies.slice(0, 3).map((hobby) => (
                 <Badge key={hobby} variant="secondary" className="py-0 text-xs">
                   {hobby}
@@ -197,17 +151,24 @@ export function RoommateCard({
           )}
 
           <div className="hidden sm:block">
-            <ScoreBreakdown
-              sleepScore={match.sleep_score}
-              cleanlinessScore={match.cleanliness_score}
-              noiseScore={match.noise_score}
-              guestScore={match.guest_score}
-              weekendScore={match.weekend_score}
-            />
-            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-              <span>Vị trí {match.location_score}%</span>
-              <span>Chuyển vào {match.move_in_score}%</span>
-              <span>Độ tin cậy {match.confidence_score}%</span>
+            {topSignals.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {topSignals.map((signal) => (
+                  <Badge key={signal.label} variant="outline" className="border-slate-200 bg-slate-50 text-[11px] text-slate-700">
+                    {signal.label} {signal.score}%
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-2 text-[11px] text-muted-foreground">
+              {missingDataLabels.length > 0 ? (
+                <p>Thiếu dữ liệu: {missingDataLabels.join(', ')}.</p>
+              ) : concernSignals.length > 0 ? (
+                <p>Cần hỏi kỹ: {concernSignals.map((signal) => signal.label.toLowerCase()).join(', ')}.</p>
+              ) : (
+                <p>Điểm mạnh nhất hiện tại là {topSignals.map((signal) => signal.label.toLowerCase()).join(', ')}.</p>
+              )}
             </div>
           </div>
         </div>
@@ -255,7 +216,7 @@ export function RoommateCard({
             onClick={onSendRequest}
             disabled={!canSendRequest}
             className="h-9 flex-1 gap-1 sm:h-8 sm:gap-2"
-            title="Gửi lời chào va yeu cau ket noi"
+            title="Gửi lời chào và yêu cầu kết nối"
           >
             <Send className="h-4 w-4" />
             <span className="text-xs sm:text-sm">Gửi lời chào</span>

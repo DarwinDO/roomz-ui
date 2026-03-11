@@ -5,6 +5,7 @@ import { ProfileEditModal } from "@/components/modals/ProfileEditModal";
 import { useAuth } from "@/contexts";
 import { UPGRADE_SOURCES } from "@roomz/shared/constants/tracking";
 import { useFavorites } from "@/hooks/useFavorites";
+import { usePremiumLimits } from "@/hooks/usePremiumLimits";
 import { transformRoomToCardProps } from "@/utils/room";
 import { toast } from "sonner";
 import { Heart, Settings, CalendarCheck } from "lucide-react";
@@ -20,6 +21,7 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, profile, signOut, isEmailVerified } = useAuth();
+  const { isPremium, premiumUntil } = usePremiumLimits();
 
   // Data Fetching
   const { favorites, loading: favoritesLoading, error: favoritesError, refetch: refetchFavorites, toggleFavorite } = useFavorites();
@@ -66,6 +68,7 @@ export default function ProfilePage() {
       <ProfileHeader
         user={user}
         profile={profile}
+        isPremium={isPremium}
         isEmailVerified={isEmailVerified}
         trustScore={trustScore}
         onEditProfile={() => setIsEditProfileOpen(true)}
@@ -73,7 +76,7 @@ export default function ProfilePage() {
 
       <UpgradeBanner
         onUpgrade={() => navigate(`/payment?source=${UPGRADE_SOURCES.PROFILE_BANNER}`)}
-        isPremium={profile?.is_premium}
+        isPremium={isPremium}
       />
 
       <div className="px-6 max-w-6xl mx-auto">
@@ -113,6 +116,8 @@ export default function ProfilePage() {
           <TabsContent value="settings">
             <SettingsTab
               profile={profile}
+              isPremium={isPremium}
+              premiumUntil={premiumUntil}
               isEmailVerified={isEmailVerified}
               trustScore={trustScore}
               onEditProfile={() => setIsEditProfileOpen(true)}

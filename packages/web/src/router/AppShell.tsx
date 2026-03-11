@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useConversations } from '@/hooks/chat/useConversations';
 import RommzLogo from '@/assets/logo/rommz-logo.png';
 import { useAuth } from '@/contexts';
+import { usePremiumLimits } from '@/hooks/usePremiumLimits';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { UPGRADE_SOURCES } from '@roomz/shared/constants/tracking';
 import {
@@ -26,6 +27,7 @@ export default function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
+  const { isPremium } = usePremiumLimits();
   const { unreadCount: messagesUnreadCount } = useConversations();
 
   // Track user activity - updates last_seen every 5 minutes
@@ -93,7 +95,7 @@ export default function AppShell() {
               ))}
 
               {/* Premium CTA - Desktop - Show for logged in non-premium users */}
-              {user && !profile?.is_premium && (
+              {user && !isPremium && (
                 <Button
                   size="sm"
                   className="rounded-full ml-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm gap-1.5"

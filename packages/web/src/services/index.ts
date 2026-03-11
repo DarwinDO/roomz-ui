@@ -173,14 +173,6 @@ export const respondToRequest = (requestId: string, accept: boolean) => roommate
 export const getReceivedRequests = (userId: string) => roommatesShared.getReceivedRequests(supabase, userId);
 export const getSentRequests = (userId: string) => roommatesShared.getSentRequests(supabase, userId);
 
-// Premium limits (storage adapter)
-export const getDailyViewCount = (userId?: string) => roommatesShared.getDailyViewCount(getStorageAdapter(), userId);
-export const incrementDailyViewCount = (userId: string) => roommatesShared.incrementDailyViewCount(getStorageAdapter(), userId);
-export const canViewMoreProfiles = (userId?: string) => roommatesShared.canViewMoreProfiles(getStorageAdapter(), userId);
-export const getDailyRequestCount = (userId?: string) => roommatesShared.getDailyRequestCount(getStorageAdapter(), userId);
-export const incrementDailyRequestCount = (userId: string) => roommatesShared.incrementDailyRequestCount(getStorageAdapter(), userId);
-export const canSendMoreRequests = (userId?: string) => roommatesShared.canSendMoreRequests(getStorageAdapter(), userId);
-export const getRemainingLimits = (userId?: string) => roommatesShared.getRemainingLimits(getStorageAdapter(), userId);
 export type { RoommateProfile, RoommateProfileInput, RoommateMatch, RoommateRequest, RoommateProfileStatus, RoommateRequestStatus, QuizAnswer } from '@roomz/shared/services/roommates';
 
 // Vietnam locations (storage adapter)

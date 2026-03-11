@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Roommates API Service
  * CRUD operations for roommate profiles, matching, and requests
  */
@@ -117,6 +117,16 @@ export interface RoommateRequest {
 export interface QuizAnswer {
     question_id: number;
     answer_value: string;
+}
+
+export interface RoommateFeatureLimits {
+    views: number;
+    requests: number;
+    viewLimit: number;
+    requestLimit: number;
+    canViewMore: boolean;
+    canSendMore: boolean;
+    isPremium: boolean;
 }
 
 // ============================================
@@ -349,24 +359,22 @@ export async function calculateCompatibility(
  * Send a roommate request
  */
 export async function sendRoommateRequest(
-    senderId: string,
+    _senderId: string,
     receiverId: string,
     message?: string
 ): Promise<RoommateRequest> {
     const { data, error } = await supabase
-        .from('roommate_requests')
-        .insert({
-            sender_id: senderId,
-            receiver_id: receiverId,
-            message: message || null,
-        })
-        .select()
-        .single();
+        .rpc('create_roommate_request_with_limit' as never, {
+            p_receiver_id: receiverId,
+            p_message: message || null,
+        } as never);
 
     if (error) {
-        // Handle specific errors
         if (error.code === '23505') {
             throw new Error('Bạn đã gửi yêu cầu cho người này rồi');
+        }
+        if (error.message?.includes('ROOMMATE_REQUEST_LIMIT_REACHED')) {
+            throw new Error('Bạn đã hết lượt gửi yêu cầu hôm nay. Vui lòng quay lại vào ngày mai.');
         }
         if (error.code === '23514' && error.message.includes('no_self_request')) {
             throw new Error('Không thể gửi yêu cầu cho chính mình');
@@ -387,35 +395,56 @@ export async function sendIntroMessage(
     receiverId: string,
     message: string
 ): Promise<RoommateRequest> {
-    // Check if request already exists
-    const existing = await hasExistingRequest(senderId, receiverId);
-    if (existing) {
-        throw new Error('Bạn đã gửi tin nhắn cho người này rồi');
-    }
+    return sendRoommateRequest(senderId, receiverId, message);
+}
 
-    const { data, error } = await supabase
-        .from('roommate_requests')
-        .insert({
-            sender_id: senderId,
-            receiver_id: receiverId,
-            message: message,
-            // Intro messages start as pending, recipient can accept/decline
-        })
-        .select()
-        .single();
+type RawRoommateFeatureLimits = {
+    views?: number | null;
+    requests?: number | null;
+    view_limit?: number | null;
+    request_limit?: number | null;
+    can_view_more?: boolean | null;
+    can_send_more?: boolean | null;
+    is_premium?: boolean | null;
+} | null;
+
+function normalizeRoommateFeatureLimits(data: RawRoommateFeatureLimits): RoommateFeatureLimits {
+    return {
+        views: data?.views ?? 0,
+        requests: data?.requests ?? 0,
+        viewLimit: data?.view_limit ?? Infinity,
+        requestLimit: data?.request_limit ?? Infinity,
+        canViewMore: data?.can_view_more ?? true,
+        canSendMore: data?.can_send_more ?? true,
+        isPremium: data?.is_premium ?? false,
+    };
+}
+
+export async function getRoommateFeatureLimits(): Promise<RoommateFeatureLimits> {
+    const { data, error } = await supabase.rpc('get_roommate_feature_limits' as never);
 
     if (error) {
-        if (error.code === '23505') {
-            throw new Error('Bạn đã gửi yêu cầu cho người này rồi');
-        }
-        if (error.code === '23514' && error.message.includes('no_self_request')) {
-            throw new Error('Không thể gửi yêu cầu cho chính mình');
-        }
-        console.error('[sendIntroMessage] Error:', error);
+        console.error('[getRoommateFeatureLimits] Error:', error);
         throw error;
     }
 
-    return data as RoommateRequest;
+    const raw = Array.isArray(data) ? data[0] : data;
+    return normalizeRoommateFeatureLimits(raw as RawRoommateFeatureLimits);
+}
+
+export async function recordRoommateProfileView(): Promise<RoommateFeatureLimits> {
+    const { data, error } = await supabase.rpc('record_roommate_profile_view' as never);
+
+    if (error) {
+        if (error.message?.includes('ROOMMATE_VIEW_LIMIT_REACHED')) {
+            throw new Error('Bạn đã hết lượt xem profile hôm nay. Vui lòng quay lại vào ngày mai.');
+        }
+        console.error('[recordRoommateProfileView] Error:', error);
+        throw error;
+    }
+
+    const raw = Array.isArray(data) ? data[0] : data;
+    return normalizeRoommateFeatureLimits(raw as RawRoommateFeatureLimits);
 }
 
 /**
@@ -529,7 +558,7 @@ export async function acceptRequestAndCreateConversation(
 
     if (convError) throw convError;
 
-    // 🔔 FIX BUG 1: Create notification for the sender
+    // Create notification for the original sender after acceptance.
     try {
         // Get current user's name for the notification
         const { data: currentUserData } = await supabase
@@ -655,114 +684,6 @@ export async function hasExistingRequest(
     }
 
     return (data?.length || 0) > 0;
-}
-
-// ============================================
-// Premium Limits
-// ============================================
-
-const DAILY_VIEW_LIMIT = 10;
-const DAILY_REQUEST_LIMIT = 5;
-
-/**
- * Get daily view count from localStorage
- */
-export function getDailyViewCount(userId?: string): number {
-    if (!userId) return 0;
-    const today = new Date().toDateString();
-    const stored = localStorage.getItem(`roommate_views_${userId}`);
-
-    if (!stored) return 0;
-
-    try {
-        const data = JSON.parse(stored);
-        if (data.date !== today) return 0;
-        return data.count || 0;
-    } catch {
-        return 0;
-    }
-}
-
-/**
- * Increment daily view count
- */
-export function incrementDailyViewCount(userId: string): number {
-    const today = new Date().toDateString();
-    const current = getDailyViewCount(userId);
-    const newCount = current + 1;
-
-    localStorage.setItem(`roommate_views_${userId}`, JSON.stringify({
-        date: today,
-        count: newCount,
-    }));
-
-    return newCount;
-}
-
-/**
- * Check if user can view more profiles
- */
-export function canViewMoreProfiles(userId?: string): boolean {
-    return getDailyViewCount(userId) < DAILY_VIEW_LIMIT;
-}
-
-/**
- * Get daily request count
- */
-export function getDailyRequestCount(userId?: string): number {
-    if (!userId) return 0;
-    const today = new Date().toDateString();
-    const stored = localStorage.getItem(`roommate_requests_${userId}`);
-
-    if (!stored) return 0;
-
-    try {
-        const data = JSON.parse(stored);
-        if (data.date !== today) return 0;
-        return data.count || 0;
-    } catch {
-        return 0;
-    }
-}
-
-/**
- * Increment daily request count
- */
-export function incrementDailyRequestCount(userId: string): number {
-    const today = new Date().toDateString();
-    const current = getDailyRequestCount(userId);
-    const newCount = current + 1;
-
-    localStorage.setItem(`roommate_requests_${userId}`, JSON.stringify({
-        date: today,
-        count: newCount,
-    }));
-
-    return newCount;
-}
-
-/**
- * Check if user can send more requests
- */
-export function canSendMoreRequests(userId?: string): boolean {
-    return getDailyRequestCount(userId) < DAILY_REQUEST_LIMIT;
-}
-
-/**
- * Get remaining limits
- */
-export function getRemainingLimits(userId?: string): {
-    views: number;
-    requests: number;
-    viewLimit: number;
-    requestLimit: number;
-} {
-    return {
-        views: DAILY_VIEW_LIMIT - getDailyViewCount(userId),
-        requests: DAILY_REQUEST_LIMIT - getDailyRequestCount(userId),
-        viewLimit: DAILY_VIEW_LIMIT,
-        requestLimit: DAILY_REQUEST_LIMIT,
-    };
 }
 
 // ============================================

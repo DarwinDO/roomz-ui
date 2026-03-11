@@ -70,6 +70,71 @@ SELECT id, email, '', full_name, phone, format('https://api.dicebear.com/9.x/ini
 FROM pg_temp.demo_students
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO public.subscriptions (
+  id,
+  user_id,
+  plan,
+  status,
+  promo_applied,
+  current_period_start,
+  current_period_end,
+  cancel_at_period_end,
+  payment_provider,
+  amount_paid,
+  payment_method,
+  created_at,
+  updated_at
+)
+VALUES (
+  pg_temp.demo_uuid('demo-subscription-admin'),
+  pg_temp.demo_uuid('demo-user-admin'),
+  'rommz_plus',
+  'active',
+  false,
+  now() - interval '15 days',
+  now() + interval '180 days',
+  false,
+  'seed',
+  49000,
+  'seed',
+  now() - interval '15 days',
+  now()
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.subscriptions (
+  id,
+  user_id,
+  plan,
+  status,
+  promo_applied,
+  current_period_start,
+  current_period_end,
+  cancel_at_period_end,
+  payment_provider,
+  amount_paid,
+  payment_method,
+  created_at,
+  updated_at
+)
+SELECT
+  pg_temp.demo_uuid(format('demo-subscription-student-%s', lpad(idx::text, 3, '0'))),
+  id,
+  'rommz_plus',
+  'active',
+  false,
+  now() - interval '10 days',
+  now() + interval '45 days',
+  false,
+  'seed',
+  49000,
+  'seed',
+  now() - interval '10 days',
+  now()
+FROM pg_temp.demo_students
+WHERE idx % 11 = 0
+ON CONFLICT (id) DO NOTHING;
+
 CREATE TEMP TABLE pg_temp.demo_partners AS
 SELECT
   gs AS idx,

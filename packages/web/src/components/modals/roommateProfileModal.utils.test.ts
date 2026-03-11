@@ -1,8 +1,10 @@
-import { expect, test } from '@playwright/test';
+﻿import { expect, test } from '@playwright/test';
 import {
+  buildConcernSignals,
   buildMatchFactors,
   buildTopSignals,
   getFactorSignalLabel,
+  getMissingDataLabels,
   getOverallGuidance,
   type MatchFactor,
 } from './roommateProfileModal.utils';
@@ -14,21 +16,21 @@ function createMatch(overrides: Partial<RoommateMatch> = {}): RoommateMatch {
     compatibility_score: 48,
     confidence_score: 50,
     match_scope: 'same_city',
-    full_name: 'Sinh vien Demo 012',
+    full_name: 'Sinh viên Demo 012',
     avatar_url: null,
     bio: null,
-    university: 'Dai hoc Bach khoa Ha Noi',
-    major: 'Cong nghe thong tin',
-    city: 'Thanh pho Ha Noi',
-    district: 'Quan Hai Ba Trung',
+    university: 'Đại học Bách khoa Hà Nội',
+    major: 'Công nghệ thông tin',
+    city: 'Thành phố Hà Nội',
+    district: 'Quận Hai Bà Trưng',
     age: 21,
     gender: 'female',
     occupation: 'student',
-    hobbies: ['du lich'],
+    hobbies: ['du lịch'],
     sleep_score: 0,
     cleanliness_score: 0,
-    noise_score: 0,
-    guest_score: 0,
+    noise_score: 18,
+    guest_score: 22,
     weekend_score: 0,
     budget_score: 60,
     hobby_score: 35,
@@ -41,26 +43,26 @@ function createMatch(overrides: Partial<RoommateMatch> = {}): RoommateMatch {
 }
 
 test.describe('roommate profile modal utils', () => {
-  test('uses non-positive copy and neutral status when a factor score is zero', () => {
+  test('treats zero-score factors as missing data instead of positive compatibility', () => {
     const factors = buildMatchFactors(createMatch());
     const sleepFactor = factors.find((factor) => factor.id === 'sleep');
 
     expect(sleepFactor).toBeTruthy();
     expect(sleepFactor?.score).toBe(0);
-    expect(sleepFactor?.description).toContain('Chưa thấy tín hiệu phù hợp rõ');
-    expect(sleepFactor?.description).not.toContain('đồng pha');
-    expect(getFactorSignalLabel(0)).toBe('Chưa rõ');
+    expect(sleepFactor?.description).toContain('Thiếu dữ liệu');
+    expect(getFactorSignalLabel(0)).toBe('Thiếu dữ liệu');
+    expect(getMissingDataLabels(factors)).toEqual(['Nhịp sinh hoạt', 'Mức gọn gàng', 'Cuối tuần']);
   });
 
-  test('keeps positive copy only for genuinely high scores', () => {
-    const factors = buildMatchFactors(createMatch({ sleep_score: 82 }));
-    const sleepFactor = factors.find((factor) => factor.id === 'sleep');
+  test('uses cautionary copy for low but non-zero mismatch scores', () => {
+    const factors = buildMatchFactors(createMatch({ noise_score: 18 }));
+    const noiseFactor = factors.find((factor) => factor.id === 'noise');
 
-    expect(sleepFactor?.description).toBe('Lịch ngủ và nhịp sinh hoạt khá đồng pha.');
-    expect(getFactorSignalLabel(82)).toBe('Khớp tốt');
+    expect(noiseFactor?.description).toContain('khá lệch');
+    expect(getFactorSignalLabel(18)).toBe('Lệch rõ');
   });
 
-  test('buildTopSignals prefers meaningful signals over zero-score factors', () => {
+  test('buildTopSignals prefers meaningful factors over missing data', () => {
     const factors: MatchFactor[] = buildMatchFactors(createMatch());
     const signals = buildTopSignals(factors);
 
@@ -68,8 +70,16 @@ test.describe('roommate profile modal utils', () => {
     expect(signals.every((signal) => signal.score > 0)).toBe(true);
   });
 
+  test('buildConcernSignals highlights only low-score factors with real data', () => {
+    const factors = buildMatchFactors(createMatch());
+    const concerns = buildConcernSignals(factors);
+
+    expect(concerns.map((signal) => signal.label)).toEqual(['Tiếng ồn', 'Khách ghé chơi', 'Thời gian chuyển vào']);
+  });
+
   test('overall guidance becomes cautious when confidence is low', () => {
     expect(getOverallGuidance(48, 50)).toContain('tham khảo');
+    expect(getOverallGuidance(72, 45)).toContain('dữ liệu hiện còn thiếu');
     expect(getOverallGuidance(82, 85)).toContain('nền tảng tốt');
   });
 });

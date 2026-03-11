@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import { Eye, Heart, Settings, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -33,9 +34,10 @@ type SortOption = 'compatibility' | 'age';
 
 export function RoommateResults() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { profile, setStatus } = useRoommateProfileQuery();
-  const { matches, loading: matchesLoading, error, limits, canViewMore, recordView, refetch } = useRoommateMatchesQuery();
+  const { matches, loading: matchesLoading, error, limits, canViewMore, canSendMore, recordView, refetch } = useRoommateMatchesQuery();
   const {
     sentRequests,
     receivedRequests,
@@ -47,7 +49,7 @@ export function RoommateResults() {
     acceptRequest,
     isAccepting,
   } = useRoommateRequestsQuery();
-  const { isPremium } = usePremiumLimits();
+  const { isPremium, loading: premiumLoading } = usePremiumLimits();
 
   const [sortBy, setSortBy] = useState<SortOption>('compatibility');
   const [selectedMatch, setSelectedMatch] = useState<RoommateMatch | null>(null);
@@ -106,14 +108,26 @@ export function RoommateResults() {
   const fallbackCount = filteredMatches.filter((match) => match.match_scope === 'outside_priority_area').length;
   const lowConfidenceCount = filteredMatches.filter((match) => match.confidence_score < 60).length;
 
-  const handleViewProfile = (match: RoommateMatch) => {
+  const handleViewProfile = async (match: RoommateMatch) => {
     if (!canViewMore) {
       setLimitType('views');
       setIsLimitModalOpen(true);
       return;
     }
 
-    recordView();
+    try {
+      await recordView();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không thể mở profile lúc này';
+      if (message.includes('hết lượt xem profile')) {
+        setLimitType('views');
+        setIsLimitModalOpen(true);
+        return;
+      }
+      toast.error(message);
+      return;
+    }
+
     setSelectedMatch(match);
     setIsProfileModalOpen(true);
     void trackFeatureEvent('roommate_profile_viewed', user?.id ?? null, {
@@ -155,10 +169,15 @@ export function RoommateResults() {
         message_length: message.trim().length,
         compatibility_score: introModalTarget.compatibility_score,
       });
+      await queryClient.invalidateQueries({ queryKey: ['roommate', 'limits', user.id] });
       await refetchRequests();
       toast.success('Đã gửi tin nhắn giới thiệu');
     } catch (error) {
       const messageText = error instanceof Error ? error.message : 'Không thể gửi tin nhắn. Vui lòng thử lại.';
+      if (messageText.includes('hết lượt gửi yêu cầu')) {
+        setLimitType('requests');
+        setIsLimitModalOpen(true);
+      }
       toast.error(messageText);
       throw error;
     }
@@ -216,7 +235,7 @@ export function RoommateResults() {
         </Card>
       )}
 
-      <LimitsBar limits={limits} isPremium={isPremium} onUpgrade={() => navigate('/payment')} />
+      <LimitsBar limits={limits} isPremium={isPremium || premiumLoading} onUpgrade={() => navigate('/payment')} />
 
       {(fallbackCount > 0 || lowConfidenceCount > 0) && (
         <Card className="mb-6 border-slate-200 bg-slate-50 p-4">
@@ -289,7 +308,7 @@ export function RoommateResults() {
                     }
                   }}
                   isAccepting={isAccepting}
-                  canSendRequest={limits.requests > 0}
+                  canSendRequest={canSendMore}
                   isConnected={checkConnection(match.matched_user_id)}
                   hasIntroMessage={sentIntroMessages.has(match.matched_user_id)}
                 />

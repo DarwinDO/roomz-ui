@@ -1,4 +1,4 @@
-/**
+﻿/**
  * useRoommatesQuery - TanStack Query hooks for roommate finder
  * 
  * This file provides React Query-based hooks that automatically handle:
@@ -24,23 +24,17 @@ import {
     getTopMatches,
     saveQuizAnswers,
     getQuizAnswers,
-    getReceivedRequests,
-    getSentRequests,
     getAllRequests,
     sendRoommateRequest,
     cancelRoommateRequest,
     respondToRequest,
     acceptRequestAndCreateConversation,
     hasExistingRequest,
-    getRemainingLimits,
-    canViewMoreProfiles,
-    canSendMoreRequests as canSendMoreRequestsFn,
-    incrementDailyViewCount,
-    incrementDailyRequestCount as incrementDailyRequestCountFn,
+    getRoommateFeatureLimits,
+    recordRoommateProfileView,
     type RoommateProfile,
     type RoommateProfileInput,
     type RoommateProfileStatus,
-    type RoommateMatch,
     type RoommateRequest,
     type QuizAnswer,
 } from '@/services/roommates';
@@ -57,6 +51,8 @@ export const roommateKeys = {
     requests: (userId: string) => [...roommateKeys.all, 'requests', userId] as const,
     limits: (userId: string) => [...roommateKeys.all, 'limits', userId] as const,
 };
+
+const ENABLE_ROOMMATE_REQUESTS_REALTIME = true;
 
 // ============================================
 // useRoommateProfileQuery - Profile Management
@@ -200,19 +196,21 @@ export function useRoommateLimits() {
 
     const query = useQuery({
         queryKey: roommateKeys.limits(user?.id ?? ''),
-        queryFn: () => getRemainingLimits(user?.id),
+        queryFn: () => getRoommateFeatureLimits(),
         enabled: !!user?.id,
     });
 
-    const incrementView = useCallback(() => {
-        if (!user?.id) return;
-        incrementDailyViewCount(user.id);
-        queryClient.invalidateQueries({ queryKey: roommateKeys.limits(user.id) });
+    const incrementView = useCallback(async () => {
+        if (!user?.id) {
+            return null;
+        }
+        const nextLimits = await recordRoommateProfileView();
+        queryClient.setQueryData(roommateKeys.limits(user.id), nextLimits);
+        return nextLimits;
     }, [user?.id, queryClient]);
 
     const incrementRequest = useCallback(() => {
         if (!user?.id) return;
-        incrementDailyRequestCountFn(user.id);
         queryClient.invalidateQueries({ queryKey: roommateKeys.limits(user.id) });
     }, [user?.id, queryClient]);
 
@@ -221,13 +219,13 @@ export function useRoommateLimits() {
             views: 0,
             requests: 0,
             viewLimit: FREE_LIMITS.ROOMMATE_VIEWS_PER_DAY,
-            requestLimit: FREE_LIMITS.ROOMMATE_REQUESTS_PER_DAY
+            requestLimit: FREE_LIMITS.ROOMMATE_REQUESTS_PER_DAY,
         },
         loading: query.isLoading,
         incrementView,
         incrementRequest,
-        canViewMore: canViewMoreProfiles(user?.id),
-        canSendMore: canSendMoreRequestsFn(user?.id),
+        canViewMore: query.data?.canViewMore ?? true,
+        canSendMore: query.data?.canSendMore ?? true,
     };
 }
 
@@ -281,10 +279,8 @@ export function useRoommateRequestsQuery() {
     // 🔄 Realtime subscription for request status updates
     // IMPORTANT: Requires enabling Replication for `roommate_requests` table in Supabase Dashboard
     // If Realtime is not available, TanStack Query's refetchOnWindowFocus provides fallback
-    const ENABLE_REALTIME = true; // ✅ Enabled - tables added to supabase_realtime publication
-
     useEffect(() => {
-        if (!user?.id || !ENABLE_REALTIME) return;
+        if (!user?.id || !ENABLE_ROOMMATE_REQUESTS_REALTIME) return;
 
         let isMounted = true;
 
@@ -378,9 +374,6 @@ export function useRoommateRequestsQuery() {
     // Mutation: Send request
     const sendMutation = useMutation({
         mutationFn: async ({ receiverId, message }: { receiverId: string; message?: string }) => {
-            if (!canSendMoreRequestsFn(user?.id)) {
-                throw new Error('Bạn đã hết lượt gửi yêu cầu hôm nay. Vui lòng quay lại vào ngày mai.');
-            }
             return sendRoommateRequest(user!.id, receiverId, message);
         },
         onSuccess: (newRequest) => {
@@ -392,8 +385,6 @@ export function useRoommateRequestsQuery() {
             );
             queryClient.invalidateQueries({ queryKey: roommateKeys.requests(user!.id) });
 
-            // ✅ Increment request count and invalidate limits
-            incrementDailyRequestCountFn(user!.id);
             queryClient.invalidateQueries({ queryKey: roommateKeys.limits(user!.id) });
 
             toast.success('Đã gửi yêu cầu kết nối!');

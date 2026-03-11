@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { supabase } from '@/lib/supabase';
-import { calculateCompatibility, getTopMatches } from './roommates';
+import {
+  calculateCompatibility,
+  getRoommateFeatureLimits,
+  getTopMatches,
+  recordRoommateProfileView,
+  sendRoommateRequest,
+} from './roommates';
 
 type RpcResult<T> = {
   data: T | null;
@@ -100,5 +106,78 @@ test.describe('roommates service RPC contract', () => {
       location_score: 0,
       confidence_score: 0,
     });
+  });
+
+  test('normalizes roommate feature limits from the RPC response', async () => {
+    mutableSupabase.rpc = (async () => {
+      return {
+        data: {
+          views: 4,
+          requests: 2,
+          view_limit: 10,
+          request_limit: 5,
+          can_view_more: true,
+          can_send_more: true,
+          is_premium: false,
+        },
+        error: null,
+      } as RpcResult<ReturnType<typeof getRoommateFeatureLimits>>;
+    }) as typeof supabase.rpc;
+
+    const result = await getRoommateFeatureLimits();
+
+    expect(result).toEqual({
+      views: 4,
+      requests: 2,
+      viewLimit: 10,
+      requestLimit: 5,
+      canViewMore: true,
+      canSendMore: true,
+      isPremium: false,
+    });
+  });
+
+  test('maps roommate view limit errors to a user-facing message', async () => {
+    mutableSupabase.rpc = (async () => {
+      return {
+        data: null,
+        error: {
+          message: 'ROOMMATE_VIEW_LIMIT_REACHED',
+        },
+      } as RpcResult<null>;
+    }) as typeof supabase.rpc;
+
+    await expect(recordRoommateProfileView()).rejects.toThrow(
+      'Bạn đã hết lượt xem profile hôm nay. Vui lòng quay lại vào ngày mai.',
+    );
+  });
+
+  test('routes roommate requests through the server-side quota RPC', async () => {
+    let capturedArgs: Record<string, unknown> | null = null;
+
+    mutableSupabase.rpc = (async (_fn, args) => {
+      capturedArgs = args as Record<string, unknown>;
+      return {
+        data: {
+          id: 'request-1',
+          sender_id: 'user-1',
+          receiver_id: 'user-2',
+          status: 'pending',
+          message: 'Xin chào',
+          created_at: '2026-03-11T12:00:00.000Z',
+          responded_at: null,
+          expires_at: '2026-03-18T12:00:00.000Z',
+        },
+        error: null,
+      } as RpcResult<Awaited<ReturnType<typeof sendRoommateRequest>>>;
+    }) as typeof supabase.rpc;
+
+    const result = await sendRoommateRequest('user-1', 'user-2', 'Xin chào');
+
+    expect(capturedArgs).toEqual({
+      p_receiver_id: 'user-2',
+      p_message: 'Xin chào',
+    });
+    expect(result.id).toBe('request-1');
   });
 });

@@ -20,6 +20,8 @@ import type { UserProfile as Profile } from "@/contexts/AuthContext";
 
 interface SettingsTabProps {
     profile: Profile | null;
+    isPremium: boolean;
+    premiumUntil: string | null;
     isEmailVerified: boolean;
     trustScore: number;
     onEditProfile: () => void;
@@ -28,6 +30,8 @@ interface SettingsTabProps {
 
 export function SettingsTab({
     profile,
+    isPremium,
+    premiumUntil,
     isEmailVerified,
     trustScore,
     onEditProfile,
@@ -167,7 +171,7 @@ export function SettingsTab({
             </Card>
 
             {/* Subscription Card */}
-            {profile?.is_premium ? (
+            {isPremium ? (
                 // Premium User Card
                 <Card className="p-6 rounded-2xl shadow-soft border border-amber-200 bg-gradient-to-br from-amber-50/50 to-orange-50/50">
                     <div className="flex items-center gap-2 mb-4">
@@ -182,8 +186,8 @@ export function SettingsTab({
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">Hết hạn</span>
                             <span className="text-sm font-medium">
-                                {profile?.premium_until
-                                    ? new Date(profile.premium_until).toLocaleDateString('vi-VN')
+                                {premiumUntil
+                                    ? new Date(premiumUntil).toLocaleDateString('vi-VN')
                                     : 'Không giới hạn'}
                             </span>
                         </div>

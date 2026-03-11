@@ -17,6 +17,7 @@ import {
   type BillingCycle,
   type PlanDetails,
 } from '@/config/payment.config';
+import { FREE_LIMITS, PREMIUM_LIMITS } from '@roomz/shared/constants/premium';
 
 export type { SubscriptionPlan, BillingCycle, PlanDetails };
 
@@ -53,8 +54,46 @@ export interface PromoStatus {
   claimedSlots: number | null;
 }
 
+export interface UserEntitlements {
+  isPremium: boolean;
+  viewLimit: number;
+  requestLimit: number;
+  favoriteLimit: number;
+  phoneViewLimit: number;
+  premiumUntil: string | null;
+}
+
 // Re-export config functions and values for backward compatibility
 export { PLANS, getPlanById, getRommZPlusPlan, getCurrentPrice, PRICING, PROMO, ORDER };
+
+export function getAnonymousEntitlements(): UserEntitlements {
+  return {
+    isPremium: false,
+    viewLimit: FREE_LIMITS.ROOMMATE_VIEWS_PER_DAY,
+    requestLimit: FREE_LIMITS.ROOMMATE_REQUESTS_PER_DAY,
+    favoriteLimit: FREE_LIMITS.FAVORITES_MAX,
+    phoneViewLimit: FREE_LIMITS.PHONE_VIEWS_PER_DAY,
+    premiumUntil: null,
+  };
+}
+
+export function getEntitlementsForPlan(
+  plan: SubscriptionPlan | null | undefined,
+  premiumUntil: string | null = null
+): UserEntitlements {
+  if (plan === 'rommz_plus') {
+    return {
+      isPremium: true,
+      viewLimit: PREMIUM_LIMITS.ROOMMATE_VIEWS_PER_DAY,
+      requestLimit: PREMIUM_LIMITS.ROOMMATE_REQUESTS_PER_DAY,
+      favoriteLimit: PREMIUM_LIMITS.FAVORITES_MAX,
+      phoneViewLimit: PREMIUM_LIMITS.PHONE_VIEWS_PER_DAY,
+      premiumUntil,
+    };
+  }
+
+  return getAnonymousEntitlements();
+}
 
 /**
  * Get user's current subscription
@@ -100,8 +139,13 @@ export async function getUserSubscription(userId: string): Promise<Subscription 
  * Check if user has premium access
  */
 export async function hasPremiumAccess(userId: string): Promise<boolean> {
+  const entitlements = await getUserEntitlements(userId);
+  return entitlements.isPremium;
+}
+
+export async function getUserEntitlements(userId: string): Promise<UserEntitlements> {
   const subscription = await getUserSubscription(userId);
-  return subscription?.plan === 'rommz_plus';
+  return getEntitlementsForPlan(subscription?.plan, subscription?.currentPeriodEnd ?? null);
 }
 
 /**

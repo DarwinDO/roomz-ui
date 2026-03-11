@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { supabase } from '@/lib/supabase';
-import { createSePayCheckoutSession } from './payments';
+import { createSePayCheckoutSession, getAnonymousEntitlements, getEntitlementsForPlan } from './payments';
 
 type RpcResult = {
   data: {
@@ -78,5 +78,28 @@ test.describe('createSePayCheckoutSession', () => {
     await expect(
       createSePayCheckoutSession('user-1', 'rommz_plus', 'monthly', false)
     ).rejects.toThrow('Invalid checkout response from server');
+  });
+});
+
+test.describe('premium entitlements', () => {
+  test('returns free limits for anonymous users', () => {
+    expect(getAnonymousEntitlements()).toMatchObject({
+      isPremium: false,
+      viewLimit: 10,
+      requestLimit: 5,
+      favoriteLimit: 5,
+      phoneViewLimit: 3,
+      premiumUntil: null,
+    });
+  });
+
+  test('maps RommZ+ plan to unlimited premium roommate access', () => {
+    const entitlements = getEntitlementsForPlan('rommz_plus', '2026-04-09T08:21:45.189540Z');
+
+    expect(entitlements.isPremium).toBe(true);
+    expect(entitlements.viewLimit).toBe(Infinity);
+    expect(entitlements.requestLimit).toBe(Infinity);
+    expect(entitlements.favoriteLimit).toBe(Infinity);
+    expect(entitlements.premiumUntil).toBe('2026-04-09T08:21:45.189540Z');
   });
 });

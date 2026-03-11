@@ -1,4 +1,4 @@
-import {
+﻿import {
   Cake,
   Calendar,
   Clock,
@@ -38,63 +38,63 @@ type ScoreBand = 'high' | 'medium' | 'low' | 'none';
 const factorCopy: Record<MatchFactorId, Record<ScoreBand, string>> = {
   sleep: {
     high: 'Lịch ngủ và nhịp sinh hoạt khá đồng pha.',
-    medium: 'Nhịp sinh hoạt có vài điểm gần nhau, nhưng vẫn nên chốt rõ giờ ngủ và giờ thức.',
-    low: 'Nhịp sinh hoạt lệch khá nhiều, cần nói kỹ để tránh va chạm khi ở chung.',
-    none: 'Chưa thấy tín hiệu phù hợp rõ về giờ ngủ và nhịp sống. Nên hỏi thêm trực tiếp.',
+    medium: 'Nhịp sinh hoạt có thể phối hợp được, nhưng vẫn nên chốt rõ giờ ngủ và giờ thức.',
+    low: 'Nhịp sinh hoạt đang lệch đáng kể. Nên hỏi kỹ trước khi quyết định ở chung.',
+    none: 'Thiếu dữ liệu về giờ ngủ và nhịp sống. Nên hỏi trực tiếp trước khi kết nối.',
   },
   clean: {
     high: 'Quan điểm về dọn dẹp và giữ phòng gọn gàng khá tương đồng.',
     medium: 'Mức độ gọn gàng có thể hòa hợp nếu hai bên thống nhất quy tắc chung.',
-    low: 'Thói quen dọn dẹp đang lệch đáng kể, dễ phát sinh khó chịu trong sinh hoạt.',
-    none: 'Chưa có tín hiệu rõ cho thấy hai bên hợp nhau về mức độ gọn gàng.',
+    low: 'Thói quen dọn dẹp đang lệch khá nhiều, dễ phát sinh khó chịu khi ở chung.',
+    none: 'Thiếu dữ liệu về thói quen dọn dẹp. Cần xác nhận thêm trước khi ghép phòng.',
   },
   noise: {
     high: 'Mức chấp nhận tiếng ồn tương đối khớp nhau.',
     medium: 'Khả năng chịu tiếng ồn ở mức có thể trao đổi để thống nhất thêm.',
     low: 'Quan điểm về tiếng ồn khá lệch, nên nói trước về giờ yên tĩnh.',
-    none: 'Yếu tố tiếng ồn chưa cho thấy điểm hợp rõ. Nên hỏi kỹ trước khi kết nối.',
+    none: 'Thiếu dữ liệu về mức chấp nhận tiếng ồn. Nên hỏi kỹ trước khi kết nối.',
   },
   guest: {
     high: 'Cách đón bạn bè hoặc người thân khá tương đồng.',
-    medium: 'Việc có khách ghé chơi có thể phối hợp được nếu nói rõ tần suất và quy tắc.',
+    medium: 'Việc có khách ghé chơi có thể phối hợp nếu nói rõ tần suất và quy tắc.',
     low: 'Kỳ vọng về khách ghé chơi đang lệch khá nhiều, dễ ảnh hưởng trải nghiệm sống chung.',
-    none: 'Chưa có dấu hiệu phù hợp rõ về cách tiếp khách. Nên trao đổi thẳng trước.',
+    none: 'Thiếu dữ liệu về cách tiếp khách. Nên trao đổi thẳng trước khi ghép.',
   },
   weekend: {
-    high: 'Nhịp sinh hoạt cuối tuần có thể đi cùng nhau khá tốt.',
-    medium: 'Cuối tuần vẫn có thể khớp nếu hai bên thống nhất lịch di chuyển và nghỉ ngơi.',
+    high: 'Nhịp sinh hoạt cuối tuần khá đồng pha.',
+    medium: 'Cuối tuần vẫn có thể khớp nếu hai bên thống nhất lịch đi lại và nghỉ ngơi.',
     low: 'Nhịp cuối tuần đang lệch tương đối nhiều, nên làm rõ kỳ vọng về sinh hoạt cá nhân.',
-    none: 'Chưa thấy sự đồng pha rõ về lịch cuối tuần. Cần hỏi thêm trước khi quyết định.',
+    none: 'Thiếu dữ liệu về lịch cuối tuần. Cần hỏi thêm trước khi quyết định.',
   },
   budget: {
     high: 'Khả năng chia tiền thuê và chi phí sinh hoạt khá khớp.',
     medium: 'Ngân sách có thể phù hợp nếu chốt rõ trần chi phí và khoản phát sinh.',
     low: 'Ngân sách đang lệch khá nhiều, đây là điểm cần xác nhận sớm.',
-    none: 'Chưa có tín hiệu phù hợp rõ về ngân sách. Nên hỏi kỹ trước khi đi tiếp.',
+    none: 'Thiếu dữ liệu ngân sách từ một trong hai bên. Nên hỏi kỹ trước khi đi tiếp.',
   },
   hobby: {
     high: 'Có nhiều sở thích chung để bắt đầu kết nối tự nhiên hơn.',
     medium: 'Có một vài điểm chung đủ để mở đầu câu chuyện.',
-    low: 'Sở thích giao nhau còn ít, cần nói chuyện thêm để xem mức độ hòa hợp thực tế.',
-    none: 'Chưa có điểm chung nổi bật về sở thích. Đây không phải điểm cộng rõ ở thời điểm này.',
+    low: 'Sở thích giao nhau còn ít. Nên xem thêm mức độ hợp nhau qua nói chuyện trực tiếp.',
+    none: 'Thiếu dữ liệu sở thích hoặc chưa ai chia sẻ đủ để so sánh.',
   },
   age: {
     high: 'Độ tuổi khá gần nhau, thường dễ đồng pha về nhịp sống hơn.',
     medium: 'Chênh lệch độ tuổi không lớn, vẫn có thể phù hợp.',
-    low: 'Độ tuổi đang lệch khá nhiều, nên kiểm tra thêm cách sống và kỳ vọng sinh hoạt.',
-    none: 'Độ tuổi chưa tạo ra tín hiệu phù hợp rõ trong phép ghép này.',
+    low: 'Độ tuổi đang lệch khá nhiều. Nên kiểm tra thêm cách sống và kỳ vọng sinh hoạt.',
+    none: 'Thiếu dữ liệu độ tuổi nên chưa đánh giá được mức độ phù hợp.',
   },
   location: {
     high: 'Khu vực ưu tiên khá gần nhau, thuận lợi để cân nhắc ghép phòng.',
     medium: 'Vị trí sống có thể chấp nhận được nếu hai bên linh hoạt về khu vực.',
     low: 'Khu vực ưu tiên đang lệch khá nhiều, dễ ảnh hưởng quyết định ở chung.',
-    none: 'Yếu tố vị trí chưa cho thấy điểm khớp rõ. Nên xác nhận lại khu vực ưu tiên.',
+    none: 'Thiếu dữ liệu vị trí ưu tiên. Nên xác nhận lại khu vực mong muốn.',
   },
   'move-in': {
     high: 'Mốc chuyển vào khá khớp nhau.',
     medium: 'Thời gian chuyển vào có thể phối hợp nếu chốt lịch sớm.',
     low: 'Mốc chuyển vào đang lệch khá xa, cần làm rõ trước khi kết nối sâu hơn.',
-    none: 'Chưa có tín hiệu phù hợp rõ về thời điểm chuyển vào.',
+    none: 'Thiếu dữ liệu về thời điểm chuyển vào. Nên hỏi thêm trước khi quyết định.',
   },
 };
 
@@ -106,7 +106,7 @@ function getScoreBand(score: number): ScoreBand {
   const normalizedScore = clampScore(score);
 
   if (normalizedScore >= 75) return 'high';
-  if (normalizedScore >= 45) return 'medium';
+  if (normalizedScore >= 55) return 'medium';
   if (normalizedScore > 0) return 'low';
   return 'none';
 }
@@ -165,6 +165,10 @@ export function getOverallGuidance(score: number, confidenceScore: number): stri
     return 'Hai bên có nhiều nền tảng tốt để bắt đầu nói chuyện. Nên chốt sớm ngân sách, lịch chuyển vào và quy tắc sống chung.';
   }
 
+  if (score >= 65 && confidenceScore < 60) {
+    return 'Điểm nền khá ổn nhưng dữ liệu hiện còn thiếu. Nên hỏi thêm trực tiếp về ngân sách, lịch sống và khu vực ưu tiên trước khi đi xa hơn.';
+  }
+
   if (score >= 55 && confidenceScore >= 60) {
     return 'Có vài tín hiệu khá ổn để mở lời. Tuy vậy, vẫn nên xác nhận kỹ khu vực ưu tiên, nhịp sinh hoạt và chi phí trước khi tiến xa hơn.';
   }
@@ -195,7 +199,7 @@ export function getScoreTone(score: number): { track: string; fill: string; labe
     };
   }
 
-  if (normalizedScore >= 60) {
+  if (normalizedScore >= 65) {
     return {
       track: 'bg-sky-50',
       fill: 'bg-sky-500',
@@ -203,7 +207,7 @@ export function getScoreTone(score: number): { track: string; fill: string; labe
     };
   }
 
-  if (normalizedScore >= 45) {
+  if (normalizedScore >= 40) {
     return {
       track: 'bg-amber-50',
       fill: 'bg-amber-500',
@@ -227,21 +231,23 @@ export function getScoreTone(score: number): { track: string; fill: string; labe
 }
 
 export function getFactorSignalLabel(score: number): string {
-  const band = getScoreBand(score);
+  const normalizedScore = clampScore(score);
 
-  if (band === 'high') return 'Khớp tốt';
-  if (band === 'medium') return 'Cần trao đổi thêm';
-  if (band === 'low') return 'Lệch khá nhiều';
-  return 'Chưa rõ';
+  if (normalizedScore === 0) return 'Thiếu dữ liệu';
+  if (normalizedScore >= 75) return 'Khớp tốt';
+  if (normalizedScore >= 55) return 'Khá ổn';
+  if (normalizedScore >= 40) return 'Cần hỏi kỹ';
+  return 'Lệch rõ';
 }
 
 export function getFactorSignalTone(score: number): string {
-  const band = getScoreBand(score);
+  const normalizedScore = clampScore(score);
 
-  if (band === 'high') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (band === 'medium') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (band === 'low') return 'border-rose-200 bg-rose-50 text-rose-700';
-  return 'border-slate-200 bg-slate-100 text-slate-600';
+  if (normalizedScore === 0) return 'border-slate-200 bg-slate-100 text-slate-600';
+  if (normalizedScore >= 75) return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (normalizedScore >= 55) return 'border-sky-200 bg-sky-50 text-sky-700';
+  if (normalizedScore >= 40) return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-rose-200 bg-rose-50 text-rose-700';
 }
 
 function getFactorDescription(id: MatchFactorId, score: number): string {
@@ -275,7 +281,7 @@ export function buildMatchFactors(roommate: RoommateMatch): MatchFactor[] {
 
 export function buildTopSignals(factors: MatchFactor[]) {
   const ranked = [...factors].sort((left, right) => right.score - left.score);
-  const preferredSignals = ranked.filter((factor) => factor.score >= 45);
+  const preferredSignals = ranked.filter((factor) => factor.score >= 55);
   const fallbackSignals = ranked.filter((factor) => factor.score > 0);
   const pickedSignals = (preferredSignals.length > 0 ? preferredSignals : fallbackSignals.length > 0 ? fallbackSignals : ranked).slice(0, 3);
 
@@ -284,4 +290,23 @@ export function buildTopSignals(factors: MatchFactor[]) {
     score: factor.score,
     description: factor.description,
   }));
+}
+
+export function buildConcernSignals(factors: MatchFactor[]) {
+  return factors
+    .filter((factor) => factor.score > 0 && factor.score < 40)
+    .sort((left, right) => left.score - right.score)
+    .slice(0, 3)
+    .map((factor) => ({
+      label: factor.label,
+      score: factor.score,
+      description: factor.description,
+    }));
+}
+
+export function getMissingDataLabels(factors: MatchFactor[], limit = 3): string[] {
+  return factors
+    .filter((factor) => factor.score === 0)
+    .map((factor) => factor.label)
+    .slice(0, limit);
 }

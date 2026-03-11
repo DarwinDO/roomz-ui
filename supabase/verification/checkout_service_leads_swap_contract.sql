@@ -24,6 +24,8 @@ DECLARE
     v_location_crawl_promote_proc REGPROCEDURE;
     v_location_crawl_rls BOOLEAN;
     v_payment_cleanup_rls BOOLEAN;
+    v_sync_premium_proc REGPROCEDURE;
+    v_sync_premium_trigger_count INTEGER;
     v_auth_fk_count INTEGER;
     v_public_user_fk_count INTEGER;
     v_public_assigned_fk_count INTEGER;
@@ -117,6 +119,24 @@ BEGIN
 
     IF v_plan_default IS NULL OR position('rommz_plus' in v_plan_default) = 0 THEN
         RAISE EXCEPTION 'payment_orders.plan default is not rommz_plus: %', coalesce(v_plan_default, '<null>');
+    END IF;
+
+    SELECT to_regprocedure('public.sync_user_premium_cache(uuid)')
+    INTO v_sync_premium_proc;
+
+    IF v_sync_premium_proc IS NULL THEN
+        RAISE EXCEPTION 'Missing function public.sync_user_premium_cache(uuid)';
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_sync_premium_trigger_count
+    FROM pg_trigger
+    WHERE tgrelid = 'public.subscriptions'::regclass
+      AND tgname = 'sync_user_premium_cache_on_subscriptions'
+      AND NOT tgisinternal;
+
+    IF v_sync_premium_trigger_count = 0 THEN
+        RAISE EXCEPTION 'Missing trigger sync_user_premium_cache_on_subscriptions on public.subscriptions';
     END IF;
 
     SELECT to_regprocedure('public.get_promo_status()')

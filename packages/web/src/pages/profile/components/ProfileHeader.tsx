@@ -18,6 +18,7 @@ import { getUserInitials } from "@roomz/shared/utils/user";
 interface ProfileHeaderProps {
     user: User | null;
     profile: Profile | null;
+    isPremium: boolean;
     isEmailVerified: boolean;
     trustScore: number;
     onEditProfile: () => void;
@@ -26,6 +27,7 @@ interface ProfileHeaderProps {
 export function ProfileHeader({
     user,
     profile,
+    isPremium,
     isEmailVerified,
     trustScore,
     onEditProfile,
@@ -54,7 +56,7 @@ export function ProfileHeader({
                                             Đã xác thực
                                         </Badge>
                                     )}
-                                    {profile?.is_premium && (
+                                    {isPremium && (
                                         <Badge className="bg-gradient-to-r from-warning to-orange-400 text-white text-xs sm:text-sm px-2 py-0.5">
                                             <Crown className="w-3 h-3 mr-1" />
                                             Premium
