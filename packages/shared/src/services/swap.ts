@@ -63,7 +63,7 @@ export async function createSwapRequest(
     // Get recipient ID from the listing
     const { data: listing } = await supabase
         .from('sublet_listings')
-        .select('user_id')
+        .select('owner_id')
         .eq('id', data.recipient_listing_id)
         .single();
 
@@ -73,7 +73,7 @@ export async function createSwapRequest(
         .from('swap_requests')
         .insert({
             requester_id: userId,
-            recipient_id: listing.user_id,
+            recipient_id: listing.owner_id,
             requester_listing_id: data.requester_listing_id,
             recipient_listing_id: data.recipient_listing_id,
             message: data.message || null,
@@ -144,7 +144,7 @@ export async function getPotentialMatches(
     supabase: SupabaseClient,
     listingId: string
 ): Promise<PotentialMatchResponse> {
-    const { data, error } = await supabase.rpc('find_swap_matches', {
+    const { data, error } = await supabase.rpc('find_potential_swap_matches', {
         p_listing_id: listingId,
     });
 

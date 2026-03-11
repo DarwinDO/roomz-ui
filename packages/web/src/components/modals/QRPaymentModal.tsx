@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,8 +15,13 @@ import {
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Loader2, Copy, Check, AlertCircle, RefreshCw, Timer, AlertTriangle } from 'lucide-react';
-import { subscribeToPaymentStatus, createSePayCheckoutSession, type BillingCycle, type SubscriptionPlan } from '@/services/payments';
-import { useAuth } from '@/contexts';
+import {
+    subscribeToPaymentStatus,
+    getPaymentOrderStatus,
+    type BillingCycle,
+    type PaymentOrderStatus,
+} from '@/services/payments';
+import { getRemainingSeconds } from './qrPaymentTimer';
 import { toast } from 'sonner';
 
 interface QRPaymentModalProps {
@@ -25,8 +30,10 @@ interface QRPaymentModalProps {
     orderCode: string;
     qrCodeUrl: string;
     amount: number;
+    expiresAt: string;
     billingCycle: BillingCycle;
     onPaymentSuccess: () => void;
+    onRegenerate?: () => Promise<void> | void;
 }
 
 export function QRPaymentModal({
@@ -35,14 +42,19 @@ export function QRPaymentModal({
     orderCode,
     qrCodeUrl,
     amount,
+    expiresAt,
     billingCycle,
     onPaymentSuccess,
+    onRegenerate,
 }: QRPaymentModalProps) {
-    const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes in seconds
+    const [timeLeft, setTimeLeft] = useState(() => getRemainingSeconds(expiresAt));
     const [isExpired, setIsExpired] = useState(false);
+    const [orderState, setOrderState] = useState<'waiting' | 'manual_review' | 'failed'>('waiting');
     const [copied, setCopied] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const hasCompletedRef = useRef(false);
+    const lastStatusRef = useRef<PaymentOrderStatus | null>(null);
 
     // Clear checkout session
     const clearCheckoutSession = useCallback(() => {
@@ -50,50 +62,135 @@ export function QRPaymentModal({
         setIsExpired(true);
         setIsLoading(false);
         setCopied(false);
+        setOrderState('waiting');
     }, []);
 
-    // Handle payment success
-    const handlePaymentSuccess = useCallback(() => {
-        onPaymentSuccess();
+    const handleOrderStatus = useCallback((status: PaymentOrderStatus) => {
+        if (hasCompletedRef.current && status !== 'paid') return;
+        if (lastStatusRef.current === status && status !== 'pending') return;
+
+        lastStatusRef.current = status;
+
+        if (status === 'paid') {
+            if (hasCompletedRef.current) return;
+            hasCompletedRef.current = true;
+            onPaymentSuccess();
+            return;
+        }
+
+        if (status === 'expired') {
+            setTimeLeft(0);
+            setIsExpired(true);
+            setIsLoading(false);
+            return;
+        }
+
+        if (status === 'manual_review') {
+            setOrderState('manual_review');
+            setIsLoading(false);
+            toast.warning('Giao dich can duyet thu cong. Vui long cho xac nhan.');
+            return;
+        }
+
+        if (status === 'cancelled') {
+            setOrderState('failed');
+            setIsLoading(false);
+            toast.error('Thanh toan khong thanh cong. Vui long thu lai.');
+            return;
+        }
+
+        setOrderState('waiting');
     }, [onPaymentSuccess]);
+
+    // Fallback status polling for missed realtime events
+    useEffect(() => {
+        if (!isOpen || !orderCode) return;
+
+        let cancelled = false;
+
+        const checkStatus = async () => {
+            try {
+                const status = await getPaymentOrderStatus(orderCode);
+                if (!cancelled && status) {
+                    handleOrderStatus(status);
+                }
+            } catch (err) {
+                if (import.meta.env.DEV) {
+                    console.error('Failed to fetch payment status:', err);
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        void checkStatus();
+
+        const poll = setInterval(() => {
+            if (hasCompletedRef.current || isExpired || orderState !== 'waiting') return;
+            void checkStatus();
+        }, 4000);
+
+        return () => {
+            cancelled = true;
+            clearInterval(poll);
+        };
+    }, [isOpen, orderCode, handleOrderStatus, isExpired, orderState]);
 
     // Subscribe to payment status changes
     useEffect(() => {
         if (!isOpen || !orderCode) return;
 
-        const { unsubscribe } = subscribeToPaymentStatus(orderCode, handlePaymentSuccess);
+        const { unsubscribe } = subscribeToPaymentStatus(orderCode, handleOrderStatus);
 
         return () => {
             unsubscribe();
         };
-    }, [isOpen, orderCode, handlePaymentSuccess]);
+    }, [isOpen, orderCode, handleOrderStatus]);
 
     // Countdown timer
     useEffect(() => {
-        if (!isOpen || isExpired) return;
+        if (!isOpen || isExpired || orderState !== 'waiting') return;
+
+        const syncTimeLeft = () => {
+            const nextTimeLeft = getRemainingSeconds(expiresAt);
+            setTimeLeft(nextTimeLeft);
+
+            if (nextTimeLeft === 0) {
+                setIsExpired(true);
+                return false;
+            }
+
+            return true;
+        };
+
+        if (!syncTimeLeft()) {
+            return;
+        }
 
         const timer = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev <= 1) {
-                    setIsExpired(true);
-                    return 0;
-                }
-                return prev - 1;
-            });
+            if (!syncTimeLeft()) {
+                clearInterval(timer);
+            }
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [isOpen, isExpired]);
+    }, [expiresAt, isOpen, isExpired, orderState]);
 
     // Reset state when modal opens
     useEffect(() => {
         if (isOpen) {
-            setTimeLeft(15 * 60);
-            setIsExpired(false);
+            const nextTimeLeft = getRemainingSeconds(expiresAt);
+            hasCompletedRef.current = false;
+            lastStatusRef.current = null;
+            setTimeLeft(nextTimeLeft);
+            setIsExpired(nextTimeLeft === 0);
+            setOrderState('waiting');
             setCopied(false);
-            setIsLoading(false);
+            setIsLoading(true);
         }
-    }, [isOpen]);
+    }, [expiresAt, isOpen, orderCode]);
 
     // Format time as MM:SS
     const formatTime = (seconds: number): string => {
@@ -123,11 +220,11 @@ export function QRPaymentModal({
 
     // Handle close - show confirmation if not expired
     const handleClose = () => {
-        if (!isExpired) {
-            setShowCancelConfirm(true);
-        } else {
+        if (isExpired || orderState !== 'waiting') {
             onClose();
+            return;
         }
+        setShowCancelConfirm(true);
     };
 
     // Handle cancel confirmation
@@ -137,17 +234,27 @@ export function QRPaymentModal({
         onClose();
     };
 
-    // Regenerate QR (placeholder)
-    const handleRegenerate = () => {
-        setIsExpired(false);
-        setTimeLeft(15 * 60);
-        // In production, this would call createSePayCheckoutSession again
-        if (import.meta.env.DEV) {
-            console.log('[QRModal] Regenerate QR code');
+    const handleRegenerate = async () => {
+        setIsLoading(true);
+        try {
+            if (onRegenerate) {
+                await onRegenerate();
+            }
+            lastStatusRef.current = null;
+            hasCompletedRef.current = false;
+            setOrderState('waiting');
+            setIsExpired(false);
+        } catch (err) {
+            console.error('Failed to regenerate checkout:', err);
+            toast.error('Khong the tao ma moi. Vui long thu lai.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const isLowTime = timeLeft < 2 * 60; // Less than 2 minutes
+    const isManualReview = orderState === 'manual_review';
+    const isFailed = orderState === 'failed';
 
     return (
         <>
@@ -224,23 +331,33 @@ export function QRPaymentModal({
                         </div>
 
                         {/* Timer */}
-                        <div className={`flex items-center justify-center gap-2 py-2 rounded-lg ${isLowTime ? 'bg-red-50' : 'bg-amber-50'
-                            }`}>
-                            <Timer className={`w-5 h-5 ${isLowTime ? 'text-red-500' : 'text-amber-600'}`} />
-                            <span className={`font-mono text-lg font-semibold ${isLowTime ? 'text-red-600' : 'text-amber-700'
+                        {orderState === 'waiting' && (
+                            <div className={`flex items-center justify-center gap-2 py-2 rounded-lg ${isLowTime ? 'bg-red-50' : 'bg-amber-50'
                                 }`}>
-                                {formatTime(timeLeft)}
-                            </span>
-                        </div>
+                                <Timer className={`w-5 h-5 ${isLowTime ? 'text-red-500' : 'text-amber-600'}`} />
+                                <span className={`font-mono text-lg font-semibold ${isLowTime ? 'text-red-600' : 'text-amber-700'
+                                    }`}>
+                                    {formatTime(timeLeft)}
+                                </span>
+                            </div>
+                        )}
 
                         {/* Status */}
                         <div className="text-center">
                             {isExpired ? (
-                                <p className="text-sm text-red-600">Mã QR đã hết hiệu lực</p>
+                                <p className="text-sm text-red-600">Ma QR da het hieu luc</p>
+                            ) : isManualReview ? (
+                                <p className="text-sm text-amber-600">
+                                    Da nhan giao dich, he thong dang duyet thu cong.
+                                </p>
+                            ) : isFailed ? (
+                                <p className="text-sm text-red-600">
+                                    Thanh toan khong thanh cong. Vui long tao giao dich moi.
+                                </p>
                             ) : (
                                 <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                    Đang chờ thanh toán...
+                                    Dang cho thanh toan...
                                 </p>
                             )}
                         </div>
@@ -250,10 +367,22 @@ export function QRPaymentModal({
                             {isExpired ? (
                                 <Button
                                     onClick={handleRegenerate}
+                                    disabled={isLoading}
                                     className="w-full bg-amber-600 hover:bg-amber-700"
                                 >
-                                    <RefreshCw className="w-4 h-4 mr-2" />
+                                    {isLoading ? (
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                    )}
                                     Tạo mã mới
+                                </Button>
+                            ) : isManualReview || isFailed ? (
+                                <Button
+                                    onClick={onClose}
+                                    className="w-full"
+                                >
+                                    Dong
                                 </Button>
                             ) : (
                                 <Button
@@ -299,3 +428,4 @@ export function QRPaymentModal({
         </>
     );
 }
+

@@ -2,19 +2,10 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import AppShell from './AppShell.tsx';
 import AdminShell from './AdminShell.tsx';
+import PageLoader from './PageLoader';
+import ProtectedAdminRoute from './ProtectedAdminRoute';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { LandlordRoute } from '@/components/LandlordRoute';
-import { useAuth } from '@/contexts/AuthContext';
-
-// Loading component for Suspense fallback
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-white to-secondary/10">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-      <p className="mt-4 text-gray-600">Đang tải...</p>
-    </div>
-  </div>
-);
 
 // Lazy load pages
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
@@ -62,22 +53,10 @@ const RevenuePage = lazy(() => import('@/pages/admin/RevenuePage'));
 const PartnersPage = lazy(() => import('@/pages/admin/PartnersPage'));
 const ServiceLeadsPage = lazy(() => import('@/pages/admin/ServiceLeadsPage'));
 const PartnerLeadsPage = lazy(() => import('@/pages/admin/PartnerLeadsPage'));
+const IngestionReviewPage = lazy(() => import('@/pages/admin/IngestionReviewPage'));
+const DataQualityPage = lazy(() => import('@/pages/admin/DataQualityPage'));
 
 
-
-// Admin route protection - Uses Supabase auth
-const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, profile, loading } = useAuth();
-
-  // Show loader while checking auth
-  if (loading) {
-    return <PageLoader />;
-  }
-
-  // Check if authenticated AND is admin
-  const isAdmin = user && profile?.role === 'admin';
-  return isAdmin ? children : <Navigate to="/admin/login" replace />;
-};
 
 export const router = createBrowserRouter([
   {
@@ -377,6 +356,18 @@ export const router = createBrowserRouter([
         element: <PartnerLeadsPage />,
       },
       {
+        path: 'ingestion-review',
+        element: <IngestionReviewPage />,
+      },
+      {
+        path: 'data-quality',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <DataQualityPage />
+          </Suspense>
+        ),
+      },
+      {
         path: 'service-leads',
         element: <ServiceLeadsPage />,
       },
@@ -387,4 +378,5 @@ export const router = createBrowserRouter([
     element: <Navigate to="/" replace />,
   },
 ]);
+
 

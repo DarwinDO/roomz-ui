@@ -8,7 +8,8 @@
 // ============================================
 
 export type ServiceType = 'moving' | 'cleaning' | 'setup' | 'support';
-export type ServiceLeadStatus = 'submitted' | 'assigned' | 'confirmed' | 'completed' | 'cancelled' | 'rejected' | 'rated';
+// Rating is derived from completed leads with user_rating/user_review.
+export type ServiceLeadStatus = 'submitted' | 'assigned' | 'confirmed' | 'completed' | 'cancelled' | 'rejected';
 
 // ============================================
 // Database Row Type

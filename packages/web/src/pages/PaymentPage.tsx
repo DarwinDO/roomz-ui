@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +36,6 @@ import { toast } from "sonner";
 
 export default function PaymentPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +49,10 @@ export default function PaymentPage() {
     orderCode: string;
     qrCodeUrl: string;
     amount: number;
+    expiresAt: string;
+    plan: SubscriptionPlan;
     billingCycle: BillingCycle;
+    requestPromo: boolean;
   } | null>(null);
 
   const rommzPlusPlan = getRommZPlusPlan();
@@ -89,6 +91,33 @@ export default function PaymentPage() {
     fetchSubscription();
   }, [user]);
 
+  const createCheckout = async (
+    plan: SubscriptionPlan,
+    selectedBillingCycle: BillingCycle,
+    requestPromo: boolean
+  ) => {
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+
+    const result = await createSePayCheckoutSession(
+      user.id,
+      plan,
+      selectedBillingCycle,
+      requestPromo
+    );
+
+    setQrModalData({
+      orderCode: result.orderCode,
+      qrCodeUrl: result.qrCodeUrl,
+      amount: result.amount,
+      expiresAt: result.expiresAt,
+      plan,
+      billingCycle: selectedBillingCycle,
+      requestPromo,
+    });
+  };
+
   const handleSubscribe = async (plan: SubscriptionPlan) => {
     if (!user) {
       toast.error("Vui lòng đăng nhập để đăng ký");
@@ -103,23 +132,7 @@ export default function PaymentPage() {
 
     setProcessingPlan(plan);
     try {
-      // Use SePay QR checkout
-      const result = await createSePayCheckoutSession(
-        user.id,
-        plan,
-        billingCycle,
-        remainingSlots > 0 // Apply promo if slots available
-      );
-
-      // Open QR payment modal
-      setQrModalData({
-        orderCode: result.orderCode,
-        qrCodeUrl: result.qrCodeUrl,
-        amount: billingCycle === "monthly"
-          ? (rommzPlusPlan?.price || 49000)
-          : (rommzPlusPlan?.quarterlyPrice || 119000),
-        billingCycle,
-      });
+      await createCheckout(plan, billingCycle, remainingSlots > 0);
     } catch (error) {
       console.error("Checkout error:", error);
       toast.error("Không thể tạo phiên thanh toán. Vui lòng thử lại.");
@@ -138,6 +151,22 @@ export default function PaymentPage() {
     if (user) {
       getUserSubscription(user.id).then(setSubscription);
     }
+  };
+
+  const handleRegenerateCheckout = async () => {
+    if (!qrModalData) return;
+
+    if (!user) {
+      toast.error("Vui long dang nhap lai de tiep tuc thanh toan.");
+      navigate("/login");
+      return;
+    }
+
+    await createCheckout(
+      qrModalData.plan,
+      qrModalData.billingCycle,
+      qrModalData.requestPromo
+    );
   };
 
   const getPlanIcon = (planId: SubscriptionPlan) => {
@@ -163,7 +192,9 @@ export default function PaymentPage() {
     return monthlyTotal - quarterlyPrice;
   };
 
-  const remainingSlots = promoStatus ? promoStatus.totalSlots - promoStatus.claimedSlots : 0;
+  const remainingSlots = promoStatus
+    ? (promoStatus.totalSlots ?? 0) - (promoStatus.claimedSlots ?? 0)
+    : 0;
 
   // Loading state
   if (loading) {
@@ -436,8 +467,10 @@ export default function PaymentPage() {
           orderCode={qrModalData.orderCode}
           qrCodeUrl={qrModalData.qrCodeUrl}
           amount={qrModalData.amount}
+          expiresAt={qrModalData.expiresAt}
           billingCycle={qrModalData.billingCycle}
           onPaymentSuccess={handlePaymentSuccess}
+          onRegenerate={handleRegenerateCheckout}
         />
       )}
     </div>

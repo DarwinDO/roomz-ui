@@ -1,294 +1,267 @@
-/**
- * RoommateCard - Individual roommate card in results list
- * Shows compatibility score, basic info, and action buttons
- * 
- * Layout: Split Button (3 actions: Nhắn, Xem, Kết nối)
- * - Mobile-friendly with proper touch targets
- * - Responsive text/icon only on smaller screens
- */
-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-    Heart,
-    MessageCircle,
-    MapPin,
-    GraduationCap,
-    Send,
-    Check,
-    Eye,
-    Moon,
-    Sparkles,
-    Volume2,
-    Users,
-    Coffee,
-    Loader2,
+  Check,
+  Coffee,
+  Eye,
+  GraduationCap,
+  Heart,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  Moon,
+  Send,
+  Sparkles,
+  Users,
+  Volume2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RoommateMatch } from '@/services/roommates';
 
 interface RoommateCardProps {
-    match: RoommateMatch;
-    onViewProfile: () => void;
-    onSendRequest: () => void;
-    onMessage: () => void;
-    hasPendingRequest: boolean;
-    canSendRequest: boolean;
-    isConnected?: boolean;
-    hasIntroMessage?: boolean;
-    isIncomingPending?: boolean;
-    onAccept?: () => void;
-    isAccepting?: boolean;
+  match: RoommateMatch;
+  onViewProfile: () => void;
+  onSendRequest: () => void;
+  onMessage: () => void;
+  hasPendingRequest: boolean;
+  canSendRequest: boolean;
+  isConnected?: boolean;
+  hasIntroMessage?: boolean;
+  isIncomingPending?: boolean;
+  onAccept?: () => void;
+  isAccepting?: boolean;
 }
 
-// Score color based on value
-function getScoreColor(score: number): string {
-    if (score >= 80) return 'text-green-600 bg-green-50';
-    if (score >= 60) return 'text-yellow-600 bg-yellow-50';
-    return 'text-orange-600 bg-orange-50';
+function getScoreTone(score: number): string {
+  if (score >= 80) return 'text-emerald-700 bg-emerald-50';
+  if (score >= 60) return 'text-amber-700 bg-amber-50';
+  return 'text-orange-700 bg-orange-50';
 }
 
 function getScoreLabel(score: number): string {
-    if (score >= 90) return 'Rất phù hợp';
-    if (score >= 75) return 'Phù hợp cao';
-    if (score >= 60) return 'Phù hợp';
-    return 'Tương đối';
+  if (score >= 90) return 'Rất phù hợp';
+  if (score >= 75) return 'Phù hợp cao';
+  if (score >= 60) return 'Phù hợp';
+  return 'Cân nhắc';
 }
 
-// Score breakdown component (compact)
+function getMatchScopeLabel(scope: RoommateMatch['match_scope']): string {
+  if (scope === 'same_district') return 'Cùng khu vực';
+  if (scope === 'same_city') return 'Cùng thành phố';
+  return 'Ngoài khu vực ưu tiên';
+}
+
+function getConfidenceLabel(score: number): string {
+  if (score >= 80) return 'Dữ liệu đầy đủ';
+  if (score >= 60) return 'Dữ liệu khá đầy đủ';
+  return 'Cần bổ sung dữ liệu';
+}
+
+function getConfidenceTone(score: number): string {
+  if (score >= 80) return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (score >= 60) return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-rose-200 bg-rose-50 text-rose-700';
+}
+
 function ScoreBreakdown({
-    sleepScore,
-    cleanlinessScore,
-    noiseScore,
-    guestScore,
-    weekendScore,
+  sleepScore,
+  cleanlinessScore,
+  noiseScore,
+  guestScore,
+  weekendScore,
 }: {
-    sleepScore: number;
-    cleanlinessScore: number;
-    noiseScore: number;
-    guestScore: number;
-    weekendScore: number;
+  sleepScore: number;
+  cleanlinessScore: number;
+  noiseScore: number;
+  guestScore: number;
+  weekendScore: number;
 }) {
-    const scores = [
-        { label: 'Lịch ngủ', value: sleepScore, icon: Moon },
-        { label: 'Ngăn nắp', value: cleanlinessScore, icon: Sparkles },
-        { label: 'Tiếng ồn', value: noiseScore, icon: Volume2 },
-        { label: 'Khách', value: guestScore, icon: Users },
-        { label: 'Cuối tuần', value: weekendScore, icon: Coffee },
-    ];
+  const scores = [
+    { label: 'Ngủ', value: sleepScore, icon: Moon },
+    { label: 'Gọn gàng', value: cleanlinessScore, icon: Sparkles },
+    { label: 'Tiếng ồn', value: noiseScore, icon: Volume2 },
+    { label: 'Khách', value: guestScore, icon: Users },
+    { label: 'Cuối tuần', value: weekendScore, icon: Coffee },
+  ];
 
-    return (
-        <div className="flex flex-wrap gap-2 mt-2">
-            {scores.map((score) => {
-                const Icon = score.icon;
-                const colorClass = score.value >= 80
-                    ? 'text-green-600'
-                    : score.value >= 50
-                        ? 'text-yellow-600'
-                        : 'text-red-500';
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {scores.map((score) => {
+        const Icon = score.icon;
+        const colorClass = score.value >= 80 ? 'text-emerald-600' : score.value >= 50 ? 'text-amber-600' : 'text-rose-500';
 
-                return (
-                    <div
-                        key={score.label}
-                        className="flex items-center gap-1 text-xs"
-                        title={`${score.label}: ${score.value}%`}
-                    >
-                        <Icon className={cn('w-3 h-3', colorClass)} />
-                        <span className={colorClass}>{score.value}%</span>
-                    </div>
-                );
-            })}
-        </div>
-    );
+        return (
+          <div key={score.label} className="flex items-center gap-1 text-xs" title={`${score.label}: ${score.value}%`}>
+            <Icon className={cn('h-3 w-3', colorClass)} />
+            <span className={colorClass}>{score.value}%</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export function RoommateCard({
-    match,
-    onViewProfile,
-    onSendRequest,
-    onMessage,
-    hasPendingRequest,
-    canSendRequest,
-    isConnected = false,
-    hasIntroMessage = false,
-    isIncomingPending = false,
-    onAccept,
-    isAccepting = false,
+  match,
+  onViewProfile,
+  onSendRequest,
+  onMessage,
+  hasPendingRequest,
+  canSendRequest,
+  isConnected = false,
+  hasIntroMessage = false,
+  isIncomingPending = false,
+  onAccept,
+  isAccepting = false,
 }: RoommateCardProps) {
-    const getInitials = (name: string) => {
-        return name
-            .split(' ')
-            .map((n) => n[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
-    };
+  const initials = match.full_name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
-    return (
-        <Card className="p-4 hover:shadow-md transition-shadow">
-            {/* Main Content Row */}
-            <div className="flex gap-4">
-                {/* Avatar */}
-                <div className="relative flex-shrink-0">
-                    <Avatar className="w-16 h-16 sm:w-20 sm:h-20">
-                        <AvatarImage src={match.avatar_url || undefined} alt={match.full_name} />
-                        <AvatarFallback className="text-lg bg-primary/10 text-primary">
-                            {getInitials(match.full_name)}
-                        </AvatarFallback>
-                    </Avatar>
+  return (
+    <Card className="p-4 transition-shadow hover:shadow-md">
+      <div className="flex gap-4">
+        <div className="relative shrink-0">
+          <Avatar className="h-16 w-16 sm:h-20 sm:w-20">
+            <AvatarImage src={match.avatar_url || undefined} alt={match.full_name} />
+            <AvatarFallback className="bg-primary/10 text-lg text-primary">{initials}</AvatarFallback>
+          </Avatar>
 
-                    {/* Compatibility Score Badge */}
-                    <div
-                        className={cn(
-                            'absolute -bottom-2 -right-2 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold border-2 border-white',
-                            getScoreColor(match.compatibility_score)
-                        )}
-                    >
-                        {match.compatibility_score}
-                    </div>
-                </div>
+          <div
+            className={cn(
+              'absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white text-xs font-bold sm:h-10 sm:w-10 sm:text-sm',
+              getScoreTone(match.compatibility_score),
+            )}
+          >
+            {match.compatibility_score}
+          </div>
+        </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-1">
-                        <div>
-                            <h3 className="font-semibold text-base sm:text-lg truncate">{match.full_name}</h3>
-                            {match.age && (
-                                <p className="text-xs sm:text-sm text-muted-foreground">{match.age} tuổi</p>
-                            )}
-                        </div>
-                        <Badge variant="outline" className={cn('ml-2 hidden sm:flex', getScoreColor(match.compatibility_score))}>
-                            <Heart className="w-3 h-3 mr-1" />
-                            {getScoreLabel(match.compatibility_score)}
-                        </Badge>
-                    </div>
-
-                    {/* Location */}
-                    <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-1">
-                        <MapPin className="w-3 h-3 flex-shrink-0" />
-                        <span className="truncate">
-                            {match.district ? `${match.district}, ` : ''}
-                            {match.city}
-                        </span>
-                    </div>
-
-                    {/* University - Hidden on very small screens */}
-                    {match.university && (
-                        <div className="hidden sm:flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-1">
-                            <GraduationCap className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate">{match.university}</span>
-                        </div>
-                    )}
-
-                    {/* Bio - Hidden on mobile */}
-                    {match.bio && (
-                        <p className="hidden md:block text-sm text-muted-foreground line-clamp-2 mb-1">
-                            {match.bio}
-                        </p>
-                    )}
-
-                    {/* Hobbies - Compact on mobile */}
-                    {match.hobbies && match.hobbies.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-1">
-                            {match.hobbies.slice(0, 3).map((hobby) => (
-                                <Badge key={hobby} variant="secondary" className="text-xs py-0">
-                                    {hobby}
-                                </Badge>
-                            ))}
-                            {match.hobbies.length > 3 && (
-                                <Badge variant="secondary" className="text-xs py-0">
-                                    +{match.hobbies.length - 3}
-                                </Badge>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Score Breakdown - Hidden on mobile */}
-                    <div className="hidden sm:block">
-                        <ScoreBreakdown
-                            sleepScore={match.sleep_score}
-                            cleanlinessScore={match.cleanliness_score}
-                            noiseScore={match.noise_score}
-                            guestScore={match.guest_score}
-                            weekendScore={match.weekend_score}
-                        />
-                    </div>
-                </div>
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-start justify-between gap-2">
+            <div>
+              <h3 className="truncate text-base font-semibold sm:text-lg">{match.full_name}</h3>
+              {match.age && <p className="text-xs text-muted-foreground sm:text-sm">{match.age} tuổi</p>}
             </div>
 
-            {/* Action Buttons Row - Simplified 2-button Layout */}
-            <div className="flex items-center gap-2 mt-3 sm:mt-4 pt-3 border-t">
-                {/* View Profile Button - Always visible */}
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={onViewProfile}
-                    className="h-9 sm:h-8 gap-1 sm:gap-2"
-                    title="Xem hồ sơ chi tiết"
-                >
-                    <Eye className="w-4 h-4" />
-                    <span className="text-xs sm:text-sm">Xem</span>
-                </Button>
+            <Badge variant="outline" className={cn('hidden sm:flex', getScoreTone(match.compatibility_score))}>
+              <Heart className="mr-1 h-3 w-3" />
+              {getScoreLabel(match.compatibility_score)}
+            </Badge>
+          </div>
 
-                {/* Primary Action Button - Changes based on connection state */}
-                {isConnected ? (
-                    // Connected: Show chat button
-                    <Button
-                        size="sm"
-                        onClick={onMessage}
-                        className="flex-1 h-9 sm:h-8 gap-1 sm:gap-2 bg-emerald-600 hover:bg-emerald-700"
-                        title="Mở cuộc trò chuyện"
-                    >
-                        <MessageCircle className="w-4 h-4" />
-                        <span className="text-xs sm:text-sm">Nhắn tin</span>
-                    </Button>
-                ) : isIncomingPending ? (
-                    // Incoming Pending: Show Accept button
-                    <Button
-                        size="sm"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onAccept?.();
-                        }}
-                        disabled={isAccepting}
-                        className="flex-1 h-9 sm:h-8 gap-1 sm:gap-2 bg-emerald-600 hover:bg-emerald-700"
-                        title="Chấp nhận yêu cầu kết nối ngay"
-                    >
-                        {isAccepting ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <Check className="w-4 h-4" />
-                        )}
-                        <span className="text-xs sm:text-sm">Chấp nhận</span>
-                    </Button>
-                ) : hasPendingRequest || hasIntroMessage ? (
-                    // Outgoing Pending: Show disabled "Đã gửi" button
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled
-                        className="flex-1 h-9 sm:h-8 gap-1 sm:gap-2 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        title="Yêu cầu kết nối đang chờ phản hồi"
-                    >
-                        <Check className="w-4 h-4" />
-                        <span className="text-xs sm:text-sm">Đã gửi yêu cầu</span>
-                    </Button>
-                ) : (
-                    // Not sent: Show send request button
-                    <Button
-                        size="sm"
-                        onClick={onSendRequest}
-                        disabled={!canSendRequest}
-                        className="flex-1 h-9 sm:h-8 gap-1 sm:gap-2"
-                        title="Gửi lời chào và yêu cầu kết nối"
-                    >
-                        <Send className="w-4 h-4" />
-                        <span className="text-xs sm:text-sm">Gửi lời chào</span>
-                    </Button>
-                )}
+          <div className="mb-1 flex items-center gap-1 text-xs text-muted-foreground sm:text-sm">
+            <MapPin className="h-3 w-3 shrink-0" />
+            <span className="truncate">
+              {match.district ? `${match.district}, ` : ''}
+              {match.city}
+            </span>
+          </div>
+
+          <div className="mb-2 flex flex-wrap gap-2">
+            <Badge variant="outline" className="text-[11px]">
+              {getMatchScopeLabel(match.match_scope)}
+            </Badge>
+            <Badge variant="outline" className={cn('text-[11px]', getConfidenceTone(match.confidence_score))}>
+              {getConfidenceLabel(match.confidence_score)}
+            </Badge>
+          </div>
+
+          {match.university && (
+            <div className="mb-1 hidden items-center gap-1 text-xs text-muted-foreground sm:flex sm:text-sm">
+              <GraduationCap className="h-3 w-3 shrink-0" />
+              <span className="truncate">{match.university}</span>
             </div>
-        </Card>
-    );
+          )}
+
+          {match.bio && <p className="mb-1 hidden line-clamp-2 text-sm text-muted-foreground md:block">{match.bio}</p>}
+
+          {match.hobbies.length > 0 && (
+            <div className="mb-1 flex flex-wrap gap-1">
+              {match.hobbies.slice(0, 3).map((hobby) => (
+                <Badge key={hobby} variant="secondary" className="py-0 text-xs">
+                  {hobby}
+                </Badge>
+              ))}
+              {match.hobbies.length > 3 && (
+                <Badge variant="secondary" className="py-0 text-xs">
+                  +{match.hobbies.length - 3}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          <div className="hidden sm:block">
+            <ScoreBreakdown
+              sleepScore={match.sleep_score}
+              cleanlinessScore={match.cleanliness_score}
+              noiseScore={match.noise_score}
+              guestScore={match.guest_score}
+              weekendScore={match.weekend_score}
+            />
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+              <span>Vị trí {match.location_score}%</span>
+              <span>Chuyển vào {match.move_in_score}%</span>
+              <span>Độ tin cậy {match.confidence_score}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center gap-2 border-t pt-3 sm:mt-4">
+        <Button variant="outline" size="sm" onClick={onViewProfile} className="h-9 gap-1 sm:h-8 sm:gap-2" title="Xem hồ sơ chi tiết">
+          <Eye className="h-4 w-4" />
+          <span className="text-xs sm:text-sm">Xem</span>
+        </Button>
+
+        {isConnected ? (
+          <Button size="sm" onClick={onMessage} className="h-9 flex-1 gap-1 bg-emerald-600 hover:bg-emerald-700 sm:h-8 sm:gap-2" title="Mở cuộc trò chuyện">
+            <MessageCircle className="h-4 w-4" />
+            <span className="text-xs sm:text-sm">Nhắn tin</span>
+          </Button>
+        ) : isIncomingPending ? (
+          <Button
+            size="sm"
+            onClick={(event) => {
+              event.stopPropagation();
+              onAccept?.();
+            }}
+            disabled={isAccepting}
+            className="h-9 flex-1 gap-1 bg-emerald-600 hover:bg-emerald-700 sm:h-8 sm:gap-2"
+            title="Chấp nhận yêu cầu kết nối"
+          >
+            {isAccepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            <span className="text-xs sm:text-sm">Chấp nhận</span>
+          </Button>
+        ) : hasPendingRequest || hasIntroMessage ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            className="h-9 flex-1 gap-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 sm:h-8 sm:gap-2"
+            title="Yêu cầu kết nối đang chờ phản hồi"
+          >
+            <Check className="h-4 w-4" />
+            <span className="text-xs sm:text-sm">Đã gửi</span>
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            onClick={onSendRequest}
+            disabled={!canSendRequest}
+            className="h-9 flex-1 gap-1 sm:h-8 sm:gap-2"
+            title="Gửi lời chào va yeu cau ket noi"
+          >
+            <Send className="h-4 w-4" />
+            <span className="text-xs sm:text-sm">Gửi lời chào</span>
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
 }

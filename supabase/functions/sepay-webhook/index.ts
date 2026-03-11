@@ -111,13 +111,28 @@ Deno.serve(async (req: Request) => {
         // ============================================
         // AUDIT LOGGING: Record webhook receipt
         // ============================================
+        const idempotencyKey = payload.id
+            ? `sepay:${payload.id}`
+            : `sepay:${payload.referenceCode}:${payload.transactionDate}`;
+
         const auditLogEntry = {
             provider: 'sepay',
+            webhook_id: payload.id != null ? String(payload.id) : null,
             event_type: 'payment_received',
-            payload: payload,
-            signature_verified: true,
-            processed_at: null, // Will update after processing
-            error_message: null,
+            order_code: orderCode,
+            transaction_id: payload.referenceCode,
+            amount: transferAmount,
+            request_method: req.method,
+            request_headers: {
+                'content-type': req.headers.get('content-type'),
+                'user-agent': req.headers.get('user-agent'),
+                'x-sepay-signature': req.headers.get('x-sepay-signature'),
+            },
+            request_body: payload,
+            signature_valid: true,
+            signature_provided: true,
+            status: 'processing',
+            idempotency_key: idempotencyKey,
         };
 
         // Insert audit log asynchronously (don't block processing)
@@ -162,6 +177,11 @@ Deno.serve(async (req: Request) => {
             console.error("[SePay] Audit log failed (non-critical):", err);
             return null;
         });
+
+        if (auditLogResult && !auditLogResult.ok) {
+            const auditError = await auditLogResult.text();
+            console.error("[SePay] Audit log insert returned non-OK status:", auditError);
+        }
 
         if (!rpcResponse.ok) {
             const errorText = await rpcResponse.text();

@@ -181,7 +181,7 @@ export function useRealtimeChat(options: UseRealtimeChatOptions): UseRealtimeCha
             typingSubRef.current?.sendTyping(false);
 
             // Send message
-            const newMessage = await sendMessageApi(conversationId, content);
+            const newMessage = await sendMessageApi(conversationId, content, user.id);
 
             // Optimistically add to list (realtime will also add it)
             setMessages(prev => {

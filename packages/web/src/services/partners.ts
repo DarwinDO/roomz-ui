@@ -6,12 +6,13 @@ import { supabase } from '@/lib/supabase';
 import type { Tables } from '@/lib/database.types';
 
 export type Partner = Tables<'partners'>;
+export type PartnerStatusFilter = 'active' | 'inactive' | 'all';
 
 export interface PartnerFilters {
     search?: string;
     category?: string;
     sortBy?: 'rating' | 'reviews' | 'name';
-    status?: string; // 'active', 'inactive', 'all'
+    status?: PartnerStatusFilter;
 }
 
 /**
@@ -87,6 +88,7 @@ export async function getPartnerById(id: string): Promise<Partner | null> {
  * Increment partner view count
  */
 export async function incrementPartnerView(id: string): Promise<void> {
+    void id;
     // Using RPC is ideal, but for now simple update or ignore if high traffic
     // We'll trust the component to call this
     // Optimized: Create an RPC function for atomic increment later.

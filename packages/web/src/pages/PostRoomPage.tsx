@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/contexts";
 import { createRoom, getRoomById, updateRoomWithData, type CreateRoomData, type UpdateRoomData } from "@/services/rooms";
 import { uploadMultipleRoomImages } from "@/services/roomImages";
+import { geocodeRoomLocation, normalizeRoomLocationInput } from "@/services/mapboxGeocoding";
 import { toast } from "sonner";
 import type { PostRoomFormData } from "./post-room/types";
 
@@ -39,6 +40,11 @@ export default function PostRoomPage() {
   const isEditMode = !!editRoomId;
   const [isLoadingRoom, setIsLoadingRoom] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [originalLocation, setOriginalLocation] = useState<{
+    address: string;
+    district: string;
+    city: string;
+  } | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<PostRoomFormData>({
@@ -121,6 +127,11 @@ export default function PostRoomPage() {
           heater: room.amenities?.heater || false,
           securityCamera: room.amenities?.security_camera || false,
           balcony: room.amenities?.balcony || false,
+        });
+        setOriginalLocation({
+          address: room.address || "",
+          district: room.district || "",
+          city: room.city || "Hà Nội",
         });
 
         // Load existing images
@@ -221,6 +232,28 @@ export default function PostRoomPage() {
     setIsSubmitting(true);
 
     try {
+      const normalizedLocationInput = normalizeRoomLocationInput({
+        address: formData.address,
+        district: formData.district,
+        city: formData.city,
+      });
+      const hasLocationChanged = !originalLocation || (
+        normalizedLocationInput.address !== normalizeRoomLocationInput(originalLocation).address
+        || (normalizedLocationInput.district || "") !== (normalizeRoomLocationInput(originalLocation).district || "")
+        || (normalizedLocationInput.city || "") !== (normalizeRoomLocationInput(originalLocation).city || "")
+      );
+
+      let geocodedLocation = null;
+      try {
+        geocodedLocation = await geocodeRoomLocation(normalizedLocationInput);
+      } catch (geocodeError) {
+        console.warn("Failed to geocode room location:", geocodeError);
+      }
+
+      if (!geocodedLocation && (!isEditMode || hasLocationChanged)) {
+        toast.warning("Không thể xác định tọa độ chính xác. Tin đăng vẫn được lưu nhưng sẽ chưa được ưu tiên trong tìm kiếm theo vị trí.");
+      }
+
       let newImageUrls: string[] = [];
 
       // Upload new images if any
@@ -256,9 +289,11 @@ export default function PostRoomPage() {
         const updateData: UpdateRoomData = {
           title: formData.title,
           description: formData.description || undefined,
-          address: formData.address,
-          district: formData.district || undefined,
-          city: formData.city,
+          address: normalizedLocationInput.address,
+          district: geocodedLocation?.district || normalizedLocationInput.district || undefined,
+          city: geocodedLocation?.city || normalizedLocationInput.city || formData.city,
+          latitude: geocodedLocation?.latitude ?? (hasLocationChanged ? null : undefined),
+          longitude: geocodedLocation?.longitude ?? (hasLocationChanged ? null : undefined),
           pricePerMonth: parseFloat(formData.pricePerMonth),
           depositAmount: formData.depositAmount ? parseFloat(formData.depositAmount) : undefined,
           areaSqm: formData.areaSqm ? parseFloat(formData.areaSqm) : undefined,
@@ -292,9 +327,11 @@ export default function PostRoomPage() {
           landlordId: user.id,
           title: formData.title,
           description: formData.description || undefined,
-          address: formData.address,
-          district: formData.district || undefined,
-          city: formData.city,
+          address: normalizedLocationInput.address,
+          district: geocodedLocation?.district || normalizedLocationInput.district || undefined,
+          city: geocodedLocation?.city || normalizedLocationInput.city || formData.city,
+          latitude: geocodedLocation?.latitude,
+          longitude: geocodedLocation?.longitude,
           pricePerMonth: parseFloat(formData.pricePerMonth),
           depositAmount: formData.depositAmount ? parseFloat(formData.depositAmount) : undefined,
           areaSqm: formData.areaSqm ? parseFloat(formData.areaSqm) : undefined,

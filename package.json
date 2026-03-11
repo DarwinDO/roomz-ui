@@ -11,10 +11,15 @@
     "build": "npm run build --workspace=@roomz/web",
     "lint": "npm run lint --workspace=@roomz/web",
     "preview": "npm run preview --workspace=@roomz/web",
+    "test:unit": "npm run test:unit --workspace=@roomz/web",
+    "test:e2e": "npm run test:e2e --workspace=@roomz/web",
     "test": "npm run test --workspace=@roomz/web",
     "test:ui": "npm run test:ui --workspace=@roomz/web",
     "test:headed": "npm run test:headed --workspace=@roomz/web",
-    "test:report": "npm run test:report --workspace=@roomz/web"
+    "test:report": "npm run test:report --workspace=@roomz/web",
+    "backfill:room-coordinates": "node ./supabase/scripts/backfill_room_coordinates.mjs",
+    "import:partner-crawl": "node ./supabase/scripts/import_partner_crawl_json.mjs",
+    "import:location-crawl": "node ./supabase/scripts/import_location_crawl_json.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.2",
@@ -68,7 +73,7 @@
     "react-hook-form": "^7.65.0",
     "react-leaflet": "^5.0.0",
     "react-resizable-panels": "^2.1.7",
-    "react-router-dom": "^7.9.4",
+    "react-router-dom": "^7.13.1",
     "recharts": "^2.15.1",
     "sonner": "^1.7.2",
     "tailwind-merge": "^2.6.0",

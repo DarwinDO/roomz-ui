@@ -14,8 +14,6 @@
  * - Services are wrapped in web to inject SupabaseClient automatically
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-
 // Re-export adapter types for service use
 export type { StorageAdapter, PlatformFile, PlatformAdapters, NotificationAdapter, NotificationOptions, ConfigAdapter } from '../adapters';
 

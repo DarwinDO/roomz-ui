@@ -7,27 +7,54 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RoomCard } from "@/components/common/RoomCard";
-import { MapboxRoomMap } from "@/components/maps";
-import { SearchAutocomplete } from "@/components/common/SearchAutocomplete";
+import { MapboxGeocoding, MapboxRoomMap } from "@/components/maps";
+import {
+  buildRoomSearchQuery,
+  sanitizeRoomSearchInput,
+  type SelectedMapboxPlace,
+} from "@/components/maps/mapboxGeocoding.utils";
 import { formatPriceInMillions } from "@roomz/shared/utils/format";
 import { transformRoomToCardProps } from "@/utils/room";
-import { useSearchRooms, useDebounce } from "@/hooks";
+import { useSearchRooms, useDebounce, useLocationCatalogSearch } from "@/hooks";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useAuth } from "@/contexts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, UtensilsCrossed, PawPrint, Armchair, CheckCircle2, Loader2, AlertCircle, ChevronDown } from "lucide-react";
+import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, UtensilsCrossed, PawPrint, Armchair, CheckCircle2, Loader2, AlertCircle, ChevronDown, GraduationCap, Landmark, TrainFront, MapPinned, Sparkles } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import type { SortOption } from "@/services/rooms";
+import {
+  formatLocationCatalogSubtitle,
+  formatLocationTypeLabel,
+  locationCatalogToSelectedPlace,
+  type LocationCatalogEntry,
+} from "@/services/locations";
+
+function getLocationIcon(type: LocationCatalogEntry["location_type"]) {
+  switch (type) {
+    case "university":
+    case "campus":
+      return GraduationCap;
+    case "station":
+      return TrainFront;
+    case "landmark":
+      return Landmark;
+    default:
+      return MapPinned;
+  }
+}
 
 export default function SearchPage() {
+  const locationRadiusOptions = [3, 5, 10, 20];
   const navigate = useNavigate();
   const { user } = useAuth();
 
   // Filters state
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState<SelectedMapboxPlace | null>(null);
+  const [searchRadiusKm, setSearchRadiusKm] = useState(5);
   const [priceRange, setPriceRange] = useState([0, 10000000]);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
@@ -37,29 +64,70 @@ export default function SearchPage() {
   const [showVerifiedCheck, setShowVerifiedCheck] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
 
+  const effectiveSearchQuery = useMemo(() => {
+    if (selectedLocation) {
+      return buildRoomSearchQuery(selectedLocation);
+    }
+
+    return sanitizeRoomSearchInput(searchInput);
+  }, [searchInput, selectedLocation]);
+
   // Debounce search query to reduce API calls (only fires after user stops typing for 400ms)
-  const debouncedSearchQuery = useDebounce(searchQuery, 400);
+  const debouncedSearchQuery = useDebounce(effectiveSearchQuery, 400);
+  const debouncedCatalogQuery = useDebounce(searchInput.trim(), 250);
 
   // Extract price range values for stable dependencies
   const minPrice = priceRange[0];
   const maxPrice = priceRange[1];
 
-  // Memoize filters object — ALL filters now server-side
+  // Derive structured amenity filters once to avoid repeated array scans.
+  const amenityFilters = useMemo(() => {
+    const hasPetAllowed = selectedAmenities.includes("pet_allowed");
+    const hasFurnished = selectedAmenities.includes("furnished");
+    const otherAmenities = selectedAmenities.filter(
+      (amenity) => amenity !== "pet_allowed" && amenity !== "furnished"
+    );
+
+    return {
+      petAllowed: hasPetAllowed ? true : undefined,
+      furnished: hasFurnished ? true : undefined,
+      otherAmenities,
+    };
+  }, [selectedAmenities]);
+
   const roomFilters = useMemo(() => ({
     minPrice,
     maxPrice,
     isVerified: verifiedOnly ? true : undefined,
     searchQuery: debouncedSearchQuery || undefined,
     roomTypes: selectedRoomTypes.length > 0 ? selectedRoomTypes : undefined,
-    amenities: selectedAmenities.length > 0 ? selectedAmenities : undefined,
+    petAllowed: amenityFilters.petAllowed,
+    furnished: amenityFilters.furnished,
+    amenities: amenityFilters.otherAmenities.length > 0 ? amenityFilters.otherAmenities : undefined,
+    latitude: selectedLocation?.lat,
+    longitude: selectedLocation?.lng,
+    radiusKm: selectedLocation ? searchRadiusKm : undefined,
     sortBy,
-  }), [minPrice, maxPrice, verifiedOnly, debouncedSearchQuery, selectedRoomTypes, selectedAmenities, sortBy]);
+  }), [minPrice, maxPrice, verifiedOnly, debouncedSearchQuery, selectedRoomTypes, amenityFilters, selectedLocation, searchRadiusKm, sortBy]);
 
   // Fetch rooms via TanStack Query (infinite pagination)
   const {
     rooms, totalCount, isLoading, isFetchingNextPage,
     error, refetch, hasNextPage, fetchNextPage, isPlaceholderData,
   } = useSearchRooms(roomFilters);
+
+  const {
+    data: locationSuggestions = [],
+    isLoading: isLocationSuggestionsLoading,
+  } = useLocationCatalogSearch({
+    query: debouncedCatalogQuery,
+    limit: 5,
+    types: ["university", "campus", "district", "station", "landmark"],
+  });
+  const shouldShowCatalogSuggestions = !selectedLocation && debouncedCatalogQuery.length >= 2;
+  const shouldSuppressMapboxSuggestions =
+    shouldShowCatalogSuggestions &&
+    (isLocationSuggestionsLoading || locationSuggestions.length > 0);
 
   // Fetch favorites
   const { isFavorited, toggleFavorite } = useFavorites();
@@ -137,7 +205,9 @@ export default function SearchPage() {
     setSelectedRoomTypes([]);
     setSelectedAmenities([]);
     setShowVerifiedCheck(false);
-    setSearchQuery("");
+    setSearchInput("");
+    setSelectedLocation(null);
+    setSearchRadiusKm(5);
     setSortBy('newest');
     toast.success("Đã đặt lại bộ lọc");
   };
@@ -145,6 +215,33 @@ export default function SearchPage() {
   const handleApplyFilters = () => {
     setIsFiltersOpen(false);
     toast.success("Đã áp dụng bộ lọc");
+  };
+
+  const handleSearchInputChange = (value: string) => {
+    setSearchInput(value);
+
+    if (selectedLocation && value.trim() !== selectedLocation.address) {
+      setSelectedLocation(null);
+    }
+  };
+
+  const handleLocationSelect = (place: SelectedMapboxPlace) => {
+    setSelectedLocation(place);
+    setSearchInput(place.address);
+    setSearchRadiusKm(5);
+  };
+
+  const handleCatalogLocationSelect = (location: LocationCatalogEntry) => {
+    const selectedPlace = locationCatalogToSelectedPlace(location);
+
+    if (!selectedPlace) {
+      toast.info("Địa điểm này chưa có tọa độ để tìm theo bán kính.");
+      return;
+    }
+
+    setSelectedLocation(selectedPlace);
+    setSearchInput(selectedPlace.address);
+    setSearchRadiusKm(5);
   };
 
   // Transform rooms to card props (no more client-side filtering!)
@@ -158,10 +255,13 @@ export default function SearchPage() {
       <div className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-40">
         <div className="px-4 py-4 max-w-6xl mx-auto">
           <div className="flex items-center gap-2 mb-3">
-            <SearchAutocomplete
-              value={searchQuery}
-              onChange={setSearchQuery}
+            <MapboxGeocoding
+              value={searchInput}
+              onChange={handleSearchInputChange}
+              onSelect={handleLocationSelect}
+              placeholder="Tìm theo địa chỉ, khu vực hoặc trường học..."
               className="flex-1"
+              suppressSuggestions={shouldSuppressMapboxSuggestions}
             />
             <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
               <SheetTrigger asChild>
@@ -310,6 +410,91 @@ export default function SearchPage() {
               </SheetContent>
             </Sheet>
           </div>
+
+          {shouldShowCatalogSuggestions && (
+            <div className="mb-3 rounded-2xl border border-border/70 bg-card/80 p-2 shadow-sm">
+              <div className="mb-2 flex items-center justify-between px-2 pt-1">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  Gợi ý khu vực nội bộ
+                </div>
+                {isLocationSuggestionsLoading && (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                )}
+              </div>
+
+              {locationSuggestions.length > 0 ? (
+                <div className="grid gap-2 md:grid-cols-2">
+                  {locationSuggestions.map((location) => {
+                    const Icon = getLocationIcon(location.location_type);
+                    const hasCoordinates = location.latitude !== null && location.longitude !== null;
+
+                    return (
+                      <button
+                        key={location.id}
+                        type="button"
+                        onClick={() => handleCatalogLocationSelect(location)}
+                        className="flex items-start gap-3 rounded-2xl border border-border/70 bg-background px-3 py-3 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
+                      >
+                        <div className="mt-0.5 rounded-xl bg-primary/10 p-2 text-primary">
+                          <Icon className="h-4 w-4" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-foreground">{location.name}</p>
+                            <Badge variant="outline" className="rounded-full text-[10px]">
+                              {formatLocationTypeLabel(location.location_type)}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {formatLocationCatalogSubtitle(location)}
+                          </p>
+                          {!hasCoordinates && (
+                            <p className="mt-1 text-[11px] text-amber-700">
+                              Chưa có tọa độ chính xác, chỉ phù hợp để tham khảo.
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                !isLocationSuggestionsLoading && (
+                  <p className="px-2 pb-2 text-sm text-muted-foreground">
+                    Chưa có điểm mốc nội bộ phù hợp. Bạn vẫn có thể chọn gợi ý từ Mapbox hoặc nhập địa chỉ tự do.
+                  </p>
+                )
+              )}
+            </div>
+          )}
+
+          {selectedLocation && (
+            <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Map className="w-3.5 h-3.5" />
+                Đang tìm quanh:
+                <span className="font-medium text-foreground">{buildRoomSearchQuery(selectedLocation)}</span>
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground">Bán kính</span>
+                {locationRadiusOptions.map((radius) => (
+                  <Button
+                    key={radius}
+                    type="button"
+                    size="sm"
+                    variant={searchRadiusKm === radius ? "default" : "outline"}
+                    onClick={() => setSearchRadiusKm(radius)}
+                    className="h-8 rounded-full px-3 text-xs"
+                  >
+                    {radius} km
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* View Toggle & Results Count */}
           <div className="flex items-center justify-between">

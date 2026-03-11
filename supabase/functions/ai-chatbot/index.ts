@@ -167,6 +167,38 @@ type HistoryMessage = {
     metadata?: unknown;
 };
 
+type CrawlAction = 'run_source' | 'sync_job' | 'import_records';
+
+function isCrawlIngestionRequestBody(value: unknown): value is { action: CrawlAction } {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false;
+    }
+
+    const action = (value as { action?: unknown }).action;
+    return action === 'run_source' || action === 'sync_job' || action === 'import_records';
+}
+
+async function proxyCrawlIngestion(req: Request, authHeader: string) {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/crawl-ingestion`, {
+        method: req.method,
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            'x-admin-user-auth': authHeader,
+        },
+        body: await req.text(),
+    });
+
+    return new Response(await response.text(), {
+        status: response.status,
+        headers: {
+            'Content-Type': 'application/json',
+            ...CORS_BASE_HEADERS,
+        },
+    });
+}
+
 function isRoomSearchIntentText(text: string): boolean {
     return (
         /(tim|tim kiem|goi y|de xuat|dua ra).*(phong|nha tro|room)/.test(text) ||
@@ -560,6 +592,18 @@ Deno.serve(async (req) => {
     }
 
     try {
+        const requestBody = await req.clone().json().catch(() => null);
+        if (isCrawlIngestionRequestBody(requestBody)) {
+            const authHeader = req.headers.get('Authorization');
+            if (!authHeader) {
+                return new Response(
+                    JSON.stringify({ error: 'Missing authorization', code: 'AUTH_ERROR' }),
+                    { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
+            return proxyCrawlIngestion(req, authHeader);
+        }
+
         if (!GEMINI_API_KEY) {
             return new Response(
                 JSON.stringify({ error: 'Server configuration error: Missing Gemini API key', code: 'GEMINI_ERROR' }),

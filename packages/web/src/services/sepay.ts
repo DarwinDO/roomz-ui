@@ -35,18 +35,25 @@ export interface SePayWebhookPayload {
     description: string;
 }
 
+type RuntimeEnv = { DEV?: boolean } & Record<string, string | undefined>;
+
+const env = (import.meta as ImportMeta & {
+    env?: RuntimeEnv;
+}).env ?? {};
+const isDev = env.DEV === true;
+
 // SePay config from environment variables
 const getSePayConfig = (): SePayConfig => ({
-    apiKey: import.meta.env.VITE_SEPAY_API_KEY || 'sandbox_key',
-    merchantId: import.meta.env.VITE_SEPAY_MERCHANT_ID || 'SP-TEST-NH925239',
-    baseUrl: import.meta.env.VITE_SEPAY_BASE_URL || 'https://pgapi-sandbox.sepay.vn',
+    apiKey: env.VITE_SEPAY_API_KEY || 'sandbox_key',
+    merchantId: env.VITE_SEPAY_MERCHANT_ID || 'SP-TEST-NH925239',
+    baseUrl: env.VITE_SEPAY_BASE_URL || 'https://pgapi-sandbox.sepay.vn',
 });
 
 // Bank account for VietQR (from user config)
 const getBankConfig = (): { bank: string; account: string; accountName: string } => ({
-    bank: import.meta.env.VITE_SEPAY_BANK || 'MB',
-    account: import.meta.env.VITE_SEPAY_ACCOUNT || '0363565884',
-    accountName: import.meta.env.VITE_SEPAY_ACCOUNT_NAME || 'NGUYEN HOANG VIET DO',
+    bank: env.VITE_SEPAY_BANK || 'MB',
+    account: env.VITE_SEPAY_ACCOUNT || '0363565884',
+    accountName: env.VITE_SEPAY_ACCOUNT_NAME || 'NGUYEN HOANG VIET DO',
 });
 
 /**
@@ -73,7 +80,7 @@ export function createPaymentOrder(params: CreateOrderParams): SePayOrder {
     // Generate VietQR URL
     const qrCodeUrl = generateQRUrl(orderCode, amount);
 
-    if (import.meta.env.DEV) {
+    if (isDev) {
         console.log('[SePay] Creating order:', { orderCode, amount, qrCodeUrl });
     }
 
@@ -88,7 +95,7 @@ export function createPaymentOrder(params: CreateOrderParams): SePayOrder {
  * In production, this would call SePay API to check transaction status
  */
 export async function verifyPayment(orderCode: string): Promise<{ success: boolean; transactionId?: string }> {
-    if (import.meta.env.DEV) {
+    if (isDev) {
         console.log('[SePay] Verifying payment:', orderCode);
     }
 

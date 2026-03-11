@@ -5,11 +5,15 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@roomz/shared/services/database.types';
+import type { Database, Tables, TablesInsert } from '@roomz/shared/services/database.types';
+
+const env = (import.meta as ImportMeta & {
+  env?: Record<string, string | undefined>;
+}).env ?? {};
 
 // Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vevnoxlgwisdottaifdn.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_Md-3oao5dzebkhQcasURFw_Cz25UQmH';
+const supabaseUrl = env.VITE_SUPABASE_URL || 'https://vevnoxlgwisdottaifdn.supabase.co';
+const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_Md-3oao5dzebkhQcasURFw_Cz25UQmH';
 
 // Create Supabase client
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -83,7 +87,7 @@ export const auth = {
   /**
    * Sign up new user
    */
-  async signUp(email: string, password: string, userData: any = {}) {
+  async signUp(email: string, password: string, userData: Record<string, unknown> = {}) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -125,6 +129,35 @@ export const auth = {
   },
 
   /**
+   * Send a one-time email code for passwordless sign-in
+   */
+  async sendEmailOtp(email: string) {
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+      },
+    });
+
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Verify a one-time email code and create a session
+   */
+  async verifyEmailOtp(email: string, token: string) {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'email',
+    });
+
+    if (error) throw error;
+    return data;
+  },
+
+  /**
    * Sign out
    */
   async signOut() {
@@ -153,7 +186,7 @@ export const auth = {
   /**
    * Update user profile
    */
-  async updateProfile(updates: any) {
+  async updateProfile(updates: Record<string, unknown>) {
     const { data, error } = await supabase.auth.updateUser({
       data: updates,
     });
@@ -179,7 +212,13 @@ export const db = {
   /**
    * Get all active rooms
    */
-  async getRooms(filters: any = {}) {
+  async getRooms(
+    filters: {
+      district?: Tables<'rooms'>['district'];
+      maxPrice?: number;
+      roomType?: Tables<'rooms'>['room_type'];
+    } = {}
+  ) {
     let query = supabase
       .from('rooms')
       .select(`
@@ -231,7 +270,7 @@ export const db = {
   /**
    * Create new room
    */
-  async createRoom(roomData: any) {
+  async createRoom(roomData: TablesInsert<'rooms'>) {
     const { data, error } = await supabase
       .from('rooms')
       .insert(roomData)
@@ -263,7 +302,7 @@ export const db = {
   /**
    * Send message
    */
-  async sendMessage(messageData: any) {
+  async sendMessage(messageData: TablesInsert<'messages'>) {
     const { data, error } = await supabase
       .from('messages')
       .insert(messageData)
@@ -312,7 +351,7 @@ export const realtime = {
   /**
    * Subscribe to new messages
    */
-  subscribeToMessages(userId: string, callback: (message: any) => void) {
+  subscribeToMessages(userId: string, callback: (message: Tables<'messages'>) => void) {
     return supabase
       .channel('messages')
       .on(
@@ -324,7 +363,7 @@ export const realtime = {
           filter: `receiver_id=eq.${userId}`,
         },
         (payload) => {
-          callback(payload.new);
+          callback(payload.new as Tables<'messages'>);
         }
       )
       .subscribe();
@@ -333,7 +372,7 @@ export const realtime = {
   /**
    * Subscribe to room updates
    */
-  subscribeToRoom(roomId: string, callback: (room: any) => void) {
+  subscribeToRoom(roomId: string, callback: (room: Tables<'rooms'>) => void) {
     return supabase
       .channel(`room:${roomId}`)
       .on(
@@ -345,7 +384,7 @@ export const realtime = {
           filter: `id=eq.${roomId}`,
         },
         (payload) => {
-          callback(payload.new);
+          callback(payload.new as Tables<'rooms'>);
         }
       )
       .subscribe();

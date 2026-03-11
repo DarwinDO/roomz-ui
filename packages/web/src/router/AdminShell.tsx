@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ErrorBoundary } from "@/components/admin/ErrorBoundary";
-import RommzIcon from "@/assets/logo/rommz-icon.png";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/contexts/AuthContext";
-import { useAdminRealtimeSync } from "@/hooks/useAdminRealtimeSync";
+import { useState } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ErrorBoundary } from '@/components/admin/ErrorBoundary';
+import RommzIcon from '@/assets/logo/rommz-icon.png';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAdminRealtimeSync } from '@/hooks/useAdminRealtimeSync';
 import {
   LayoutDashboard,
   Users,
@@ -17,47 +17,44 @@ import {
   DollarSign,
   Handshake,
   ClipboardList,
+  Database,
+  AlertTriangle,
   Menu,
   X,
   LogOut,
   ChevronRight,
-} from "lucide-react";
+} from 'lucide-react';
 
 const navItems = [
-  { path: "/admin/dashboard", label: "Tổng quan", icon: LayoutDashboard },
-  { path: "/admin/users", label: "Người dùng", icon: Users },
-  { path: "/admin/rooms", label: "Phòng trọ", icon: Home },
-  { path: "/admin/verifications", label: "Xác thực", icon: ShieldCheck },
-  { path: "/admin/reports", label: "Báo cáo", icon: Flag },
-  { path: "/admin/analytics", label: "Phân tích", icon: BarChart3 },
-  { path: "/admin/revenue", label: "Doanh thu", icon: DollarSign },
-  { path: "/admin/partners", label: "Đối tác", icon: Handshake },
-  { path: "/admin/partner-leads", label: "Đơn đăng ký", icon: ClipboardList },
-  { path: "/admin/service-leads", label: "Dịch vụ", icon: ClipboardList },
+  { path: '/admin/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
+  { path: '/admin/users', label: 'Người dùng', icon: Users },
+  { path: '/admin/rooms', label: 'Phòng trọ', icon: Home },
+  { path: '/admin/verifications', label: 'Xác thực', icon: ShieldCheck },
+  { path: '/admin/reports', label: 'Báo cáo', icon: Flag },
+  { path: '/admin/analytics', label: 'Phân tích', icon: BarChart3 },
+  { path: '/admin/revenue', label: 'Doanh thu', icon: DollarSign },
+  { path: '/admin/partners', label: 'Đối tác', icon: Handshake },
+  { path: '/admin/partner-leads', label: 'Đơn đăng ký', icon: ClipboardList },
+  { path: '/admin/ingestion-review', label: 'Duyệt Crawl', icon: Database },
+  { path: '/admin/data-quality', label: 'Chất lượng dữ liệu', icon: AlertTriangle },
+  { path: '/admin/service-leads', label: 'Dịch vụ', icon: ClipboardList },
 ];
 
-// Sidebar navigation component
-function SidebarNav({
-  currentPath,
-  onItemClick,
-}: {
-  currentPath: string;
-  onItemClick?: () => void;
-}) {
+function SidebarNav({ currentPath, onItemClick }: { currentPath: string; onItemClick?: () => void }) {
   return (
     <nav className="flex-1 space-y-1 px-3 py-4">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = currentPath === item.path;
+
         return (
           <Link
             key={item.path}
             to={item.path}
             onClick={onItemClick}
-            className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${isActive
-              ? "bg-primary text-white"
-              : "text-gray-300 hover:bg-gray-700/50 hover:text-white"
-              }`}
+            className={`group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              isActive ? 'bg-primary text-white' : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+            }`}
           >
             <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
             {item.label}
@@ -68,7 +65,6 @@ function SidebarNav({
   );
 }
 
-// Sidebar user info component
 function SidebarUserInfo({
   profile,
   email,
@@ -80,22 +76,15 @@ function SidebarUserInfo({
 }) {
   return (
     <div className="flex flex-shrink-0 border-t border-gray-700/50 p-4">
-      <div className="flex items-center w-full">
+      <div className="flex w-full items-center">
         <Avatar className="h-10 w-10">
-          <AvatarFallback className="bg-primary text-white">
-            {profile?.full_name?.charAt(0) || "A"}
-          </AvatarFallback>
+          <AvatarFallback className="bg-primary text-white">{profile?.full_name?.charAt(0) || 'A'}</AvatarFallback>
         </Avatar>
         <div className="ml-3 flex-1">
-          <p className="text-sm font-medium text-white">{profile?.full_name || "Admin"}</p>
-          <p className="text-xs text-gray-400">{email || ""}</p>
+          <p className="text-sm font-medium text-white">{profile?.full_name || 'Admin'}</p>
+          <p className="text-xs text-gray-400">{email || ''}</p>
         </div>
-        <Button
-          onClick={onLogout}
-          variant="ghost"
-          size="icon"
-          className="text-gray-400 hover:text-white hover:bg-gray-700/50"
-        >
+        <Button onClick={onLogout} variant="ghost" size="icon" className="text-gray-400 hover:bg-gray-700/50 hover:text-white">
           <LogOut className="h-5 w-5" />
         </Button>
       </div>
@@ -109,98 +98,74 @@ export default function AdminShell() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
 
-  // Enable realtime sync for admin dashboard
   useAdminRealtimeSync();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/admin/login");
+    navigate('/admin/login');
   };
 
   const getBreadcrumb = () => {
-    const item = navItems.find((i) => i.path === location.pathname);
-    return item ? item.label : "Admin";
+    const item = navItems.find((navItem) => navItem.path === location.pathname);
+    return item ? item.label : 'Admin';
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar - Desktop */}
       <aside className="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col">
         <div className="flex min-h-0 flex-1 flex-col bg-[#1a1d29]">
-          {/* Logo */}
-          <div className="flex h-16 flex-shrink-0 items-center px-4 border-b border-gray-700/50">
+          <div className="flex h-16 flex-shrink-0 items-center border-b border-gray-700/50 px-4">
             <img src={RommzIcon} alt="rommz" className="h-8 w-8 object-contain" />
             <span className="ml-2 text-lg font-bold text-white">Admin</span>
           </div>
 
-          {/* Navigation */}
           <div className="flex flex-1 flex-col overflow-y-auto">
             <SidebarNav currentPath={location.pathname} />
           </div>
 
-          {/* Admin User Info - Desktop */}
           <SidebarUserInfo profile={profile} email={user?.email} onLogout={handleLogout} />
         </div>
       </aside>
 
-      {/* Mobile sidebar */}
       {sidebarOpen && (
         <>
-          <div
-            className="fixed inset-0 z-40 bg-black/50 md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
+          <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
           <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-[#1a1d29] md:hidden">
-            <div className="flex h-16 items-center justify-between px-4 border-b border-gray-700/50">
+            <div className="flex h-16 items-center justify-between border-b border-gray-700/50 px-4">
               <div className="flex items-center">
                 <img src={RommzIcon} alt="rommz" className="h-8 w-8 object-contain" />
                 <span className="ml-2 text-lg font-bold text-white">Admin</span>
               </div>
-              <Button
-                onClick={() => setSidebarOpen(false)}
-                variant="ghost"
-                size="icon"
-                className="text-gray-400 hover:text-white"
-              >
+              <Button onClick={() => setSidebarOpen(false)} variant="ghost" size="icon" className="text-gray-400 hover:text-white">
                 <X className="h-5 w-5" />
               </Button>
             </div>
 
             <SidebarNav currentPath={location.pathname} onItemClick={() => setSidebarOpen(false)} />
-
             <SidebarUserInfo profile={profile} email={user?.email} onLogout={handleLogout} />
           </aside>
         </>
       )}
 
-      {/* Main content */}
-      <div className="md:pl-64 flex flex-col flex-1">
-        {/* Top bar */}
+      <div className="flex flex-1 flex-col md:pl-64">
         <header className="sticky top-0 z-30 flex h-16 flex-shrink-0 items-center border-b border-gray-200 bg-white shadow-sm">
-          <Button
-            onClick={() => setSidebarOpen(true)}
-            variant="ghost"
-            size="icon"
-            className="md:hidden ml-4"
-          >
+          <Button onClick={() => setSidebarOpen(true)} variant="ghost" size="icon" className="ml-4 md:hidden">
             <Menu className="h-6 w-6" />
           </Button>
 
-          {/* Breadcrumb */}
-          <div className="flex items-center px-4 sm:px-6 lg:px-8 flex-1">
+          <div className="flex flex-1 items-center px-4 sm:px-6 lg:px-8">
             <div className="flex items-center text-sm text-gray-500">
               <Link to="/admin/dashboard" className="hover:text-gray-700">
                 Admin
               </Link>
-              <ChevronRight className="h-4 w-4 mx-2" />
-              <span className="text-gray-900 font-medium">{getBreadcrumb()}</span>
+              <ChevronRight className="mx-2 h-4 w-4" />
+              <span className="font-medium text-gray-900">{getBreadcrumb()}</span>
             </div>
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1">
-          <div className="py-6 px-4 sm:px-6 lg:px-8">
+          <div className="px-4 py-6 sm:px-6 lg:px-8">
             <ErrorBoundary>
               <Outlet />
             </ErrorBoundary>
@@ -210,4 +175,3 @@ export default function AdminShell() {
     </div>
   );
 }
-

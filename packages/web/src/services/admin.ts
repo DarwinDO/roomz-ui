@@ -389,6 +389,8 @@ export async function assignPartnerToLead(leadId: string, partnerId: string): Pr
       status: 'assigned',
       assigned_at: new Date().toISOString(),
       assigned_by: user.id,
+      rejection_reason: null,
+      updated_at: new Date().toISOString(),
     })
     .eq('id', leadId);
 
@@ -405,6 +407,8 @@ export async function updateServiceLeadStatus(
 ): Promise<void> {
   const updateData: Record<string, unknown> = {
     status,
+    updated_at: new Date().toISOString(),
+    rejection_reason: null,
   };
 
   if (status === 'rejected' && reason) {
@@ -455,7 +459,7 @@ export async function getServiceLeadStats(): Promise<ServiceLeadStats> {
     supabase.from('service_leads').select('*', { count: 'exact', head: true }).eq('status', 'submitted'),
     supabase.from('service_leads').select('*', { count: 'exact', head: true }).eq('status', 'assigned'),
     supabase.from('service_leads').select('*', { count: 'exact', head: true }).eq('status', 'confirmed'),
-    supabase.from('service_leads').select('*', { count: 'exact', head: true }).in('status', ['completed', 'rated']),
+    supabase.from('service_leads').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
     supabase.from('service_leads').select('*', { count: 'exact', head: true }).in('status', ['cancelled', 'rejected']),
   ]);
 

@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
-import { generateOrderCode, getOrderExpiration, generateQRUrl } from './sepay';
+import { generateQRUrl } from './sepay';
 import {
   PLANS,
   PROMO,
@@ -17,11 +17,18 @@ import {
   type BillingCycle,
   type PlanDetails,
 } from '@/config/payment.config';
-import type { Tables } from '@/lib/database.types';
 
 export type { SubscriptionPlan, BillingCycle, PlanDetails };
 
+type RuntimeEnv = { DEV?: boolean } & Record<string, string | undefined>;
+
+const env = (import.meta as ImportMeta & {
+  env?: RuntimeEnv;
+}).env ?? {};
+const isDev = env.DEV === true;
+
 export type SubscriptionStatus = 'active' | 'cancelled' | 'expired' | 'past_due';
+export type PaymentOrderStatus = 'pending' | 'paid' | 'expired' | 'manual_review' | 'cancelled';
 
 export interface Subscription {
   id: string;
@@ -172,60 +179,67 @@ export interface SePayCheckoutResult {
   orderCode: string;
   qrCodeUrl: string;
   expiresAt: string;
+  amount: number;
+  promoApplied: boolean;
 }
 
 /**
  * Create SePay checkout session (QR-based payment)
  */
 export async function createSePayCheckoutSession(
-  userId: string,
+  _userId: string,
   plan: SubscriptionPlan,
   billingCycle: BillingCycle = 'monthly',
-  isPromo: boolean = false
+  requestPromo: boolean = false
 ): Promise<SePayCheckoutResult> {
   if (plan === 'free') {
     throw new Error('Cannot create checkout for free plan');
   }
 
-  const rommzPlusPlan = getRommZPlusPlan();
-  if (!rommzPlusPlan) {
-    throw new Error('Plan not found');
+  const { data, error } = await supabase.rpc('create_checkout_order' as never, {
+    p_plan: plan,
+    p_billing_cycle: billingCycle,
+    p_request_promo: requestPromo,
+  } as never);
+
+  if (error) {
+    if (error.code === 'PGRST202') {
+      throw new Error('Checkout function is not deployed. Please run latest migrations.');
+    }
+    throw error;
   }
 
-  // Calculate amount using config
-  let amount = PRICING.getPrice(billingCycle);
-  if (isPromo) {
-    amount = PRICING.getPromoPrice(amount);
+  const order = data as {
+    order_code?: string;
+    amount?: number;
+    expires_at?: string;
+    promo_applied?: boolean;
+  } | null;
+
+  if (!order?.order_code || typeof order.amount !== 'number' || !order.expires_at) {
+    throw new Error('Invalid checkout response from server');
   }
 
-  // Generate order code and expiration using config
-  const orderCode = generateOrderCode();
-  const expiresAt = getOrderExpiration(ORDER.EXPIRATION_MINUTES);
+  const amount = order.amount;
+  const orderCode = order.order_code;
+  const expiresAt = order.expires_at;
   const qrCodeUrl = generateQRUrl(orderCode, amount);
 
-  // Save order to database
-  await supabase
-    .from('payment_orders')
-    .insert({
-      user_id: userId,
-      order_code: orderCode,
-      plan,
-      billing_cycle: billingCycle,
+  if (isDev) {
+    console.log('[Payment] Created order:', {
+      orderCode,
       amount,
-      status: ORDER.STATUS.PENDING,
-      payment_provider: 'sepay',
-      qr_data: qrCodeUrl,
-      expires_at: expiresAt.toISOString(),
+      billingCycle,
+      promoApplied: !!order.promo_applied,
     });
-
-  if (import.meta.env.DEV) {
-    console.log('[Payment] Created order:', { orderCode, amount, billingCycle, isPromo });
   }
 
   return {
     orderCode,
     qrCodeUrl,
-    expiresAt: expiresAt.toISOString(),
+    expiresAt,
+    amount,
+    promoApplied: !!order.promo_applied,
   };
 }
 
@@ -234,7 +248,7 @@ export async function createSePayCheckoutSession(
  */
 export function subscribeToPaymentStatus(
   orderCode: string,
-  onPaid: () => void
+  onStatusChange: (status: PaymentOrderStatus) => void
 ): { unsubscribe: () => void } {
   const channel = supabase
     .channel(`payment_${orderCode}`)
@@ -246,13 +260,13 @@ export function subscribeToPaymentStatus(
         table: 'payment_orders',
         filter: `order_code=eq.${orderCode}`,
       },
-      (payload: any) => {
-        if (payload.new?.status === ORDER.STATUS.PAID) {
-          if (import.meta.env.DEV) {
-            console.log('[Payment] Payment received for order:', orderCode);
-          }
-          onPaid();
+      (payload: { new?: { status?: string } }) => {
+        const status = payload.new?.status as PaymentOrderStatus | undefined;
+        if (!status) return;
+        if (isDev) {
+          console.log('[Payment] Status update for order:', orderCode, status);
         }
+        onStatusChange(status);
       }
     )
     .subscribe();
@@ -262,6 +276,24 @@ export function subscribeToPaymentStatus(
       supabase.removeChannel(channel);
     },
   };
+}
+
+/**
+ * Fetch current payment order status (fallback when realtime event is missed)
+ */
+export async function getPaymentOrderStatus(orderCode: string): Promise<PaymentOrderStatus | null> {
+  const { data, error } = await supabase
+    .from('payment_orders')
+    .select('status')
+    .eq('order_code', orderCode)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.status) return null;
+  return data.status as PaymentOrderStatus;
 }
 
 // Note: getCurrentPrice is now imported from config/payment.config

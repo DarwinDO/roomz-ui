@@ -19,7 +19,7 @@ export { useDebounce } from './useDebounce';
 // Types for hook factories (shared interfaces)
 // ============================================
 
-import type { NotificationAdapter, NotificationOptions } from '../adapters';
+import type { NotificationAdapter } from '../adapters';
 
 export type { NotificationAdapter, NotificationOptions } from '../adapters';
 

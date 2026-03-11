@@ -32,6 +32,7 @@ export { useDeals } from './useDeals';
 
 // Partners
 export { usePartners } from './usePartners';
+export { useLocationCatalogSearch, useNearbyLocations, useFeaturedLocations, locationKeys } from './useLocations';
 
 // Notifications
 export { useNotifications } from './useNotifications';

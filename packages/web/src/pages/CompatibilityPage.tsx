@@ -395,6 +395,10 @@ export default function CompatibilityPage() {
             budget_score: 0,
             hobby_score: 0,
             age_score: 0,
+            move_in_score: 0,
+            location_score: 0,
+            confidence_score: 0,
+            match_scope: 'outside_priority_area',
             last_seen: null,
           }}
         />

@@ -10,7 +10,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // Types
 // ============================================
 
-export type PartnerStatus = 'pending' | 'active' | 'suspended' | 'rejected';
+export type PartnerStatus = 'active' | 'inactive';
 export type PartnerCategory = 'moving' | 'cleaning' | 'real_estate' | 'utilities' | 'furniture' | 'other';
 
 export interface Partner {

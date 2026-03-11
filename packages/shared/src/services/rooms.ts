@@ -41,6 +41,7 @@ export interface Room {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+    distance_km?: number | null;
 }
 
 export interface RoomImage {
@@ -89,6 +90,9 @@ export interface RoomFilters {
     petAllowed?: boolean;
     furnished?: boolean;
     amenities?: string[];
+    latitude?: number;
+    longitude?: number;
+    radiusKm?: number;
     sortBy?: 'price_asc' | 'price_desc' | 'newest' | 'most_viewed';
     page?: number;
     pageSize?: number;
@@ -136,6 +140,7 @@ interface SearchRoomRow {
     total_count: number;
     search_rank: number;
     primary_image_url: string | null;
+    distance_km: number | null;
 }
 
 export interface RoomSearchResponse {
@@ -150,6 +155,8 @@ export interface CreateRoomData {
     address: string;
     district?: string;
     city: string;
+    latitude?: number;
+    longitude?: number;
     pricePerMonth: number;
     depositAmount?: number;
     areaSqm?: number;
@@ -179,6 +186,8 @@ export interface UpdateRoomData {
     address?: string;
     district?: string;
     city?: string;
+    latitude?: number | null;
+    longitude?: number | null;
     pricePerMonth?: number;
     depositAmount?: number;
     areaSqm?: number;
@@ -216,7 +225,8 @@ function transformSearchRow(row: SearchRoomRow): RoomWithDetails {
             id: row.landlord_id,
             full_name: row.landlord_name || '',
             avatar_url: row.landlord_avatar,
-            phone: row.landlord_phone,
+            // Security: Mask phone in search results - use get_room_contact RPC for full access
+            phone: row.landlord_phone ? maskPhoneNumber(row.landlord_phone) : null,
             email: row.landlord_email || '',
             trust_score: row.landlord_trust_score,
         },
@@ -225,6 +235,15 @@ function transformSearchRow(row: SearchRoomRow): RoomWithDetails {
             : [],
         amenities: null,
     } as unknown as RoomWithDetails;
+}
+
+/**
+ * Mask phone number for privacy (e.g., 0912 xxx 345)
+ */
+function maskPhoneNumber(phone: string): string {
+    if (!phone || phone.length < 8) return phone;
+    const visible = phone.slice(-4);
+    return `${phone.slice(0, 4)} xxx ${visible}`;
 }
 
 // ============================================
@@ -248,6 +267,9 @@ export async function searchRooms(
         p_pet_allowed: filters.petAllowed ?? null,
         p_furnished: filters.furnished ?? null,
         p_amenities: filters.amenities?.length ? filters.amenities : null,
+        p_lat: filters.latitude ?? null,
+        p_lng: filters.longitude ?? null,
+        p_radius_km: filters.radiusKm ?? null,
         p_sort_by: filters.sortBy || 'newest',
         p_page: filters.page || 1,
         p_page_size: filters.pageSize || 12,
@@ -315,6 +337,8 @@ export async function createRoom(
         address: data.address,
         district: data.district,
         city: data.city,
+        latitude: data.latitude,
+        longitude: data.longitude,
         price_per_month: data.pricePerMonth,
         deposit_amount: data.depositAmount,
         area_sqm: data.areaSqm,
@@ -409,6 +433,8 @@ export async function updateRoomWithData(
     if (data.address !== undefined) roomData.address = data.address;
     if (data.district !== undefined) roomData.district = data.district;
     if (data.city !== undefined) roomData.city = data.city;
+    if (data.latitude !== undefined) roomData.latitude = data.latitude;
+    if (data.longitude !== undefined) roomData.longitude = data.longitude;
     if (data.pricePerMonth !== undefined) roomData.price_per_month = data.pricePerMonth;
     if (data.depositAmount !== undefined) roomData.deposit_amount = data.depositAmount;
     if (data.areaSqm !== undefined) roomData.area_sqm = data.areaSqm;
@@ -474,7 +500,7 @@ export async function getRoomContact(
     supabase: SupabaseClient,
     roomId: string
 ): Promise<RoomContactResult> {
-    const { data, error } = await (supabase.rpc as any)('get_room_contact', { p_room_id: roomId });
+    const { data, error } = await supabase.rpc('get_room_contact' as never, { p_room_id: roomId } as never);
 
     if (error) {
         console.error('Error fetching room contact:', error);

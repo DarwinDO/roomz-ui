@@ -8,11 +8,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { StorageAdapter } from '../adapters';
 
 // ============================================
-// Types
+// Types - Must match DB enum values
 // ============================================
 
-export type RoommateProfileStatus = 'draft' | 'active' | 'paused' | 'deleted';
-export type RoommateRequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled';
+// DB: roommate_profile_status = 'looking' | 'paused' | 'found'
+export type RoommateProfileStatus = 'looking' | 'paused' | 'found';
+// DB: roommate_request_status = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired'
+export type RoommateRequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired';
+export type RoommateMatchScope = 'same_district' | 'same_city' | 'outside_priority_area';
 
 export interface RoommateProfile {
     id: string;
@@ -58,6 +61,8 @@ export interface RoommateProfileInput {
 export interface RoommateMatch {
     matched_user_id: string;
     compatibility_score: number;
+    confidence_score: number;
+    match_scope: RoommateMatchScope;
     full_name: string;
     avatar_url: string | null;
     bio: string | null;
@@ -77,6 +82,8 @@ export interface RoommateMatch {
     budget_score: number;
     hobby_score: number;
     age_score: number;
+    move_in_score: number;
+    location_score: number;
     last_seen: string | null;
 }
 
@@ -315,6 +322,11 @@ export async function calculateCompatibility(
     guest_score: number;
     weekend_score: number;
     budget_score: number;
+    hobby_score: number;
+    age_score: number;
+    move_in_score: number;
+    location_score: number;
+    confidence_score: number;
 }> {
     const { data, error } = await supabase.rpc('calculate_compatibility_score', {
         p_user1_id: user1Id,
@@ -334,6 +346,11 @@ export async function calculateCompatibility(
         guest_score: 0,
         weekend_score: 0,
         budget_score: 0,
+        hobby_score: 0,
+        age_score: 0,
+        move_in_score: 0,
+        location_score: 0,
+        confidence_score: 0,
     };
 }
 

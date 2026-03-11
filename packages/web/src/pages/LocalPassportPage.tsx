@@ -14,6 +14,10 @@ import {
   Loader2,
   AlertCircle,
   Crown,
+  GraduationCap,
+  Landmark,
+  TrainFront,
+  Compass,
 } from "lucide-react";
 import { PartnerSignUpModal } from "@/components/modals/PartnerSignUpModal";
 import { ShopDetailModal } from "@/components/modals/ShopDetailModal";
@@ -22,11 +26,17 @@ import { usePartners } from "@/hooks/usePartners";
 import { useDeals } from "@/hooks/useDeals";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { usePremiumLimits } from "@/hooks/usePremiumLimits";
+import { useFeaturedLocations, useNearbyLocations } from "@/hooks";
 import { haversineDistance, formatDistance } from "@roomz/shared/utils/geo";
 import { UPGRADE_SOURCES } from "@roomz/shared/constants/tracking";
 import { cn } from "@/lib/utils";
 import type { Partner } from "@/services/partners";
 import type { DealWithPartner as DealWithPartnerType } from "@/services/deals";
+import {
+  formatLocationCatalogSubtitle,
+  formatLocationTypeLabel,
+  type LocationCatalogEntry,
+} from "@/services/locations";
 import { toast } from "sonner";
 
 interface PerkCardData {
@@ -46,6 +56,20 @@ interface PerkCardData {
   isPremiumLocked?: boolean;
 }
 
+function getPassportLocationIcon(type: LocationCatalogEntry["location_type"]) {
+  switch (type) {
+    case "university":
+    case "campus":
+      return GraduationCap;
+    case "station":
+      return TrainFront;
+    case "landmark":
+      return Landmark;
+    default:
+      return Compass;
+  }
+}
+
 export default function LocalPassportPage() {
   const navigate = useNavigate();
 
@@ -59,6 +83,21 @@ export default function LocalPassportPage() {
 
   // Geolocation
   const { position, loading: geoLoading, denied: geoDenied } = useGeolocation();
+  const { data: nearbyLocations = [], isLoading: isNearbyLocationsLoading } = useNearbyLocations(
+    position
+      ? {
+          lat: position.lat,
+          lng: position.lng,
+          radiusKm: 6,
+          limit: 6,
+          types: ["university", "station", "landmark", "district"],
+        }
+      : null,
+  );
+  const { data: featuredLocations = [], isLoading: isFeaturedLocationsLoading } = useFeaturedLocations({
+    limit: 6,
+    types: ["university", "station", "landmark", "district"],
+  });
 
   // Data fetching - use both partners and deals
   const {
@@ -75,6 +114,9 @@ export default function LocalPassportPage() {
 
   // Premium status
   const { isPremium } = usePremiumLimits();
+  const highlightedLocations = position && !geoDenied ? nearbyLocations : featuredLocations;
+  const isLocationSectionLoading =
+    position && !geoDenied ? isNearbyLocationsLoading : isFeaturedLocationsLoading;
 
   // Combine partners + deals into perk cards with distance calculation
   const perkCards: PerkCardData[] = useMemo(() => {
@@ -109,12 +151,16 @@ export default function LocalPassportPage() {
       const categoryConfig: Record<string, { emoji: string; color: string }> = {
         coffee: { emoji: "☕", color: "bg-amber-100 text-amber-700" },
         fitness: { emoji: "🏋️", color: "bg-red-100 text-red-700" },
+        gym: { emoji: "🏋️", color: "bg-red-100 text-red-700" },
         entertainment: { emoji: "🎬", color: "bg-purple-100 text-purple-700" },
         food: { emoji: "🍔", color: "bg-orange-100 text-orange-700" },
         laundry: { emoji: "👕", color: "bg-blue-100 text-blue-700" },
+        cleaning: { emoji: "🧹", color: "bg-teal-100 text-teal-700" },
+        moving: { emoji: "📦", color: "bg-gray-100 text-gray-700" },
+        other: { emoji: "✨", color: "bg-pink-100 text-pink-700" },
       };
 
-      const config = categoryConfig[partner.category] || categoryConfig.food;
+      const config = categoryConfig[partner.category] || categoryConfig.other;
       const distanceData = calculateDistanceData(partner);
 
       return {
@@ -283,6 +329,100 @@ export default function LocalPassportPage() {
             </div>
           </Card>
         )}
+
+        <Card className="overflow-hidden rounded-[28px] border-[#d6e4f5] bg-[linear-gradient(135deg,#f5fbff_0%,#ffffff_50%,#fff7ec_100%)] p-0 shadow-sm">
+          <div className="grid gap-0 lg:grid-cols-[1.1fr_1.9fr]">
+            <div className="border-b border-[#d6e4f5] bg-[#0f172a] px-6 py-6 text-white lg:border-b-0 lg:border-r">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-100">
+                <MapPin className="h-3.5 w-3.5" />
+                Local context
+              </div>
+              <h2 className="text-2xl font-semibold leading-tight text-white">
+                Điểm mốc nổi bật
+                <br />
+                cho khu vực của bạn
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                Local Passport không chỉ là ưu đãi. Nó cần biết bạn đang ở gần trường, ga bến hay landmark nào để gợi ý đối tác hợp lý hơn.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Badge className="rounded-full bg-white/10 text-white">Trường</Badge>
+                <Badge className="rounded-full bg-white/10 text-white">Ga / bến</Badge>
+                <Badge className="rounded-full bg-white/10 text-white">Landmark</Badge>
+              </div>
+            </div>
+
+            <div className="px-6 py-6">
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    {position && !geoDenied ? "Gần bạn lúc này" : "Điểm mốc đang nổi bật"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {position && !geoDenied
+                      ? "Dựa trên vị trí hiện tại trong bán kính 6 km."
+                      : "Hiển thị từ location catalog đã được duyệt."}
+                  </p>
+                </div>
+                {geoLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              </div>
+
+              {isLocationSectionLoading ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div key={index} className="rounded-2xl border border-border bg-muted/40 p-4">
+                      <div className="mb-2 h-4 w-24 animate-pulse rounded bg-muted" />
+                      <div className="h-3 w-36 animate-pulse rounded bg-muted" />
+                    </div>
+                  ))}
+                </div>
+              ) : highlightedLocations.length > 0 ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {highlightedLocations.map((location) => {
+                    const Icon = getPassportLocationIcon(location.location_type);
+
+                    return (
+                      <div
+                        key={location.id}
+                        className="rounded-2xl border border-border/70 bg-background px-4 py-4 transition-colors hover:border-primary/30 hover:bg-primary/5"
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{location.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatLocationCatalogSubtitle(location)}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="rounded-full text-[10px]">
+                            {formatLocationTypeLabel(location.location_type)}
+                          </Badge>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                          <span>{location.source_name || "Catalog nội bộ"}</span>
+                          <span className="font-medium text-foreground">
+                            {location.distance_km !== null && location.distance_km !== undefined
+                              ? formatDistance(location.distance_km)
+                              : "Đang dùng làm mốc khu vực"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-5 text-sm text-muted-foreground">
+                  Chúng tôi đang cập nhật thêm các điểm mốc nổi bật quanh bạn để Local Passport gợi ý khu vực chính xác hơn.
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
 
         {/* Error State */}
         {error && (

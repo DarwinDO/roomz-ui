@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
-import type { Database, Tables, Enums } from '@/lib/database.types';
+import type { Database, Enums } from '@/lib/database.types';
 
 // ============================================
 // Types - Using generated database types
@@ -13,14 +13,12 @@ import type { Database, Tables, Enums } from '@/lib/database.types';
 // Status types from database enums
 export type RoommateProfileStatus = Enums<'roommate_profile_status'>;
 export type RoommateRequestStatus = Enums<'roommate_request_status'>;
+export type RoommateMatchScope = 'same_district' | 'same_city' | 'outside_priority_area';
 
 // RPC function types for type-safe calls
 type GetRoommateMatchesArgs = Database['public']['Functions']['get_roommate_matches']['Args'];
-type GetRoommateMatchesReturns = Database['public']['Functions']['get_roommate_matches']['Returns'];
 type CalculateCompatibilityArgs = Database['public']['Functions']['calculate_compatibility_score']['Args'];
-type CalculateCompatibilityReturns = Database['public']['Functions']['calculate_compatibility_score']['Returns'];
 type GetOrCreateConversationArgs = Database['public']['Functions']['get_or_create_conversation']['Args'];
-type GetOrCreateConversationReturns = Database['public']['Functions']['get_or_create_conversation']['Returns'];
 
 export interface RoommateProfile {
     id: string;
@@ -66,6 +64,8 @@ export interface RoommateProfileInput {
 export interface RoommateMatch {
     matched_user_id: string;
     compatibility_score: number;
+    confidence_score: number;
+    match_scope: RoommateMatchScope;
     full_name: string;
     avatar_url: string | null;
     bio: string | null;
@@ -87,6 +87,8 @@ export interface RoommateMatch {
     // V2.0 - New score factors
     hobby_score: number;
     age_score: number;
+    move_in_score: number;
+    location_score: number;
     last_seen: string | null;
 }
 
@@ -306,6 +308,11 @@ export async function calculateCompatibility(
     guest_score: number;
     weekend_score: number;
     budget_score: number;
+    hobby_score: number;
+    age_score: number;
+    move_in_score: number;
+    location_score: number;
+    confidence_score: number;
 }> {
     const args: CalculateCompatibilityArgs = {
         p_user1_id: user1Id,
@@ -326,6 +333,11 @@ export async function calculateCompatibility(
         guest_score: 0,
         weekend_score: 0,
         budget_score: 0,
+        hobby_score: 0,
+        age_score: 0,
+        move_in_score: 0,
+        location_score: 0,
+        confidence_score: 0,
     };
 }
 

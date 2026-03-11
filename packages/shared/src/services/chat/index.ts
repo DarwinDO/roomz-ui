@@ -3,8 +3,6 @@
  * Re-exports all chat functionality from organized modules
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-
 // Types
 export type {
     Message,

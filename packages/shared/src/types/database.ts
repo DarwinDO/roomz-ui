@@ -2049,8 +2049,11 @@ export type Database = {
           age_score: number
           budget_score: number
           cleanliness_score: number
+          confidence_score: number
           guest_score: number
           hobby_score: number
+          location_score: number
+          move_in_score: number
           noise_score: number
           sleep_score: number
           total_score: number
@@ -2110,6 +2113,7 @@ export type Database = {
           city: string
           cleanliness_score: number
           compatibility_score: number
+          confidence_score: number
           district: string
           full_name: string
           gender: string
@@ -2117,8 +2121,11 @@ export type Database = {
           hobbies: string[]
           hobby_score: number
           last_seen: string
+          location_score: number
           major: string
+          match_scope: string
           matched_user_id: string
+          move_in_score: number
           noise_score: number
           occupation: string
           sleep_score: number

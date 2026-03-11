@@ -25,13 +25,16 @@ import {
   Bed,
   Sofa,
   MessageCircle,
-  Loader2,
   AlertCircle,
   Snowflake,
   Dumbbell,
   KeyRound,
   Video,
   Fence,
+  GraduationCap,
+  Landmark,
+  TrainFront,
+  Compass,
 } from "lucide-react";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
 import { useState, useMemo } from "react";
@@ -47,11 +50,28 @@ import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { MapboxRoomMap } from "@/components/maps";
 import { useRoom } from "@/hooks/useRooms";
 import { useIsFavorited } from "@/hooks/useFavorites";
+import { useNearbyLocations } from "@/hooks";
 import { useAuth } from "@/contexts";
 import { toast } from "sonner";
 import { formatPriceInMillions } from "@roomz/shared/utils/format";
+import { formatDistance } from "@roomz/shared/utils/geo";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { formatLocationTypeLabel, type LocationCatalogEntry } from "@/services/locations";
+
+function getNearbyLocationIcon(type: LocationCatalogEntry["location_type"]) {
+  switch (type) {
+    case "university":
+    case "campus":
+      return GraduationCap;
+    case "station":
+      return TrainFront;
+    case "landmark":
+      return Landmark;
+    default:
+      return Compass;
+  }
+}
 
 export default function RoomDetailPage() {
   const navigate = useNavigate();
@@ -82,6 +102,18 @@ export default function RoomDetailPage() {
 
   // Favorite state
   const { isFavorited, toggle: toggleFavorite, loading: favoriteLoading } = useIsFavorited(id || '');
+  const { data: nearbyLocations = [], isLoading: isNearbyLocationsLoading } = useNearbyLocations(
+    room?.latitude && room?.longitude
+      ? {
+          lat: Number(room.latitude),
+          lng: Number(room.longitude),
+          city: room.city,
+          radiusKm: 5,
+          limit: 6,
+          types: ["university", "station", "landmark", "district"],
+        }
+      : null,
+  );
 
   const onBack = () => navigate(-1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -125,11 +157,6 @@ export default function RoomDetailPage() {
     setIsGalleryOpen(true);
   };
 
-  const openViewAllMatchesModal = () => {
-    closeAllModals();
-    setIsViewAllMatchesOpen(true);
-  };
-
   const openRoommateProfileModal = (roommate: { name: string; role: string; match: number }) => {
     setSelectedRoommate(roommate);
     closeAllModals();
@@ -169,7 +196,8 @@ export default function RoomDetailPage() {
 
   // Build amenities list from room data
   const amenities = useMemo(() => {
-    if (!room?.amenities) return [];
+    const roomAmenities = room?.amenities;
+    if (!roomAmenities) return [];
 
     const amenityMap = [
       { key: 'wifi', icon: Wifi, label: 'WiFi tốc độ cao' },
@@ -189,7 +217,7 @@ export default function RoomDetailPage() {
     ];
 
     return amenityMap.filter(item => {
-      const value = room.amenities?.[item.key as keyof typeof room.amenities];
+      const value = roomAmenities[item.key as keyof typeof roomAmenities];
       return value === true;
     });
   }, [room?.amenities]);
@@ -404,6 +432,78 @@ export default function RoomDetailPage() {
                   interactive={false}
                   className="h-[350px]"
                 />
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">Điểm mốc quanh phòng</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Trường, ga bến và landmark nổi bật trong bán kính 5 km.
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="rounded-full">
+                    Nearby places
+                  </Badge>
+                </div>
+
+                {!room.latitude || !room.longitude ? (
+                  <div className="rounded-2xl border border-dashed border-border bg-muted/40 px-4 py-5 text-sm text-muted-foreground">
+                    Phòng này chưa có tọa độ đủ chính xác để hiển thị các điểm mốc lân cận.
+                  </div>
+                ) : isNearbyLocationsLoading ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <div key={index} className="rounded-2xl border border-border bg-muted/40 p-4">
+                        <div className="mb-2 h-4 w-24 animate-pulse rounded bg-muted" />
+                        <div className="h-3 w-40 animate-pulse rounded bg-muted" />
+                      </div>
+                    ))}
+                  </div>
+                ) : nearbyLocations.length > 0 ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {nearbyLocations.map((location) => {
+                      const Icon = getNearbyLocationIcon(location.location_type);
+
+                      return (
+                        <div
+                          key={location.id}
+                          className="rounded-2xl border border-border/70 bg-background px-4 py-4 transition-colors hover:border-primary/30 hover:bg-primary/5"
+                        >
+                          <div className="mb-3 flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                              <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                                <Icon className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">{location.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {[location.district, location.city].filter(Boolean).join(", ") || location.address || "Đang cập nhật địa chỉ"}
+                                </p>
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="rounded-full text-[10px]">
+                              {formatLocationTypeLabel(location.location_type)}
+                            </Badge>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                            <span>{location.source_name || "Catalog nội bộ"}</span>
+                            <span className="font-medium text-foreground">
+                              {location.distance_km !== null && location.distance_km !== undefined
+                                ? formatDistance(location.distance_km)
+                                : "Gần khu vực này"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-border bg-muted/40 px-4 py-5 text-sm text-muted-foreground">
+                    Chúng tôi đang cập nhật thêm các điểm mốc nổi bật quanh khu vực này.
+                  </div>
+                )}
               </div>
 
               {/* Compact Info Bar */}

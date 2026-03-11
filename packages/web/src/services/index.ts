@@ -43,12 +43,12 @@ export type { Message, MessageWithUsers, Conversation } from '@roomz/shared/serv
 import * as communityShared from '@roomz/shared/services/community';
 export const getPosts = (filters?: communityShared.CommunityFilters) => communityShared.getPosts(supabase, filters);
 export const getPostById = (id: string) => communityShared.getPostById(supabase, id);
-export const createPost = (data: { type: 'discussion' | 'question' | 'review' | 'advice' | 'news'; title: string; content: string; category: string; tags?: string[]; images?: string[] }) => communityShared.createPost(supabase, data);
-export const updatePost = (id: string, data: Partial<{ title: string; content: string; category: string; tags: string[]; images: string[]; status: 'draft' | 'published' | 'hidden' | 'deleted' }>) => communityShared.updatePost(supabase, id, data);
+export const createPost = (data: { type: communityShared.CommunityPostType; title: string; content: string; category?: string; tags?: string[]; images?: string[] }) => communityShared.createPost(supabase, data);
+export const updatePost = (id: string, data: Partial<{ type: communityShared.CommunityPostType; title: string; content: string; category: string; tags: string[]; images: string[]; status: communityShared.CommunityPostStatus }>) => communityShared.updatePost(supabase, id, data);
 export const deletePost = (id: string) => communityShared.deletePost(supabase, id);
 export const getComments = (postId: string) => communityShared.getComments(supabase, postId);
 export const addComment = (postId: string, userId: string, content: string, parentId?: string) => communityShared.addComment(supabase, postId, userId, content, parentId);
-export type { CommunityPost, CommunityComment, CommunityFilters } from '@roomz/shared/services/community';
+export type { CommunityPost, CommunityComment, CommunityFilters, CommunityPostType, CommunityPostStatus } from '@roomz/shared/services/community';
 
 // Favorites
 import * as favoritesShared from '@roomz/shared/services/favorites';
@@ -121,9 +121,9 @@ import * as serviceLeadsShared from '@roomz/shared/services/serviceLeads';
 export const getUserServiceLeads = (userId: string) => serviceLeadsShared.getUserServiceLeads(supabase, userId);
 export const getServiceLeadById = (id: string) => serviceLeadsShared.getServiceLeadById(supabase, id);
 export const createServiceLead = (userId: string, data: { service_type: 'moving' | 'cleaning' | 'setup' | 'support'; partner_id?: string; details: Record<string, unknown>; preferred_date?: string }) => serviceLeadsShared.createServiceLead(supabase, userId, data);
-export const updateServiceLead = (id: string, data: { status?: 'submitted' | 'assigned' | 'confirmed' | 'completed' | 'cancelled' | 'rejected' | 'rated'; partner_id?: string; estimated_price?: number; user_rating?: number; user_review?: string }) => serviceLeadsShared.updateServiceLead(supabase, id, data);
+export const updateServiceLead = (id: string, data: { status?: 'submitted' | 'assigned' | 'confirmed' | 'completed' | 'cancelled' | 'rejected'; partner_id?: string; estimated_price?: number; user_rating?: number; user_review?: string }) => serviceLeadsShared.updateServiceLead(supabase, id, data);
 export const cancelServiceLead = (id: string) => serviceLeadsShared.cancelServiceLead(supabase, id);
-export const getAllServiceLeads = (filters?: { status?: 'submitted' | 'assigned' | 'confirmed' | 'completed' | 'cancelled' | 'rejected' | 'rated'; service_type?: 'moving' | 'cleaning' | 'setup' | 'support' }) => serviceLeadsShared.getAllServiceLeads(supabase, filters);
+export const getAllServiceLeads = (filters?: { status?: 'submitted' | 'assigned' | 'confirmed' | 'completed' | 'cancelled' | 'rejected'; service_type?: 'moving' | 'cleaning' | 'setup' | 'support' }) => serviceLeadsShared.getAllServiceLeads(supabase, filters);
 
 // Sublets
 import * as subletsShared from '@roomz/shared/services/sublets';
