@@ -40,6 +40,7 @@ export default function VerificationPage() {
   const isVerified = currentStatus === 'approved';
   const isPending = currentStatus === 'pending';
   const isRejected = currentStatus === 'rejected';
+  const isRevoked = currentStatus === 'revoked';
   const canUpload = !isPending && !isVerified;
 
   // Cleanup blob URLs on unmount to prevent memory leaks
@@ -128,20 +129,30 @@ export default function VerificationPage() {
               <CheckCircle className="w-10 h-10 text-green-600" />
             ) : isPending ? (
               <Clock className="w-10 h-10 text-yellow-600" />
-            ) : isRejected ? (
+            ) : isRejected || isRevoked ? (
               <XCircle className="w-10 h-10 text-red-600" />
             ) : (
               <ShieldCheck className="w-10 h-10 text-white" />
             )}
           </div>
           <h1 className="mb-3">
-            {isVerified ? 'Đã xác thực ✓' : isPending ? 'Đang chờ duyệt' : isRejected ? 'Bị từ chối' : 'Xác thực CCCD'}
+            {isVerified
+              ? 'Đã xác thực ✓'
+              : isPending
+                ? 'Đang chờ duyệt'
+                : isRevoked
+                  ? 'Đã bị gỡ xác thực'
+                  : isRejected
+                    ? 'Bị từ chối'
+                    : 'Xác thực CCCD'}
           </h1>
           <p className="text-gray-600 mb-4 max-w-xl mx-auto">
             {isVerified
               ? 'Tài khoản của bạn đã được xác thực. Bạn có thể sử dụng đầy đủ các tính năng.'
               : isPending
                 ? 'Yêu cầu xác thực đang được xem xét. Chúng tôi sẽ phản hồi trong vòng 24 giờ.'
+                : isRevoked
+                  ? 'Trạng thái xác thực trước đó đã bị gỡ. Bạn có thể xem lý do bên dưới và gửi lại khi đã bổ sung đầy đủ.'
                 : isRejected
                   ? 'Yêu cầu xác thực trước đó không được chấp nhận. Vui lòng gửi lại.'
                   : 'Tải lên ảnh chụp 2 mặt CCCD để xác thực danh tính. Ảnh sẽ được bảo mật tuyệt đối.'
@@ -157,15 +168,22 @@ export default function VerificationPage() {
               Đang chờ admin duyệt
             </Badge>
           )}
+          {isRevoked && (
+            <Badge className="bg-red-100 text-red-700 px-4 py-2 text-base border-0">
+              Quản trị viên đã gỡ xác thực
+            </Badge>
+          )}
         </Card>
 
         {/* Rejection reason */}
-        {isRejected && verificationStatus?.rejection_reason && (
+        {(isRejected || isRevoked) && verificationStatus?.rejection_reason && (
           <Card className="p-4 rounded-2xl border-red-200 bg-red-50">
             <div className="flex items-start gap-3">
               <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium text-red-700">Lý do từ chối</p>
+                <p className="font-medium text-red-700">
+                  {isRevoked ? 'Lý do gỡ xác thực' : 'Lý do từ chối'}
+                </p>
                 <p className="text-sm text-red-600 mt-1">{verificationStatus.rejection_reason}</p>
               </div>
             </div>

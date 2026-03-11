@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,11 @@ import {
   locationCatalogToSelectedPlace,
   type LocationCatalogEntry,
 } from "@/services/locations";
+import {
+  trackFeatureEvent,
+  trackLocationSelected,
+  trackSearchPerformed,
+} from "@/services/analyticsTracking";
 
 function getLocationIcon(type: LocationCatalogEntry["location_type"]) {
   switch (type) {
@@ -50,6 +55,7 @@ export default function SearchPage() {
   const locationRadiusOptions = [3, 5, 10, 20];
   const navigate = useNavigate();
   const { user } = useAuth();
+  const lastTrackedSearchFingerprint = useRef<string | null>(null);
 
   // Filters state
   const [searchInput, setSearchInput] = useState("");
@@ -110,11 +116,91 @@ export default function SearchPage() {
     sortBy,
   }), [minPrice, maxPrice, verifiedOnly, debouncedSearchQuery, selectedRoomTypes, amenityFilters, selectedLocation, searchRadiusKm, sortBy]);
 
+  const hasActiveSearchIntent = useMemo(() => (
+    Boolean(debouncedSearchQuery) ||
+    Boolean(selectedLocation) ||
+    verifiedOnly ||
+    selectedRoomTypes.length > 0 ||
+    selectedAmenities.length > 0 ||
+    minPrice > 0 ||
+    maxPrice < 10000000
+  ), [
+    debouncedSearchQuery,
+    selectedLocation,
+    verifiedOnly,
+    selectedRoomTypes.length,
+    selectedAmenities.length,
+    minPrice,
+    maxPrice,
+  ]);
+
+  const searchAnalyticsFilters = useMemo(
+    () => ({
+      min_price: minPrice,
+      max_price: maxPrice,
+      verified_only: verifiedOnly,
+      room_types: selectedRoomTypes,
+      amenities: selectedAmenities,
+      has_location: Boolean(selectedLocation),
+      location_label: selectedLocation ? buildRoomSearchQuery(selectedLocation) : null,
+      location_city: selectedLocation?.city ?? null,
+      location_district: selectedLocation?.district ?? null,
+      radius_km: selectedLocation ? searchRadiusKm : null,
+      sort_by: sortBy,
+    }),
+    [
+      minPrice,
+      maxPrice,
+      verifiedOnly,
+      selectedRoomTypes,
+      selectedAmenities,
+      selectedLocation,
+      searchRadiusKm,
+      sortBy,
+    ],
+  );
+
   // Fetch rooms via TanStack Query (infinite pagination)
   const {
     rooms, totalCount, isLoading, isFetchingNextPage,
     error, refetch, hasNextPage, fetchNextPage, isPlaceholderData,
   } = useSearchRooms(roomFilters);
+
+  useEffect(() => {
+    if (!hasActiveSearchIntent || isLoading || isPlaceholderData || error) {
+      return;
+    }
+
+    const fingerprint = JSON.stringify({
+      query: debouncedSearchQuery,
+      location: selectedLocation?.address ?? null,
+      radius: selectedLocation ? searchRadiusKm : null,
+      filters: searchAnalyticsFilters,
+      result_count: totalCount,
+    });
+
+    if (lastTrackedSearchFingerprint.current === fingerprint) {
+      return;
+    }
+
+    lastTrackedSearchFingerprint.current = fingerprint;
+    void trackSearchPerformed(user?.id ?? null, {
+      query: debouncedSearchQuery || (selectedLocation ? buildRoomSearchQuery(selectedLocation) : "browse_all"),
+      resultCount: totalCount,
+      filters: searchAnalyticsFilters,
+    });
+  }, [
+    debouncedSearchQuery,
+    error,
+    hasActiveSearchIntent,
+    isLoading,
+    isPlaceholderData,
+    searchAnalyticsFilters,
+    searchRadiusKm,
+    selectedLocation,
+    totalCount,
+    user?.id,
+  ]);
 
   const {
     data: locationSuggestions = [],
@@ -165,6 +251,17 @@ export default function SearchPage() {
 
     try {
       const favorited = await toggleFavorite(roomId);
+      if (favorited) {
+        const room = rooms.find((entry) => entry.id === roomId);
+        void trackFeatureEvent("room_favorite", user.id, {
+          room_id: roomId,
+          room_title: room?.title ?? null,
+          city: room?.city ?? null,
+          district: room?.district ?? null,
+          price: room?.price_per_month ?? null,
+          source: "search_results",
+        });
+      }
       toast.success(favorited ? "Đã thêm vào yêu thích" : "Đã xóa khỏi yêu thích");
     } catch {
       toast.error("Không thể cập nhật yêu thích");
@@ -214,6 +311,7 @@ export default function SearchPage() {
 
   const handleApplyFilters = () => {
     setIsFiltersOpen(false);
+    void trackFeatureEvent("filter_applied", user?.id ?? null, searchAnalyticsFilters);
     toast.success("Đã áp dụng bộ lọc");
   };
 
@@ -229,6 +327,15 @@ export default function SearchPage() {
     setSelectedLocation(place);
     setSearchInput(place.address);
     setSearchRadiusKm(5);
+    void trackLocationSelected(user?.id ?? null, {
+      source: "mapbox",
+      label: buildRoomSearchQuery(place),
+      address: place.address,
+      city: place.city ?? null,
+      district: place.district ?? null,
+      latitude: place.lat,
+      longitude: place.lng,
+    });
   };
 
   const handleCatalogLocationSelect = (location: LocationCatalogEntry) => {
@@ -242,6 +349,16 @@ export default function SearchPage() {
     setSelectedLocation(selectedPlace);
     setSearchInput(selectedPlace.address);
     setSearchRadiusKm(5);
+    void trackLocationSelected(user?.id ?? null, {
+      source: "catalog",
+      label: location.name,
+      address: selectedPlace.address,
+      city: selectedPlace.city ?? null,
+      district: selectedPlace.district ?? null,
+      latitude: selectedPlace.lat,
+      longitude: selectedPlace.lng,
+      locationCatalogId: location.id,
+    });
   };
 
   // Transform rooms to card props (no more client-side filtering!)

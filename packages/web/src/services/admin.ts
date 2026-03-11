@@ -15,6 +15,7 @@ export type AdminRoom = Tables<'rooms'> & {
     avatar_url: string | null;
   };
   images?: Tables<'room_images'>[];
+  amenities?: Tables<'room_amenities'> | null;
   _count?: {
     favorites: number;
   };
@@ -42,7 +43,8 @@ export async function getAdminRooms(): Promise<AdminRoom[]> {
     .select(`
       *,
       landlord:users!landlord_id(id, full_name, email, phone, avatar_url),
-      images:room_images(*)
+      images:room_images(*),
+      amenities:room_amenities(*)
     `)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });

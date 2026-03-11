@@ -55,6 +55,7 @@ const ServiceLeadsPage = lazy(() => import('@/pages/admin/ServiceLeadsPage'));
 const PartnerLeadsPage = lazy(() => import('@/pages/admin/PartnerLeadsPage'));
 const IngestionReviewPage = lazy(() => import('@/pages/admin/IngestionReviewPage'));
 const DataQualityPage = lazy(() => import('@/pages/admin/DataQualityPage'));
+const LocationsPage = lazy(() => import('@/pages/admin/LocationsPage'));
 
 
 
@@ -358,6 +359,14 @@ export const router = createBrowserRouter([
       {
         path: 'ingestion-review',
         element: <IngestionReviewPage />,
+      },
+      {
+        path: 'locations',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <LocationsPage />
+          </Suspense>
+        ),
       },
       {
         path: 'data-quality',

@@ -1,350 +1,390 @@
-import { useState, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import type { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/admin/DataTable";
-import { StatsCard } from "@/components/admin/StatsCard";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  AlertCircle,
+  Check,
+  CheckCircle,
+  Clock,
+  Edit3,
+  Eye,
+  Home,
+  Loader2,
+  MoreVertical,
+  Star,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { DataTable } from '@/components/admin/DataTable';
+import { RejectionDialog } from '@/components/admin/RejectionDialog';
+import { RoomEditorDrawer } from '@/components/admin/RoomEditorDrawer';
+import { StatsCard } from '@/components/admin/StatsCard';
+import { ImageWithFallback } from '@/components/figma/ImageWithFallback';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Home, CheckCircle, Clock, Star, MoreVertical, Eye, Check, X, Trash2, Loader2, AlertCircle } from "lucide-react";
-import {
+  adminKeys,
   useAdminRooms,
   useApproveRoom,
-  useRejectRoom,
   useDeleteRoom,
-  adminKeys,
-} from "@/hooks/useAdmin";
-import type { AdminRoom } from "@/services/admin";
-import { useNavigate } from "react-router-dom";
-import { RejectionDialog } from "@/components/admin/RejectionDialog";
-import * as adminService from "@/services/admin";
+  useRejectRoom,
+} from '@/hooks/useAdmin';
+import type { AdminRoom } from '@/services/admin';
+import * as adminService from '@/services/admin';
+
+function getStatusBadge(status: string | null) {
+  switch (status) {
+    case 'active':
+      return <Badge className="bg-emerald-100 text-emerald-700">Đang hoạt động</Badge>;
+    case 'pending':
+      return <Badge className="bg-amber-100 text-amber-700">Chờ duyệt</Badge>;
+    case 'inactive':
+      return <Badge className="bg-rose-100 text-rose-700">Tạm tắt</Badge>;
+    case 'rented':
+      return <Badge className="bg-sky-100 text-sky-700">Đã cho thuê</Badge>;
+    default:
+      return <Badge className="bg-slate-100 text-slate-700">Nháp</Badge>;
+  }
+}
 
 export default function RoomsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Query hooks
   const { data: rooms = [], isLoading, error, refetch } = useAdminRooms();
-
-  // Mutation hooks
   const approveMutation = useApproveRoom();
   const rejectMutation = useRejectRoom();
   const deleteMutation = useDeleteRoom();
 
-  const [filter, setFilter] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter] = useState<'all' | 'active' | 'pending' | 'verified'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [selectedRoomForReject, setSelectedRoomForReject] = useState<AdminRoom | null>(null);
+  const [selectedRoomForEdit, setSelectedRoomForEdit] = useState<AdminRoom | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
-  // Compute stats from data
-  const stats = useMemo(() => ({
-    total: rooms.length,
-    active: rooms.filter(r => r.status === 'active').length,
-    pending: rooms.filter(r => r.status === 'pending').length,
-    verified: rooms.filter(r => r.is_verified).length,
-  }), [rooms]);
+  useEffect(() => {
+    const focusId = searchParams.get('focus');
+    if (!focusId || rooms.length === 0 || selectedRoomForEdit) {
+      return;
+    }
 
-  // Filter rooms
+    const match = rooms.find((room) => room.id === focusId);
+    if (!match) {
+      return;
+    }
+
+    setSelectedRoomForEdit(match);
+    setEditorOpen(true);
+  }, [rooms, searchParams, selectedRoomForEdit]);
+
+  const stats = useMemo(
+    () => ({
+      total: rooms.length,
+      active: rooms.filter((room) => room.status === 'active').length,
+      pending: rooms.filter((room) => room.status === 'pending').length,
+      verified: rooms.filter((room) => room.is_verified).length,
+    }),
+    [rooms],
+  );
+
   const filteredRooms = useMemo(() => {
-    return rooms.filter(room => {
-      const matchesSearch = room.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        room.address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        room.district?.toLowerCase().includes(searchTerm.toLowerCase());
+    return rooms.filter((room) => {
+      const normalizedSearch = searchTerm.trim().toLowerCase();
+      const haystack = [room.title, room.address, room.district, room.city, room.landlord?.full_name]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      const matchesSearch = haystack.includes(normalizedSearch);
       const matchesFilter =
-        filter === "all" ? true :
-          filter === "active" ? room.status === "active" :
-            filter === "pending" ? room.status === "pending" :
-              filter === "verified" ? room.is_verified : true;
+        filter === 'all'
+          ? true
+          : filter === 'active'
+            ? room.status === 'active'
+            : filter === 'pending'
+              ? room.status === 'pending'
+              : room.is_verified;
 
       return matchesSearch && matchesFilter;
     });
-  }, [rooms, searchTerm, filter]);
+  }, [filter, rooms, searchTerm]);
 
-  const handleApprove = async (roomId: string) => {
-    await approveMutation.mutateAsync(roomId);
-  };
-
-  const openRejectDialog = (room: AdminRoom) => {
-    setSelectedRoomForReject(room);
-    setRejectionDialogOpen(true);
-  };
-
-  const handleRejectWithReason = async (reason: string) => {
-    if (!selectedRoomForReject) return;
-    await rejectMutation.mutateAsync({
-      roomId: selectedRoomForReject.id,
-      reason
+  const openEditor = useCallback((room: AdminRoom) => {
+    setSelectedRoomForEdit(room);
+    setEditorOpen(true);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('focus', room.id);
+      return next;
     });
-    setSelectedRoomForReject(null);
-  };
+  }, [setSearchParams]);
 
-  const handleDelete = async (roomId: string) => {
-    await deleteMutation.mutateAsync(roomId);
-  };
-
-  // Prefetch handler
-  const handlePrefetchRoom = (roomId: string) => {
-    queryClient.prefetchQuery({
-      queryKey: adminKeys.rooms.detail(roomId),
-      queryFn: () => adminService.getAdminRooms().then(rooms => rooms.find(r => r.id === roomId)),
-    });
-  };
-
-  const getStatusBadge = (status: string | null) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-100 text-green-700">Hoạt động</Badge>;
-      case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-700">Chờ duyệt</Badge>;
-      case "inactive":
-        return <Badge className="bg-red-100 text-red-700">Từ chối</Badge>;
-      case "rented":
-        return <Badge className="bg-blue-100 text-blue-700">Đã thuê</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-700">Nháp</Badge>;
+  const closeEditor = (open: boolean) => {
+    setEditorOpen(open);
+    if (!open) {
+      setSelectedRoomForEdit(null);
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.delete('focus');
+        return next;
+      });
     }
   };
 
-  const columns: ColumnDef<AdminRoom>[] = [
-    {
-      accessorKey: "title",
-      header: "Phòng",
-      cell: ({ row }) => {
-        const room = row.original;
-        return (
-          <div className="flex items-center gap-3">
-            <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-              <ImageWithFallback
-                src={room.images?.[0]?.image_url || ""}
-                alt={room.title}
-                className="w-full h-full object-cover"
-              />
+  const handleApprove = useCallback(async (roomId: string) => {
+    await approveMutation.mutateAsync(roomId);
+  }, [approveMutation]);
+
+  const handleDelete = useCallback(async (roomId: string) => {
+    await deleteMutation.mutateAsync(roomId);
+  }, [deleteMutation]);
+
+  const handleRejectWithReason = async (reason: string) => {
+    if (!selectedRoomForReject) {
+      return;
+    }
+
+    await rejectMutation.mutateAsync({ roomId: selectedRoomForReject.id, reason });
+    setSelectedRoomForReject(null);
+  };
+
+  const handlePrefetchRoom = useCallback((roomId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: adminKeys.rooms.detail(roomId),
+      queryFn: () => adminService.getAdminRooms().then((data) => data.find((room) => room.id === roomId)),
+    });
+  }, [queryClient]);
+
+  const columns = useMemo<ColumnDef<AdminRoom>[]>(
+    () => [
+      {
+        accessorKey: 'title',
+        header: 'Phòng',
+        cell: ({ row }) => {
+          const room = row.original;
+          return (
+            <div className="flex min-w-[280px] items-center gap-3">
+              <div className="h-16 w-16 overflow-hidden rounded-2xl bg-slate-100">
+                <ImageWithFallback
+                  src={room.images?.[0]?.image_url || ''}
+                  alt={room.title}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-slate-950">{room.title}</p>
+                <p className="truncate text-sm text-slate-500">
+                  {[room.district, room.city].filter(Boolean).join(', ')}
+                </p>
+              </div>
             </div>
-            <div>
-              <div className="font-medium">{room.title}</div>
-              <div className="text-sm text-gray-500">{room.district}, {room.city}</div>
+          );
+        },
+      },
+      {
+        accessorKey: 'price_per_month',
+        header: 'Giá',
+        cell: ({ row }) => {
+          const value = row.original.price_per_month;
+          return (
+            <span className="font-semibold text-slate-900">
+              {value ? `${(Number(value) / 1_000_000).toFixed(1)}tr/tháng` : '-'}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'owner',
+        header: 'Chủ nhà',
+        cell: ({ row }) => {
+          const room = row.original;
+          return (
+            <div className="min-w-[180px]">
+              <p className="font-medium text-slate-800">{room.landlord?.full_name || 'Chưa rõ'}</p>
+              <p className="text-xs text-slate-500">{room.landlord?.email || room.landlord_id}</p>
             </div>
-          </div>
-        );
+          );
+        },
       },
-      enableSorting: true,
-    },
-    {
-      accessorKey: "price_per_month",
-      header: "Giá",
-      cell: ({ row }) => {
-        const room = row.original;
-        return (
-          <span className="font-medium">
-            {room.price_per_month ? `${(Number(room.price_per_month) / 1000000).toFixed(1)}tr/tháng` : "-"}
+      {
+        accessorKey: 'status',
+        header: 'Trạng thái',
+        cell: ({ row }) => {
+          const room = row.original;
+          return (
+            <div className="flex items-center gap-2">
+              {getStatusBadge(room.status)}
+              {room.is_verified ? <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> : null}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'stats',
+        header: 'Tương tác',
+        cell: ({ row }) => {
+          const room = row.original;
+          return (
+            <div className="text-sm text-slate-500">
+              <p>{room.view_count || 0} lượt xem</p>
+              <p>{room.favorite_count || 0} lượt thích</p>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: 'created_at',
+        header: 'Ngày đăng',
+        cell: ({ row }) => (
+          <span className="text-sm text-slate-500">
+            {row.original.created_at
+              ? new Date(row.original.created_at).toLocaleDateString('vi-VN')
+              : '-'}
           </span>
-        );
+        ),
       },
-      enableSorting: true,
-    },
-    {
-      id: "owner",
-      header: "Chủ nhà",
-      cell: ({ row }) => {
-        const room = row.original;
-        return (
-          <div>
-            <span className="text-gray-600">{room.landlord?.full_name || "N/A"}</span>
-            <div className="text-xs text-gray-400">{room.landlord?.email}</div>
-          </div>
-        );
-      },
-      enableSorting: false,
-    },
-    {
-      accessorKey: "status",
-      header: "Trạng thái",
-      cell: ({ row }) => {
-        const room = row.original;
-        return (
-          <div className="flex items-center gap-2">
-            {getStatusBadge(room.status)}
-            {room.is_verified && (
-              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-            )}
-          </div>
-        );
-      },
-      enableSorting: true,
-    },
-    {
-      id: "stats",
-      header: "Thống kê",
-      cell: ({ row }) => {
-        const room = row.original;
-        return (
-          <div className="text-sm text-gray-500">
-            <div>{room.view_count || 0} lượt xem</div>
-            <div>{room.favorite_count || 0} yêu thích</div>
-          </div>
-        );
-      },
-      enableSorting: false,
-    },
-    {
-      accessorKey: "created_at",
-      header: "Ngày đăng",
-      cell: ({ row }) => {
-        const room = row.original;
-        return (
-          <span className="text-gray-600 text-sm">
-            {room.created_at ? new Date(room.created_at).toLocaleDateString('vi-VN') : "-"}
-          </span>
-        );
-      },
-      enableSorting: true,
-    },
-    {
-      id: "actions",
-      header: "Thao tác",
-      cell: ({ row }) => {
-        const room = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => navigate(`/room/${room.id}`)}
-                onMouseEnter={() => handlePrefetchRoom(room.id)}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Xem chi tiết
-              </DropdownMenuItem>
-              {room.status === "pending" && (
-                <>
-                  <DropdownMenuItem onClick={() => handleApprove(room.id)}>
-                    <Check className="h-4 w-4 mr-2" />
-                    Phê duyệt
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openRejectDialog(room)}>
-                    <X className="h-4 w-4 mr-2" />
-                    Từ chối
-                  </DropdownMenuItem>
-                </>
-              )}
-              {room.status === "inactive" && (
-                <DropdownMenuItem onClick={() => handleApprove(room.id)}>
-                  <Check className="h-4 w-4 mr-2" />
-                  Kích hoạt lại
+      {
+        id: 'actions',
+        header: 'Thao tác',
+        cell: ({ row }) => {
+          const room = row.original;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openEditor(room)}>
+                  <Edit3 className="mr-2 h-4 w-4" />
+                  Sửa phòng
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuItem
-                onClick={() => handleDelete(room.id)}
-                className="text-red-600"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Xóa
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
+                <DropdownMenuItem
+                  onClick={() => navigate(`/room/${room.id}`)}
+                  onMouseEnter={() => handlePrefetchRoom(room.id)}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Xem chi tiết
+                </DropdownMenuItem>
+                {room.status === 'pending' ? (
+                  <>
+                    <DropdownMenuItem onClick={() => void handleApprove(room.id)}>
+                      <Check className="mr-2 h-4 w-4" />
+                      Phê duyệt
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      setSelectedRoomForReject(room);
+                      setRejectionDialogOpen(true);
+                    }}>
+                      <X className="mr-2 h-4 w-4" />
+                      Từ chối
+                    </DropdownMenuItem>
+                  </>
+                ) : null}
+                {room.status === 'inactive' ? (
+                  <DropdownMenuItem onClick={() => void handleApprove(room.id)}>
+                    <Check className="mr-2 h-4 w-4" />
+                    Kích hoạt lại
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem className="text-rose-600" onClick={() => void handleDelete(room.id)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Xóa
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
       },
-      enableSorting: false,
-    },
-  ];
+    ],
+    [handleApprove, handleDelete, handlePrefetchRoom, navigate, openEditor],
+  );
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Quản lý phòng trọ</h1>
-        <p className="text-gray-600 mt-1">Quản lý tất cả tin đăng phòng trong hệ thống</p>
-      </div>
-
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-          <p className="text-sm text-red-700">{error.message}</p>
-          <Button variant="outline" size="sm" onClick={() => refetch()} className="ml-auto">
-            Thử lại
+    <>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-950">Quản lý phòng trọ</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Admin có thể duyệt, sửa toàn bộ listing và xử lý các issue chất lượng dữ liệu từ cùng một lane.
+            </p>
+          </div>
+          <Button asChild variant="outline" className="rounded-full border-slate-200">
+            <Link to="/admin/data-quality">
+              <AlertCircle className="h-4 w-4" />
+              Mở data quality
+            </Link>
           </Button>
         </div>
-      )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          title="Tổng phòng"
-          value={stats.total}
-          icon={Home}
-          variant="default"
-        />
-        <StatsCard
-          title="Đang hoạt động"
-          value={stats.active}
-          icon={CheckCircle}
-          variant="success"
-        />
-        <StatsCard
-          title="Chờ phê duyệt"
-          value={stats.pending}
-          icon={Clock}
-          variant="warning"
-        />
-        <StatsCard
-          title="Đã xác thực"
-          value={stats.verified}
-          icon={Star}
-          variant="info"
+        {error ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+            <AlertCircle className="h-5 w-5 shrink-0 text-rose-500" />
+            <p className="text-sm text-rose-700">{error.message}</p>
+            <Button variant="outline" size="sm" className="ml-auto rounded-full" onClick={() => void refetch()}>
+              Thử lại
+            </Button>
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <StatsCard title="Tổng phòng" value={stats.total} icon={Home} variant="default" />
+          <StatsCard title="Đang hoạt động" value={stats.active} icon={CheckCircle} variant="success" />
+          <StatsCard title="Chờ duyệt" value={stats.pending} icon={Clock} variant="warning" />
+          <StatsCard title="Đã xác thực" value={stats.verified} icon={Star} variant="info" />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <Select value={filter} onValueChange={(value) => setFilter(value as typeof filter)}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả</SelectItem>
+              <SelectItem value="active">Đang hoạt động</SelectItem>
+              <SelectItem value="pending">Chờ duyệt</SelectItem>
+              <SelectItem value="verified">Đã xác thực</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <DataTable
+          data={filteredRooms}
+          columns={columns}
+          searchPlaceholder="Tìm theo tiêu đề, địa chỉ hoặc chủ nhà..."
+          onSearch={setSearchTerm}
+          pageSize={15}
         />
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="active">Đang hoạt động</SelectItem>
-            <SelectItem value="pending">Chờ phê duyệt</SelectItem>
-            <SelectItem value="verified">Đã xác thực</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <RoomEditorDrawer room={selectedRoomForEdit} open={editorOpen} onOpenChange={closeEditor} />
 
-      {/* Data Table */}
-      <DataTable
-        data={filteredRooms}
-        columns={columns}
-        searchPlaceholder="Tìm theo tiêu đề hoặc địa điểm..."
-        onSearch={setSearchTerm}
-        pageSize={15}
-      />
-
-      {/* Rejection Dialog */}
       <RejectionDialog
         open={rejectionDialogOpen}
         onOpenChange={setRejectionDialogOpen}
@@ -352,6 +392,9 @@ export default function RoomsPage() {
         type="room"
         itemName={selectedRoomForReject?.title}
       />
-    </div>
+    </>
   );
 }
+
+
+

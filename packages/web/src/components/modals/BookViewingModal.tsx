@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { trackFeatureEvent } from "@/services/analyticsTracking";
 
 interface BookViewingModalProps {
   isOpen: boolean;
@@ -83,7 +84,7 @@ export function BookViewingModal({
     setError(null);
 
     try {
-      await createNewBooking({
+      const booking = await createNewBooking({
         roomId,
         landlordId,
         bookingDate: formattedDate,
@@ -93,6 +94,15 @@ export function BookViewingModal({
         contactPhone: contactPhone || profile?.phone || undefined,
         contactEmail: contactEmail || user.email || undefined,
         durationMinutes: 30,
+      });
+
+      void trackFeatureEvent("booking_created", user.id, {
+        booking_id: booking.id ?? null,
+        room_id: roomId,
+        landlord_id: landlordId,
+        room_title: roomTitle ?? null,
+        booking_date: formattedDate,
+        booking_time: selectedTime,
       });
 
       setIsConfirmed(true);

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { dataQualityKeys } from '@/hooks/useDataQuality';
 import {
   createCrawlSource,
   deleteCrawlSource,
@@ -14,6 +15,8 @@ import {
   rejectPartnerCrawlIngestion,
   runCrawlSource,
   syncCrawlJob,
+  updateLocationCrawlIngestion,
+  updatePartnerCrawlIngestion,
   updateCrawlSource,
   uploadCrawlRecords,
   type CrawlEntityType,
@@ -125,6 +128,34 @@ export function useRefreshLocationCrawlClassification() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ingestionReviewKeys.locations() });
       queryClient.invalidateQueries({ queryKey: ingestionReviewKeys.jobs('location') });
+    },
+  });
+}
+
+export function useUpdatePartnerCrawlIngestion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: Parameters<typeof updatePartnerCrawlIngestion>[1] }) =>
+      updatePartnerCrawlIngestion(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ingestionReviewKeys.partners() });
+      queryClient.invalidateQueries({ queryKey: ingestionReviewKeys.jobs('partner') });
+      queryClient.invalidateQueries({ queryKey: dataQualityKeys.dashboard() });
+    },
+  });
+}
+
+export function useUpdateLocationCrawlIngestion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: Parameters<typeof updateLocationCrawlIngestion>[1] }) =>
+      updateLocationCrawlIngestion(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ingestionReviewKeys.locations() });
+      queryClient.invalidateQueries({ queryKey: ingestionReviewKeys.jobs('location') });
+      queryClient.invalidateQueries({ queryKey: dataQualityKeys.dashboard() });
     },
   });
 }

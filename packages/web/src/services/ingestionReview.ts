@@ -6,6 +6,7 @@ export type CrawlJobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'pa
 export type PartnerCrawlReviewStatus =
   | 'pending'
   | 'ready'
+  | 'low_confidence'
   | 'duplicate_partner'
   | 'duplicate_lead'
   | 'imported'
@@ -65,6 +66,7 @@ export interface CrawlJob {
 
 export interface PartnerCrawlReviewItem {
   id: string;
+  crawl_job_id: string | null;
   source_type: string;
   source_name: string;
   source_url: string | null;
@@ -78,9 +80,13 @@ export interface PartnerCrawlReviewItem {
   service_category: string | null;
   address: string | null;
   website: string | null;
+  notes: string | null;
+  dedupe_key: string | null;
   crawl_confidence: number | null;
   review_status: PartnerCrawlReviewStatus;
   import_error: string | null;
+  raw_payload: Record<string, unknown>;
+  normalized_payload: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   reviewed_at: string | null;
@@ -94,6 +100,7 @@ export interface PartnerCrawlReviewItem {
 
 export interface LocationCrawlReviewItem {
   id: string;
+  crawl_job_id: string | null;
   source_type: string;
   source_name: string;
   source_url: string | null;
@@ -109,6 +116,9 @@ export interface LocationCrawlReviewItem {
   longitude: number | null;
   tags: string[];
   notes: string | null;
+  dedupe_key: string | null;
+  raw_payload: Record<string, unknown>;
+  normalized_payload: Record<string, unknown>;
   crawl_confidence: number | null;
   review_status: LocationCrawlReviewStatus;
   import_error: string | null;
@@ -131,6 +141,7 @@ export interface CrawlFunctionResult {
     totalCount: number;
     insertedCount: number;
     readyCount: number;
+    lowConfidenceCount: number;
     duplicateCount: number;
     errorCount: number;
     skippedCount: number;
@@ -155,6 +166,36 @@ export interface UpdateCrawlSourceInput {
   config?: Record<string, unknown>;
 }
 
+export interface UpdatePartnerCrawlReviewItemInput {
+  companyName?: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  serviceArea?: string;
+  serviceCategory?: string;
+  address?: string;
+  website?: string;
+  sourceUrl?: string;
+  externalId?: string;
+  notes?: string;
+  crawlConfidence?: number | null;
+}
+
+export interface UpdateLocationCrawlReviewItemInput {
+  locationName?: string;
+  locationType?: LocationCatalogType | '';
+  city?: string;
+  district?: string;
+  address?: string;
+  latitude?: string | number | null;
+  longitude?: string | number | null;
+  tags?: string;
+  sourceUrl?: string;
+  externalId?: string;
+  notes?: string;
+  crawlConfidence?: number | null;
+}
+
 export interface UploadCrawlRecordsInput {
   entityType: CrawlEntityType;
   sourceName: string;
@@ -164,7 +205,7 @@ export interface UploadCrawlRecordsInput {
 }
 
 type CrawlReviewStatus = PartnerCrawlReviewStatus | LocationCrawlReviewStatus;
-type LocationCatalogType =
+export type LocationCatalogType =
   | 'university'
   | 'district'
   | 'neighborhood'
@@ -328,7 +369,7 @@ export function normalizeCrawlSourceUrl(value: unknown) {
   return sanitizeUrl(value);
 }
 
-function extractDomain(url?: string) {
+function extractDomain(url?: string | null) {
   if (!url) {
     return undefined;
   }
@@ -347,6 +388,19 @@ function parseCoordinate(value: unknown) {
   }
 
   return numericValue;
+}
+
+function sanitizeNumericScore(value: unknown) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return null;
+  }
+
+  return Math.max(0, Math.min(100, numericValue));
 }
 
 function normalizeLocationName(value: unknown) {
@@ -802,6 +856,163 @@ export async function updateCrawlSource(id: string, input: UpdateCrawlSourceInpu
   }
 }
 
+export function buildPartnerCrawlIngestionUpdate(
+  input: UpdatePartnerCrawlReviewItemInput,
+) {
+  const companyName = normalizeWhitespace(input.companyName) || null;
+  const contactName = normalizeWhitespace(input.contactName) || null;
+  const email = sanitizeEmail(input.email) ?? null;
+  const phone = sanitizePhone(input.phone) ?? null;
+  const serviceArea = normalizeWhitespace(input.serviceArea) || null;
+  const serviceCategory = normalizeWhitespace(input.serviceCategory) || null;
+  const address = normalizeWhitespace(input.address) || null;
+  const website = sanitizeUrl(input.website) ?? null;
+  const sourceUrl = sanitizeUrl(input.sourceUrl) ?? null;
+  const sourceDomain = extractDomain(sourceUrl ?? website) ?? null;
+  const externalId = normalizeWhitespace(input.externalId) || null;
+  const notes = normalizeWhitespace(input.notes) || null;
+  const crawlConfidence = sanitizeNumericScore(input.crawlConfidence);
+  const dedupeKey = email
+    ? `email:${email}`
+    : phone
+      ? `phone:${phone}`
+      : companyName
+        ? `company:${companyName.toLowerCase()}|domain:${sourceDomain ?? 'unknown'}`
+        : null;
+
+  return {
+    company_name: companyName,
+    contact_name: contactName,
+    email,
+    phone,
+    service_area: serviceArea,
+    service_category: serviceCategory,
+    address,
+    website,
+    source_url: sourceUrl,
+    source_domain: sourceDomain,
+    external_id: externalId,
+    notes,
+    crawl_confidence: crawlConfidence,
+    dedupe_key: dedupeKey,
+    normalized_payload: {
+      company_name: companyName,
+      contact_name: contactName,
+      email,
+      phone,
+      service_area: serviceArea,
+      service_category: serviceCategory,
+      address,
+      website,
+      source_url: sourceUrl,
+      source_domain: sourceDomain,
+      external_id: externalId,
+      notes,
+      crawl_confidence: crawlConfidence,
+    },
+  };
+}
+
+export function buildLocationCrawlIngestionUpdate(
+  input: UpdateLocationCrawlReviewItemInput,
+) {
+  const locationName = normalizeWhitespace(input.locationName) || null;
+  const locationType = input.locationType && LOCATION_TYPES.has(input.locationType)
+    ? input.locationType
+    : null;
+  const city = normalizeWhitespace(input.city) || null;
+  const district = normalizeWhitespace(input.district) || null;
+  const address = normalizeWhitespace(input.address) || null;
+  const latitude = parseCoordinate(input.latitude) ?? null;
+  const longitude = parseCoordinate(input.longitude) ?? null;
+  const tags = normalizeTags(
+    typeof input.tags === 'string'
+      ? input.tags.split(',').map((tag) => tag.trim())
+      : input.tags,
+  );
+  const sourceUrl = sanitizeUrl(input.sourceUrl) ?? null;
+  const sourceDomain = extractDomain(sourceUrl) ?? null;
+  const externalId = normalizeWhitespace(input.externalId) || null;
+  const notes = normalizeWhitespace(input.notes) || null;
+  const crawlConfidence = sanitizeNumericScore(input.crawlConfidence);
+  const normalizedName = locationName ? normalizeLocationName(locationName) : null;
+  const dedupeKey = normalizedName && locationType
+    ? `${locationType}|${normalizedName}|${(city ?? '').toLowerCase()}|${(district ?? '').toLowerCase()}`
+    : null;
+
+  return {
+    location_name: locationName,
+    normalized_name: normalizedName,
+    location_type: locationType,
+    city,
+    district,
+    address,
+    latitude,
+    longitude,
+    tags,
+    source_url: sourceUrl,
+    source_domain: sourceDomain,
+    external_id: externalId,
+    notes,
+    crawl_confidence: crawlConfidence,
+    dedupe_key: dedupeKey,
+    normalized_payload: {
+      location_name: locationName,
+      normalized_name: normalizedName,
+      location_type: locationType,
+      city,
+      district,
+      address,
+      latitude,
+      longitude,
+      tags,
+      source_url: sourceUrl,
+      source_domain: sourceDomain,
+      external_id: externalId,
+      notes,
+      crawl_confidence: crawlConfidence,
+    },
+  };
+}
+
+export async function updatePartnerCrawlIngestion(
+  id: string,
+  input: UpdatePartnerCrawlReviewItemInput,
+): Promise<void> {
+  const userId = await getCurrentUserId();
+  const { error } = await client
+    .from('partner_crawl_ingestions')
+    .update({
+      ...buildPartnerCrawlIngestionUpdate(input),
+      reviewed_by: userId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`Không thể cập nhật record crawl đối tác: ${error.message}`);
+  }
+}
+
+export async function updateLocationCrawlIngestion(
+  id: string,
+  input: UpdateLocationCrawlReviewItemInput,
+): Promise<void> {
+  const userId = await getCurrentUserId();
+  const { error } = await client
+    .from('location_crawl_ingestions')
+    .update({
+      ...buildLocationCrawlIngestionUpdate(input),
+      reviewed_by: userId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`Không thể cập nhật record crawl location: ${error.message}`);
+  }
+}
+
 export async function deleteCrawlSource(id: string): Promise<void> {
   const { error } = await client.from('crawl_sources').delete().eq('id', id);
   if (error) {
@@ -936,7 +1147,7 @@ function summarizeUploadStatus(summary: CrawlFunctionResult['summary']): CrawlJo
     return 'failed';
   }
 
-  if (summary.errorCount > 0 || summary.skippedCount > 0) {
+  if (summary.errorCount > 0 || summary.skippedCount > 0 || summary.lowConfidenceCount > 0) {
     return 'partial';
   }
 
@@ -985,6 +1196,13 @@ async function finalizeUploadJob(jobId: string, status: CrawlJobStatus, summary:
       error_message: errorMessage ?? null,
       log: {
         summary,
+        counts_by_status: {
+          ready: summary.readyCount,
+          low_confidence: summary.lowConfidenceCount,
+          duplicate: summary.duplicateCount,
+          error: summary.errorCount,
+          skipped: summary.skippedCount,
+        },
       },
       updated_at: new Date().toISOString(),
     })
@@ -1032,6 +1250,7 @@ export async function uploadCrawlRecords(input: UploadCrawlRecordsInput): Promis
     totalCount: input.records.length,
     insertedCount: 0,
     readyCount: 0,
+    lowConfidenceCount: 0,
     duplicateCount: 0,
     errorCount: 0,
     skippedCount: 0,
@@ -1087,6 +1306,8 @@ export async function uploadCrawlRecords(input: UploadCrawlRecordsInput): Promis
 
         if (reviewStatus === 'ready') {
           summary.readyCount += 1;
+        } else if (reviewStatus === 'low_confidence') {
+          summary.lowConfidenceCount += 1;
         } else if (reviewStatus === 'duplicate_partner'
           || reviewStatus === 'duplicate_lead'
           || reviewStatus === 'duplicate_location') {

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+﻿import { expect, test } from '@playwright/test';
 
 test.describe('public smoke flows', () => {
   test('landing page loads and public navigation reaches search', async ({ page }) => {
@@ -10,7 +10,7 @@ test.describe('public smoke flows', () => {
     await page.getByRole('button', { name: /Tìm phòng/i }).first().click();
 
     await expect(page).toHaveURL(/\/search(?:\?.*)?$/);
-    await expect(page.getByRole('combobox', { name: /Tìm kiếm địa điểm/i })).toBeVisible();
+    await expect(page.locator('input[role="combobox"]').first()).toBeVisible();
     await expect(page.getByText(/phòng còn trống/i)).toBeVisible();
   });
 

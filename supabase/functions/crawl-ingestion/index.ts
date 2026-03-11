@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 type CrawlEntityType = 'partner' | 'location';
 type CrawlProvider = 'firecrawl' | 'admin_upload';
@@ -34,14 +34,46 @@ type AuthenticatedUser = {
   email?: string;
 };
 
+type AdminClient = SupabaseClient<any, 'public', 'public', any, any>;
+
 type ProcessSummary = {
   totalCount: number;
   insertedCount: number;
   readyCount: number;
+  lowConfidenceCount: number;
   duplicateCount: number;
   errorCount: number;
   skippedCount: number;
   sampleIds: string[];
+};
+
+type ProcessingReason =
+  | 'missing_company_name'
+  | 'missing_identity'
+  | 'duplicate_external_id'
+  | 'duplicate_dedupe_key'
+  | 'insert_failed'
+  | 'classify_failed'
+  | 'low_confidence'
+  | 'ready'
+  | 'duplicate_partner'
+  | 'duplicate_lead'
+  | 'duplicate_location'
+  | 'error';
+
+type ProcessingSample = {
+  id?: string;
+  label?: string;
+  sourceUrl?: string | null;
+  website?: string | null;
+  dedupeKey?: string | null;
+  reason: ProcessingReason;
+  reviewStatus?: string;
+};
+
+type ProcessResult = {
+  summary: ProcessSummary;
+  debugLog: JsonObject;
 };
 
 type FirecrawlExtractResponse = {
@@ -123,7 +155,11 @@ const DEFAULT_PROMPTS: Record<CrawlEntityType, string> = {
   partner: [
     'Extract partner businesses suitable for student housing support services.',
     'Focus on moving, cleaning, furniture, utilities, handyman, and related local support services.',
-    'Return concrete contact details and keep all discovered businesses in items.',
+    'If the page is a roundup, ranking, directory, or listicle, extract EVERY distinct business entry in the article.',
+    'Return one item per business and never collapse multiple businesses into a single item.',
+    'Keep items even when only company name, website, address, or service area is available.',
+    'Use website only for a business-specific site. Do not reuse the article URL as the business website.',
+    'If ranking/order is visible, return it in rank.',
   ].join(' '),
   location: [
     'Extract public location metadata useful for student housing discovery.',
@@ -147,6 +183,7 @@ const DEFAULT_SCHEMAS: Record<CrawlEntityType, JsonObject> = {
             contact_name: { type: 'string' },
             email: { type: 'string' },
             phone: { type: 'string' },
+            rank: { type: 'integer' },
             service_area: { type: 'string' },
             service_category: { type: 'string' },
             address: { type: 'string' },
@@ -561,6 +598,58 @@ function normalizeLocationItem(item: JsonValue, sourceType: string, sourceName: 
   };
 }
 
+function createEmptySummary(totalCount: number): ProcessSummary {
+  return {
+    totalCount,
+    insertedCount: 0,
+    readyCount: 0,
+    lowConfidenceCount: 0,
+    duplicateCount: 0,
+    errorCount: 0,
+    skippedCount: 0,
+    sampleIds: [],
+  };
+}
+
+function createProcessingDebugLog(totalCount: number) {
+  const reasons: Record<string, number> = {};
+  const inserted: ProcessingSample[] = [];
+  const skipped: ProcessingSample[] = [];
+  const duplicates: ProcessingSample[] = [];
+  const lowConfidence: ProcessingSample[] = [];
+  const errors: ProcessingSample[] = [];
+
+  const bumpReason = (reason: ProcessingReason) => {
+    reasons[reason] = (reasons[reason] ?? 0) + 1;
+  };
+
+  const pushSample = (bucket: ProcessingSample[], sample: ProcessingSample) => {
+    if (bucket.length < 8) {
+      bucket.push(sample);
+    }
+  };
+
+  const toJson = (): JsonObject => ({
+    extracted_count: totalCount,
+    reasons,
+    inserted_samples: inserted,
+    skipped_samples: skipped,
+    duplicate_samples: duplicates,
+    low_confidence_samples: lowConfidence,
+    error_samples: errors,
+  });
+
+  return {
+    bumpReason,
+    pushInserted: (sample: ProcessingSample) => pushSample(inserted, sample),
+    pushSkipped: (sample: ProcessingSample) => pushSample(skipped, sample),
+    pushDuplicate: (sample: ProcessingSample) => pushSample(duplicates, sample),
+    pushLowConfidence: (sample: ProcessingSample) => pushSample(lowConfidence, sample),
+    pushError: (sample: ProcessingSample) => pushSample(errors, sample),
+    toJson,
+  };
+}
+
 async function verifyAdmin(authHeader: string) {
   const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: {
@@ -579,7 +668,7 @@ async function verifyAdmin(authHeader: string) {
     throw new HttpError(401, 'AUTH_ERROR', 'Invalid token');
   }
 
-  const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  const adminClient: AdminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -606,7 +695,7 @@ async function verifyAdmin(authHeader: string) {
 }
 
 async function createJob(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: AdminClient,
   payload: {
     sourceId?: string;
     entityType: CrawlEntityType;
@@ -645,7 +734,7 @@ async function createJob(
 }
 
 async function updateJob(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: AdminClient,
   jobId: string,
   patch: Record<string, JsonValue>,
 ) {
@@ -662,7 +751,7 @@ async function updateJob(
   }
 }
 
-async function getSource(adminClient: ReturnType<typeof createClient>, sourceId: string) {
+async function getSource(adminClient: AdminClient, sourceId: string) {
   const { data, error } = await adminClient
     .from('crawl_sources')
     .select('*')
@@ -679,7 +768,7 @@ async function getSource(adminClient: ReturnType<typeof createClient>, sourceId:
   return data as CrawlSourceRow;
 }
 
-async function getJob(adminClient: ReturnType<typeof createClient>, jobId: string) {
+async function getJob(adminClient: AdminClient, jobId: string) {
   const { data, error } = await adminClient
     .from('crawl_jobs')
     .select('*')
@@ -769,96 +858,150 @@ async function getFirecrawlJobStatus(providerJobId: string) {
 
   return payload;
 }
-async function ingestionExists(
-  adminClient: ReturnType<typeof createClient>,
+async function findExistingIngestion(
+  adminClient: AdminClient,
   tableName: 'partner_crawl_ingestions' | 'location_crawl_ingestions',
   sourceType: string,
   externalId?: string,
-  sourceUrl?: string,
+  dedupeKey?: string,
 ) {
-  const checks: string[] = [];
   if (externalId) {
-    checks.push(`external_id.eq.${externalId}`);
-  }
-  if (sourceUrl) {
-    checks.push(`source_url.eq.${sourceUrl}`);
-  }
-  if (checks.length === 0) {
-    return false;
+    const { data, error } = await adminClient
+      .from(tableName)
+      .select('id')
+      .eq('source_type', sourceType)
+      .eq('external_id', externalId)
+      .limit(1);
+
+    if (error) {
+      throw error;
+    }
+
+    if (data && data.length > 0) {
+      return {
+        exists: true,
+        reason: 'duplicate_external_id' as const,
+      };
+    }
   }
 
-  const { data, error } = await adminClient
-    .from(tableName)
-    .select('id')
-    .eq('source_type', sourceType)
-    .or(checks.join(','))
-    .limit(1);
+  if (dedupeKey) {
+    const { data, error } = await adminClient
+      .from(tableName)
+      .select('id')
+      .eq('source_type', sourceType)
+      .eq('dedupe_key', dedupeKey)
+      .limit(1);
 
-  if (error) {
-    throw error;
+    if (error) {
+      throw error;
+    }
+
+    if (data && data.length > 0) {
+      return {
+        exists: true,
+        reason: 'duplicate_dedupe_key' as const,
+      };
+    }
   }
 
-  return Boolean(data && data.length > 0);
+  return {
+    exists: false,
+    reason: null,
+  };
 }
 
 function classifyStatusToCounters(entityType: CrawlEntityType, reviewStatus?: string) {
   if (!reviewStatus) {
-    return { ready: 0, duplicate: 0, error: 1 };
+    return { ready: 0, lowConfidence: 0, duplicate: 0, error: 1 };
   }
   if (reviewStatus === 'ready') {
-    return { ready: 1, duplicate: 0, error: 0 };
+    return { ready: 1, lowConfidence: 0, duplicate: 0, error: 0 };
+  }
+  if (entityType === 'partner' && reviewStatus === 'low_confidence') {
+    return { ready: 0, lowConfidence: 1, duplicate: 0, error: 0 };
   }
   if (entityType === 'partner' && (reviewStatus === 'duplicate_partner' || reviewStatus === 'duplicate_lead')) {
-    return { ready: 0, duplicate: 1, error: 0 };
+    return { ready: 0, lowConfidence: 0, duplicate: 1, error: 0 };
   }
   if (entityType === 'location' && reviewStatus === 'duplicate_location') {
-    return { ready: 0, duplicate: 1, error: 0 };
+    return { ready: 0, lowConfidence: 0, duplicate: 1, error: 0 };
   }
-  return { ready: 0, duplicate: 0, error: 1 };
+  return { ready: 0, lowConfidence: 0, duplicate: 0, error: 1 };
 }
 
 async function processPartnerRecords(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: AdminClient,
   records: JsonValue[],
   sourceType: string,
   sourceName: string,
+  crawlJobId?: string,
 ) {
-  const summary: ProcessSummary = {
-    totalCount: records.length,
-    insertedCount: 0,
-    readyCount: 0,
-    duplicateCount: 0,
-    errorCount: 0,
-    skippedCount: 0,
-    sampleIds: [],
-  };
+  const summary = createEmptySummary(records.length);
+  const debug = createProcessingDebugLog(records.length);
 
   for (const record of records) {
     const normalized = normalizePartnerItem(record, sourceType, sourceName);
-    if (!normalized.company_name && !normalized.email && !normalized.phone) {
+    const label = normalized.company_name ?? normalized.website ?? 'unknown-partner';
+    const baseSample = {
+      label,
+      sourceUrl: normalized.source_url ?? null,
+      website: normalized.website ?? null,
+      dedupeKey: normalized.dedupe_key ?? null,
+    };
+
+    if (!normalized.company_name) {
+      debug.bumpReason('missing_company_name');
+      debug.pushSkipped({
+        ...baseSample,
+        reason: 'missing_company_name',
+      });
       summary.skippedCount += 1;
       continue;
     }
 
-    const exists = await ingestionExists(
+    if (!normalized.email && !normalized.phone && !normalized.website) {
+      debug.bumpReason('missing_identity');
+      debug.pushSkipped({
+        ...baseSample,
+        reason: 'missing_identity',
+      });
+      summary.skippedCount += 1;
+      continue;
+    }
+
+    const existing = await findExistingIngestion(
       adminClient,
       'partner_crawl_ingestions',
       normalized.source_type,
       normalized.external_id,
-      normalized.source_url,
+      normalized.dedupe_key,
     );
-    if (exists) {
-      summary.skippedCount += 1;
+    if (existing.exists) {
+      debug.bumpReason(existing.reason ?? 'duplicate_dedupe_key');
+      debug.pushDuplicate({
+        ...baseSample,
+        reason: existing.reason ?? 'duplicate_dedupe_key',
+      });
+      summary.duplicateCount += 1;
       continue;
     }
 
     const { data: inserted, error: insertError } = await adminClient
       .from('partner_crawl_ingestions')
-      .insert(normalized)
+      .insert({
+        ...normalized,
+        crawl_job_id: crawlJobId ?? null,
+      })
       .select('id')
       .single();
 
     if (insertError || !inserted) {
+      debug.bumpReason('insert_failed');
+      debug.pushError({
+        ...baseSample,
+        reason: 'insert_failed',
+      });
       summary.errorCount += 1;
       continue;
     }
@@ -874,6 +1017,12 @@ async function processPartnerRecords(
     );
 
     if (classifyError) {
+      debug.bumpReason('classify_failed');
+      debug.pushError({
+        ...baseSample,
+        id: String(inserted.id),
+        reason: 'classify_failed',
+      });
       summary.errorCount += 1;
       continue;
     }
@@ -883,55 +1032,113 @@ async function processPartnerRecords(
       : toRecord(classifyResult);
     const counters = classifyStatusToCounters('partner', String(row.review_status ?? ''));
     summary.readyCount += counters.ready;
+    summary.lowConfidenceCount += counters.lowConfidence;
     summary.duplicateCount += counters.duplicate;
     summary.errorCount += counters.error;
+
+    const reviewStatus = String(row.review_status ?? 'error');
+    if (reviewStatus === 'low_confidence') {
+      debug.bumpReason('low_confidence');
+      debug.pushLowConfidence({
+        ...baseSample,
+        id: String(inserted.id),
+        reason: 'low_confidence',
+        reviewStatus,
+      });
+    } else if (reviewStatus === 'duplicate_partner' || reviewStatus === 'duplicate_lead') {
+      debug.bumpReason(reviewStatus as ProcessingReason);
+      debug.pushDuplicate({
+        ...baseSample,
+        id: String(inserted.id),
+        reason: reviewStatus as ProcessingReason,
+        reviewStatus,
+      });
+    } else if (reviewStatus === 'ready') {
+      debug.bumpReason('ready');
+      debug.pushInserted({
+        ...baseSample,
+        id: String(inserted.id),
+        reason: 'ready',
+        reviewStatus,
+      });
+    } else {
+      debug.bumpReason('error');
+      debug.pushError({
+        ...baseSample,
+        id: String(inserted.id),
+        reason: 'error',
+        reviewStatus,
+      });
+    }
   }
 
-  return summary;
+  return {
+    summary,
+    debugLog: debug.toJson(),
+  } satisfies ProcessResult;
 }
 
 async function processLocationRecords(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: AdminClient,
   records: JsonValue[],
   sourceType: string,
   sourceName: string,
+  crawlJobId?: string,
 ) {
-  const summary: ProcessSummary = {
-    totalCount: records.length,
-    insertedCount: 0,
-    readyCount: 0,
-    duplicateCount: 0,
-    errorCount: 0,
-    skippedCount: 0,
-    sampleIds: [],
-  };
+  const summary = createEmptySummary(records.length);
+  const debug = createProcessingDebugLog(records.length);
 
   for (const record of records) {
     const normalized = normalizeLocationItem(record, sourceType, sourceName);
+    const label = normalized.location_name ?? normalized.normalized_name ?? 'unknown-location';
+    const baseSample = {
+      label,
+      sourceUrl: normalized.source_url ?? null,
+      dedupeKey: normalized.dedupe_key ?? null,
+    };
+
     if (!normalized.location_name) {
+      debug.bumpReason('missing_identity');
+      debug.pushSkipped({
+        ...baseSample,
+        reason: 'missing_identity',
+      });
       summary.skippedCount += 1;
       continue;
     }
 
-    const exists = await ingestionExists(
+    const existing = await findExistingIngestion(
       adminClient,
       'location_crawl_ingestions',
       normalized.source_type,
       normalized.external_id,
-      normalized.source_url,
+      normalized.dedupe_key,
     );
-    if (exists) {
-      summary.skippedCount += 1;
+    if (existing.exists) {
+      debug.bumpReason(existing.reason ?? 'duplicate_dedupe_key');
+      debug.pushDuplicate({
+        ...baseSample,
+        reason: existing.reason ?? 'duplicate_dedupe_key',
+      });
+      summary.duplicateCount += 1;
       continue;
     }
 
     const { data: inserted, error: insertError } = await adminClient
       .from('location_crawl_ingestions')
-      .insert(normalized)
+      .insert({
+        ...normalized,
+        crawl_job_id: crawlJobId ?? null,
+      })
       .select('id')
       .single();
 
     if (insertError || !inserted) {
+      debug.bumpReason('insert_failed');
+      debug.pushError({
+        ...baseSample,
+        reason: 'insert_failed',
+      });
       summary.errorCount += 1;
       continue;
     }
@@ -947,6 +1154,12 @@ async function processLocationRecords(
     );
 
     if (classifyError) {
+      debug.bumpReason('classify_failed');
+      debug.pushError({
+        ...baseSample,
+        id: String(inserted.id),
+        reason: 'classify_failed',
+      });
       summary.errorCount += 1;
       continue;
     }
@@ -956,23 +1169,55 @@ async function processLocationRecords(
       : toRecord(classifyResult);
     const counters = classifyStatusToCounters('location', String(row.review_status ?? ''));
     summary.readyCount += counters.ready;
+    summary.lowConfidenceCount += counters.lowConfidence;
     summary.duplicateCount += counters.duplicate;
     summary.errorCount += counters.error;
+
+    const reviewStatus = String(row.review_status ?? 'error');
+    if (reviewStatus === 'duplicate_location') {
+      debug.bumpReason('duplicate_location');
+      debug.pushDuplicate({
+        ...baseSample,
+        id: String(inserted.id),
+        reason: 'duplicate_location',
+        reviewStatus,
+      });
+    } else if (reviewStatus === 'ready') {
+      debug.bumpReason('ready');
+      debug.pushInserted({
+        ...baseSample,
+        id: String(inserted.id),
+        reason: 'ready',
+        reviewStatus,
+      });
+    } else {
+      debug.bumpReason('error');
+      debug.pushError({
+        ...baseSample,
+        id: String(inserted.id),
+        reason: 'error',
+        reviewStatus,
+      });
+    }
   }
 
-  return summary;
+  return {
+    summary,
+    debugLog: debug.toJson(),
+  } satisfies ProcessResult;
 }
 
 async function processRecords(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: AdminClient,
   entityType: CrawlEntityType,
   records: JsonValue[],
   sourceType: string,
   sourceName: string,
+  crawlJobId?: string,
 ) {
   return entityType === 'partner'
-    ? processPartnerRecords(adminClient, records, sourceType, sourceName)
-    : processLocationRecords(adminClient, records, sourceType, sourceName);
+    ? processPartnerRecords(adminClient, records, sourceType, sourceName, crawlJobId)
+    : processLocationRecords(adminClient, records, sourceType, sourceName, crawlJobId);
 }
 
 function summaryToJobPatch(summary: ProcessSummary, log: JsonObject) {
@@ -980,6 +1225,8 @@ function summaryToJobPatch(summary: ProcessSummary, log: JsonObject) {
     ? 'partial'
     : summary.errorCount > 0 && summary.insertedCount === 0 && summary.readyCount === 0 && summary.duplicateCount === 0
       ? 'failed'
+      : summary.lowConfidenceCount > 0 || summary.skippedCount > 0
+        ? 'partial'
       : 'succeeded';
 
   return {
@@ -991,12 +1238,21 @@ function summaryToJobPatch(summary: ProcessSummary, log: JsonObject) {
     error_count: summary.errorCount,
     skipped_count: summary.skippedCount,
     finished_at: new Date().toISOString(),
-    log,
+    log: {
+      ...log,
+      counts_by_status: {
+        ready: summary.readyCount,
+        low_confidence: summary.lowConfidenceCount,
+        duplicate: summary.duplicateCount,
+        error: summary.errorCount,
+        skipped: summary.skippedCount,
+      },
+    },
   };
 }
 
 async function handleRunSource(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: AdminClient,
   user: AuthenticatedUser,
   body: RunSourceRequest,
 ) {
@@ -1064,7 +1320,7 @@ async function handleRunSource(
 }
 
 async function handleSyncJob(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: AdminClient,
   body: SyncJobRequest,
 ) {
   const job = await getJob(adminClient, body.jobId);
@@ -1114,18 +1370,20 @@ async function handleSyncJob(
   }
 
   const records = inferArrayPayload(firecrawlResult.data ?? []);
-  const summary = await processRecords(
+  const result = await processRecords(
     adminClient,
     job.entity_type,
     records,
     'firecrawl',
     job.source_name,
+    job.id,
   );
-  const patch = summaryToJobPatch(summary, {
+  const patch = summaryToJobPatch(result.summary, {
     ...(job.log ?? {}),
     firecrawl_status: firecrawlStatus,
     expires_at: firecrawlResult.expiresAt ?? null,
-    processed_samples: summary.sampleIds,
+    processed_samples: result.summary.sampleIds,
+    processing_debug: result.debugLog,
   });
   await updateJob(adminClient, job.id, patch);
 
@@ -1133,12 +1391,12 @@ async function handleSyncJob(
     jobId: job.id,
     status: patch.status,
     firecrawlStatus,
-    summary,
+    summary: result.summary,
   };
 }
 
 async function handleImportRecords(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: AdminClient,
   user: AuthenticatedUser,
   body: ImportRecordsRequest,
 ) {
@@ -1162,23 +1420,25 @@ async function handleImportRecords(
   });
 
   try {
-    const summary = await processRecords(
+    const result = await processRecords(
       adminClient,
       body.entityType,
       records,
       'admin_import',
       sourceName,
+      job.id,
     );
-    const patch = summaryToJobPatch(summary, {
+    const patch = summaryToJobPatch(result.summary, {
       ...(job.log ?? {}),
-      processed_samples: summary.sampleIds,
+      processed_samples: result.summary.sampleIds,
+      processing_debug: result.debugLog,
     });
     await updateJob(adminClient, job.id, patch);
 
     return {
       jobId: job.id,
       status: patch.status,
-      summary,
+      summary: result.summary,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to import crawl file';

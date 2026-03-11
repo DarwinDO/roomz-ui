@@ -37,7 +37,7 @@ import {
   Compass,
 } from "lucide-react";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { BookViewingModal } from "@/components/modals/BookViewingModal";
 import { ContactLandlordModal } from "@/components/modals/ContactLandlordModal";
@@ -58,6 +58,7 @@ import { formatDistance } from "@roomz/shared/utils/geo";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { formatLocationTypeLabel, type LocationCatalogEntry } from "@/services/locations";
+import { trackFeatureEvent, trackRoomViewed } from "@/services/analyticsTracking";
 
 function getNearbyLocationIcon(type: LocationCatalogEntry["location_type"]) {
   switch (type) {
@@ -77,6 +78,7 @@ export default function RoomDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const trackedRoomViewId = useRef<string | null>(null);
 
   // Fetch room data
   const { data: room, isLoading: loading, error: queryError, refetch } = useRoom(id);
@@ -169,6 +171,20 @@ export default function RoomDetailPage() {
     setIsChatDrawerOpen(true);
   };
 
+  useEffect(() => {
+    if (!room?.id || trackedRoomViewId.current === room.id) {
+      return;
+    }
+
+    trackedRoomViewId.current = room.id;
+    void trackRoomViewed(
+      user?.id ?? null,
+      room.id,
+      room.title,
+      Number(room.price_per_month ?? 0),
+    );
+  }, [room, user?.id]);
+
   // Handle favorite toggle
   const handleFavoriteClick = async () => {
     if (!user) {
@@ -177,7 +193,18 @@ export default function RoomDetailPage() {
       return;
     }
     try {
+      const shouldTrackFavorite = !isFavorited;
       await toggleFavorite();
+      if (shouldTrackFavorite) {
+        void trackFeatureEvent("room_favorite", user.id, {
+          room_id: room?.id ?? null,
+          room_title: room?.title ?? null,
+          city: room?.city ?? null,
+          district: room?.district ?? null,
+          price: room?.price_per_month ?? null,
+          source: "room_detail",
+        });
+      }
       toast.success(isFavorited ? "Đã xóa khỏi yêu thích" : "Đã thêm vào yêu thích");
     } catch {
       toast.error("Không thể cập nhật yêu thích");

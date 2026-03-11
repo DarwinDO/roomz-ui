@@ -210,9 +210,9 @@ function buildRoomIssues(rooms: RoomHealthRow[]): RoomLocationIssue[] {
         const issues: QualityIssueTag[] = [];
 
         if (room.latitude === null || room.longitude === null) {
-          issues.push({ type: 'missing_coordinates', label: 'Thiáº¿u tá»a Ä‘á»™', severity: 'critical' });
+          issues.push({ type: 'missing_coordinates', label: 'Thiếu tọa độ', severity: 'critical' });
         } else if (!isValidVietnamCoordinate(room.latitude, room.longitude)) {
-          issues.push({ type: 'invalid_coordinates', label: 'Tá»a Ä‘á»™ ngoÃ i pháº¡m vi VN', severity: 'critical' });
+          issues.push({ type: 'invalid_coordinates', label: 'Tọa độ ngoài phạm vi VN', severity: 'critical' });
         }
 
         if (issues.length === 0) {
@@ -252,23 +252,23 @@ function buildSourceIssues(sources: CrawlSource[], jobs: CrawlJob[]): SourceHeal
         const sourceUrl = normalizeText(source.source_url);
 
         if (!sourceUrl) {
-          issues.push({ type: 'missing_source_url', label: 'Thiáº¿u source URL', severity: 'critical' });
+          issues.push({ type: 'missing_source_url', label: 'Thiếu source URL', severity: 'critical' });
         }
 
         if (source.is_active && !source.last_run_at) {
-          issues.push({ type: 'never_run', label: 'ChÆ°a tá»«ng cháº¡y', severity: 'warning' });
+          issues.push({ type: 'never_run', label: 'Chưa từng chạy', severity: 'warning' });
         }
 
         if (latestJob?.status === 'failed') {
-          issues.push({ type: 'failed_job', label: 'Job gáº§n nháº¥t bá»‹ lá»—i', severity: 'critical' });
+          issues.push({ type: 'failed_job', label: 'Job gần nhất bị lỗi', severity: 'critical' });
         }
 
         if (latestJob?.status === 'partial') {
-          issues.push({ type: 'partial_job', label: 'Job gáº§n nháº¥t chá»‰ hoÃ n táº¥t má»™t pháº§n', severity: 'warning' });
+          issues.push({ type: 'partial_job', label: 'Job gần nhất chỉ hoàn tất một phần', severity: 'warning' });
         }
 
         if (latestJob?.status === 'running' && isStaleRunningJob(latestJob.started_at)) {
-          issues.push({ type: 'stalled_job', label: 'Job cháº¡y quÃ¡ lÃ¢u', severity: 'warning' });
+          issues.push({ type: 'stalled_job', label: 'Job chạy quá lâu', severity: 'warning' });
         }
 
         if (issues.length === 0) {
@@ -304,13 +304,13 @@ function buildLocationIssues(locations: LocationCatalogHealthRow[]): LocationCat
         const issues: QualityIssueTag[] = [];
 
         if (!normalizeText(location.city) || !normalizeText(location.district)) {
-          issues.push({ type: 'missing_area', label: 'Thiáº¿u city hoáº·c district', severity: 'warning' });
+          issues.push({ type: 'missing_area', label: 'Thiếu city hoặc district', severity: 'warning' });
         }
 
         if (location.latitude === null || location.longitude === null) {
-          issues.push({ type: 'missing_coordinates', label: 'Thiáº¿u tá»a Ä‘á»™', severity: 'critical' });
+          issues.push({ type: 'missing_coordinates', label: 'Thiếu tọa độ', severity: 'critical' });
         } else if (!isValidVietnamCoordinate(location.latitude, location.longitude)) {
-          issues.push({ type: 'invalid_coordinates', label: 'Tá»a Ä‘á»™ ngoÃ i pháº¡m vi VN', severity: 'critical' });
+          issues.push({ type: 'invalid_coordinates', label: 'Tọa độ ngoài phạm vi VN', severity: 'critical' });
         }
 
         if (issues.length === 0) {
@@ -339,15 +339,22 @@ function buildLocationIssues(locations: LocationCatalogHealthRow[]): LocationCat
 }
 
 function buildQueueIssueFromPartnerReview(item: PartnerCrawlReviewItem): CrawlQueueHealthIssue | null {
-  if (item.review_status !== 'duplicate_partner' && item.review_status !== 'duplicate_lead' && item.review_status !== 'error') {
+  if (
+    item.review_status !== 'duplicate_partner'
+    && item.review_status !== 'duplicate_lead'
+    && item.review_status !== 'low_confidence'
+    && item.review_status !== 'error'
+  ) {
     return null;
   }
 
   const issues: QualityIssueTag[] = [];
   if (item.review_status === 'error') {
-    issues.push({ type: 'review_error', label: 'Record lá»—i', severity: 'critical' });
+    issues.push({ type: 'review_error', label: 'Record lỗi', severity: 'critical' });
+  } else if (item.review_status === 'low_confidence') {
+    issues.push({ type: 'review_error', label: 'Thiếu dữ liệu để promote', severity: 'warning' });
   } else {
-    issues.push({ type: 'review_duplicate', label: 'Record trÃ¹ng', severity: 'warning' });
+    issues.push({ type: 'review_duplicate', label: 'Record trùng', severity: 'warning' });
   }
 
   return {
@@ -355,7 +362,7 @@ function buildQueueIssueFromPartnerReview(item: PartnerCrawlReviewItem): CrawlQu
     kind: 'review',
     entity_type: 'partner',
     title: item.company_name || item.contact_name || 'Partner crawl record',
-    detail: item.import_error || item.service_area || item.email || 'Cáº§n admin xem láº¡i record crawl Ä‘á»‘i tÃ¡c nÃ y.',
+    detail: item.import_error || item.service_area || item.email || 'Cần admin xem lại record crawl đối tác này.',
     created_at: item.created_at,
     source_name: item.source_name,
     source_id: null,
@@ -372,9 +379,9 @@ function buildQueueIssueFromLocationReview(item: LocationCrawlReviewItem): Crawl
 
   const issues: QualityIssueTag[] = [];
   if (item.review_status === 'error') {
-    issues.push({ type: 'review_error', label: 'Record lá»—i', severity: 'critical' });
+    issues.push({ type: 'review_error', label: 'Record lỗi', severity: 'critical' });
   } else {
-    issues.push({ type: 'review_duplicate', label: 'Record trÃ¹ng', severity: 'warning' });
+    issues.push({ type: 'review_duplicate', label: 'Record trùng', severity: 'warning' });
   }
 
   return {
@@ -382,7 +389,7 @@ function buildQueueIssueFromLocationReview(item: LocationCrawlReviewItem): Crawl
     kind: 'review',
     entity_type: 'location',
     title: item.location_name || 'Location crawl record',
-    detail: item.import_error || [item.district, item.city].filter(Boolean).join(', ') || 'Cáº§n admin xem láº¡i record crawl location nÃ y.',
+    detail: item.import_error || [item.district, item.city].filter(Boolean).join(', ') || 'Cần admin xem lại record crawl location này.',
     created_at: item.created_at,
     source_name: item.source_name,
     source_id: null,
@@ -396,28 +403,28 @@ function buildQueueIssueFromJob(job: CrawlJob): CrawlQueueHealthIssue | null {
   const issues: QualityIssueTag[] = [];
 
   if (job.status === 'failed') {
-    issues.push({ type: 'failed_job', label: 'Job bá»‹ lá»—i', severity: 'critical' });
+    issues.push({ type: 'failed_job', label: 'Job bị lỗi', severity: 'critical' });
   }
 
   if (job.status === 'partial') {
-    issues.push({ type: 'partial_job', label: 'Job hoÃ n táº¥t má»™t pháº§n', severity: 'warning' });
+    issues.push({ type: 'partial_job', label: 'Job hoàn tất một phần', severity: 'warning' });
   }
 
   if (job.status === 'running' && isStaleRunningJob(job.started_at)) {
-    issues.push({ type: 'stalled_job', label: 'Job cháº¡y quÃ¡ lÃ¢u', severity: 'warning' });
+    issues.push({ type: 'stalled_job', label: 'Job chạy quá lâu', severity: 'warning' });
   }
 
   if (issues.length === 0) {
     return null;
   }
 
-  const entityLabel = job.entity_type === 'partner' ? 'Ä‘á»‘i tÃ¡c' : 'location';
+  const entityLabel = job.entity_type === 'partner' ? 'đối tác' : 'location';
   return {
     id: job.id,
     kind: 'job',
     entity_type: job.entity_type,
     title: `Job crawl ${entityLabel}`,
-    detail: job.error_message || `Nguá»“n ${job.source_name} cáº§n Ä‘Æ°á»£c kiá»ƒm tra láº¡i.`,
+    detail: job.error_message || `Nguồn ${job.source_name} cần được kiểm tra lại.`,
     created_at: job.created_at,
     source_name: job.source_name,
     source_id: job.source_id,
@@ -493,7 +500,7 @@ async function getRoomHealthRows(): Promise<RoomHealthRow[]> {
     .order('updated_at', { ascending: false });
 
   if (error) {
-    throw new Error(`KhÃ´ng thá»ƒ táº£i dá»¯ liá»‡u phÃ²ng cho dashboard cháº¥t lÆ°á»£ng: ${error.message}`);
+    throw new Error(`Không thể tải dữ liệu phòng cho dashboard chất lượng: ${error.message}`);
   }
 
   return (data ?? []) as RoomHealthRow[];
@@ -507,7 +514,7 @@ async function getLocationCatalogHealthRows(): Promise<LocationCatalogHealthRow[
     .order('updated_at', { ascending: false });
 
   if (error) {
-    throw new Error(`KhÃ´ng thá»ƒ táº£i location catalog cho dashboard cháº¥t lÆ°á»£ng: ${error.message}`);
+    throw new Error(`Không thể tải location catalog cho dashboard chất lượng: ${error.message}`);
   }
 
   return ((data ?? []) as unknown) as LocationCatalogHealthRow[];

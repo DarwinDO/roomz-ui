@@ -32,6 +32,10 @@ export default defineConfig({
     : {
         command: 'npm run dev -- --host 127.0.0.1 --port 4173',
         cwd: configDir,
+        env: {
+          ...process.env,
+          VITE_MAPBOX_ACCESS_TOKEN: process.env.VITE_MAPBOX_ACCESS_TOKEN || 'pk.playwright-test-token',
+        },
         port: 4173,
         reuseExistingServer: !process.env.CI,
         timeout: 120 * 1000,

@@ -2094,6 +2094,7 @@ export type Database = {
         }[]
       }
       get_recent_admin_activities: { Args: { p_limit?: number }; Returns: Json }
+      get_feature_usage_stats: { Args: { p_days?: number }; Returns: Json }
       get_room_contact: {
         Args: { p_room_id: string }
         Returns: {

@@ -1,70 +1,93 @@
 /**
  * Room Images Upload Service
- * Upload and manage room images via Supabase Storage
+ * Upload and manage room images via Supabase Storage.
  */
 
 import { supabase } from '@/lib/supabase';
 
 const BUCKET_NAME = 'room-images';
+const MAX_ROOM_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const STORAGE_PATH_SEGMENT = `/${BUCKET_NAME}/`;
+
+export function validateRoomImage(file: File): { isValid: boolean; error?: string } {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) {
+    return {
+      isValid: false,
+      error: 'Chỉ chấp nhận file ảnh JPEG, PNG hoặc WebP',
+    };
+  }
+
+  if (file.size > MAX_ROOM_IMAGE_SIZE_BYTES) {
+    return {
+      isValid: false,
+      error: 'Kích thước ảnh không được vượt quá 5MB',
+    };
+  }
+
+  return { isValid: true };
+}
+
+export function extractRoomImageStoragePath(imageUrl: string): string | null {
+  try {
+    const parsedUrl = new URL(imageUrl);
+    const bucketIndex = parsedUrl.pathname.indexOf(STORAGE_PATH_SEGMENT);
+    if (bucketIndex === -1) {
+      return null;
+    }
+
+    return decodeURIComponent(parsedUrl.pathname.slice(bucketIndex + STORAGE_PATH_SEGMENT.length));
+  } catch {
+    return null;
+  }
+}
+
+export function isManagedRoomImageUrl(imageUrl: string): boolean {
+  return extractRoomImageStoragePath(imageUrl) !== null;
+}
 
 /**
- * Upload a single room image to Supabase Storage
- * File path format: {userId}/{timestamp}.{ext}
+ * Upload a single room image to Supabase Storage.
+ * File path format: {entityId}/{timestamp}-{random}.{ext}
  */
-export async function uploadRoomImage(
-  userId: string,
-  file: File
-): Promise<string> {
-  if (!userId) {
-    throw new Error('User ID is required');
+export async function uploadRoomImage(entityId: string, file: File): Promise<string> {
+  if (!entityId) {
+    throw new Error('Entity ID is required');
   }
 
   if (!file) {
     throw new Error('File is required');
   }
 
-  // Validate file type
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Chỉ chấp nhận file ảnh');
+  const validation = validateRoomImage(file);
+  if (!validation.isValid) {
+    throw new Error(validation.error ?? 'File ảnh không hợp lệ');
   }
 
-  // Validate file size (max 5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    throw new Error('Kích thước file tối đa 5MB');
-  }
-
-  // Create unique file path
   const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
   const timestamp = Date.now();
-  const randomId = Math.random().toString(36).substring(2, 8);
-  const fileName = `${userId}/${timestamp}-${randomId}.${fileExt}`;
+  const randomId = Math.random().toString(36).slice(2, 8);
+  const fileName = `${entityId}/${timestamp}-${randomId}.${fileExt}`;
 
   if (import.meta.env.DEV) {
     console.log('[RoomImages] Uploading:', fileName);
   }
 
-  // Upload to Supabase Storage
-  const { data, error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .upload(fileName, file, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: file.type,
-    });
+  const { data, error } = await supabase.storage.from(BUCKET_NAME).upload(fileName, file, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: file.type,
+  });
 
   if (error) {
     console.error('[RoomImages] Upload error:', error);
 
     if (error.message.includes('row-level security') || error.message.includes('violates')) {
-      throw new Error(
-        'Không có quyền upload ảnh. Vui lòng liên hệ admin để kiểm tra Storage policies.'
-      );
+      throw new Error('Không có quyền upload ảnh. Vui lòng kiểm tra Storage policies.');
     }
 
     if (error.message.includes('not found') || error.message.includes('Bucket')) {
-      throw new Error(
-        `Bucket "${BUCKET_NAME}" không tồn tại. Vui lòng tạo bucket trong Dashboard.`
-      );
+      throw new Error(`Bucket "${BUCKET_NAME}" không tồn tại. Vui lòng tạo bucket trong Dashboard.`);
     }
 
     throw error;
@@ -74,25 +97,16 @@ export async function uploadRoomImage(
     console.log('[RoomImages] Upload successful:', data?.path);
   }
 
-  // Get public URL (bucket is public)
-  const { data: urlData } = supabase.storage
-    .from(BUCKET_NAME)
-    .getPublicUrl(fileName);
-
+  const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
   return urlData.publicUrl;
 }
 
 /**
- * Upload multiple room images
- * Uses Promise.allSettled to handle partial failures gracefully
+ * Upload multiple room images.
+ * Uses Promise.allSettled to handle partial failures gracefully.
  */
-export async function uploadMultipleRoomImages(
-  userId: string,
-  files: File[]
-): Promise<string[]> {
-  const results = await Promise.allSettled(
-    files.map((file) => uploadRoomImage(userId, file))
-  );
+export async function uploadMultipleRoomImages(entityId: string, files: File[]): Promise<string[]> {
+  const results = await Promise.allSettled(files.map((file) => uploadRoomImage(entityId, file)));
 
   const successUrls: string[] = [];
   const errors: string[] = [];
@@ -105,12 +119,10 @@ export async function uploadMultipleRoomImages(
     }
   });
 
-  // Log errors but don't fail if at least some succeeded
   if (errors.length > 0) {
     console.warn('[RoomImages] Some uploads failed:', errors);
   }
 
-  // If all failed, throw error
   if (successUrls.length === 0 && files.length > 0) {
     throw new Error(`Không thể tải ảnh lên: ${errors[0]}`);
   }
@@ -119,20 +131,40 @@ export async function uploadMultipleRoomImages(
 }
 
 /**
- * Delete a room image
+ * Delete one room image by URL.
  */
 export async function deleteRoomImage(imageUrl: string): Promise<void> {
-  // Extract file path from URL
-  const urlParts = imageUrl.split('/');
-  const bucketIndex = urlParts.findIndex((p) => p === BUCKET_NAME);
+  const filePath = extractRoomImageStoragePath(imageUrl);
+  if (!filePath) {
+    return;
+  }
 
-  if (bucketIndex !== -1) {
-    const filePath = urlParts.slice(bucketIndex + 1).join('/');
-    const { error } = await supabase.storage.from(BUCKET_NAME).remove([filePath]);
+  const { error } = await supabase.storage.from(BUCKET_NAME).remove([filePath]);
+  if (error) {
+    console.error('[RoomImages] Delete error:', error);
+    throw error;
+  }
+}
 
-    if (error) {
-      console.error('[RoomImages] Delete error:', error);
-      throw error;
-    }
+/**
+ * Delete multiple storage-backed room images.
+ */
+export async function deleteRoomImages(imageUrls: string[]): Promise<void> {
+  const filePaths = Array.from(
+    new Set(
+      imageUrls
+        .map((imageUrl) => extractRoomImageStoragePath(imageUrl))
+        .filter((filePath): filePath is string => Boolean(filePath)),
+    ),
+  );
+
+  if (filePaths.length === 0) {
+    return;
+  }
+
+  const { error } = await supabase.storage.from(BUCKET_NAME).remove(filePaths);
+  if (error) {
+    console.error('[RoomImages] Bulk delete error:', error);
+    throw error;
   }
 }

@@ -19,6 +19,7 @@ import {
   ClipboardList,
   Database,
   AlertTriangle,
+  MapPinned,
   Menu,
   X,
   LogOut,
@@ -36,6 +37,7 @@ const navItems = [
   { path: '/admin/partners', label: 'Đối tác', icon: Handshake },
   { path: '/admin/partner-leads', label: 'Đơn đăng ký', icon: ClipboardList },
   { path: '/admin/ingestion-review', label: 'Duyệt Crawl', icon: Database },
+  { path: '/admin/locations', label: 'Địa điểm', icon: MapPinned },
   { path: '/admin/data-quality', label: 'Chất lượng dữ liệu', icon: AlertTriangle },
   { path: '/admin/service-leads', label: 'Dịch vụ', icon: ClipboardList },
 ];

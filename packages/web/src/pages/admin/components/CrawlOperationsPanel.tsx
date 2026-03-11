@@ -60,6 +60,16 @@ interface SourceFormState {
   configText: string;
 }
 
+type JobDebugSample = {
+  id?: string;
+  label?: string;
+  reason?: string;
+  reviewStatus?: string;
+  sourceUrl?: string | null;
+  website?: string | null;
+  dedupeKey?: string | null;
+};
+
 const EMPTY_SOURCE_FORM: SourceFormState = {
   name: '',
   sourceUrl: '',
@@ -92,6 +102,70 @@ function formatTimestamp(value: string | null) {
     return 'Chưa có';
   }
   return new Date(value).toLocaleString('vi-VN');
+}
+
+function getJobCount(job: CrawlJob, key: string) {
+  const counts = (job.log?.counts_by_status ?? {}) as Record<string, unknown>;
+  const raw = counts[key];
+  return typeof raw === 'number' ? raw : 0;
+}
+
+function getJobReasonEntries(job: CrawlJob) {
+  const processingDebug = (job.log?.processing_debug ?? {}) as Record<string, unknown>;
+  const reasons = (processingDebug.reasons ?? {}) as Record<string, unknown>;
+
+  return Object.entries(reasons)
+    .filter(([, value]) => typeof value === 'number' && value > 0)
+    .sort((a, b) => Number(b[1]) - Number(a[1]));
+}
+
+function getJobSamples(job: CrawlJob, key: string): JobDebugSample[] {
+  const processingDebug = (job.log?.processing_debug ?? {}) as Record<string, unknown>;
+  const raw = processingDebug[key];
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null && !Array.isArray(item))
+    .map((item) => ({
+      id: typeof item.id === 'string' ? item.id : undefined,
+      label: typeof item.label === 'string' ? item.label : undefined,
+      reason: typeof item.reason === 'string' ? item.reason : undefined,
+      reviewStatus: typeof item.reviewStatus === 'string' ? item.reviewStatus : undefined,
+      sourceUrl: typeof item.sourceUrl === 'string' ? item.sourceUrl : null,
+      website: typeof item.website === 'string' ? item.website : null,
+      dedupeKey: typeof item.dedupeKey === 'string' ? item.dedupeKey : null,
+    }));
+}
+
+function formatJobReason(reason: string) {
+  switch (reason) {
+    case 'duplicate_external_id':
+      return 'Trùng external_id';
+    case 'duplicate_dedupe_key':
+      return 'Trùng dedupe_key';
+    case 'missing_company_name':
+      return 'Thiếu tên công ty';
+    case 'missing_identity':
+      return 'Thiếu dữ liệu nhận diện';
+    case 'insert_failed':
+      return 'Insert thất bại';
+    case 'classify_failed':
+      return 'Phân loại thất bại';
+    case 'low_confidence':
+      return 'Thiếu dữ liệu để promote';
+    case 'duplicate_partner':
+      return 'Trùng đối tác';
+    case 'duplicate_lead':
+      return 'Trùng lead';
+    case 'duplicate_location':
+      return 'Trùng location';
+    case 'ready':
+      return 'Sẵn sàng';
+    default:
+      return 'Lỗi';
+  }
 }
 
 export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) {
@@ -418,6 +492,15 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
           ) : (
             recentJobs.map((job) => (
               <div key={job.id} className="rounded-2xl border p-4">
+                {(() => {
+                  const lowConfidenceCount = getJobCount(job, 'low_confidence');
+                  const reasonEntries = getJobReasonEntries(job);
+                  const skippedSamples = getJobSamples(job, 'skipped_samples');
+                  const lowConfidenceSamples = getJobSamples(job, 'low_confidence_samples');
+                  const duplicateSamples = getJobSamples(job, 'duplicate_samples');
+                  const errorSamples = getJobSamples(job, 'error_samples');
+
+                  return (
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
@@ -438,13 +521,79 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
                       <span>Total: {job.total_count}</span>
                       <span>Inserted: {job.inserted_count}</span>
                       <span>Ready: {job.ready_count}</span>
+                      {lowConfidenceCount > 0 && <span>Low confidence: {lowConfidenceCount}</span>}
                       <span>Duplicate: {job.duplicate_count}</span>
                       <span>Error: {job.error_count}</span>
                       <span>Skipped: {job.skipped_count}</span>
                     </div>
+                    {reasonEntries.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {reasonEntries.map(([reason, count]) => (
+                          <Badge key={reason} variant="outline" className="text-xs">
+                            {formatJobReason(reason)}: {Number(count)}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                     {job.error_message && (
                       <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                         {job.error_message}
+                      </div>
+                    )}
+                    {(lowConfidenceSamples.length > 0 || duplicateSamples.length > 0 || skippedSamples.length > 0 || errorSamples.length > 0) && (
+                      <div className="space-y-2 rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
+                        {lowConfidenceSamples.length > 0 && (
+                          <div>
+                            <div className="font-medium text-slate-900">Mẫu cần review thủ công</div>
+                            <div className="mt-1 space-y-1">
+                              {lowConfidenceSamples.map((sample) => (
+                                <div key={sample.id ?? `${sample.label}-${sample.reason}`} className="break-words">
+                                  <span className="font-medium">{sample.label || 'Không rõ tên'}</span>
+                                  {sample.website && <span> • {sample.website}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {duplicateSamples.length > 0 && (
+                          <div>
+                            <div className="font-medium text-slate-900">Mẫu bị nhận diện là trùng</div>
+                            <div className="mt-1 space-y-1">
+                              {duplicateSamples.map((sample) => (
+                                <div key={sample.id ?? `${sample.label}-${sample.reason}`} className="break-words">
+                                  <span className="font-medium">{sample.label || 'Không rõ tên'}</span>
+                                  {sample.reason && <span> • {formatJobReason(sample.reason)}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {skippedSamples.length > 0 && (
+                          <div>
+                            <div className="font-medium text-slate-900">Mẫu bị bỏ qua</div>
+                            <div className="mt-1 space-y-1">
+                              {skippedSamples.map((sample) => (
+                                <div key={sample.id ?? `${sample.label}-${sample.reason}`} className="break-words">
+                                  <span className="font-medium">{sample.label || 'Không rõ tên'}</span>
+                                  {sample.reason && <span> • {formatJobReason(sample.reason)}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {errorSamples.length > 0 && (
+                          <div>
+                            <div className="font-medium text-slate-900">Mẫu lỗi</div>
+                            <div className="mt-1 space-y-1">
+                              {errorSamples.map((sample) => (
+                                <div key={sample.id ?? `${sample.label}-${sample.reason}`} className="break-words">
+                                  <span className="font-medium">{sample.label || 'Không rõ tên'}</span>
+                                  {sample.reason && <span> • {formatJobReason(sample.reason)}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -463,6 +612,8 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
                     )}
                   </div>
                 </div>
+                  );
+                })()}
               </div>
             ))
           )}

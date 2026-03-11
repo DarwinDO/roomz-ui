@@ -20,6 +20,7 @@ import {
 } from '@/hooks/useRoommatesQuery';
 import { usePremiumLimits } from '@/hooks/usePremiumLimits';
 import { sendIntroMessage, type RoommateMatch } from '@/services/roommates';
+import { trackFeatureEvent } from '@/services/analyticsTracking';
 import { RoommateProfileModal } from '@/components/modals/RoommateProfileModal';
 import { IntroMessageModal } from './IntroMessageModal';
 import { LimitHitModal } from './LimitHitModal';
@@ -115,6 +116,12 @@ export function RoommateResults() {
     recordView();
     setSelectedMatch(match);
     setIsProfileModalOpen(true);
+    void trackFeatureEvent('roommate_profile_viewed', user?.id ?? null, {
+      matched_user_id: match.matched_user_id,
+      compatibility_score: match.compatibility_score,
+      confidence_score: match.confidence_score,
+      match_scope: match.match_scope,
+    });
   };
 
   const handleStartChat = (userId: string) => {
@@ -143,6 +150,11 @@ export function RoommateResults() {
 
     try {
       await sendIntroMessage(user.id, introModalTarget.matched_user_id, message);
+      void trackFeatureEvent('roommate_intro_sent', user.id, {
+        matched_user_id: introModalTarget.matched_user_id,
+        message_length: message.trim().length,
+        compatibility_score: introModalTarget.compatibility_score,
+      });
       await refetchRequests();
       toast.success('Đã gửi tin nhắn giới thiệu');
     } catch (error) {

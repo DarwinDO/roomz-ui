@@ -1,12 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useDataQualityDashboard, dataQualityKeys } from '@/hooks/useDataQuality';
-import { useRunCrawlSource, useSyncCrawlJob, useUpdateCrawlSource } from '@/hooks/useIngestionReview';
-import type { CrawlQueueHealthIssue, LocationCatalogHealthIssue, QualityIssueTag, RoomLocationIssue, SourceHealthIssue } from '@/services/dataQuality';
+import { toast } from 'sonner';
 import {
   AlertTriangle,
   ArrowRight,
@@ -20,7 +15,18 @@ import {
   RefreshCcw,
   ShieldX,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { dataQualityKeys, useDataQualityDashboard } from '@/hooks/useDataQuality';
+import { useRunCrawlSource, useSyncCrawlJob, useUpdateCrawlSource } from '@/hooks/useIngestionReview';
+import type {
+  CrawlQueueHealthIssue,
+  LocationCatalogHealthIssue,
+  QualityIssueTag,
+  RoomLocationIssue,
+  SourceHealthIssue,
+} from '@/services/dataQuality';
 
 function formatDate(value: string | null) {
   if (!value) {
@@ -131,6 +137,8 @@ function SectionShell({
 }
 
 function RoomIssueItem({ issue }: { issue: RoomLocationIssue }) {
+  const address = [issue.address, issue.district, issue.city].filter(Boolean).join(', ') || 'Địa chỉ chưa rõ';
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -139,9 +147,7 @@ function RoomIssueItem({ issue }: { issue: RoomLocationIssue }) {
             <p className="text-sm font-semibold text-slate-950">{issue.title}</p>
             {getSeverityBadge(issue.severity)}
           </div>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            {[issue.address, issue.district, issue.city].filter(Boolean).join(', ') || 'Địa chỉ chưa rõ'}
-          </p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">{address}</p>
           <div className="mt-3 flex flex-wrap gap-2">{issue.issues.map(getIssueTagBadge)}</div>
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
@@ -152,8 +158,8 @@ function RoomIssueItem({ issue }: { issue: RoomLocationIssue }) {
             </a>
           </Button>
           <Button asChild variant="ghost" size="sm" className="rounded-full">
-            <Link to="/admin/rooms">
-              Danh sách phòng
+            <Link to={`/admin/rooms?focus=${issue.id}`}>
+              Sửa phòng
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
@@ -164,6 +170,8 @@ function RoomIssueItem({ issue }: { issue: RoomLocationIssue }) {
 }
 
 function LocationIssueItem({ issue }: { issue: LocationCatalogHealthIssue }) {
+  const area = [issue.district, issue.city].filter(Boolean).join(', ') || issue.address || 'Thiếu city hoặc district';
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -177,9 +185,7 @@ function LocationIssueItem({ issue }: { issue: LocationCatalogHealthIssue }) {
               </Badge>
             ) : null}
           </div>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            {[issue.district, issue.city].filter(Boolean).join(', ') || issue.address || 'Thiếu city hoặc district'}
-          </p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">{area}</p>
           <div className="mt-3 flex flex-wrap gap-2">{issue.issues.map(getIssueTagBadge)}</div>
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
@@ -192,8 +198,8 @@ function LocationIssueItem({ issue }: { issue: LocationCatalogHealthIssue }) {
             </Button>
           ) : null}
           <Button asChild variant="ghost" size="sm" className="rounded-full">
-            <Link to="/admin/ingestion-review">
-              Duyệt crawl
+            <Link to={`/admin/locations?focus=${issue.id}`}>
+              Quản lý location
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
@@ -232,7 +238,9 @@ function CrawlQueueIssueItem({
           </div>
           <p className="mt-2 text-sm leading-6 text-slate-500">{issue.detail}</p>
           <div className="mt-3 flex flex-wrap gap-2">{issue.issues.map(getIssueTagBadge)}</div>
-          <p className="mt-3 text-xs text-slate-400">Nguồn: {issue.source_name} • {formatDate(issue.created_at)}</p>
+          <p className="mt-3 text-xs text-slate-400">
+            Nguồn: {issue.source_name} • {formatDate(issue.created_at)}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
           {canSyncJob ? (
@@ -284,7 +292,7 @@ function SourceIssueItem({
 }) {
   const canRun = issue.is_active && issue.source_url.length > 0;
   const canDeactivate = issue.is_active && issue.issues.some((tag) => tag.type === 'missing_source_url');
-  const canSync = issue.latest_job_id && issue.issues.some((tag) => tag.type === 'stalled_job');
+  const canSync = Boolean(issue.latest_job_id && issue.issues.some((tag) => tag.type === 'stalled_job'));
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -297,9 +305,7 @@ function SourceIssueItem({
               {issue.entity_type === 'partner' ? 'Partner source' : 'Location source'}
             </Badge>
           </div>
-          <p className="mt-2 break-all text-sm leading-6 text-slate-500">
-            {issue.source_url || 'Source URL đang trống'}
-          </p>
+          <p className="mt-2 break-all text-sm leading-6 text-slate-500">{issue.source_url || 'Source URL đang trống'}</p>
           <div className="mt-3 flex flex-wrap gap-2">{issue.issues.map(getIssueTagBadge)}</div>
           <p className="mt-3 text-xs text-slate-400">
             Lần chạy gần nhất: {formatDate(issue.last_run_at)}
@@ -396,6 +402,7 @@ export default function DataQualityPage() {
         if (left.severity !== right.severity) {
           return left.severity === 'critical' ? -1 : 1;
         }
+
         return left.title.localeCompare(right.title);
       })
       .slice(0, 5);
@@ -466,7 +473,8 @@ export default function DataQualityPage() {
         <div>
           <h1 className="text-3xl font-bold text-slate-950">Chất lượng dữ liệu</h1>
           <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-500">
-            Theo dõi các điểm đang chặn search, map, crawl và location catalog. Màn này ưu tiên phát hiện record lỗi sớm để admin xử lý trước khi ảnh hưởng người dùng.
+            Theo dõi các điểm đang chặn search, map, crawl và location catalog. Màn này ưu tiên phát hiện record lỗi sớm để
+            admin xử lý trước khi ảnh hưởng người dùng.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -494,11 +502,14 @@ export default function DataQualityPage() {
             </div>
             <p className="mt-4 text-4xl font-black text-slate-950">{data.summary.criticalIssues} lỗi cần xử lý ngay</p>
             <p className="mt-3 max-w-xl text-sm leading-7 text-slate-600">
-              Tập trung trước vào phòng thiếu tọa độ, source crawl lỗi, location catalog thiếu context và các record crawl bị error. Đây là các điểm có tác động trực tiếp tới search, map và pipeline dữ liệu.
+              Tập trung trước vào phòng thiếu tọa độ, source crawl lỗi, location catalog thiếu context và các record crawl bị
+              error. Đây là các điểm có tác động trực tiếp tới search, map và pipeline dữ liệu.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Badge className="bg-white text-slate-700 hover:bg-white">Coverage phòng {data.summary.roomCoordinateCoverage}%</Badge>
-              <Badge className="bg-white text-slate-700 hover:bg-white">Coverage location {data.summary.locationCoordinateCoverage}%</Badge>
+              <Badge className="bg-white text-slate-700 hover:bg-white">
+                Coverage location {data.summary.locationCoordinateCoverage}%
+              </Badge>
               <Badge className="bg-white text-slate-700 hover:bg-white">Queue lỗi {data.summary.crawlQueueIssues}</Badge>
             </div>
           </div>
@@ -564,7 +575,9 @@ export default function DataQualityPage() {
             </Button>
           }
         >
-          {roomIssues.length > 0 ? roomIssues.map((issue) => <RoomIssueItem key={issue.id} issue={issue} />) : (
+          {roomIssues.length > 0 ? (
+            roomIssues.map((issue) => <RoomIssueItem key={issue.id} issue={issue} />)
+          ) : (
             <EmptyState
               title="Không có room issue nổi bật"
               description="Toàn bộ phòng đang theo dõi đã có tọa độ hợp lệ. Đây là baseline tốt cho search và map."
@@ -585,18 +598,20 @@ export default function DataQualityPage() {
             </Button>
           }
         >
-          {sourceIssues.length > 0 ? sourceIssues.map((issue) => (
-            <SourceIssueItem
-              key={issue.id}
-              issue={issue}
-              onDeactivate={handleDeactivateSource}
-              onRun={handleRunSource}
-              onSync={handleSyncJob}
-              isUpdating={updateSource.isPending}
-              isRunning={runSource.isPending}
-              isSyncing={syncJob.isPending}
-            />
-          )) : (
+          {sourceIssues.length > 0 ? (
+            sourceIssues.map((issue) => (
+              <SourceIssueItem
+                key={issue.id}
+                issue={issue}
+                onDeactivate={handleDeactivateSource}
+                onRun={handleRunSource}
+                onSync={handleSyncJob}
+                isUpdating={updateSource.isPending}
+                isRunning={runSource.isPending}
+                isSyncing={syncJob.isPending}
+              />
+            ))
+          ) : (
             <EmptyState
               title="Source crawl đang ổn"
               description="Không có nguồn nào thiếu URL hoặc có dấu hiệu fail/stalled ở lần chạy gần nhất."
@@ -610,14 +625,16 @@ export default function DataQualityPage() {
           count={data.summary.locationIssues}
           action={
             <Button asChild variant="ghost" size="sm" className="rounded-full px-0 text-primary hover:bg-transparent hover:text-primary/80">
-              <Link to="/admin/ingestion-review">
+              <Link to="/admin/locations">
                 Mở lane location
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
           }
         >
-          {locationIssues.length > 0 ? locationIssues.map((issue) => <LocationIssueItem key={issue.id} issue={issue} />) : (
+          {locationIssues.length > 0 ? (
+            locationIssues.map((issue) => <LocationIssueItem key={issue.id} issue={issue} />)
+          ) : (
             <EmptyState
               title="Location catalog đang sạch"
               description="Các location active hiện đã có đủ area context và tọa độ hợp lệ để phục vụ search, nearby places và local passport."
@@ -638,16 +655,18 @@ export default function DataQualityPage() {
             </Button>
           }
         >
-          {crawlQueueIssues.length > 0 ? crawlQueueIssues.map((issue) => (
-            <CrawlQueueIssueItem
-              key={`${issue.kind}-${issue.id}`}
-              issue={issue}
-              onRunSource={handleRunSource}
-              onSyncJob={handleSyncJob}
-              isRunning={runSource.isPending}
-              isSyncing={syncJob.isPending}
-            />
-          )) : (
+          {crawlQueueIssues.length > 0 ? (
+            crawlQueueIssues.map((issue) => (
+              <CrawlQueueIssueItem
+                key={`${issue.kind}-${issue.id}`}
+                issue={issue}
+                onRunSource={handleRunSource}
+                onSyncJob={handleSyncJob}
+                isRunning={runSource.isPending}
+                isSyncing={syncJob.isPending}
+              />
+            ))
+          ) : (
             <EmptyState
               title="Queue hiện không có bottleneck lớn"
               description="Không thấy duplicate/error nổi bật trong review queue và cũng chưa có crawl job fail hoặc stalled cần admin xử lý."
@@ -661,7 +680,8 @@ export default function DataQualityPage() {
           <div>
             <p className="text-sm font-semibold text-slate-900">Nhịp kiểm tra khuyến nghị</p>
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              Sau mỗi lần import crawl, backfill tọa độ hoặc thêm seed lớn, nên rà lại màn này trước khi test search và map để tránh lặp lại các lỗi vận hành cũ.
+              Sau mỗi lần import crawl, backfill tọa độ hoặc thêm seed lớn, nên rà lại màn này trước khi test search và map
+              để tránh lặp lại các lỗi vận hành cũ.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-sm text-slate-500">

@@ -1,48 +1,87 @@
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+﻿import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Card } from "@/components/ui/card";
 
-const COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6"];
+const CHART_COLORS = ["#0ea5e9", "#14b8a6", "#f97316", "#22c55e", "#e11d48", "#f59e0b"];
 
-interface LineChartProps {
+type ChartDatum = object;
+
+interface BaseChartProps<T extends ChartDatum> {
   title: string;
-  data: any[];
-  dataKey: string;
-  xAxisKey: string;
+  data: T[];
+  dataKey: keyof T & string;
+  xAxisKey: keyof T & string;
+  valueFormatter?: (value: number) => string;
 }
 
-export function LineChartComponent({ title, data, dataKey, xAxisKey }: LineChartProps) {
-  // Check if data contains currency values
-  const isCurrency = dataKey.toLowerCase().includes('revenue') ||
-    dataKey.toLowerCase().includes('amount') ||
-    dataKey.toLowerCase().includes('price');
+function defaultNumberFormatter(value: number) {
+  return value.toLocaleString("vi-VN");
+}
+
+function getValueFormatter(
+  dataKey: string,
+  valueFormatter?: (value: number) => string,
+) {
+  if (valueFormatter) {
+    return valueFormatter;
+  }
+
+  const isCurrency =
+    dataKey.toLowerCase().includes("revenue") ||
+    dataKey.toLowerCase().includes("amount") ||
+    dataKey.toLowerCase().includes("price");
+
+  if (isCurrency) {
+    return (value: number) => `${value.toLocaleString("vi-VN")}đ`;
+  }
+
+  return defaultNumberFormatter;
+}
+
+export function LineChartComponent<T extends ChartDatum>({
+  title,
+  data,
+  dataKey,
+  xAxisKey,
+  valueFormatter,
+}: BaseChartProps<T>) {
+  const formatValue = getValueFormatter(dataKey, valueFormatter);
 
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">{title}</h3>
+      <h3 className="mb-4 text-lg font-semibold">{title}</h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
           <XAxis dataKey={xAxisKey} tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px'
+              backgroundColor: "white",
+              border: "1px solid #e2e8f0",
+              borderRadius: "12px",
             }}
-            formatter={(value: number) => {
-              if (isCurrency) {
-                return value.toLocaleString('vi-VN') + 'đ';
-              }
-              return value.toLocaleString('vi-VN');
-            }}
+            formatter={(value: number) => formatValue(value)}
           />
           <Line
             type="monotone"
             dataKey={dataKey}
-            stroke="#6366f1"
-            strokeWidth={2}
-            dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
+            stroke={CHART_COLORS[0]}
+            strokeWidth={2.5}
+            dot={{ fill: CHART_COLORS[0], r: 4 }}
             activeDot={{ r: 6 }}
           />
         </LineChart>
@@ -51,71 +90,85 @@ export function LineChartComponent({ title, data, dataKey, xAxisKey }: LineChart
   );
 }
 
-interface BarChartProps {
-  title: string;
-  data: any[];
-  dataKey: string;
-  xAxisKey: string;
-}
+export function BarChartComponent<T extends ChartDatum>({
+  title,
+  data,
+  dataKey,
+  xAxisKey,
+  valueFormatter,
+}: BaseChartProps<T>) {
+  const formatValue = getValueFormatter(dataKey, valueFormatter);
 
-export function BarChartComponent({ title, data, dataKey, xAxisKey }: BarChartProps) {
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">{title}</h3>
-      <ResponsiveContainer width="100%" height={300}>
+      <h3 className="mb-4 text-lg font-semibold">{title}</h3>
+      <ResponsiveContainer width="100%" height={320}>
         <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
           <XAxis dataKey={xAxisKey} tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px'
+              backgroundColor: "white",
+              border: "1px solid #e2e8f0",
+              borderRadius: "12px",
             }}
-            formatter={(value: number) => value.toLocaleString('vi-VN') + 'đ'}
+            formatter={(value: number) => formatValue(value)}
           />
-          <Bar dataKey={dataKey} fill="#6366f1" radius={[8, 8, 0, 0]} />
+          <Bar dataKey={dataKey} radius={[10, 10, 0, 0]}>
+            {data.map((_, index) => (
+              <Cell key={`bar-cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </Card>
   );
 }
 
-interface PieChartProps {
+interface PieChartProps<T extends ChartDatum> {
   title: string;
-  data: any[];
-  dataKey: string;
-  nameKey: string;
+  data: T[];
+  dataKey: keyof T & string;
+  nameKey: keyof T & string;
+  valueFormatter?: (value: number) => string;
 }
 
-export function PieChartComponent({ title, data, dataKey, nameKey }: PieChartProps) {
+export function PieChartComponent<T extends ChartDatum>({
+  title,
+  data,
+  dataKey,
+  nameKey,
+  valueFormatter,
+}: PieChartProps<T>) {
+  const formatValue = getValueFormatter(dataKey, valueFormatter);
+
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">{title}</h3>
+      <h3 className="mb-4 text-lg font-semibold">{title}</h3>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
+            outerRadius={100}
             labelLine={false}
             label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-            outerRadius={100}
-            fill="#8884d8"
             dataKey={dataKey}
             nameKey={nameKey}
           >
             {data.map((_, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell key={`pie-cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
             ))}
           </Pie>
           <Tooltip
             contentStyle={{
-              backgroundColor: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px'
+              backgroundColor: "white",
+              border: "1px solid #e2e8f0",
+              borderRadius: "12px",
             }}
+            formatter={(value: number) => formatValue(value)}
           />
           <Legend />
         </PieChart>
@@ -123,4 +176,3 @@ export function PieChartComponent({ title, data, dataKey, nameKey }: PieChartPro
     </Card>
   );
 }
-
