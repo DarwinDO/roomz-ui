@@ -12,6 +12,7 @@ import {
   isRoomFavorited,
   type FavoriteWithRoom,
 } from '@/services/favorites';
+import { FREE_LIMITS } from '@roomz/shared/constants/premium';
 
 interface UseFavoritesReturn {
   favorites: FavoriteWithRoom[];
@@ -111,12 +112,15 @@ export function useFavorites(): UseFavoritesReturn {
     } catch (err: unknown) {
       // Handle favorite limit error
       if (err instanceof Error && err.message === 'FAVORITE_LIMIT_REACHED') {
-        toast.error('Bạn đã đạt giới hạn 5 phòng yêu thích. Nâng cấp RommZ+ để lưu không giới hạn!', {
-          action: {
-            label: 'Nâng cấp',
-            onClick: () => window.location.href = '/payment',
+        toast.error(
+          `B?n ?? ??t gi?i h?n ${FREE_LIMITS.FAVORITES_MAX} ph?ng y?u th?ch. N?ng c?p RommZ+ ?? l?u kh?ng gi?i h?n.`,
+          {
+            action: {
+              label: 'N?ng c?p',
+              onClick: () => window.location.href = '/payment',
+            },
           },
-        });
+        );
         // Rollback optimistic update
         setFavoritedRoomIds(new Set(Array.from(previousFavorites).map(f => f.room_id)));
         setFavorites(previousFavorites);

@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { supabase } from '@/lib/supabase';
 import { createSePayCheckoutSession, getAnonymousEntitlements, getEntitlementsForPlan } from './payments';
+import { PREMIUM_PUBLIC_BENEFIT_LABELS } from '@roomz/shared/constants/premium-offer';
+import { getRommZPlusPlan } from '@/config/payment.config';
 
 type RpcResult = {
   data: {
@@ -100,6 +102,11 @@ test.describe('premium entitlements', () => {
     expect(entitlements.viewLimit).toBe(Infinity);
     expect(entitlements.requestLimit).toBe(Infinity);
     expect(entitlements.favoriteLimit).toBe(Infinity);
+    expect(entitlements.phoneViewLimit).toBe(100);
     expect(entitlements.premiumUntil).toBe('2026-04-09T08:21:45.189540Z');
+  });
+
+  test('keeps public pricing copy aligned with supported premium benefits', () => {
+    expect(getRommZPlusPlan()?.features).toEqual(PREMIUM_PUBLIC_BENEFIT_LABELS);
   });
 });

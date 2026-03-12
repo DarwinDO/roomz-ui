@@ -1,109 +1,93 @@
-/**
- * LimitHitModal - Modal shown when user hits daily limit
- */
-
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Crown, Sparkles, Eye, Send, Check, ArrowRight } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { getRommZPlusPlan } from '@/services/payments';
-import { useNavigate } from 'react-router';
+import { PREMIUM_ROOMMATE_UPSELL_BENEFITS } from '@roomz/shared/constants/premium-offer';
 import { UPGRADE_SOURCES } from '@roomz/shared/constants/tracking';
+import { ArrowRight, Crown, Eye, MapPin, Phone, Send } from 'lucide-react';
+import { useNavigate } from 'react-router';
 
 interface LimitHitModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    limitType: 'views' | 'requests';
-    onUpgrade?: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  limitType: 'views' | 'requests';
+  onUpgrade?: () => void;
 }
 
-const PREMIUM_BENEFITS = [
-    { icon: Eye, text: 'Xem không giới hạn profile' },
-    { icon: Send, text: 'Gửi không giới hạn yêu cầu kết nối' },
-    { icon: Sparkles, text: 'Ưu tiên hiển thị trong kết quả tìm kiếm' },
-    { icon: Check, text: 'Xem ai đã xem profile của bạn' },
-];
+const BENEFIT_ICONS = [Eye, Send, Phone, MapPin] as const;
 
-export function LimitHitModal({
-    isOpen,
-    onClose,
-    limitType,
-}: LimitHitModalProps) {
-    const navigate = useNavigate();
-    const rommzPlusPlan = getRommZPlusPlan();
-    const priceDisplay = rommzPlusPlan?.priceDisplay || '49.000đ/tháng';
+export function LimitHitModal({ isOpen, onClose, limitType }: LimitHitModalProps) {
+  const navigate = useNavigate();
+  const rommzPlusPlan = getRommZPlusPlan();
+  const priceDisplay = rommzPlusPlan?.priceDisplay || '49.000đ/tháng';
 
-    const title = limitType === 'views'
-        ? 'Đã hết lượt xem profile hôm nay'
-        : 'Đã hết lượt gửi yêu cầu hôm nay';
+  const title =
+    limitType === 'views'
+      ? 'Đã hết lượt xem profile hôm nay'
+      : 'Đã hết lượt gửi yêu cầu hôm nay';
 
-    const description = limitType === 'views'
-        ? 'Bạn đã xem tối đa 10 profile trong ngày. Nâng cấp Premium để xem không giới hạn!'
-        : 'Bạn đã gửi tối đa 5 yêu cầu trong ngày. Nâng cấp Premium để gửi không giới hạn!';
+  const description =
+    limitType === 'views'
+      ? 'Bạn đã dùng hết lượt xem roommate trong hôm nay. RommZ+ sẽ mở khóa hoàn toàn luồng xem hồ sơ này.'
+      : 'Bạn đã dùng hết lượt gửi lời chào hôm nay. RommZ+ sẽ mở khóa hoàn toàn luồng kết nối roommate này.';
 
-    const handleUpgrade = () => {
-        navigate(`/payment?source=${UPGRADE_SOURCES.FAVORITES_LIMIT}`);
-    };
+  const handleUpgrade = () => {
+    navigate(`/payment?source=${UPGRADE_SOURCES.ROOMMATE_LIMIT}`);
+  };
 
-    return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-md">
-                <DialogHeader className="text-center">
-                    <div className="mx-auto w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center mb-4">
-                        <Crown className="w-8 h-8 text-white" />
-                    </div>
-                    <DialogTitle className="text-xl">{title}</DialogTitle>
-                    <DialogDescription className="text-center">
-                        {description}
-                    </DialogDescription>
-                </DialogHeader>
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader className="text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500">
+            <Crown className="h-8 w-8 text-white" />
+          </div>
+          <DialogTitle className="text-xl">{title}</DialogTitle>
+          <DialogDescription className="text-center">{description}</DialogDescription>
+        </DialogHeader>
 
-                <div className="py-6">
-                    <h4 className="font-medium mb-4 text-center">Quyền lợi Premium:</h4>
-                    <ul className="space-y-3">
-                        {PREMIUM_BENEFITS.map((benefit, i) => {
-                            const Icon = benefit.icon;
-                            return (
-                                <li key={i} className="flex items-center gap-3">
-                                    <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                                        <Icon className="w-4 h-4 text-amber-600" />
-                                    </div>
-                                    <span className="text-sm">{benefit.text}</span>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                </div>
+        <div className="py-6">
+          <h4 className="mb-4 text-center font-medium">RommZ+ hiện đang mở khóa:</h4>
+          <ul className="space-y-3">
+            {PREMIUM_ROOMMATE_UPSELL_BENEFITS.map((benefit, index) => {
+              const Icon = BENEFIT_ICONS[index];
+              return (
+                <li key={benefit} className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100">
+                    <Icon className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <span className="text-sm">{benefit}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
 
-                <div className="space-y-3">
-                    <Button
-                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-                        size="lg"
-                        onClick={handleUpgrade}
-                    >
-                        <Crown className="w-4 h-4 mr-2" />
-                        Nâng cấp Premium - {priceDisplay}
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+        <div className="space-y-3">
+          <Button
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+            size="lg"
+            onClick={handleUpgrade}
+          >
+            <Crown className="mr-2 h-4 w-4" />
+            Nâng cấp RommZ+ - {priceDisplay}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
 
-                    <Button
-                        variant="ghost"
-                        className="w-full"
-                        onClick={onClose}
-                    >
-                        Để sau, quay lại vào ngày mai
-                    </Button>
-                </div>
+          <Button variant="ghost" className="w-full" onClick={onClose}>
+            Để sau, quay lại vào ngày mai
+          </Button>
+        </div>
 
-                <p className="text-xs text-center text-muted-foreground">
-                    Lượt xem và yêu cầu được reset lúc 00:00 mỗi ngày
-                </p>
-            </DialogContent>
-        </Dialog>
-    );
+        <p className="text-center text-xs text-muted-foreground">
+          Lượt xem và yêu cầu được reset lúc 00:00 mỗi ngày.
+        </p>
+      </DialogContent>
+    </Dialog>
+  );
 }

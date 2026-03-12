@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AI Chatbot Edge Function
  * Powered by Gemini 2.5 Flash Lite via Vercel AI SDK
  * 
@@ -46,61 +46,61 @@ function getCorsHeaders(req: Request) {
     };
 }
 
-const SYSTEM_PROMPT = `Bạn là trợ lý AI của RommZ - nền tảng tìm phòng trọ dành cho sinh viên Việt Nam.
+const SYSTEM_PROMPT = `Báº¡n lÃ  trá»£ lÃ½ AI cá»§a RommZ - ná»n táº£ng tÃ¬m phÃ²ng trá» dÃ nh cho sinh viÃªn Viá»‡t Nam.
 
-Về RommZ:
-- Nền tảng kết nối sinh viên tìm phòng trọ đã xác thực
-- Tất cả tin đăng đều được xác thực bằng giấy tờ và ảnh 360°
-- Có tính năng phù hợp bạn cùng phòng (roommate matching)
-- RommZ+ là gói premium (200.000đ/tháng) với ưu tiên hiển thị, phù hợp nâng cao, không phí đặt phòng
-- SwapRoom cho phép hoán đổi/cho thuê lại phòng ngắn hạn
-- Dịch vụ đối tác: chuyển nhà, dọn dẹp, thiết lập (giảm 15% cho sinh viên)
-- Thẻ Ưu đãi: deal độc quyền tại quán cà phê, phòng gym, giặt là (giảm đến 30%)
+Vá» RommZ:
+- Ná»n táº£ng káº¿t ná»‘i sinh viÃªn tÃ¬m phÃ²ng trá» Ä‘Ã£ xÃ¡c thá»±c
+- Táº¥t cáº£ tin Ä‘Äƒng Ä‘á»u Ä‘Æ°á»£c xÃ¡c thá»±c báº±ng giáº¥y tá» vÃ  áº£nh 360Â°
+- CÃ³ tÃ­nh nÄƒng phÃ¹ há»£p báº¡n cÃ¹ng phÃ²ng (roommate matching)
+- RommZ+ là gói premium 49.000đ/tháng với roommate không giới hạn, favorites không giới hạn, xem SĐT tới 100 lượt/ngày và deal Premium của Local Passport
+- SwapRoom cho phÃ©p hoÃ¡n Ä‘á»•i/cho thuÃª láº¡i phÃ²ng ngáº¯n háº¡n
+- Dá»‹ch vá»¥ Ä‘á»‘i tÃ¡c: chuyá»ƒn nhÃ , dá»n dáº¹p, thiáº¿t láº­p (giáº£m 15% cho sinh viÃªn)
+- Tháº» Æ¯u Ä‘Ã£i: deal Ä‘á»™c quyá»n táº¡i quÃ¡n cÃ  phÃª, phÃ²ng gym, giáº·t lÃ  (giáº£m Ä‘áº¿n 30%)
 
-Quy tắc:
-1. Trả lời bằng Tiếng Việt (trừ khi user dùng English)
-2. Ngắn gọn, thân thiện, có emoji phù hợp
-3. Khi user hỏi tìm phòng → dùng tool search_rooms
-4. Khi user hỏi chi tiết phòng → dùng tool get_room_details
-5. Khi user hỏi về tính năng app → dùng tool get_app_info
-6. Không bịa thông tin - nếu không biết, nói rõ
-7. Không thực hiện action thay user (đặt phòng, thanh toán) - chỉ hướng dẫn`;
+Quy táº¯c:
+1. Tráº£ lá»i báº±ng Tiáº¿ng Viá»‡t (trá»« khi user dÃ¹ng English)
+2. Ngáº¯n gá»n, thÃ¢n thiá»‡n, cÃ³ emoji phÃ¹ há»£p
+3. Khi user há»i tÃ¬m phÃ²ng â†’ dÃ¹ng tool search_rooms
+4. Khi user há»i chi tiáº¿t phÃ²ng â†’ dÃ¹ng tool get_room_details
+5. Khi user há»i vá» tÃ­nh nÄƒng app â†’ dÃ¹ng tool get_app_info
+6. KhÃ´ng bá»‹a thÃ´ng tin - náº¿u khÃ´ng biáº¿t, nÃ³i rÃµ
+7. KhÃ´ng thá»±c hiá»‡n action thay user (Ä‘áº·t phÃ²ng, thanh toÃ¡n) - chá»‰ hÆ°á»›ng dáº«n`;
 
 const TOOLS = [
     {
         name: 'search_rooms',
-        description: 'Tìm phòng trọ theo tiêu chí (khu vực, giá, loại phòng). Dùng khi user muốn tìm phòng.',
+        description: 'TÃ¬m phÃ²ng trá» theo tiÃªu chÃ­ (khu vá»±c, giÃ¡, loáº¡i phÃ²ng). DÃ¹ng khi user muá»‘n tÃ¬m phÃ²ng.',
         parameters: {
             type: 'OBJECT' as const,
             properties: {
-                city: { type: 'STRING' as const, description: 'Thành phố (e.g., "TP.HCM", "Hà Nội")' },
-                district: { type: 'STRING' as const, description: 'Quận/Huyện (e.g., "Quận 7", "Bình Thạnh")' },
-                max_price: { type: 'NUMBER' as const, description: 'Giá tối đa (VND/tháng)' },
-                min_price: { type: 'NUMBER' as const, description: 'Giá tối thiểu (VND/tháng)' },
-                room_type: { type: 'STRING' as const, description: 'Loại phòng: private, shared, studio, entire' },
+                city: { type: 'STRING' as const, description: 'ThÃ nh phá»‘ (e.g., "TP.HCM", "HÃ  Ná»™i")' },
+                district: { type: 'STRING' as const, description: 'Quáº­n/Huyá»‡n (e.g., "Quáº­n 7", "BÃ¬nh Tháº¡nh")' },
+                max_price: { type: 'NUMBER' as const, description: 'GiÃ¡ tá»‘i Ä‘a (VND/thÃ¡ng)' },
+                min_price: { type: 'NUMBER' as const, description: 'GiÃ¡ tá»‘i thiá»ƒu (VND/thÃ¡ng)' },
+                room_type: { type: 'STRING' as const, description: 'Loáº¡i phÃ²ng: private, shared, studio, entire' },
             },
         },
     },
     {
         name: 'get_room_details',
-        description: 'Lấy thông tin chi tiết của một phòng cụ thể theo ID.',
+        description: 'Láº¥y thÃ´ng tin chi tiáº¿t cá»§a má»™t phÃ²ng cá»¥ thá»ƒ theo ID.',
         parameters: {
             type: 'OBJECT' as const,
             properties: {
-                room_id: { type: 'STRING' as const, description: 'UUID của phòng' },
+                room_id: { type: 'STRING' as const, description: 'UUID cá»§a phÃ²ng' },
             },
             required: ['room_id'],
         },
     },
     {
         name: 'get_app_info',
-        description: 'Lấy thông tin về tính năng của RommZ app.',
+        description: 'Láº¥y thÃ´ng tin vá» tÃ­nh nÄƒng cá»§a RommZ app.',
         parameters: {
             type: 'OBJECT' as const,
             properties: {
                 topic: {
                     type: 'STRING' as const,
-                    description: 'Chủ đề: verification, rommz_plus, swap_room, services, perks, roommate_matching, general',
+                    description: 'Chá»§ Ä‘á»: verification, rommz_plus, swap_room, services, perks, roommate_matching, general',
                 },
             },
             required: ['topic'],
@@ -109,13 +109,13 @@ const TOOLS = [
 ];
 
 const APP_INFO: Record<string, string> = {
-    verification: 'Xác thực tài khoản RommZ gồm 3 bước:\n1. Xác thực email (tự động khi đăng ký)\n2. Xác thực CCCD/CMND (chụp mặt trước + mặt sau)\n3. Xác thực thẻ sinh viên (tùy chọn)\n\nTài khoản đã xác thực được ưu tiên hiển thị và tăng trust score.',
-    rommz_plus: 'RommZ+ là gói premium:\n💎 Giá: 200.000đ/tháng\n✅ Ưu tiên hiển thị trong kết quả tìm kiếm\n✅ Phù hợp bạn cùng phòng nâng cao\n✅ Không phí đặt phòng\n✅ Ưu đãi và giảm giá độc quyền\n✅ Hỗ trợ ưu tiên',
-    swap_room: 'SwapRoom - Tính năng cho thuê linh hoạt:\n🔄 Đăng phòng cho thuê ngắn hạn (sublet)\n🔄 Hoán đổi phòng với sinh viên khác (swap)\n\nPhù hợp cho: thực tập hè, du học ngắn hạn, chuyển chỗ tạm thời.',
-    services: 'Dịch vụ đối tác RommZ:\n📦 Hỗ trợ chuyển nhà\n🧹 Dọn phòng và vệ sinh\n🛋️ Thiết lập và trang trí phòng\n\nTất cả đối tác đã xác thực, giảm giá 15% cho sinh viên!',
-    perks: 'Thẻ Ưu đãi RommZ:\n🎁 Deal độc quyền dành cho sinh viên\n☕ Quán cà phê - giảm đến 20%\n💪 Phòng gym - giảm đến 30%\n👕 Giặt là - giảm đến 15%\n🍜 Nhà hàng - giảm đến 25%\n\nQuét mã QR tại cửa hàng đối tác để nhận ưu đãi.',
-    roommate_matching: 'Phù hợp bạn cùng phòng:\n🤝 Trả lời bộ câu hỏi tương thích\n📊 Điểm phù hợp từ lifestyle, thói quen, sở thích\n💬 Gửi yêu cầu kết bạn cùng phòng\n\nĐiểm càng cao = càng phù hợp sống chung!',
-    general: 'RommZ - Nền tảng tìm phòng trọ an toàn cho sinh viên:\n🏠 Phòng đã xác thực 100%\n📸 Ảnh 360° thực tế\n🤝 Phù hợp bạn cùng phòng\n💎 RommZ+ premium\n🔄 SwapRoom cho thuê linh hoạt\n📦 Dịch vụ chuyển nhà\n🎁 Ưu đãi sinh viên',
+    verification: 'XÃ¡c thá»±c tÃ i khoáº£n RommZ gá»“m 3 bÆ°á»›c:\n1. XÃ¡c thá»±c email (tá»± Ä‘á»™ng khi Ä‘Äƒng kÃ½)\n2. XÃ¡c thá»±c CCCD/CMND (chá»¥p máº·t trÆ°á»›c + máº·t sau)\n3. XÃ¡c thá»±c tháº» sinh viÃªn (tÃ¹y chá»n)\n\nTÃ i khoáº£n Ä‘Ã£ xÃ¡c thá»±c Ä‘Æ°á»£c Æ°u tiÃªn hiá»ƒn thá»‹ vÃ  tÄƒng trust score.',
+    rommz_plus: 'RommZ+ là gói premium:\nGiá: 49.000đ/tháng\n- Xem SĐT chủ nhà tới 100 lượt/ngày\n- Lưu phòng yêu thích không giới hạn\n- Xem hồ sơ và gửi lời chào roommate không giới hạn\n- Mở khóa deal Premium của Local Passport\n- Hiển thị badge RommZ+ trên hồ sơ',
+    swap_room: 'SwapRoom - TÃ­nh nÄƒng cho thuÃª linh hoáº¡t:\nðŸ”„ ÄÄƒng phÃ²ng cho thuÃª ngáº¯n háº¡n (sublet)\nðŸ”„ HoÃ¡n Ä‘á»•i phÃ²ng vá»›i sinh viÃªn khÃ¡c (swap)\n\nPhÃ¹ há»£p cho: thá»±c táº­p hÃ¨, du há»c ngáº¯n háº¡n, chuyá»ƒn chá»— táº¡m thá»i.',
+    services: 'Dá»‹ch vá»¥ Ä‘á»‘i tÃ¡c RommZ:\nðŸ“¦ Há»— trá»£ chuyá»ƒn nhÃ \nðŸ§¹ Dá»n phÃ²ng vÃ  vá»‡ sinh\nðŸ›‹ï¸ Thiáº¿t láº­p vÃ  trang trÃ­ phÃ²ng\n\nTáº¥t cáº£ Ä‘á»‘i tÃ¡c Ä‘Ã£ xÃ¡c thá»±c, giáº£m giÃ¡ 15% cho sinh viÃªn!',
+    perks: 'Tháº» Æ¯u Ä‘Ã£i RommZ:\nðŸŽ Deal Ä‘á»™c quyá»n dÃ nh cho sinh viÃªn\nâ˜• QuÃ¡n cÃ  phÃª - giáº£m Ä‘áº¿n 20%\nðŸ’ª PhÃ²ng gym - giáº£m Ä‘áº¿n 30%\nðŸ‘• Giáº·t lÃ  - giáº£m Ä‘áº¿n 15%\nðŸœ NhÃ  hÃ ng - giáº£m Ä‘áº¿n 25%\n\nQuÃ©t mÃ£ QR táº¡i cá»­a hÃ ng Ä‘á»‘i tÃ¡c Ä‘á»ƒ nháº­n Æ°u Ä‘Ã£i.',
+    roommate_matching: 'PhÃ¹ há»£p báº¡n cÃ¹ng phÃ²ng:\nðŸ¤ Tráº£ lá»i bá»™ cÃ¢u há»i tÆ°Æ¡ng thÃ­ch\nðŸ“Š Äiá»ƒm phÃ¹ há»£p tá»« lifestyle, thÃ³i quen, sá»Ÿ thÃ­ch\nðŸ’¬ Gá»­i yÃªu cáº§u káº¿t báº¡n cÃ¹ng phÃ²ng\n\nÄiá»ƒm cÃ ng cao = cÃ ng phÃ¹ há»£p sá»‘ng chung!',
+    general: 'RommZ - Ná»n táº£ng tÃ¬m phÃ²ng trá» an toÃ n cho sinh viÃªn:\nðŸ  PhÃ²ng Ä‘Ã£ xÃ¡c thá»±c 100%\nðŸ“¸ áº¢nh 360Â° thá»±c táº¿\nðŸ¤ PhÃ¹ há»£p báº¡n cÃ¹ng phÃ²ng\nðŸ’Ž RommZ+ premium\nðŸ”„ SwapRoom cho thuÃª linh hoáº¡t\nðŸ“¦ Dá»‹ch vá»¥ chuyá»ƒn nhÃ \nðŸŽ Æ¯u Ä‘Ã£i sinh viÃªn',
 };
 
 // Rate limiting
@@ -141,7 +141,7 @@ function normalizeText(input: string): string {
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd');
+        .replace(/Ä‘/g, 'd');
 }
 
 function normalizedIncludes(value: unknown, query: unknown): boolean {
@@ -302,43 +302,43 @@ async function checkRateLimit(
 function formatSearchRoomsReply(result: unknown): string {
     const payload = result as { rooms?: Array<Record<string, unknown>>; message?: string; error?: string };
     if (payload?.error) {
-        return 'Mình gặp lỗi khi tìm phòng. Bạn thử lại sau giúp mình nhé.';
+        return 'MÃ¬nh gáº·p lá»—i khi tÃ¬m phÃ²ng. Báº¡n thá»­ láº¡i sau giÃºp mÃ¬nh nhÃ©.';
     }
 
     const rooms = Array.isArray(payload?.rooms) ? payload.rooms : [];
     if (rooms.length === 0) {
-        return payload?.message || 'Hiện chưa có phòng phù hợp với tiêu chí của bạn.';
+        return payload?.message || 'Hiá»‡n chÆ°a cÃ³ phÃ²ng phÃ¹ há»£p vá»›i tiÃªu chÃ­ cá»§a báº¡n.';
     }
 
     const lines = rooms.map((room, idx) => {
-        const title = String(room.title || 'Phòng trọ');
-        const price = String(room.price || 'Liên hệ');
-        const location = String(room.location || 'Chưa rõ vị trí');
+        const title = String(room.title || 'PhÃ²ng trá»');
+        const price = String(room.price || 'LiÃªn há»‡');
+        const location = String(room.location || 'ChÆ°a rÃµ vá»‹ trÃ­');
         const roomId = String(room.id || '');
         return `${idx + 1}. ${title} - ${price} (${location})${roomId ? `\nID: ${roomId}` : ''}`;
     });
 
-    return `Mình tìm được ${rooms.length} phòng phù hợp:\n\n${lines.join('\n\n')}\n\nBạn muốn mình lấy chi tiết phòng nào thì gửi ID nhé.`;
+    return `MÃ¬nh tÃ¬m Ä‘Æ°á»£c ${rooms.length} phÃ²ng phÃ¹ há»£p:\n\n${lines.join('\n\n')}\n\nBáº¡n muá»‘n mÃ¬nh láº¥y chi tiáº¿t phÃ²ng nÃ o thÃ¬ gá»­i ID nhÃ©.`;
 }
 
 function formatRoomDetailsReply(result: unknown): string {
     const payload = result as Record<string, unknown>;
     if (payload?.error) {
-        return 'Mình chưa tìm thấy chi tiết phòng này. Bạn kiểm tra lại ID giúp mình nhé.';
+        return 'MÃ¬nh chÆ°a tÃ¬m tháº¥y chi tiáº¿t phÃ²ng nÃ y. Báº¡n kiá»ƒm tra láº¡i ID giÃºp mÃ¬nh nhÃ©.';
     }
 
-    const title = String(payload.title || 'Phòng trọ');
+    const title = String(payload.title || 'PhÃ²ng trá»');
     const price = payload.price_per_month
-        ? `${Number(payload.price_per_month).toLocaleString('vi-VN')}đ/tháng`
-        : 'Liên hệ';
+        ? `${Number(payload.price_per_month).toLocaleString('vi-VN')}Ä‘/thÃ¡ng`
+        : 'LiÃªn há»‡';
     const location = [payload.address, payload.district, payload.city]
         .filter(Boolean)
         .map(String)
         .join(', ');
-    const furnished = payload.furnished ? 'Có nội thất' : 'Không nội thất';
-    const verified = payload.is_verified ? 'Đã xác thực' : 'Chưa xác thực';
+    const furnished = payload.furnished ? 'CÃ³ ná»™i tháº¥t' : 'KhÃ´ng ná»™i tháº¥t';
+    const verified = payload.is_verified ? 'ÄÃ£ xÃ¡c thá»±c' : 'ChÆ°a xÃ¡c thá»±c';
 
-    return `${title}\nGiá: ${price}\nVị trí: ${location || 'Chưa rõ'}\nTiện ích: ${furnished} • ${verified}`;
+    return `${title}\nGiÃ¡: ${price}\nVá»‹ trÃ­: ${location || 'ChÆ°a rÃµ'}\nTiá»‡n Ã­ch: ${furnished} â€¢ ${verified}`;
 }
 
 function formatToolResultReply(functionName: string, result: unknown): string {
@@ -346,9 +346,9 @@ function formatToolResultReply(functionName: string, result: unknown): string {
     if (functionName === 'get_room_details') return formatRoomDetailsReply(result);
     if (functionName === 'get_app_info') {
         const info = (result as { info?: string })?.info;
-        return info || 'Mình chưa có thông tin cho chủ đề này.';
+        return info || 'MÃ¬nh chÆ°a cÃ³ thÃ´ng tin cho chá»§ Ä‘á» nÃ y.';
     }
-    return 'Mình đã xử lý yêu cầu nhưng chưa thể tạo phản hồi phù hợp.';
+    return 'MÃ¬nh Ä‘Ã£ xá»­ lÃ½ yÃªu cáº§u nhÆ°ng chÆ°a thá»ƒ táº¡o pháº£n há»“i phÃ¹ há»£p.';
 }
 
 type ToolName = (typeof TOOLS)[number]['name'];
@@ -403,7 +403,7 @@ async function handleFunctionCall(
                     .order('created_at', { ascending: false })
                     .range(offset, offset + pageSize - 1);
 
-                if (error) return { error: 'Lỗi tìm kiếm phòng' };
+                if (error) return { error: 'Lá»—i tÃ¬m kiáº¿m phÃ²ng' };
 
                 const rows = (data || []) as RoomSearchRow[];
                 if (rows.length === 0) break;
@@ -425,17 +425,17 @@ async function handleFunctionCall(
             }
 
             if (selectedRooms.length === 0) {
-                return { rooms: [], message: 'Không tìm thấy phòng phù hợp' };
+                return { rooms: [], message: 'KhÃ´ng tÃ¬m tháº¥y phÃ²ng phÃ¹ há»£p' };
             }
 
             return {
                 rooms: selectedRooms.map(r => ({
                     id: r.id,
                     title: r.title,
-                    price: `${Number(r.price_per_month).toLocaleString('vi-VN')}đ/tháng`,
+                    price: `${Number(r.price_per_month).toLocaleString('vi-VN')}Ä‘/thÃ¡ng`,
                     location: `${r.district || ''}, ${r.city || ''}`.replace(/^, |, $/g, ''),
                     type: r.room_type,
-                    area: r.area_sqm ? `${r.area_sqm}m²` : null,
+                    area: r.area_sqm ? `${r.area_sqm}mÂ²` : null,
                     verified: r.is_verified,
                     furnished: r.furnished,
                 })),
@@ -458,7 +458,7 @@ async function handleFunctionCall(
                 .eq('id', args.room_id as string)
                 .single();
 
-            if (error || !data) return { error: 'Không tìm thấy phòng' };
+            if (error || !data) return { error: 'KhÃ´ng tÃ¬m tháº¥y phÃ²ng' };
             return data;
         }
 
@@ -636,7 +636,7 @@ Deno.serve(async (req) => {
         // Rate limit
         if (!(await checkRateLimit(user.id, adminClient))) {
             return new Response(
-                JSON.stringify({ error: 'Bạn đang gửi quá nhiều tin nhắn. Vui lòng đợi 1 phút.', code: 'RATE_LIMITED' }),
+                JSON.stringify({ error: 'Báº¡n Ä‘ang gá»­i quÃ¡ nhiá»u tin nháº¯n. Vui lÃ²ng Ä‘á»£i 1 phÃºt.', code: 'RATE_LIMITED' }),
                 { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             );
         }
@@ -660,7 +660,7 @@ Deno.serve(async (req) => {
         if (sessionId !== undefined && sessionId !== null) {
             if (typeof sessionId !== 'string' || !UUID_REGEX.test(sessionId)) {
                 return new Response(
-                    JSON.stringify({ error: 'Session ID không hợp lệ.', code: 'INVALID_INPUT' }),
+                    JSON.stringify({ error: 'Session ID khÃ´ng há»£p lá»‡.', code: 'INVALID_INPUT' }),
                     { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
@@ -679,7 +679,7 @@ Deno.serve(async (req) => {
             if (existingSessionError) throw existingSessionError;
             if (!existingSession) {
                 return new Response(
-                    JSON.stringify({ error: 'Phiên chat không hợp lệ.', code: 'INVALID_SESSION' }),
+                    JSON.stringify({ error: 'PhiÃªn chat khÃ´ng há»£p lá»‡.', code: 'INVALID_SESSION' }),
                     { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
@@ -763,13 +763,13 @@ Deno.serve(async (req) => {
                 .map((call, index) => {
                     const formatted = formatToolResultReply(call.name, call.result);
                     if (functionCallResults.length === 1) return formatted;
-                    return `Kết quả ${index + 1} (${call.name}):\n${formatted}`;
+                    return `Káº¿t quáº£ ${index + 1} (${call.name}):\n${formatted}`;
                 })
                 .join('\n\n');
         }
 
         if (!responseText) {
-            responseText = 'Xin lỗi, mình không thể xử lý yêu cầu này lúc này. Bạn có thể thử lại không? 🙏';
+            responseText = 'Xin lá»—i, mÃ¬nh khÃ´ng thá»ƒ xá»­ lÃ½ yÃªu cáº§u nÃ y lÃºc nÃ y. Báº¡n cÃ³ thá»ƒ thá»­ láº¡i khÃ´ng? ðŸ™';
         }
 
         const responseMetadata: Record<string, unknown> = {
@@ -823,7 +823,7 @@ Deno.serve(async (req) => {
         if (err.code === '42P01') {
             return new Response(
                 JSON.stringify({
-                    error: 'Thiếu bảng dữ liệu AI Chatbot. Hãy chạy migration mới nhất.',
+                    error: 'Thiáº¿u báº£ng dá»¯ liá»‡u AI Chatbot. HÃ£y cháº¡y migration má»›i nháº¥t.',
                     code: 'DB_SCHEMA_MISSING',
                 }),
                 { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -833,7 +833,7 @@ Deno.serve(async (req) => {
         if (err.code === '22P02') {
             return new Response(
                 JSON.stringify({
-                    error: 'Session ID không hợp lệ.',
+                    error: 'Session ID khÃ´ng há»£p lá»‡.',
                     code: 'INVALID_INPUT',
                 }),
                 { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -841,7 +841,7 @@ Deno.serve(async (req) => {
         }
 
         const errorPayload: Record<string, unknown> = {
-            error: 'Đã xảy ra lỗi. Vui lòng thử lại sau.',
+            error: 'ÄÃ£ xáº£y ra lá»—i. Vui lÃ²ng thá»­ láº¡i sau.',
             code: 'GEMINI_ERROR',
         };
         if (EXPOSE_INTERNAL_ERRORS) {
