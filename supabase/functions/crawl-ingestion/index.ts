@@ -1,8 +1,9 @@
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 type CrawlEntityType = 'partner' | 'location';
+type CrawlSourceMode = 'url' | 'keyword';
 type CrawlProvider = 'firecrawl' | 'admin_upload';
-type CrawlTriggerType = 'source_run' | 'file_upload';
+type CrawlTriggerType = 'source_run' | 'file_upload' | 'keyword_run';
 type CrawlJobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'partial';
 type FirecrawlStatus = 'scraping' | 'processing' | 'completed' | 'failed' | 'cancelled';
 
@@ -13,10 +14,16 @@ type CrawlSourceRow = {
   id: string;
   entity_type: CrawlEntityType;
   provider: 'firecrawl';
+  source_mode: CrawlSourceMode;
   name: string;
-  source_url: string;
+  source_url: string | null;
   source_domain: string | null;
+  description: string | null;
   is_active: boolean;
+  discovery_query: string | null;
+  discovery_location: string | null;
+  discovery_country: string | null;
+  discovery_limit: number | null;
   config: JsonObject | null;
 };
 
@@ -34,7 +41,7 @@ type AuthenticatedUser = {
   email?: string;
 };
 
-type AdminClient = SupabaseClient<any, 'public', 'public', any, any>;
+type AdminClient = SupabaseClient;
 
 type ProcessSummary = {
   totalCount: number;
@@ -88,8 +95,35 @@ type FirecrawlExtractStatusResponse = {
   expiresAt?: string;
 };
 
+type FirecrawlSearchCandidate = {
+  title?: string;
+  description?: string;
+  url?: string;
+};
+
+type FirecrawlSearchResponse = {
+  success?: boolean;
+  data?: {
+    web?: FirecrawlSearchCandidate[];
+  };
+  warning?: string;
+  error?: string;
+};
+
+type DiscoveredSourceCandidate = {
+  title: string | null;
+  description: string | null;
+  url: string;
+  sourceDomain: string | null;
+};
+
 type RunSourceRequest = {
   action: 'run_source';
+  sourceId: string;
+};
+
+type PreviewSourceRequest = {
+  action: 'preview_source';
   sourceId: string;
 };
 
@@ -107,7 +141,7 @@ type ImportRecordsRequest = {
   records: JsonValue[];
 };
 
-type RequestBody = RunSourceRequest | SyncJobRequest | ImportRecordsRequest;
+type RequestBody = RunSourceRequest | PreviewSourceRequest | SyncJobRequest | ImportRecordsRequest;
 
 class HttpError extends Error {
   status: number;
@@ -159,12 +193,13 @@ const DEFAULT_PROMPTS: Record<CrawlEntityType, string> = {
     'Return one item per business and never collapse multiple businesses into a single item.',
     'Keep items even when only company name, website, address, or service area is available.',
     'Use website only for a business-specific site. Do not reuse the article URL as the business website.',
+    'Always include source_url as the page URL where the business entry was found.',
     'If ranking/order is visible, return it in rank.',
   ].join(' '),
   location: [
     'Extract public location metadata useful for student housing discovery.',
     'Focus on universities, campuses, districts, neighborhoods, stations, landmarks, and points of interest.',
-    'Return all discovered locations in items with city, district, address, coordinates, and tags when present.',
+    'Return all discovered locations in items with city, district, address, coordinates, tags, and source_url when present.',
   ].join(' '),
 };
 
@@ -265,6 +300,7 @@ export function isCrawlIngestionRequestBody(value: unknown): value is RequestBod
 
   const record = value as Record<string, unknown>;
   return record.action === 'run_source'
+    || record.action === 'preview_source'
     || record.action === 'sync_job'
     || record.action === 'import_records';
 }
@@ -283,6 +319,25 @@ function normalizeWhitespace(value: unknown) {
     .replace(/,\s*/g, ', ')
     .replace(/,+$/g, '')
     .trim();
+}
+
+function sanitizeCountryCode(value: unknown) {
+  const normalized = normalizeWhitespace(value).toUpperCase();
+  if (!normalized) {
+    return undefined;
+  }
+  if (!/^[A-Z]{2}$/.test(normalized)) {
+    return undefined;
+  }
+  return normalized;
+}
+
+function sanitizeDiscoveryLimit(value: unknown, fallback = 5) {
+  const numericValue = Math.trunc(Number(value));
+  if (!Number.isFinite(numericValue) || numericValue < 1) {
+    return fallback;
+  }
+  return Math.min(numericValue, 10);
 }
 
 function sanitizeEmail(value: unknown) {
@@ -785,21 +840,29 @@ async function getJob(adminClient: AdminClient, jobId: string) {
   return data as CrawlJobRow;
 }
 
-function getFirecrawlExtractPayload(source: CrawlSourceRow) {
-  const config = toRecord(source.config);
+function getFirecrawlSourceConfig(source: CrawlSourceRow) {
+  return toRecord(source.config);
+}
+
+function getFirecrawlExtractPayload(
+  entityType: CrawlEntityType,
+  configInput: JsonObject | null,
+  urls: string[],
+) {
+  const config = toRecord(configInput);
   const schema = toRecord(config.schema).type
     ? toRecord(config.schema)
-    : DEFAULT_SCHEMAS[source.entity_type];
+    : DEFAULT_SCHEMAS[entityType];
   const prompt = typeof config.prompt === 'string' && config.prompt.trim()
     ? config.prompt.trim()
-    : DEFAULT_PROMPTS[source.entity_type];
+    : DEFAULT_PROMPTS[entityType];
 
   return {
-    urls: [source.source_url],
+    urls,
     prompt,
     schema,
     enableWebSearch: config.enableWebSearch === true,
-    showSources: config.showSources === true,
+    showSources: config.showSources !== false,
     includeSubdomains: config.includeSubdomains === true,
     scrapeOptions: {
       onlyMainContent: true,
@@ -808,14 +871,94 @@ function getFirecrawlExtractPayload(source: CrawlSourceRow) {
   };
 }
 
-async function startFirecrawlExtract(source: CrawlSourceRow) {
+async function searchFirecrawlSource(source: CrawlSourceRow) {
   if (!FIRECRAWL_API_KEY) {
     throw new HttpError(500, 'CONFIG_ERROR', 'Missing FIRECRAWL_API_KEY secret');
   }
 
-  const sourceUrl = sanitizeUrl(source.source_url);
-  if (!sourceUrl) {
-    throw new HttpError(400, 'INVALID_SOURCE', 'Crawl source must have a valid source_url');
+  if (source.source_mode === 'url') {
+    const sourceUrl = sanitizeUrl(source.source_url);
+    if (!sourceUrl) {
+      throw new HttpError(400, 'INVALID_SOURCE', 'Crawl source must have a valid source_url');
+    }
+
+    return {
+      query: null,
+      location: null,
+      country: null,
+      candidates: [{
+        title: source.name,
+        description: source.description ?? null,
+        url: sourceUrl,
+        sourceDomain: extractDomain(sourceUrl) ?? null,
+      }] satisfies DiscoveredSourceCandidate[],
+    };
+  }
+
+  const discoveryQuery = normalizeWhitespace(source.discovery_query);
+  if (!discoveryQuery) {
+    throw new HttpError(400, 'INVALID_SOURCE', 'Keyword crawl source must have a discovery_query');
+  }
+
+  const discoveryLocation = normalizeWhitespace(source.discovery_location) || undefined;
+  const discoveryCountry = sanitizeCountryCode(source.discovery_country) ?? 'VN';
+  const discoveryLimit = sanitizeDiscoveryLimit(source.discovery_limit, 5);
+  const config = getFirecrawlSourceConfig(source);
+  const response = await fetch(`${FIRECRAWL_API_URL}/v2/search`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: discoveryQuery,
+      limit: discoveryLimit,
+      sources: ['web'],
+      location: discoveryLocation,
+      country: discoveryCountry,
+      ignoreInvalidURLs: true,
+      timeout: config.searchTimeoutMs ?? 60_000,
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({})) as FirecrawlSearchResponse;
+  if (!response.ok) {
+    throw new Error(payload.error || `Firecrawl search failed with status ${response.status}`);
+  }
+
+  const seen = new Set<string>();
+  const candidates = (payload.data?.web ?? [])
+    .map((item) => ({
+      title: normalizeWhitespace(item.title) || null,
+      description: normalizeWhitespace(item.description) || null,
+      url: sanitizeUrl(item.url),
+      sourceDomain: extractDomain(item.url),
+    }))
+    .filter((item): item is DiscoveredSourceCandidate => !!item.url)
+    .filter((item) => {
+      if (seen.has(item.url)) {
+        return false;
+      }
+      seen.add(item.url);
+      return true;
+    })
+    .slice(0, discoveryLimit);
+
+  return {
+    query: discoveryQuery,
+    location: discoveryLocation ?? null,
+    country: discoveryCountry,
+    candidates,
+  };
+}
+
+async function startFirecrawlExtract(source: CrawlSourceRow, urls: string[]) {
+  if (!FIRECRAWL_API_KEY) {
+    throw new HttpError(500, 'CONFIG_ERROR', 'Missing FIRECRAWL_API_KEY secret');
+  }
+
+  if (urls.length === 0) {
+    throw new HttpError(400, 'INVALID_SOURCE', 'Crawl source must resolve to at least one URL');
   }
 
   const response = await fetch(`${FIRECRAWL_API_URL}/v2/extract`, {
@@ -824,10 +967,11 @@ async function startFirecrawlExtract(source: CrawlSourceRow) {
       Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(getFirecrawlExtractPayload({
-      ...source,
-      source_url: sourceUrl,
-    })),
+    body: JSON.stringify(getFirecrawlExtractPayload(
+      source.entity_type,
+      source.config,
+      urls,
+    )),
   });
 
   const payload = await response.json().catch(() => ({})) as FirecrawlExtractResponse;
@@ -1261,27 +1405,42 @@ async function handleRunSource(
     throw new HttpError(400, 'INVALID_STATE', 'Crawl source is inactive');
   }
 
-  const sourceUrl = sanitizeUrl(source.source_url);
-  if (!sourceUrl) {
-    throw new HttpError(400, 'INVALID_SOURCE', 'Crawl source must have a valid source_url');
+  const discovery = await searchFirecrawlSource(source);
+  if (discovery.candidates.length === 0) {
+    throw new HttpError(400, 'NO_DISCOVERY_RESULTS', 'No candidate URLs found for this crawl source');
   }
+
+  const urls = discovery.candidates.map((candidate) => candidate.url);
+  const triggerType: CrawlTriggerType = source.source_mode === 'keyword' ? 'keyword_run' : 'source_run';
+  const primaryUrl = source.source_mode === 'url' ? urls[0] : undefined;
 
   const job = await createJob(adminClient, {
     sourceId: source.id,
     entityType: source.entity_type,
     provider: 'firecrawl',
-    triggerType: 'source_run',
+    triggerType,
     sourceName: source.name,
-    sourceUrl,
+    sourceUrl: primaryUrl,
     createdBy: user.id,
     log: {
-      mode: 'source_run',
-      source_domain: source.source_domain ?? extractDomain(sourceUrl) ?? null,
+      mode: triggerType,
+      source_mode: source.source_mode,
+      source_domain: source.source_domain ?? extractDomain(primaryUrl) ?? null,
+      discovery_query: discovery.query,
+      discovery_location: discovery.location,
+      discovery_country: discovery.country,
+      discovered_url_count: discovery.candidates.length,
+      discovered_urls: discovery.candidates.slice(0, 10).map((candidate) => ({
+        title: candidate.title,
+        description: candidate.description,
+        url: candidate.url,
+        source_domain: candidate.sourceDomain,
+      })),
     },
   });
 
   try {
-    const providerJobId = await startFirecrawlExtract(source);
+    const providerJobId = await startFirecrawlExtract(source, urls);
     await updateJob(adminClient, job.id, {
       provider_job_id: providerJobId,
       status: 'running',
@@ -1303,6 +1462,7 @@ async function handleRunSource(
       jobId: job.id,
       providerJobId,
       status: 'running',
+      discoveredUrlCount: discovery.candidates.length,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to start crawl source';
@@ -1317,6 +1477,25 @@ async function handleRunSource(
     });
     throw error;
   }
+}
+
+async function handlePreviewSource(
+  adminClient: AdminClient,
+  body: PreviewSourceRequest,
+) {
+  const source = await getSource(adminClient, body.sourceId);
+  const discovery = await searchFirecrawlSource(source);
+
+  return {
+    sourceId: source.id,
+    sourceName: source.name,
+    sourceMode: source.source_mode,
+    query: discovery.query,
+    location: discovery.location,
+    country: discovery.country,
+    count: discovery.candidates.length,
+    candidates: discovery.candidates,
+  };
 }
 
 async function handleSyncJob(
@@ -1490,6 +1669,17 @@ export async function handleCrawlIngestionRequest(req: Request) {
     const auth = await verifyAdmin(adminUserAuthHeader);
 
     switch (body.action) {
+      case 'preview_source': {
+        if (!body.sourceId) {
+          return jsonResponse(corsHeaders, {
+            error: 'sourceId is required',
+            code: 'INVALID_INPUT',
+          }, 400);
+        }
+        const result = await handlePreviewSource(auth.adminClient, body);
+        return jsonResponse(corsHeaders, result as unknown as Record<string, JsonValue>);
+      }
+
       case 'run_source': {
         if (!body.sourceId) {
           return jsonResponse(corsHeaders, {
@@ -1522,6 +1712,12 @@ export async function handleCrawlIngestionRequest(req: Request) {
         const result = await handleImportRecords(auth.adminClient, auth.user, body);
         return jsonResponse(corsHeaders, result as unknown as Record<string, JsonValue>);
       }
+
+      default:
+        return jsonResponse(corsHeaders, {
+          error: 'Unsupported crawl action',
+          code: 'INVALID_INPUT',
+        }, 400);
     }
   } catch (error) {
     if (error instanceof HttpError) {

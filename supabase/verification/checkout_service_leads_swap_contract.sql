@@ -16,6 +16,12 @@ DECLARE
     v_partner_crawl_classify_proc REGPROCEDURE;
     v_partner_crawl_promote_proc REGPROCEDURE;
     v_partner_crawl_rls BOOLEAN;
+    v_crawl_source_mode_column_count INTEGER;
+    v_crawl_discovery_query_column_count INTEGER;
+    v_crawl_discovery_location_column_count INTEGER;
+    v_crawl_discovery_country_column_count INTEGER;
+    v_crawl_discovery_limit_column_count INTEGER;
+    v_crawl_job_trigger_check TEXT;
     v_location_catalog REGCLASS;
     v_location_search_proc REGPROCEDURE;
     v_location_nearby_proc REGPROCEDURE;
@@ -239,6 +245,71 @@ BEGIN
 
     IF coalesce(v_partner_crawl_rls, false) = false THEN
         RAISE EXCEPTION 'partner_crawl_ingestions still has RLS disabled';
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_crawl_source_mode_column_count
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'crawl_sources'
+      AND column_name = 'source_mode';
+
+    IF v_crawl_source_mode_column_count = 0 THEN
+        RAISE EXCEPTION 'crawl_sources.source_mode column is missing';
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_crawl_discovery_query_column_count
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'crawl_sources'
+      AND column_name = 'discovery_query';
+
+    IF v_crawl_discovery_query_column_count = 0 THEN
+        RAISE EXCEPTION 'crawl_sources.discovery_query column is missing';
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_crawl_discovery_location_column_count
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'crawl_sources'
+      AND column_name = 'discovery_location';
+
+    IF v_crawl_discovery_location_column_count = 0 THEN
+        RAISE EXCEPTION 'crawl_sources.discovery_location column is missing';
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_crawl_discovery_country_column_count
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'crawl_sources'
+      AND column_name = 'discovery_country';
+
+    IF v_crawl_discovery_country_column_count = 0 THEN
+        RAISE EXCEPTION 'crawl_sources.discovery_country column is missing';
+    END IF;
+
+    SELECT COUNT(*)
+    INTO v_crawl_discovery_limit_column_count
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'crawl_sources'
+      AND column_name = 'discovery_limit';
+
+    IF v_crawl_discovery_limit_column_count = 0 THEN
+        RAISE EXCEPTION 'crawl_sources.discovery_limit column is missing';
+    END IF;
+
+    SELECT pg_get_constraintdef(c.oid)
+    INTO v_crawl_job_trigger_check
+    FROM pg_constraint c
+    WHERE c.conrelid = 'public.crawl_jobs'::regclass
+      AND c.conname = 'crawl_jobs_trigger_type_check';
+
+    IF v_crawl_job_trigger_check IS NULL OR position('keyword_run' in v_crawl_job_trigger_check) = 0 THEN
+        RAISE EXCEPTION 'crawl_jobs_trigger_type_check is missing keyword_run: %', coalesce(v_crawl_job_trigger_check, '<null>');
     END IF;
 
     SELECT to_regclass('public.location_catalog')

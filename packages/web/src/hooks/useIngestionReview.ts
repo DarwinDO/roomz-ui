@@ -7,6 +7,7 @@ import {
   getCrawlSources,
   getLocationCrawlReviewQueue,
   getPartnerCrawlReviewQueue,
+  previewCrawlSource,
   promoteLocationCrawlIngestion,
   promotePartnerCrawlIngestion,
   refreshLocationCrawlClassification,
@@ -206,6 +207,18 @@ export function useRunCrawlSource(entityType?: CrawlEntityType) {
       queryClient.invalidateQueries({ queryKey: ingestionReviewKeys.sources(entityType) });
       queryClient.invalidateQueries({ queryKey: ingestionReviewKeys.jobs(entityType) });
       queryClient.invalidateQueries({ queryKey: ingestionReviewKeys.jobs() });
+    },
+  });
+}
+
+export function usePreviewCrawlSource(entityType?: CrawlEntityType) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: previewCrawlSource,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ingestionReviewKeys.sources(entityType) });
+      queryClient.invalidateQueries({ queryKey: ingestionReviewKeys.sources() });
     },
   });
 }

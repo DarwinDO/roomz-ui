@@ -1,6 +1,7 @@
 ﻿import { supabase } from '@/lib/supabase';
 
 export type CrawlEntityType = 'partner' | 'location';
+export type CrawlSourceMode = 'url' | 'keyword';
 export type CrawlJobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'partial';
 
 export type PartnerCrawlReviewStatus =
@@ -25,11 +26,16 @@ export interface CrawlSource {
   id: string;
   entity_type: CrawlEntityType;
   provider: 'firecrawl';
+  source_mode: CrawlSourceMode;
   name: string;
-  source_url: string;
+  source_url: string | null;
   source_domain: string | null;
   description: string | null;
   is_active: boolean;
+  discovery_query: string | null;
+  discovery_location: string | null;
+  discovery_country: string | null;
+  discovery_limit: number | null;
   config: Record<string, unknown>;
   last_run_at: string | null;
   created_by: string | null;
@@ -43,7 +49,7 @@ export interface CrawlJob {
   source_id: string | null;
   entity_type: CrawlEntityType;
   provider: 'firecrawl' | 'admin_upload';
-  trigger_type: 'source_run' | 'file_upload';
+  trigger_type: 'source_run' | 'file_upload' | 'keyword_run';
   status: CrawlJobStatus;
   source_name: string;
   source_url: string | null;
@@ -136,6 +142,7 @@ export interface CrawlFunctionResult {
   status: CrawlJobStatus | 'running';
   providerJobId?: string;
   firecrawlStatus?: string;
+  discoveredUrlCount?: number;
   error?: string;
   summary?: {
     totalCount: number;
@@ -149,10 +156,33 @@ export interface CrawlFunctionResult {
   };
 }
 
+export interface CrawlSourcePreviewCandidate {
+  title: string | null;
+  description: string | null;
+  url: string;
+  sourceDomain: string | null;
+}
+
+export interface CrawlSourcePreviewResult {
+  sourceId: string;
+  sourceName: string;
+  sourceMode: CrawlSourceMode;
+  query: string | null;
+  location: string | null;
+  country: string | null;
+  count: number;
+  candidates: CrawlSourcePreviewCandidate[];
+}
+
 export interface CreateCrawlSourceInput {
   entityType: CrawlEntityType;
   name: string;
-  sourceUrl: string;
+  sourceMode?: CrawlSourceMode;
+  sourceUrl?: string | null;
+  discoveryQuery?: string | null;
+  discoveryLocation?: string | null;
+  discoveryCountry?: string | null;
+  discoveryLimit?: number | string | null;
   description?: string;
   isActive?: boolean;
   config?: Record<string, unknown>;
@@ -160,7 +190,12 @@ export interface CreateCrawlSourceInput {
 
 export interface UpdateCrawlSourceInput {
   name?: string;
-  sourceUrl?: string;
+  sourceMode?: CrawlSourceMode;
+  sourceUrl?: string | null;
+  discoveryQuery?: string | null;
+  discoveryLocation?: string | null;
+  discoveryCountry?: string | null;
+  discoveryLimit?: number | string | null;
   description?: string | null;
   isActive?: boolean;
   config?: Record<string, unknown>;
@@ -369,6 +404,24 @@ export function normalizeCrawlSourceUrl(value: unknown) {
   return sanitizeUrl(value);
 }
 
+function sanitizeDiscoveryCountry(value: unknown) {
+  const normalized = normalizeWhitespace(value).toUpperCase();
+  if (!normalized) {
+    return undefined;
+  }
+
+  return /^[A-Z]{2}$/.test(normalized) ? normalized : undefined;
+}
+
+function sanitizeDiscoveryLimit(value: unknown, fallback = 5) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return fallback;
+  }
+
+  return Math.max(1, Math.min(10, Math.round(numericValue)));
+}
+
 function extractDomain(url?: string | null) {
   if (!url) {
     return undefined;
@@ -481,6 +534,89 @@ export function buildCrawlFunctionErrorMessage(rawMessage: string) {
   }
 
   return rawMessage;
+}
+
+export function buildCrawlSourceMutationPayload(
+  input: CreateCrawlSourceInput | UpdateCrawlSourceInput,
+) {
+  const payload: Record<string, unknown> = {};
+
+  if (input.name !== undefined) {
+    payload.name = normalizeWhitespace(input.name);
+  }
+  if (input.description !== undefined) {
+    payload.description = normalizeWhitespace(input.description) || null;
+  }
+  if (input.isActive !== undefined) {
+    payload.is_active = input.isActive;
+  }
+  if (input.config !== undefined) {
+    payload.config = input.config;
+  }
+
+  const sourceMode = input.sourceMode;
+  if (sourceMode !== undefined) {
+    payload.source_mode = sourceMode;
+  }
+
+  if (sourceMode === 'url') {
+    const sourceUrl = normalizeCrawlSourceUrl(input.sourceUrl);
+    if (!sourceUrl) {
+      throw new Error('Source URL là bắt buộc và phải hợp lệ');
+    }
+
+    payload.source_url = sourceUrl;
+    payload.source_domain = extractDomain(sourceUrl) ?? null;
+    payload.discovery_query = null;
+    payload.discovery_location = null;
+    payload.discovery_country = null;
+    payload.discovery_limit = 5;
+
+    return payload;
+  }
+
+  if (sourceMode === 'keyword') {
+    const discoveryQuery = normalizeWhitespace(input.discoveryQuery);
+    if (!discoveryQuery) {
+      throw new Error('Từ khóa discovery là bắt buộc');
+    }
+
+    payload.source_url = null;
+    payload.source_domain = null;
+    payload.discovery_query = discoveryQuery;
+    payload.discovery_location = normalizeWhitespace(input.discoveryLocation) || null;
+    payload.discovery_country = sanitizeDiscoveryCountry(input.discoveryCountry) ?? 'VN';
+    payload.discovery_limit = sanitizeDiscoveryLimit(input.discoveryLimit, 5);
+
+    return payload;
+  }
+
+  if (input.sourceUrl !== undefined) {
+    const sourceUrl = normalizeCrawlSourceUrl(input.sourceUrl);
+    if (!sourceUrl) {
+      throw new Error('Source URL là bắt buộc và phải hợp lệ');
+    }
+
+    payload.source_url = sourceUrl;
+    payload.source_domain = extractDomain(sourceUrl) ?? null;
+  }
+
+  if (input.discoveryQuery !== undefined) {
+    payload.discovery_query = normalizeWhitespace(input.discoveryQuery) || null;
+  }
+  if (input.discoveryLocation !== undefined) {
+    payload.discovery_location = normalizeWhitespace(input.discoveryLocation) || null;
+  }
+  if (input.discoveryCountry !== undefined) {
+    payload.discovery_country = sanitizeDiscoveryCountry(input.discoveryCountry) ?? null;
+  }
+  if (input.discoveryLimit !== undefined) {
+    payload.discovery_limit = input.discoveryLimit === null
+      ? null
+      : sanitizeDiscoveryLimit(input.discoveryLimit, 5);
+  }
+
+  return payload;
 }
 
 export function normalizePartnerUploadRecord(
@@ -786,26 +922,16 @@ export async function getCrawlSources(entityType?: CrawlEntityType): Promise<Cra
 
 export async function createCrawlSource(input: CreateCrawlSourceInput): Promise<CrawlSource> {
   const userId = await getCurrentUserId();
-  const sourceUrl = normalizeCrawlSourceUrl(input.sourceUrl);
-  if (!sourceUrl) {
-    throw new Error('Source URL là bắt buộc và phải hợp lệ');
-  }
+  const payload = buildCrawlSourceMutationPayload({
+    ...input,
+    sourceMode: input.sourceMode ?? 'url',
+  });
   const { data, error } = await client
     .from('crawl_sources')
     .insert({
       entity_type: input.entityType,
       provider: 'firecrawl',
-      name: normalizeWhitespace(input.name),
-      source_url: sourceUrl,
-      source_domain: (() => {
-        try {
-          return new URL(sourceUrl).hostname.replace(/^www\./, '').toLowerCase();
-        } catch {
-          return null;
-        }
-      })(),
-      description: normalizeWhitespace(input.description) || null,
-      is_active: input.isActive ?? true,
+      ...payload,
       config: input.config ?? {},
       created_by: userId,
       updated_by: userId,
@@ -822,30 +948,12 @@ export async function createCrawlSource(input: CreateCrawlSourceInput): Promise<
 
 export async function updateCrawlSource(id: string, input: UpdateCrawlSourceInput): Promise<void> {
   const userId = await getCurrentUserId();
-  const sourceUrl = input.sourceUrl !== undefined
-    ? normalizeCrawlSourceUrl(input.sourceUrl)
-    : undefined;
-  if (input.sourceUrl !== undefined && !sourceUrl) {
-    throw new Error('Source URL là bắt buộc và phải hợp lệ');
-  }
-  const sourceDomain = sourceUrl
-    ? (() => {
-      try {
-        return new URL(sourceUrl).hostname.replace(/^www\./, '').toLowerCase();
-      } catch {
-        return null;
-      }
-    })()
-    : undefined;
+  const payload = buildCrawlSourceMutationPayload(input);
 
   const { error } = await client
     .from('crawl_sources')
     .update({
-      ...(input.name !== undefined ? { name: normalizeWhitespace(input.name) } : {}),
-      ...(sourceUrl !== undefined ? { source_url: sourceUrl, source_domain: sourceDomain } : {}),
-      ...(input.description !== undefined ? { description: normalizeWhitespace(input.description) || null } : {}),
-      ...(input.isActive !== undefined ? { is_active: input.isActive } : {}),
-      ...(input.config !== undefined ? { config: input.config } : {}),
+      ...payload,
       updated_by: userId,
       updated_at: new Date().toISOString(),
     })
@@ -1123,6 +1231,13 @@ export async function rejectLocationCrawlIngestion(id: string, reason?: string):
 export async function runCrawlSource(sourceId: string): Promise<CrawlFunctionResult> {
   return invokeCrawlFunction<CrawlFunctionResult>({
     action: 'run_source',
+    sourceId,
+  });
+}
+
+export async function previewCrawlSource(sourceId: string): Promise<CrawlSourcePreviewResult> {
+  return invokeCrawlFunction<CrawlSourcePreviewResult>({
+    action: 'preview_source',
     sourceId,
   });
 }

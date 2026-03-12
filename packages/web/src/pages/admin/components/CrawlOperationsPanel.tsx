@@ -25,6 +25,7 @@ import {
   useCrawlJobs,
   useCrawlSources,
   useDeleteCrawlSource,
+  usePreviewCrawlSource,
   useRunCrawlSource,
   useSyncCrawlJob,
   useUpdateCrawlSource,
@@ -34,7 +35,9 @@ import {
   extractUploadRecords,
   type CrawlEntityType,
   type CrawlJob,
+  type CrawlSourceMode,
   type CrawlSource,
+  type CrawlSourcePreviewResult,
 } from '@/services/ingestionReview';
 import {
   FileJson,
@@ -54,7 +57,12 @@ interface CrawlOperationsPanelProps {
 
 interface SourceFormState {
   name: string;
+  sourceMode: CrawlSourceMode;
   sourceUrl: string;
+  discoveryQuery: string;
+  discoveryLocation: string;
+  discoveryCountry: string;
+  discoveryLimit: string;
   description: string;
   isActive: boolean;
   configText: string;
@@ -72,7 +80,12 @@ type JobDebugSample = {
 
 const EMPTY_SOURCE_FORM: SourceFormState = {
   name: '',
+  sourceMode: 'url',
   sourceUrl: '',
+  discoveryQuery: '',
+  discoveryLocation: '',
+  discoveryCountry: 'VN',
+  discoveryLimit: '5',
   description: '',
   isActive: true,
   configText: '{\n  "enableWebSearch": false\n}',
@@ -102,6 +115,55 @@ function formatTimestamp(value: string | null) {
     return 'Chưa có';
   }
   return new Date(value).toLocaleString('vi-VN');
+}
+
+function getSourceSummary(source: CrawlSource) {
+  if (source.source_mode === 'keyword') {
+    const parts = [source.discovery_query];
+    if (source.discovery_location) {
+      parts.push(source.discovery_location);
+    }
+    if (source.discovery_country) {
+      parts.push(source.discovery_country);
+    }
+    const summary = parts.filter(Boolean).join(' • ');
+    return summary || 'Keyword discovery chưa có đủ cấu hình';
+  }
+
+  return source.source_url || 'Chưa có URL nguồn';
+}
+
+function getSourceDetail(source: CrawlSource) {
+  if (source.source_mode !== 'keyword') {
+    return null;
+  }
+
+  return `Tối đa ${source.discovery_limit ?? 5} URL${source.discovery_location ? ` • ${source.discovery_location}` : ''}`;
+}
+
+function getJobAttachmentLabel(job: CrawlJob) {
+  const discoveryQuery = typeof job.log?.discovery_query === 'string'
+    ? job.log.discovery_query
+    : null;
+  const discoveryLocation = typeof job.log?.discovery_location === 'string'
+    ? job.log.discovery_location
+    : null;
+  const discoveredUrlCount = typeof job.log?.discovered_url_count === 'number'
+    ? job.log.discovered_url_count
+    : null;
+
+  if (discoveryQuery) {
+    const segments = [discoveryQuery];
+    if (discoveryLocation) {
+      segments.push(discoveryLocation);
+    }
+    if (discoveredUrlCount !== null) {
+      segments.push(`${discoveredUrlCount} URL`);
+    }
+    return segments.join(' • ');
+  }
+
+  return job.source_url || job.file_name || 'Không có nguồn đính kèm';
 }
 
 function getJobCount(job: CrawlJob, key: string) {
@@ -173,6 +235,7 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
   const [isSourceDialogOpen, setIsSourceDialogOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<CrawlSource | null>(null);
   const [sourceForm, setSourceForm] = useState<SourceFormState>(EMPTY_SOURCE_FORM);
+  const [previewResult, setPreviewResult] = useState<CrawlSourcePreviewResult | null>(null);
   const [uploadSourceName, setUploadSourceName] = useState(`manual-${entityType}-upload`);
   const [uploadSourceUrl, setUploadSourceUrl] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -182,6 +245,7 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
   const createSource = useCreateCrawlSource(entityType);
   const updateSource = useUpdateCrawlSource(entityType);
   const deleteSource = useDeleteCrawlSource(entityType);
+  const previewSource = usePreviewCrawlSource(entityType);
   const runSource = useRunCrawlSource(entityType);
   const syncJob = useSyncCrawlJob(entityType);
   const uploadRecords = useUploadCrawlRecords(entityType);
@@ -227,7 +291,12 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
     setEditingSource(source);
     setSourceForm({
       name: source.name,
-      sourceUrl: source.source_url,
+      sourceMode: source.source_mode,
+      sourceUrl: source.source_url ?? '',
+      discoveryQuery: source.discovery_query ?? '',
+      discoveryLocation: source.discovery_location ?? '',
+      discoveryCountry: source.discovery_country ?? 'VN',
+      discoveryLimit: String(source.discovery_limit ?? 5),
       description: source.description ?? '',
       isActive: source.is_active,
       configText: JSON.stringify(source.config ?? {}, null, 2),
@@ -236,11 +305,6 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
   };
 
   const handleSaveSource = async () => {
-    if (!sourceForm.sourceUrl.trim()) {
-      toast.error('Source URL là bắt buộc');
-      return;
-    }
-
     let config: Record<string, unknown> = {};
     if (sourceForm.configText.trim()) {
       try {
@@ -257,7 +321,12 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
           id: editingSource.id,
           input: {
             name: sourceForm.name,
+            sourceMode: sourceForm.sourceMode,
             sourceUrl: sourceForm.sourceUrl,
+            discoveryQuery: sourceForm.discoveryQuery,
+            discoveryLocation: sourceForm.discoveryLocation,
+            discoveryCountry: sourceForm.discoveryCountry,
+            discoveryLimit: sourceForm.discoveryLimit,
             description: sourceForm.description,
             isActive: sourceForm.isActive,
             config,
@@ -268,7 +337,12 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
         await createSource.mutateAsync({
           entityType,
           name: sourceForm.name,
+          sourceMode: sourceForm.sourceMode,
           sourceUrl: sourceForm.sourceUrl,
+          discoveryQuery: sourceForm.discoveryQuery,
+          discoveryLocation: sourceForm.discoveryLocation,
+          discoveryCountry: sourceForm.discoveryCountry,
+          discoveryLimit: sourceForm.discoveryLimit,
           description: sourceForm.description,
           isActive: sourceForm.isActive,
           config,
@@ -281,6 +355,15 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
       setSourceForm(EMPTY_SOURCE_FORM);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể lưu nguồn crawl');
+    }
+  };
+
+  const handlePreviewSource = async (source: CrawlSource) => {
+    try {
+      const result = await previewSource.mutateAsync(source.id);
+      setPreviewResult(result);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể lấy preview URL từ keyword source');
     }
   };
 
@@ -308,7 +391,10 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
   const handleRunSource = async (source: CrawlSource) => {
     try {
       const result = await runSource.mutateAsync(source.id);
-      toast.success(`Đã tạo job crawl ${source.name}${result.providerJobId ? ` (${result.providerJobId})` : ''}`);
+      const discoveryMessage = result.discoveredUrlCount
+        ? ` • ${result.discoveredUrlCount} URL`
+        : '';
+      toast.success(`Đã tạo job crawl ${source.name}${discoveryMessage}${result.providerJobId ? ` (${result.providerJobId})` : ''}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể chạy crawl source');
     }
@@ -358,7 +444,13 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
     }
   };
 
-  const isBusy = createSource.isPending || updateSource.isPending || deleteSource.isPending || runSource.isPending || syncJob.isPending || uploadRecords.isPending;
+  const isBusy = createSource.isPending
+    || updateSource.isPending
+    || deleteSource.isPending
+    || previewSource.isPending
+    || runSource.isPending
+    || syncJob.isPending
+    || uploadRecords.isPending;
 
   return (
     <div className="space-y-6">
@@ -368,7 +460,7 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
             <div>
               <CardTitle>Nguồn crawl {entityLabel}</CardTitle>
               <CardDescription>
-                Khai báo các URL nguồn để admin chỉ cần bấm một nút là chạy crawl và đẩy vào queue review.
+                Khai báo nguồn crawl theo URL cụ thể hoặc keyword discovery để admin chỉ cần bấm một nút là chạy crawl và đẩy vào queue review.
               </CardDescription>
             </div>
             <Button onClick={openCreateSourceDialog}>
@@ -394,9 +486,13 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="font-semibold text-gray-900">{source.name}</div>
                         <Badge variant="outline">{source.provider}</Badge>
+                        <Badge variant="outline">{source.source_mode === 'keyword' ? 'keyword' : 'url'}</Badge>
                         {!source.is_active && <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">Đang tắt</Badge>}
                       </div>
-                      <div className="text-sm text-gray-600 break-all">{source.source_url}</div>
+                      <div className="text-sm text-gray-600 break-all">{getSourceSummary(source)}</div>
+                      {getSourceDetail(source) && (
+                        <div className="text-xs text-gray-500">{getSourceDetail(source)}</div>
+                      )}
                       {source.description && <div className="text-sm text-gray-500">{source.description}</div>}
                       <div className="text-xs text-gray-500">Lần chạy gần nhất: {formatTimestamp(source.last_run_at)}</div>
                     </div>
@@ -408,6 +504,14 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
                       <Button variant="outline" onClick={() => void handleRunSource(source)} disabled={!source.is_active || runSource.isPending}>
                         <Play className="mr-2 h-4 w-4" />
                         Chạy crawl
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => void handlePreviewSource(source)}
+                        disabled={previewSource.isPending}
+                      >
+                        {previewSource.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Globe className="mr-2 h-4 w-4" />}
+                        Xem URL
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEditSourceDialog(source)}>
                         <Pencil className="h-4 w-4" />
@@ -510,7 +614,7 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
                       <Badge variant="outline">{job.trigger_type}</Badge>
                     </div>
                     <div className="text-sm text-gray-600">
-                      {job.source_url || job.file_name || 'Không có nguồn đính kèm'}
+                      {getJobAttachmentLabel(job)}
                     </div>
                     <div className="flex flex-wrap gap-4 text-xs text-gray-500">
                       <span>Tạo: {formatTimestamp(job.created_at)}</span>
@@ -625,7 +729,7 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
           <DialogHeader>
             <DialogTitle>{editingSource ? 'Cập nhật nguồn crawl' : 'Tạo nguồn crawl mới'}</DialogTitle>
             <DialogDescription>
-              Nguồn crawl sẽ được dùng cho nút chạy tự động ở admin. Config JSON là optional, chỉ cần khi muốn override prompt/schema mặc định.
+              Nguồn crawl có thể chạy theo URL cụ thể hoặc discovery theo keyword. Config JSON là optional, chỉ cần khi muốn override prompt/schema mặc định.
             </DialogDescription>
           </DialogHeader>
 
@@ -641,6 +745,28 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
                 />
               </div>
               <div className="space-y-2">
+                <Label>Chế độ nguồn</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant={sourceForm.sourceMode === 'url' ? 'default' : 'outline'}
+                    onClick={() => setSourceForm((prev) => ({ ...prev, sourceMode: 'url' }))}
+                  >
+                    URL cụ thể
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={sourceForm.sourceMode === 'keyword' ? 'default' : 'outline'}
+                    onClick={() => setSourceForm((prev) => ({ ...prev, sourceMode: 'keyword' }))}
+                  >
+                    Keyword discovery
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {sourceForm.sourceMode === 'url' ? (
+              <div className="space-y-2">
                 <Label htmlFor={`source-url-${entityType}`}>Source URL *</Label>
                 <Input
                   id={`source-url-${entityType}`}
@@ -649,7 +775,51 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
                   placeholder="https://example.com/listing"
                 />
               </div>
-            </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor={`source-discovery-query-${entityType}`}>Từ khóa discovery *</Label>
+                  <Input
+                    id={`source-discovery-query-${entityType}`}
+                    value={sourceForm.discoveryQuery}
+                    onChange={(event) => setSourceForm((prev) => ({ ...prev, discoveryQuery: event.target.value }))}
+                    placeholder={`dịch vụ ${entityLabel} sinh viên tphcm`}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`source-discovery-location-${entityType}`}>Khu vực / thành phố</Label>
+                  <Input
+                    id={`source-discovery-location-${entityType}`}
+                    value={sourceForm.discoveryLocation}
+                    onChange={(event) => setSourceForm((prev) => ({ ...prev, discoveryLocation: event.target.value }))}
+                    placeholder="Thành phố Hồ Chí Minh"
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-[0.9fr_1.1fr]">
+                  <div className="space-y-2">
+                    <Label htmlFor={`source-discovery-country-${entityType}`}>Country code</Label>
+                    <Input
+                      id={`source-discovery-country-${entityType}`}
+                      value={sourceForm.discoveryCountry}
+                      onChange={(event) => setSourceForm((prev) => ({ ...prev, discoveryCountry: event.target.value }))}
+                      placeholder="VN"
+                      maxLength={2}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`source-discovery-limit-${entityType}`}>Số URL tối đa</Label>
+                    <Input
+                      id={`source-discovery-limit-${entityType}`}
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={sourceForm.discoveryLimit}
+                      onChange={(event) => setSourceForm((prev) => ({ ...prev, discoveryLimit: event.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor={`source-description-${entityType}`}>Mô tả</Label>
@@ -689,6 +859,54 @@ export function CrawlOperationsPanel({ entityType }: CrawlOperationsPanelProps) 
               {isBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Lưu nguồn
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(previewResult)} onOpenChange={(open) => !open && setPreviewResult(null)}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Xem trước URL discovery</DialogTitle>
+            <DialogDescription>
+              {previewResult?.sourceMode === 'keyword'
+                ? 'Danh sách URL ứng viên sẽ được đưa vào bước extract khi chạy crawl theo keyword.'
+                : 'Nguồn URL cụ thể sẽ được crawl trực tiếp như bên dưới.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-xl border bg-slate-50 p-4 text-sm text-slate-700">
+              <div className="font-medium text-slate-900">{previewResult?.sourceName}</div>
+              <div className="mt-1">
+                {previewResult?.query || 'Không có keyword'}{previewResult?.location ? ` • ${previewResult.location}` : ''}{previewResult?.country ? ` • ${previewResult.country}` : ''}
+              </div>
+              <div className="mt-1 text-xs text-slate-500">{previewResult?.count ?? 0} URL ứng viên</div>
+            </div>
+
+            <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
+              {(previewResult?.candidates ?? []).length === 0 ? (
+                <div className="rounded-xl border border-dashed p-6 text-sm text-slate-500">
+                  Không tìm thấy URL ứng viên cho source này.
+                </div>
+              ) : (
+                previewResult?.candidates.map((candidate, index) => (
+                  <div key={`${candidate.url}-${index}`} className="rounded-xl border p-4">
+                    <div className="font-medium text-slate-900">{candidate.title || `URL #${index + 1}`}</div>
+                    <div className="mt-1 break-all text-sm text-slate-600">{candidate.url}</div>
+                    {candidate.description && (
+                      <div className="mt-2 text-sm text-slate-500">{candidate.description}</div>
+                    )}
+                    {candidate.sourceDomain && (
+                      <div className="mt-2 text-xs text-slate-500">Domain: {candidate.sourceDomain}</div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewResult(null)}>Đóng</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

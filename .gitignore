@@ -17,6 +17,7 @@ dist-ssr
 .env
 playwright-report/
 test-results/
+.tmp*
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

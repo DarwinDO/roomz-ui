@@ -1,8 +1,9 @@
-import { expect, test } from '@playwright/test';
+﻿import { expect, test } from '@playwright/test';
 import {
+  buildCrawlFunctionErrorMessage,
+  buildCrawlSourceMutationPayload,
   buildLocationCrawlIngestionUpdate,
   buildPartnerCrawlIngestionUpdate,
-  buildCrawlFunctionErrorMessage,
   extractUploadRecords,
   normalizeCrawlSourceUrl,
   normalizeLocationUploadRecord,
@@ -121,5 +122,64 @@ test.describe('normalizeCrawlSourceUrl', () => {
     expect(normalizeCrawlSourceUrl('')).toBeUndefined();
     expect(normalizeCrawlSourceUrl('not a url')).toBeUndefined();
     expect(normalizeCrawlSourceUrl('example.com/path')).toBe('https://example.com/path');
+  });
+});
+
+test.describe('buildCrawlSourceMutationPayload', () => {
+  test('builds url mode payload and clears discovery fields', () => {
+    const payload = buildCrawlSourceMutationPayload({
+      name: ' Crawl partner HCM ',
+      sourceMode: 'url',
+      sourceUrl: 'topbrands.vn/top-dich-vu-chuyen-nha-tro-sinh-vien-tot-nhat-tai-tphcm',
+      description: ' listicle source ',
+      isActive: true,
+    });
+
+    expect(payload).toMatchObject({
+      name: 'Crawl partner HCM',
+      source_mode: 'url',
+      source_url: 'https://topbrands.vn/top-dich-vu-chuyen-nha-tro-sinh-vien-tot-nhat-tai-tphcm',
+      source_domain: 'topbrands.vn',
+      discovery_query: null,
+      discovery_location: null,
+      discovery_country: null,
+      discovery_limit: 5,
+    });
+  });
+
+  test('builds keyword mode payload and clears source url', () => {
+    const payload = buildCrawlSourceMutationPayload({
+      name: ' Crawl partner HCM ',
+      sourceMode: 'keyword',
+      discoveryQuery: ' dịch vụ chuyển nhà trọ sinh viên tphcm ',
+      discoveryLocation: ' Thành phố Hồ Chí Minh ',
+      discoveryCountry: 'vn',
+      discoveryLimit: '8',
+    });
+
+    expect(payload).toMatchObject({
+      name: 'Crawl partner HCM',
+      source_mode: 'keyword',
+      source_url: null,
+      source_domain: null,
+      discovery_query: 'dịch vụ chuyển nhà trọ sinh viên tphcm',
+      discovery_location: 'Thành phố Hồ Chí Minh',
+      discovery_country: 'VN',
+      discovery_limit: 8,
+    });
+  });
+
+  test('throws for invalid url mode payload', () => {
+    expect(() => buildCrawlSourceMutationPayload({
+      sourceMode: 'url',
+      sourceUrl: 'not a url',
+    })).toThrow('Source URL là bắt buộc và phải hợp lệ');
+  });
+
+  test('throws for empty keyword mode payload', () => {
+    expect(() => buildCrawlSourceMutationPayload({
+      sourceMode: 'keyword',
+      discoveryQuery: '   ',
+    })).toThrow('Từ khóa discovery là bắt buộc');
   });
 });
