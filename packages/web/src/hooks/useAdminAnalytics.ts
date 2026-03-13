@@ -14,6 +14,9 @@ export const adminAnalyticsKeys = {
   featureUsage: (days: number) => [...adminAnalyticsKeys.all, 'featureUsage', days] as const,
   popularLocations: (days: number, limit: number) => [...adminAnalyticsKeys.all, 'popularLocations', days, limit] as const,
   retention: (monthsBack: number) => [...adminAnalyticsKeys.all, 'retention', monthsBack] as const,
+  romiOverview: (days: number) => [...adminAnalyticsKeys.all, 'romiOverview', days] as const,
+  romiToolHealth: (days: number) => [...adminAnalyticsKeys.all, 'romiToolHealth', days] as const,
+  romiRecentErrors: (days: number, limit: number) => [...adminAnalyticsKeys.all, 'romiRecentErrors', days, limit] as const,
   recentActivities: () => [...adminAnalyticsKeys.all, 'recentActivities'] as const,
 };
 
@@ -57,6 +60,33 @@ export function useUserRetentionCohorts(monthsBack = 6) {
   return useQuery({
     queryKey: adminAnalyticsKeys.retention(monthsBack),
     queryFn: () => analyticsService.getUserRetentionCohorts(monthsBack),
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+  });
+}
+
+export function useRomiOverview(days = 30) {
+  return useQuery({
+    queryKey: adminAnalyticsKeys.romiOverview(days),
+    queryFn: () => analyticsService.getRomiOverview(days),
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+  });
+}
+
+export function useRomiToolHealth(days = 30) {
+  return useQuery({
+    queryKey: adminAnalyticsKeys.romiToolHealth(days),
+    queryFn: () => analyticsService.getRomiToolHealth(days),
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
+  });
+}
+
+export function useRomiRecentErrors(days = 30, limit = 10) {
+  return useQuery({
+    queryKey: adminAnalyticsKeys.romiRecentErrors(days, limit),
+    queryFn: () => analyticsService.getRomiRecentErrors(days, limit),
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
   });

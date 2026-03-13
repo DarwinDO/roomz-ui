@@ -12,6 +12,7 @@ export interface AIChatMessage {
             name: string;
             result: unknown;
         }>;
+        actions?: RomiChatAction[];
         sources?: string[];
         geminiCallCount?: number;
     };
@@ -31,6 +32,23 @@ export interface AIChatRequest {
     sessionId?: string;
 }
 
+export type RomiChatActionType =
+    | 'open_search'
+    | 'open_room'
+    | 'open_local_passport'
+    | 'open_payment'
+    | 'open_support_services'
+    | 'open_verification'
+    | 'open_roommates'
+    | 'open_swap';
+
+export interface RomiChatAction {
+    type: RomiChatActionType;
+    label: string;
+    href: string;
+    description?: string;
+}
+
 export interface AIChatResponse {
     message: string;
     sessionId: string;
@@ -39,6 +57,7 @@ export interface AIChatResponse {
             name: string;
             result: unknown;
         }>;
+        actions?: RomiChatAction[];
         sources?: string[];
         geminiCallCount?: number;
     };

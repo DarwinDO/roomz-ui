@@ -66,3 +66,41 @@ export async function trackLocationSelected(userId: string | null, payload: Loca
     location_catalog_id: payload.locationCatalogId ?? null,
   });
 }
+
+export async function trackRomiOpened(userId: string | null) {
+  await trackFeatureEvent('romi_opened', userId, {});
+}
+
+export async function trackRomiSuggestedPromptClicked(userId: string | null, prompt: string) {
+  await trackFeatureEvent('romi_suggested_prompt_clicked', userId, {
+    prompt,
+  });
+}
+
+export async function trackRomiError(
+  userId: string | null,
+  errorMessage: string,
+  properties: Record<string, unknown> = {},
+) {
+  await trackFeatureEvent('romi_error', userId, {
+    error_message: errorMessage,
+    ...properties,
+  });
+}
+
+export async function trackRomiActionClicked(
+  userId: string | null,
+  action: {
+    type: string;
+    label: string;
+    href: string;
+  },
+  properties: Record<string, unknown> = {},
+) {
+  await trackFeatureEvent('romi_action_clicked', userId, {
+    action_type: action.type,
+    action_label: action.label,
+    href: action.href,
+    ...properties,
+  });
+}

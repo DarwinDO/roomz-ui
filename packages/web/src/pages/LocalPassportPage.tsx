@@ -1,5 +1,5 @@
-﻿import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+﻿import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -72,6 +72,7 @@ function getPassportLocationIcon(type: LocationCatalogEntry["location_type"]) {
 
 export default function LocalPassportPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // State
   const [selectedCategory, setSelectedCategory] = useState<string>("Tất cả");
@@ -80,6 +81,14 @@ export default function LocalPassportPage() {
   const [isShopDetailOpen, setIsShopDetailOpen] = useState<boolean>(false);
   const [isPartnerSignUpOpen, setIsPartnerSignUpOpen] = useState<boolean>(false);
   const [isHowToRedeemOpen, setIsHowToRedeemOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const nextSearch = searchParams.get("search")?.trim() ?? "";
+    const nextCategory = searchParams.get("category")?.trim() ?? "Tất cả";
+
+    setSearchQuery((current) => (current === nextSearch ? current : nextSearch));
+    setSelectedCategory((current) => (current === nextCategory ? current : nextCategory));
+  }, [searchParams]);
 
   // Geolocation
   const { position, loading: geoLoading, denied: geoDenied } = useGeolocation();
@@ -695,3 +704,4 @@ export default function LocalPassportPage() {
     </div>
   );
 }
+

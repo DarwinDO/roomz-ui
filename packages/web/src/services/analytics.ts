@@ -78,6 +78,39 @@ export interface RetentionCohortStat {
   week_4_retention: number;
 }
 
+export interface RomiOverviewStat {
+  opens: number;
+  suggested_prompt_clicks: number;
+  messages: number;
+  responses: number;
+  action_clicks: number;
+  errors: number;
+  unique_users: number;
+  unique_sessions: number;
+  response_rate: number;
+  error_rate: number;
+  action_ctr: number;
+}
+
+export interface RomiToolHealthStat {
+  tool_name: string;
+  total_calls: number;
+  success_calls: number;
+  empty_calls: number;
+  error_calls: number;
+  success_rate: number;
+  empty_rate: number;
+  average_result_count: number;
+  last_called_at: string | null;
+}
+
+export interface RomiErrorStat {
+  occurred_at: string;
+  session_id: string | null;
+  error_code: string | null;
+  error_message: string | null;
+}
+
 type RpcResult<T> = {
   data: T | null;
   error: { message?: string } | Error | null;
@@ -156,5 +189,29 @@ export async function getUserRetentionCohorts(monthsBack = 6): Promise<Retention
     'get_user_retention_cohorts',
     { p_months_back: monthsBack },
     'Failed to load user retention cohorts',
+  );
+}
+
+export async function getRomiOverview(days = 30): Promise<RomiOverviewStat | null> {
+  return runJsonRpc<RomiOverviewStat | null>(
+    'get_romi_overview_stats',
+    { p_days: days },
+    'Failed to load ROMI overview stats',
+  );
+}
+
+export async function getRomiToolHealth(days = 30): Promise<RomiToolHealthStat[]> {
+  return runJsonRpc<RomiToolHealthStat[]>(
+    'get_romi_tool_health',
+    { p_days: days },
+    'Failed to load ROMI tool health',
+  );
+}
+
+export async function getRomiRecentErrors(days = 30, limit = 10): Promise<RomiErrorStat[]> {
+  return runJsonRpc<RomiErrorStat[]>(
+    'get_romi_recent_errors',
+    { p_days: days, p_limit: limit },
+    'Failed to load ROMI recent errors',
   );
 }

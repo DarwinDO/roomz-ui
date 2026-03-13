@@ -829,28 +829,12 @@ async function invokeCrawlFunction<T>(body: Record<string, unknown>): Promise<T>
     throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
   }
 
-  const invoke = async (functionName: 'crawl-ingestion' | 'ai-chatbot') => client.functions.invoke(functionName, {
+  const { data, error } = await client.functions.invoke('crawl-ingestion', {
     body,
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
   });
-
-  let response = await invoke('crawl-ingestion');
-  if (response.error) {
-    const context = (response.error as { context?: Response }).context;
-    const payload = context
-      ? await context.clone().json().catch(() => null) as
-        | { error?: string; message?: string; code?: string | number; details?: string | null }
-        | null
-      : null;
-    const rawMessage = payload?.error || payload?.message || response.error.message || '';
-    if (/invalid jwt/i.test(rawMessage)) {
-      response = await invoke('ai-chatbot');
-    }
-  }
-
-  const { data, error } = response;
   if (error) {
     const context = (error as { context?: Response }).context;
     let detailedMessage: string | null = null;

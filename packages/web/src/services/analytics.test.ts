@@ -3,6 +3,9 @@ import { supabase } from "@/lib/supabase";
 import {
   getFeatureUsageStats,
   getPopularLocationStats,
+  getRomiOverview,
+  getRomiRecentErrors,
+  getRomiToolHealth,
   getUserRetentionCohorts,
 } from "./analytics";
 
@@ -121,6 +124,86 @@ test.describe("analytics service", () => {
       cohort_label: "03/2026",
       week_1_retention: 40,
       week_4_retention: 14,
+    });
+  });
+
+  test("getRomiOverview returns ROMI summary from RPC", async () => {
+    mutableSupabase.rpc = (async () =>
+      ({
+        data: {
+          opens: 12,
+          suggested_prompt_clicks: 4,
+          messages: 9,
+          responses: 9,
+          action_clicks: 3,
+          errors: 1,
+          unique_users: 5,
+          unique_sessions: 6,
+          response_rate: 100,
+          error_rate: 11.1,
+          action_ctr: 33.3,
+        },
+        error: null,
+      }) as RpcResult) as typeof supabase.rpc;
+
+    const result = await getRomiOverview(30);
+
+    expect(result).toMatchObject({
+      messages: 9,
+      responses: 9,
+      action_ctr: 33.3,
+    });
+  });
+
+  test("getRomiToolHealth returns tool aggregates from RPC", async () => {
+    mutableSupabase.rpc = (async () =>
+      ({
+        data: [
+          {
+            tool_name: "search_rooms",
+            total_calls: 5,
+            success_calls: 4,
+            empty_calls: 1,
+            error_calls: 0,
+            success_rate: 80,
+            empty_rate: 20,
+            average_result_count: 2.4,
+            last_called_at: "2026-03-13T10:00:00.000Z",
+          },
+        ],
+        error: null,
+      }) as RpcResult) as typeof supabase.rpc;
+
+    const result = await getRomiToolHealth(30);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      tool_name: "search_rooms",
+      total_calls: 5,
+      success_rate: 80,
+    });
+  });
+
+  test("getRomiRecentErrors returns recent ROMI errors from RPC", async () => {
+    mutableSupabase.rpc = (async () =>
+      ({
+        data: [
+          {
+            occurred_at: "2026-03-13T10:05:00.000Z",
+            session_id: "session-1",
+            error_code: "GEMINI_ERROR",
+            error_message: "timeout",
+          },
+        ],
+        error: null,
+      }) as RpcResult) as typeof supabase.rpc;
+
+    const result = await getRomiRecentErrors(30, 10);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      error_code: "GEMINI_ERROR",
+      error_message: "timeout",
     });
   });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
@@ -54,6 +54,7 @@ function getLocationIcon(type: LocationCatalogEntry["location_type"]) {
 export default function SearchPage() {
   const locationRadiusOptions = [3, 5, 10, 20];
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const lastTrackedSearchFingerprint = useRef<string | null>(null);
 
@@ -69,6 +70,49 @@ export default function SearchPage() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [showVerifiedCheck, setShowVerifiedCheck] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
+
+  useEffect(() => {
+    const query = searchParams.get("q")?.trim() ?? "";
+    const address = searchParams.get("address")?.trim() || query;
+    const city = searchParams.get("city")?.trim() || undefined;
+    const district = searchParams.get("district")?.trim() || undefined;
+    const latitude = Number(searchParams.get("lat"));
+    const longitude = Number(searchParams.get("lng"));
+    const radius = Number(searchParams.get("radius"));
+    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
+
+    setSearchInput((current) => (current === query ? current : query));
+    setSearchRadiusKm((current) => {
+      if (!hasCoordinates || !Number.isFinite(radius)) {
+        return current;
+      }
+
+      return current === radius ? current : radius;
+    });
+    setSelectedLocation((current) => {
+      const nextLocation = hasCoordinates
+        ? {
+            address,
+            lat: latitude,
+            lng: longitude,
+            city,
+            district,
+          }
+        : null;
+
+      if (
+        current?.address === nextLocation?.address &&
+        current?.lat === nextLocation?.lat &&
+        current?.lng === nextLocation?.lng &&
+        current?.city === nextLocation?.city &&
+        current?.district === nextLocation?.district
+      ) {
+        return current;
+      }
+
+      return nextLocation;
+    });
+  }, [searchParams]);
 
   const effectiveSearchQuery = useMemo(() => {
     if (selectedLocation) {

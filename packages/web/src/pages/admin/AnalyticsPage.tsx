@@ -19,6 +19,9 @@ import { useAdminStats } from "@/hooks/useAdmin";
 import {
   useFeatureUsageStats,
   usePopularLocationStats,
+  useRomiOverview,
+  useRomiRecentErrors,
+  useRomiToolHealth,
   useRoomTypeDistribution,
   useUserGrowthStats,
   useUserRetentionCohorts,
@@ -90,6 +93,9 @@ export default function AnalyticsPage() {
     isLoading: retentionLoading,
     error: retentionError,
   } = useUserRetentionCohorts(6);
+  const { data: romiOverview, isLoading: romiOverviewLoading } = useRomiOverview(30);
+  const { data: romiToolHealth = [], isLoading: romiToolHealthLoading } = useRomiToolHealth(30);
+  const { data: romiRecentErrors = [], isLoading: romiRecentErrorsLoading } = useRomiRecentErrors(30, 8);
 
   const isLoading =
     statsLoading ||
@@ -97,7 +103,10 @@ export default function AnalyticsPage() {
     roomDistributionLoading ||
     featureUsageLoading ||
     popularLocationsLoading ||
-    retentionLoading;
+    retentionLoading ||
+    romiOverviewLoading ||
+    romiToolHealthLoading ||
+    romiRecentErrorsLoading;
 
   const sortedFeatureUsage = useMemo(
     () => [...featureUsage].sort((left, right) => right.total_events - left.total_events),
@@ -207,6 +216,11 @@ export default function AnalyticsPage() {
     [retentionCohorts],
   );
 
+  const topRomiTool = useMemo(
+    () => [...romiToolHealth].sort((left, right) => right.total_calls - left.total_calls)[0] ?? null,
+    [romiToolHealth],
+  );
+
   const handleExport = () => {
     const locationRows = (popularLocations?.searched ?? []).map((item) => ({
       loai: "Địa điểm được tìm nhiều",
@@ -227,6 +241,40 @@ export default function AnalyticsPage() {
       week_2_retention: item.week_2_retention,
       week_4_retention: item.week_4_retention,
     }));
+
+    const romiRows = [
+      ...(romiOverview
+        ? [
+            {
+              loai: "ROMI tổng quan",
+              nhom: "30 ngày",
+              ten: "Tin nhắn",
+              gia_tri: romiOverview.messages,
+              nguoi_dung: romiOverview.unique_users,
+              phien: romiOverview.unique_sessions,
+            },
+            {
+              loai: "ROMI tổng quan",
+              nhom: "30 ngày",
+              ten: "Response rate",
+              gia_tri: romiOverview.response_rate,
+            },
+            {
+              loai: "ROMI tổng quan",
+              nhom: "30 ngày",
+              ten: "Action CTR",
+              gia_tri: romiOverview.action_ctr,
+            },
+          ]
+        : []),
+      ...romiToolHealth.map((item) => ({
+        loai: "ROMI tool health",
+        nhom: item.tool_name,
+        ten: "Tổng lượt gọi",
+        gia_tri: item.total_calls,
+        thay_doi_7_ngay: item.success_rate,
+      })),
+    ];
 
     const allData = [
       ...userGrowth.map((item) => ({
@@ -252,6 +300,7 @@ export default function AnalyticsPage() {
       })),
       ...locationRows,
       ...retentionRows,
+      ...romiRows,
     ];
 
     if (allData.length === 0) {
@@ -389,6 +438,126 @@ export default function AnalyticsPage() {
                             <p className="font-medium">{item.unique_sessions.toLocaleString("vi-VN")}</p>
                           </div>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
+          </Card>
+
+          <Card className="space-y-6 p-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <h2 className="text-xl font-semibold">ROMI health</h2>
+                </div>
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                  Theo dõi 30 ngày gần nhất của chatbot: volume, response rate, click-through, tool health và lỗi gần đây.
+                </p>
+              </div>
+              <Badge variant="outline" className="w-fit rounded-full">ROMI debug</Badge>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <Card className="rounded-2xl border border-border/70 p-4 shadow-none">
+                <p className="text-sm text-muted-foreground">Tin nhắn đã nhận</p>
+                <p className="mt-2 text-3xl font-semibold">{(romiOverview?.messages ?? 0).toLocaleString("vi-VN")}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{(romiOverview?.unique_users ?? 0).toLocaleString("vi-VN")} người dùng</p>
+              </Card>
+              <Card className="rounded-2xl border border-border/70 p-4 shadow-none">
+                <p className="text-sm text-muted-foreground">Response rate</p>
+                <p className="mt-2 text-3xl font-semibold">{formatPercent(romiOverview?.response_rate ?? 0)}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{(romiOverview?.responses ?? 0).toLocaleString("vi-VN")} phản hồi</p>
+              </Card>
+              <Card className="rounded-2xl border border-border/70 p-4 shadow-none">
+                <p className="text-sm text-muted-foreground">Action CTR</p>
+                <p className="mt-2 text-3xl font-semibold">{formatPercent(romiOverview?.action_ctr ?? 0)}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{(romiOverview?.action_clicks ?? 0).toLocaleString("vi-VN")} lượt click action</p>
+              </Card>
+              <Card className="rounded-2xl border border-border/70 p-4 shadow-none">
+                <p className="text-sm text-muted-foreground">Tool gọi nhiều nhất</p>
+                <p className="mt-2 text-lg font-semibold">{topRomiTool?.tool_name || "Chưa có dữ liệu"}</p>
+                {topRomiTool && (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {topRomiTool.total_calls.toLocaleString("vi-VN")} lượt • success {formatPercent(topRomiTool.success_rate)}
+                  </p>
+                )}
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+              <Card className="p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Tool health</h3>
+                  <Badge variant="secondary" className="rounded-full">{romiToolHealth.length} tool</Badge>
+                </div>
+
+                {romiToolHealth.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
+                    Chưa có dữ liệu ROMI. Hãy chat thử với ROMI để bắt đầu đo tool health.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {romiToolHealth.map((tool) => (
+                      <div key={tool.tool_name} className="rounded-2xl border border-border/70 p-4">
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold">{tool.tool_name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {tool.total_calls.toLocaleString("vi-VN")} lượt gọi • avg {tool.average_result_count.toFixed(1)} kết quả
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="rounded-full">
+                            empty {formatPercent(tool.empty_rate)}
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Success</p>
+                            <p className="font-medium text-emerald-600">{tool.success_calls.toLocaleString("vi-VN")}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Empty</p>
+                            <p className="font-medium text-amber-600">{tool.empty_calls.toLocaleString("vi-VN")}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Error</p>
+                            <p className="font-medium text-rose-600">{tool.error_calls.toLocaleString("vi-VN")}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              <Card className="p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Lỗi gần đây</h3>
+                  <Badge variant="secondary" className="rounded-full">{romiRecentErrors.length} lỗi</Badge>
+                </div>
+
+                {romiRecentErrors.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
+                    30 ngày gần nhất chưa ghi nhận lỗi ROMI nào.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {romiRecentErrors.map((error, index) => (
+                      <div key={`${error.occurred_at}-${index}`} className="rounded-2xl border border-border/70 p-4">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="font-medium">{error.error_code || "ROMI_ERROR"}</p>
+                          <Badge variant="outline" className="rounded-full">
+                            {new Date(error.occurred_at).toLocaleDateString("vi-VN")}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{error.error_message || "Không có message chi tiết"}</p>
+                        {error.session_id && (
+                          <p className="mt-2 text-xs text-muted-foreground">Session: {error.session_id}</p>
+                        )}
                       </div>
                     ))}
                   </div>

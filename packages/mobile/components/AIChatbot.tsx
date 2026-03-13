@@ -13,12 +13,7 @@ import {
 } from 'react-native';
 import { AIChatMessage } from './AIChatMessage';
 import { useAIChatbot } from '../src/hooks/useAIChatbot';
-
-const SUGGESTED_QUESTIONS = [
-    'Tìm phòng ở Quận 7 dưới 3 triệu',
-    'RommZ+ có gì hay?',
-    'SwapRoom là gì?',
-];
+import { ROMI_NAME, ROMI_SUGGESTED_QUESTIONS } from '@roomz/shared/constants/romi';
 
 export function AIChatbot() {
     const {
@@ -57,16 +52,14 @@ export function AIChatbot() {
 
     return (
         <>
-            {/* FAB Button */}
             <TouchableOpacity
                 onPress={() => setIsVisible(true)}
-                className="absolute bottom-24 right-4 w-14 h-14 rounded-full bg-primary-500 items-center justify-center shadow-lg z-50"
+                className="absolute bottom-24 right-4 z-50 h-14 w-14 items-center justify-center rounded-full bg-primary-500 shadow-lg"
                 activeOpacity={0.8}
             >
                 <Text className="text-2xl">✨</Text>
             </TouchableOpacity>
 
-            {/* Chat Modal */}
             <Modal
                 visible={isVisible}
                 animationType="slide"
@@ -74,34 +67,32 @@ export function AIChatbot() {
                 onRequestClose={() => setIsVisible(false)}
             >
                 <SafeAreaView className="flex-1 bg-white">
-                    {/* Header */}
-                    <View className="flex-row items-center px-4 py-3 border-b border-gray-100 bg-white">
-                        <View className="w-10 h-10 rounded-full bg-primary-500 items-center justify-center mr-3">
+                    <View className="flex-row items-center border-b border-gray-100 bg-white px-4 py-3">
+                        <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-primary-500">
                             <Text className="text-lg">✨</Text>
                         </View>
                         <View className="flex-1">
                             <Text className="text-base font-semibold text-text-primary">
-                                Trợ lý AI RommZ
+                                {ROMI_NAME}
                             </Text>
                             <Text className="text-xs text-text-secondary">
-                                Powered by Gemini • 24/7
+                                Trợ lý của RommZ • Tìm phòng và điều hướng app
                             </Text>
                         </View>
                         <TouchableOpacity
                             onPress={startNewChat}
-                            className="px-3 py-1.5 rounded-full bg-gray-100 mr-2"
+                            className="mr-2 rounded-full bg-gray-100 px-3 py-1.5"
                         >
                             <Text className="text-xs text-text-secondary">Mới</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             onPress={() => setIsVisible(false)}
-                            className="w-8 h-8 rounded-full bg-gray-100 items-center justify-center"
+                            className="h-8 w-8 items-center justify-center rounded-full bg-gray-100"
                         >
-                            <Text className="text-text-secondary text-base">✕</Text>
+                            <Text className="text-base text-text-secondary">✕</Text>
                         </TouchableOpacity>
                     </View>
 
-                    {/* Messages */}
                     <KeyboardAvoidingView
                         className="flex-1"
                         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -122,17 +113,17 @@ export function AIChatbot() {
                             ListHeaderComponent={
                                 messages.length <= 1 ? (
                                     <View className="mb-4">
-                                        <Text className="text-xs text-text-secondary text-center mb-2">
+                                        <Text className="mb-2 text-center text-xs text-text-secondary">
                                             Gợi ý nhanh:
                                         </Text>
                                         <View className="flex-row flex-wrap justify-center gap-2">
-                                            {SUGGESTED_QUESTIONS.map((q, i) => (
+                                            {ROMI_SUGGESTED_QUESTIONS.map((question) => (
                                                 <TouchableOpacity
-                                                    key={i}
-                                                    onPress={() => handleSuggestion(q)}
-                                                    className="px-3 py-2 rounded-full border border-gray-200 bg-white"
+                                                    key={question}
+                                                    onPress={() => handleSuggestion(question)}
+                                                    className="rounded-full border border-gray-200 bg-white px-3 py-2"
                                                 >
-                                                    <Text className="text-xs text-text-primary">{q}</Text>
+                                                    <Text className="text-xs text-text-primary">{question}</Text>
                                                 </TouchableOpacity>
                                             ))}
                                         </View>
@@ -142,23 +133,23 @@ export function AIChatbot() {
                             ListFooterComponent={
                                 <>
                                     {isLoading && (
-                                        <View className="flex-row gap-2 mb-3">
-                                            <View className="w-8 h-8 rounded-full bg-primary-500 items-center justify-center">
+                                        <View className="mb-3 flex-row gap-2">
+                                            <View className="h-8 w-8 items-center justify-center rounded-full bg-primary-500">
                                                 <Text className="text-xs">✨</Text>
                                             </View>
-                                            <View className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3">
+                                            <View className="rounded-2xl rounded-tl-sm bg-gray-100 px-4 py-3">
                                                 <View className="flex-row items-center gap-2">
                                                     <ActivityIndicator size="small" color="#6366f1" />
                                                     <Text className="text-sm text-text-secondary">
-                                                        Đang suy nghĩ...
+                                                        ROMI đang suy nghĩ...
                                                     </Text>
                                                 </View>
                                             </View>
                                         </View>
                                     )}
                                     {error && (
-                                        <View className="items-center mb-3">
-                                            <Text className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">
+                                        <View className="mb-3 items-center">
+                                            <Text className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-500">
                                                 {error}
                                             </Text>
                                         </View>
@@ -168,19 +159,18 @@ export function AIChatbot() {
                             onContentSizeChange={scrollToEnd}
                         />
 
-                        {/* Input */}
-                        <View className="flex-row items-center px-4 py-3 border-t border-gray-100 bg-white">
+                        <View className="flex-row items-center border-t border-gray-100 bg-white px-4 py-3">
                             <TextInput
                                 value={inputValue}
                                 onChangeText={setInputValue}
                                 onSubmitEditing={handleSend}
                                 placeholder={
                                     isAuthenticated
-                                        ? 'Hỏi trợ lý AI...'
-                                        : 'Đăng nhập để sử dụng'
+                                        ? 'Hỏi ROMI bất kỳ điều gì...'
+                                        : 'Đăng nhập để sử dụng ROMI'
                                 }
                                 placeholderTextColor="#9CA3AF"
-                                className="flex-1 bg-gray-100 rounded-full px-4 py-3 text-sm text-text-primary mr-2"
+                                className="mr-2 flex-1 rounded-full bg-gray-100 px-4 py-3 text-sm text-text-primary"
                                 editable={isAuthenticated && !isLoading}
                                 returnKeyType="send"
                                 multiline={false}
@@ -188,7 +178,7 @@ export function AIChatbot() {
                             <TouchableOpacity
                                 onPress={handleSend}
                                 disabled={!inputValue.trim() || isLoading || !isAuthenticated}
-                                className={`w-10 h-10 rounded-full items-center justify-center ${!inputValue.trim() || isLoading
+                                className={`h-10 w-10 items-center justify-center rounded-full ${!inputValue.trim() || isLoading
                                         ? 'bg-gray-200'
                                         : 'bg-primary-500'
                                     }`}
@@ -196,7 +186,7 @@ export function AIChatbot() {
                                 {isLoading ? (
                                     <ActivityIndicator size="small" color="#fff" />
                                 ) : (
-                                    <Text className="text-white text-base">➤</Text>
+                                    <Text className="text-base text-white">➜</Text>
                                 )}
                             </TouchableOpacity>
                         </View>
@@ -206,3 +196,4 @@ export function AIChatbot() {
         </>
     );
 }
+

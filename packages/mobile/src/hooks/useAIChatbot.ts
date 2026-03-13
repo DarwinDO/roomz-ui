@@ -1,14 +1,12 @@
 import { useState, useCallback } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
     sendAIChatMessage,
-    getAIChatSessions,
-    getAIChatMessages,
-    deleteAIChatSession,
 } from '@roomz/shared/services/ai-chatbot';
-import type { AIChatResponse, AIChatMessage } from '@roomz/shared/services/ai-chatbot';
+import type { AIChatResponse } from '@roomz/shared/services/ai-chatbot';
+import { ROMI_WELCOME_MESSAGE } from '@roomz/shared/constants/romi';
 
 interface DisplayMessage {
     id: string;
@@ -19,14 +17,13 @@ interface DisplayMessage {
 
 const WELCOME_MESSAGE: DisplayMessage = {
     id: 'welcome',
-    text: 'Xin chào! 👋 Tôi là trợ lý AI của RommZ. Hỏi tôi bất cứ điều gì về tìm phòng, app, hoặc đời sống sinh viên!',
+    text: ROMI_WELCOME_MESSAGE,
     sender: 'bot',
     timestamp: new Date(),
 };
 
 export function useAIChatbot() {
     const { user } = useAuth();
-    const queryClient = useQueryClient();
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [messages, setMessages] = useState<DisplayMessage[]>([WELCOME_MESSAGE]);
     const [error, setError] = useState<string | null>(null);
@@ -84,3 +81,5 @@ export function useAIChatbot() {
         sessionId,
     };
 }
+
+
