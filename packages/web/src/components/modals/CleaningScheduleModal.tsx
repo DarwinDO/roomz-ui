@@ -103,7 +103,7 @@ export function CleaningScheduleModal({ isOpen, onClose }: CleaningScheduleModal
       setAddOns({ aircon: false, laundry: false, trash: false });
       setErrors({});
       onClose();
-    } catch (error) {
+    } catch {
       // Error is handled in the mutation
     }
   };

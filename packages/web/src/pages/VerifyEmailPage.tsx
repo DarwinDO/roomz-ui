@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Mail, CheckCircle, AlertCircle, RefreshCw, Home } from 'lucide-react';
@@ -8,7 +8,6 @@ import { supabase } from '@/lib/supabase';
 
 export default function VerifyEmailPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
@@ -66,7 +65,7 @@ export default function VerifyEmailPage() {
 
       setResendStatus('success');
       setCountdown(60); // 60 seconds cooldown
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Resend error:', error);
       setResendStatus('error');
     } finally {

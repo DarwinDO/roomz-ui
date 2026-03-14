@@ -9,7 +9,6 @@ import {
     Users,
     Inbox,
     User,
-    Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRoommateRequestsQuery } from '@/hooks/useRoommatesQuery';

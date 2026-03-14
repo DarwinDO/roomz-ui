@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
 import { Upload, X, Eye, Loader2 } from "lucide-react";
 import { useCreatePost, useUpdatePost } from "@/hooks/useCommunity";
-import type { Post } from "@/pages/community/types";
+import type { CreatePostData, Post } from "@/pages/community/types";
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -18,6 +18,8 @@ interface CreatePostModalProps {
   onPostCreated: () => void;
   editPost?: Post | null;
 }
+
+type CommunityPostType = CreatePostData["type"];
 
 export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: CreatePostModalProps) {
   const isEditMode = !!editPost;
@@ -165,7 +167,7 @@ export function CreatePostModal({ isOpen, onClose, onPostCreated, editPost }: Cr
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="post-type">Loại bài viết</Label>
-              <Select value={postType} onValueChange={(value: any) => setPostType(value)}>
+              <Select value={postType} onValueChange={(value) => setPostType(value as CommunityPostType)}>
                 <SelectTrigger id="post-type" className="rounded-xl">
                   <SelectValue placeholder="Chọn loại bài viết" />
                 </SelectTrigger>

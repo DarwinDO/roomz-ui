@@ -3,7 +3,6 @@ import { StatsCard } from "@/components/admin/StatsCard";
 import {
   DollarSign,
   CreditCard,
-  Wallet,
   Clock,
   AlertCircle,
   CheckCircle,

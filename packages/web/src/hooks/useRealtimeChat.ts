@@ -16,9 +16,6 @@ import {
     type TypingIndicator,
 } from '@/services/realtime';
 import { getMessages, sendMessage as sendMessageApi } from '@/services/chat';
-import type { Tables } from '@/lib/database.types';
-
-type Message = Tables<'messages'>;
 
 interface UseRealtimeChatOptions {
     conversationId: string;
@@ -127,7 +124,7 @@ export function useRealtimeChat(options: UseRealtimeChatOptions): UseRealtimeCha
             }
             messageSubRef.current?.unsubscribe();
         };
-    }, [conversationId, user]);
+    }, [conversationId, user, profile?.full_name]);
 
     // Set up typing indicator
     useEffect(() => {
@@ -165,7 +162,7 @@ export function useRealtimeChat(options: UseRealtimeChatOptions): UseRealtimeCha
             }
             typingSubRef.current?.subscription.unsubscribe();
         };
-    }, [conversationId, user, enableTypingIndicator]);
+    }, [conversationId, user, profile?.full_name, enableTypingIndicator]);
 
     // Initial fetch
     useEffect(() => {
@@ -199,7 +196,7 @@ export function useRealtimeChat(options: UseRealtimeChatOptions): UseRealtimeCha
             console.error('[useRealtimeChat] Send message error:', err);
             throw err;
         }
-    }, [conversationId, user]);
+    }, [conversationId, user, profile?.avatar_url, profile?.full_name]);
 
     // Set typing status
     const setTyping = useCallback((isTyping: boolean) => {

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * React Error Boundary
  * Catches JavaScript errors in child components and displays fallback UI

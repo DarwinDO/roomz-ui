@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import type { Tables } from '@roomz/shared/services/database.types';
 
 export interface PaymentOrder {
     id: string;
@@ -52,6 +53,68 @@ export interface RevenueStats {
     manualReviewOrders: number;
 }
 
+type PaymentOrderRow = Tables<'payment_orders'> & {
+    user?: {
+        email: string | null;
+        full_name: string | null;
+    } | null;
+};
+
+type ManualReviewRow = Tables<'manual_reviews'> & {
+    user?: {
+        email: string | null;
+        full_name: string | null;
+    } | null;
+};
+
+function toRawPayload(value: unknown): Record<string, unknown> | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return undefined;
+    }
+
+    return value as Record<string, unknown>;
+}
+
+function mapPaymentOrder(order: PaymentOrderRow): PaymentOrder {
+    return {
+        id: order.id,
+        user_id: order.user_id,
+        order_code: order.order_code,
+        plan: order.plan,
+        billing_cycle: order.billing_cycle,
+        amount: order.amount,
+        status: (order.status ?? 'pending') as PaymentOrder['status'],
+        payment_provider: order.payment_provider,
+        provider_transaction_id: order.provider_transaction_id ?? undefined,
+        qr_data: order.qr_data ?? undefined,
+        expires_at: order.expires_at,
+        paid_at: order.paid_at ?? undefined,
+        created_at: order.created_at ?? order.updated_at ?? order.expires_at,
+        updated_at: order.updated_at ?? order.created_at ?? order.expires_at,
+        user_email: order.user?.email ?? undefined,
+        user_name: order.user?.full_name ?? undefined,
+    };
+}
+
+function mapManualReview(review: ManualReviewRow): ManualReview {
+    return {
+        id: review.id,
+        user_id: review.user_id ?? undefined,
+        order_code: review.order_code ?? undefined,
+        transaction_id: review.transaction_id ?? undefined,
+        amount: review.amount ?? undefined,
+        reason: review.reason,
+        raw_payload: toRawPayload(review.raw_payload),
+        status: review.status as ManualReview['status'],
+        resolved_by: review.resolved_by ?? undefined,
+        resolved_at: review.resolved_at ?? undefined,
+        notes: review.notes ?? undefined,
+        created_at: review.created_at ?? review.resolved_at ?? new Date().toISOString(),
+        user_email: review.user?.email ?? undefined,
+        user_name: review.user?.full_name ?? undefined,
+    };
+}
+
 /**
  * Fetch all payment orders (admin)
  */
@@ -60,7 +123,7 @@ export async function getPaymentOrders(filter?: {
     limit?: number;
     offset?: number;
 }): Promise<PaymentOrder[]> {
-    let query = (supabase as any)
+    let query = supabase
         .from('payment_orders')
         .select(`
       *,
@@ -84,11 +147,7 @@ export async function getPaymentOrders(filter?: {
 
     if (error) throw error;
 
-    return (data || []).map((order: any) => ({
-        ...order,
-        user_email: order.user?.email,
-        user_name: order.user?.full_name,
-    }));
+    return ((data || []) as PaymentOrderRow[]).map(mapPaymentOrder);
 }
 
 /**
@@ -97,7 +156,7 @@ export async function getPaymentOrders(filter?: {
 export async function getManualReviews(filter?: {
     status?: string;
 }): Promise<ManualReview[]> {
-    let query = (supabase as any)
+    let query = supabase
         .from('manual_reviews')
         .select(`
       *,
@@ -113,11 +172,7 @@ export async function getManualReviews(filter?: {
 
     if (error) throw error;
 
-    return (data || []).map((review: any) => ({
-        ...review,
-        user_email: review.user?.email,
-        user_name: review.user?.full_name,
-    }));
+    return ((data || []) as ManualReviewRow[]).map(mapManualReview);
 }
 
 /**
@@ -129,7 +184,7 @@ export async function resolveManualReview(
     adminUserId: string
 ): Promise<void> {
     // Use RPC to bypass RLS (SECURITY DEFINER)
-    const { error } = await (supabase as any).rpc('resolve_payment_review', {
+    const { error } = await supabase.rpc('resolve_payment_review', {
         p_review_id: reviewId,
         p_resolution: resolution,
         p_admin_user_id: adminUserId,
@@ -143,20 +198,25 @@ export async function resolveManualReview(
  */
 export async function getRevenueStats(): Promise<RevenueStats> {
     // Get paid orders total
-    const { data: paidOrders } = await (supabase as any)
+    const { data: paidOrders } = await supabase
         .from('payment_orders')
         .select('amount')
         .eq('status', 'paid');
 
-    const totalRevenue = (paidOrders || []).reduce((sum: number, o: any) => sum + (o.amount || 0), 0);
+    const totalRevenue = ((paidOrders || []) as Pick<Tables<'payment_orders'>, 'amount'>[])
+        .reduce((sum, order) => sum + (order.amount || 0), 0);
 
     // Get counts by status
-    const { data: allOrders } = await (supabase as any)
+    const { data: allOrders } = await supabase
         .from('payment_orders')
         .select('status');
 
-    const ordersByStatus = (allOrders || []).reduce((acc: Record<string, number>, o: any) => {
-        acc[o.status] = (acc[o.status] || 0) + 1;
+    const ordersByStatus = ((allOrders || []) as Pick<Tables<'payment_orders'>, 'status'>[])
+        .reduce((acc, order) => {
+        if (!order.status) {
+            return acc;
+        }
+        acc[order.status] = (acc[order.status] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
 

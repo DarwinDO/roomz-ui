@@ -14,6 +14,11 @@ import type {
     PotentialMatchResponse,
 } from '@roomz/shared/types/swap';
 
+type PotentialMatchRow = Pick<
+    PotentialMatch,
+    'listing_id' | 'matched_listing_id' | 'match_score' | 'matched_listing'
+>;
+
 /**
  * Fetch potential swap matches for current user
  * Uses RPC function get_potential_matches for realtime calculation
@@ -34,9 +39,9 @@ export async function fetchPotentialMatches(
     }
 
     // Filter by min score and cast to type
-    const matches: PotentialMatch[] = (data || [])
-        .filter((match: any) => match.match_score >= minScore)
-        .map((match: any) => ({
+    const matches: PotentialMatch[] = ((data || []) as PotentialMatchRow[])
+        .filter((match) => match.match_score >= minScore)
+        .map((match) => ({
             listing_id: match.listing_id,
             matched_listing_id: match.matched_listing_id,
             match_score: match.match_score,

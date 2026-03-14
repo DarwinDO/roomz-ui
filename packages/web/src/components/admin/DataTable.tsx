@@ -31,7 +31,7 @@ import {
 
 interface DataTableProps<TData extends { id: string }> {
   data: TData[];
-  columns: ColumnDef<TData, any>[];
+  columns: ColumnDef<TData, unknown>[];
   searchPlaceholder?: string;
   onSearch?: (term: string) => void;
   selectable?: boolean;

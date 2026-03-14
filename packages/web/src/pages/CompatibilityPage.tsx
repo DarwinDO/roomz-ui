@@ -9,11 +9,8 @@ import {
   ArrowLeft,
   Coffee,
   Moon,
-  Sun,
   Music,
   Users,
-  BookOpen,
-  Dumbbell,
   MessageCircle,
   CheckCircle,
 } from "lucide-react";
@@ -29,14 +26,31 @@ import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
+type CompatibilityStep = "quiz" | "results";
+type CompatibilitySort = "compatibility" | "distance" | "major";
+
+interface CompatibilityMatch {
+  name: string;
+  age: number;
+  university: string;
+  major: string;
+  school: string;
+  match: number;
+  distance: string;
+  personalityTags: string[];
+  lifestyleTags: string[];
+  hobbyTags: string[];
+  bio: string;
+}
+
 export default function CompatibilityPage() {
   const navigate = useNavigate();
   const onBack = () => navigate(-1);
 
-  const [currentStep, setCurrentStep] = useState<"quiz" | "results">("quiz");
+  const [currentStep, setCurrentStep] = useState<CompatibilityStep>("quiz");
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [sortBy, setSortBy] = useState<"compatibility" | "distance" | "major">("compatibility");
-  const [selectedRoommate, setSelectedRoommate] = useState<any>(null);
+  const [sortBy, setSortBy] = useState<CompatibilitySort>("compatibility");
+  const [selectedRoommate, setSelectedRoommate] = useState<CompatibilityMatch | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
   const [chatRecipient, setChatRecipient] = useState<{ name: string; role: string; match?: number } | null>(null);
@@ -94,7 +108,7 @@ export default function CompatibilityPage() {
     },
   ];
 
-  const matches = [
+  const matches: CompatibilityMatch[] = [
     {
       name: "Minh Tuấn",
       age: 23,
@@ -156,13 +170,13 @@ export default function CompatibilityPage() {
     return 0;
   });
 
-  const handleInviteToChat = (match: any) => {
+  const handleInviteToChat = (match: CompatibilityMatch) => {
     setChatRecipient({ name: match.name, role: match.school, match: match.match });
     setIsChatDrawerOpen(true);
     toast.success("Đã gửi lời mời cho " + match.name + "!");
   };
 
-  const handleViewProfile = (match: any) => {
+  const handleViewProfile = (match: CompatibilityMatch) => {
     setSelectedRoommate(match);
     setIsProfileModalOpen(true);
   };
@@ -249,7 +263,7 @@ export default function CompatibilityPage() {
         </p>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-600">Sắp xếp:</span>
-          <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as CompatibilitySort)}>
             <SelectTrigger className="w-[180px] rounded-full">
               <SelectValue />
             </SelectTrigger>

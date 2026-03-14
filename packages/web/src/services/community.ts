@@ -40,18 +40,18 @@ type CommunityPost = {
     type: string;
     title: string;
     content: string;
-    images: string[];
-    likes_count: number;
-    comments_count: number;
+    images: string[] | null;
+    likes_count: number | null;
+    comments_count: number | null;
     status: string;
-    created_at: string;
-    updated_at: string;
+    created_at: string | null;
+    updated_at: string | null;
     author?: {
         id: string;
-        full_name: string;
-        role: string;
+        full_name: string | null;
+        role: string | null;
         avatar_url: string | null;
-        email_verified: boolean;
+        email_verified: boolean | null;
     };
 };
 
@@ -61,7 +61,7 @@ type CommunityComment = {
     user_id: string;
     content: string;
     parent_id: string | null;
-    created_at: string;
+    created_at: string | null;
     status: string;
     author?: {
         id: string;
@@ -85,8 +85,8 @@ function transformCommunityPost(row: CommunityPost, liked: boolean = false): Pos
         likes_count: row.likes_count || 0,
         comments_count: row.comments_count || 0,
         status: row.status,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
+        created_at: row.created_at ?? new Date().toISOString(),
+        updated_at: row.updated_at ?? row.created_at ?? new Date().toISOString(),
         author: {
             id: row.author?.id || row.user_id,
             name: row.author?.full_name || 'Unknown',
@@ -105,7 +105,7 @@ function transformCommunityPost(row: CommunityPost, liked: boolean = false): Pos
 export async function getPosts(filters: PostsFilter = {}): Promise<PostsResponse> {
     const { type, page = 1, pageSize = 10, userId } = filters;
 
-    let query = (supabase as any)
+    let query = supabase
         .from('community_posts')
         .select(`
             *,
@@ -130,10 +130,10 @@ export async function getPosts(filters: PostsFilter = {}): Promise<PostsResponse
     if (error) throw error;
 
     // If userId provided, check likes for all posts
-    let likedMap: Record<string, boolean> = {};
+    const likedMap: Record<string, boolean> = {};
     if (userId && data && data.length > 0) {
         const postIds = (data as CommunityPost[]).map(row => row.id);
-        const { data: likes } = await (supabase as any)
+        const { data: likes } = await supabase
             .from('community_likes')
             .select('post_id')
             .eq('user_id', userId)
@@ -160,7 +160,7 @@ export async function getPosts(filters: PostsFilter = {}): Promise<PostsResponse
  * Get a single post by ID with author and comments
  */
 export async function getPostById(id: string): Promise<PostRow | null> {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
         .from('community_posts')
         .select(`
             *,
@@ -188,7 +188,7 @@ export async function getPostById(id: string): Promise<PostRow | null> {
  * Get top posts by likes (for sidebar)
  */
 export async function getTopPosts(limit: number = 5): Promise<PostRow[]> {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
         .from('community_posts')
         .select(`
             *,
@@ -225,7 +225,7 @@ export async function createPost(
         images: imageUrls,
     };
 
-    const { data: post, error } = await (supabase as any)
+    const { data: post, error } = await supabase
         .from('community_posts')
         .insert(postData)
         .select(`
@@ -263,7 +263,7 @@ export async function updatePost(
     if (data.type !== undefined) updateData.type = data.type;
     if (imageUrls !== undefined) updateData.images = imageUrls;
 
-    const { data: post, error } = await (supabase as any)
+    const { data: post, error } = await supabase
         .from('community_posts')
         .update(updateData)
         .eq('id', postId)
@@ -289,7 +289,7 @@ export async function updatePost(
  * Delete a post (only by owner)
  */
 export async function deletePost(postId: string, userId: string): Promise<void> {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
         .from('community_posts')
         .delete()
         .eq('id', postId)
@@ -307,7 +307,7 @@ export async function deletePost(postId: string, userId: string): Promise<void> 
  */
 export async function toggleLike(postId: string, userId: string): Promise<boolean> {
     // Try to insert (like)
-    const { error: insertError } = await (supabase as any)
+    const { error: insertError } = await supabase
         .from('community_likes')
         .insert({ post_id: postId, user_id: userId });
 
@@ -319,7 +319,7 @@ export async function toggleLike(postId: string, userId: string): Promise<boolea
     // Check if error is unique violation (already liked)
     if (insertError.code === '23505') {
         // Already liked → delete (unlike)
-        const { error: deleteError } = await (supabase as any)
+        const { error: deleteError } = await supabase
             .from('community_likes')
             .delete()
             .eq('post_id', postId)
@@ -337,7 +337,7 @@ export async function toggleLike(postId: string, userId: string): Promise<boolea
  * Check if user has liked a post
  */
 export async function checkIfLiked(postId: string, userId: string): Promise<boolean> {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
         .from('community_likes')
         .select('*')
         .eq('post_id', postId)
@@ -355,7 +355,7 @@ export async function checkIfLiked(postId: string, userId: string): Promise<bool
  * Get comments for a post
  */
 export async function getComments(postId: string): Promise<Comment[]> {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
         .from('community_comments')
         .select(`
             *,
@@ -378,7 +378,7 @@ export async function getComments(postId: string): Promise<Comment[]> {
         user_id: row.user_id,
         content: row.content,
         parent_id: row.parent_id,
-        created_at: row.created_at,
+        created_at: row.created_at ?? new Date().toISOString(),
         author: {
             name: row.author?.full_name || 'Unknown',
             avatar: row.author?.avatar_url || undefined,
@@ -427,7 +427,7 @@ export async function createComment(
         parent_id: parentId || null,
     };
 
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
         .from('community_comments')
         .insert(commentData)
         .select(`
@@ -449,7 +449,7 @@ export async function createComment(
         user_id: row.user_id,
         content: row.content,
         parent_id: row.parent_id,
-        created_at: row.created_at,
+        created_at: row.created_at ?? new Date().toISOString(),
         author: {
             name: row.author?.full_name || 'Unknown',
             avatar: row.author?.avatar_url || undefined,
@@ -461,7 +461,7 @@ export async function createComment(
  * Delete a comment (only by owner)
  */
 export async function deleteComment(commentId: string, userId: string): Promise<void> {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
         .from('community_comments')
         .delete()
         .eq('id', commentId)
@@ -474,7 +474,7 @@ export async function deleteComment(commentId: string, userId: string): Promise<
  * Report a post
  */
 export async function reportPost(postId: string, userId: string, reason: string): Promise<void> {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
         .from('community_reports')
         .insert({
             post_id: postId,

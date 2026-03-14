@@ -543,7 +543,6 @@ export default function PostRoomPage() {
               isUploading={isUploading}
               uploadProgress={uploadProgress}
               previewUrls={previewUrls}
-              selectedFiles={selectedFiles}
               handleFileSelect={handleFileSelect}
               handleDrop={handleDrop}
               removeImage={removeImage}

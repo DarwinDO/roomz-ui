@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, MapPin, Phone, Mail, Clock, CheckCircle2, Percent, ExternalLink, ShieldCheck } from "lucide-react";
+import { Star, MapPin, Phone, Mail, Clock, Percent, ExternalLink, ShieldCheck } from "lucide-react";
 import type { Partner } from "@/services/partners";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";

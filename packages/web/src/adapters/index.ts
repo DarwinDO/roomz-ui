@@ -149,12 +149,13 @@ export async function createFileAdapter(): Promise<FileAdapter> {
 
     return {
         compressImage: async (file: PlatformFile, options?: ImageCompressionOptions): Promise<Blob> => {
-            const compressed = await imageCompression(file as unknown as File, {
+            const compressionOptions = {
                 maxSizeMB: options?.maxSizeMB ?? 1,
                 maxWidthOrHeight: options?.maxWidthOrHeight ?? 1920,
                 useWebWorker: options?.useWebWorker ?? true,
-                fileType: options?.fileType as any,
-            });
+                ...(options?.fileType ? { fileType: options.fileType } : {}),
+            };
+            const compressed = await imageCompression(file as unknown as File, compressionOptions);
             return compressed;
         },
         getFileExtension: (filename: string): string => {

@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,11 +28,10 @@ interface StepAmenitiesImagesProps {
     isUploading: boolean;
     uploadProgress: number;
     previewUrls: string[];
-    selectedFiles: File[];
     handleFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
     handleDrop: (e: React.DragEvent) => void;
     removeImage: (index: number) => void;
-    fileInputRef: React.RefObject<any>;
+    fileInputRef: React.RefObject<HTMLInputElement | null>;
     isEditMode?: boolean;
 }
 
@@ -46,7 +44,6 @@ export function StepAmenitiesImages({
     isUploading,
     uploadProgress,
     previewUrls,
-    selectedFiles,
     handleFileSelect,
     handleDrop,
     removeImage,

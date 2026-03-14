@@ -73,7 +73,7 @@ export function BookMovingModal({ isOpen, onClose }: BookMovingModalProps) {
       setNotes("");
       setErrors({});
       onClose();
-    } catch (error) {
+    } catch {
       // Error is handled in the mutation
     }
   };

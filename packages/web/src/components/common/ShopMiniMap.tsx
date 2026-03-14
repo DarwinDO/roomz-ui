@@ -17,7 +17,6 @@ interface ShopMiniMapProps {
 }
 
 const MAP_HEIGHT = 200;
-const DEFAULT_CENTER: [number, number] = [10.82, 106.63];
 const DEFAULT_ZOOM = 15;
 
 /** Custom user icon for user's position */

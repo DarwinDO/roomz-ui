@@ -3,7 +3,6 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
     Dialog,
     DialogContent,
@@ -26,7 +25,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
-    ClipboardList,
     MoreVertical,
     Eye,
     CheckCircle,

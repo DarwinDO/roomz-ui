@@ -8,7 +8,13 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
 // Must delete _getIconUrl first — it overrides mergeOptions in Vite/Webpack builds
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+const defaultIcon = L.Icon.Default as unknown as {
+    prototype: {
+        _getIconUrl?: string;
+    };
+};
+
+delete defaultIcon.prototype._getIconUrl;
 
 L.Icon.Default.mergeOptions({
     iconUrl: markerIcon,

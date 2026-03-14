@@ -29,7 +29,6 @@ import {
   useRejectLandlord,
 } from "@/hooks/useAdmin";
 import type { AdminUser } from "@/services/admin";
-import { toast } from "sonner";
 import { RejectionDialog } from "@/components/admin/RejectionDialog";
 
 export default function UsersPage() {

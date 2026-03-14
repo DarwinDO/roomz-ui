@@ -33,6 +33,14 @@ export interface ReportFilters {
     search?: string;
 }
 
+type ReportRow = Omit<Report, 'reporter' | 'reported_name'> & {
+    reporter?: {
+        id: string;
+        full_name: string;
+        email: string;
+    };
+};
+
 /**
  * Get all reports for admin with reporter info and reported name enrichment
  */
@@ -62,7 +70,7 @@ export async function getAdminReports(filters?: ReportFilters): Promise<Report[]
 
     // Enrich with reported names
     const enriched = await Promise.all(
-        (data || []).map(async (report: any) => {
+        ((data || []) as ReportRow[]).map(async (report) => {
             let reportedName = report.reported_id;
             if (report.reported_type === 'user') {
                 const { data: user } = await supabase

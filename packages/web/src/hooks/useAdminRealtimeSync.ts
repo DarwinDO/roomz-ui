@@ -9,9 +9,9 @@ import { adminKeys } from './useAdmin';
 import { adminReportKeys } from './useAdminReports';
 import { adminServiceLeadKeys } from './useAdminServiceLeads';
 
-function debounce(fn: Function, ms: number) {
+function debounce<TArgs extends unknown[]>(fn: (...args: TArgs) => void, ms: number) {
     let timer: ReturnType<typeof setTimeout>;
-    return (...args: unknown[]) => {
+    return (...args: TArgs) => {
         clearTimeout(timer);
         timer = setTimeout(() => fn(...args), ms);
     };

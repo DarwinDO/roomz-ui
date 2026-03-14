@@ -32,7 +32,6 @@ interface ScoreBreakdown {
 interface CompatibilityBreakdownProps {
     isOpen: boolean;
     onClose: () => void;
-    userA: string;
     userB: string;
     totalScore: number;
     breakdown: ScoreBreakdown;
@@ -100,7 +99,6 @@ function getProgressColor(score: number): string {
 export function CompatibilityBreakdown({
     isOpen,
     onClose,
-    userA,
     userB,
     totalScore,
     breakdown,

@@ -40,7 +40,11 @@ export function GoogleMapsProvider({ children }: GoogleMapsProviderProps) {
             onLoad={() => {
                 // Attribution tracking
                 if (window.google?.maps) {
-                    (window.google.maps as any).__internalUsageAttributionId = 'gmp_mcp_codeassist_v0.1_github';
+                    (
+                        window.google.maps as typeof google.maps & {
+                            __internalUsageAttributionId?: string;
+                        }
+                    ).__internalUsageAttributionId = 'gmp_mcp_codeassist_v0.1_github';
                 }
             }}
         >

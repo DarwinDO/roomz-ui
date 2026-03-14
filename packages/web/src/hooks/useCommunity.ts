@@ -5,7 +5,7 @@
  */
 
 import { useMemo } from 'react';
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData, type InfiniteData } from '@tanstack/react-query';
 import {
     getPosts,
     getPostById,
@@ -26,6 +26,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { PostsFilter, CreatePostData, Comment } from '@/pages/community/types';
 
 const PAGE_SIZE = 10;
+type CommunityFeedPage = { posts: PostRow[]; totalCount: number };
+type CommunityFeedData = InfiniteData<CommunityFeedPage>;
 
 /** Query key factory for community */
 export const communityKeys = {
@@ -43,7 +45,7 @@ export const communityKeys = {
 export function usePosts(filters: PostsFilter = {}) {
     const { user } = useAuth();
 
-    const query = useInfiniteQuery<{ posts: PostRow[]; totalCount: number }>({
+    const query = useInfiniteQuery<CommunityFeedPage>({
         queryKey: communityKeys.feed(filters),
         queryFn: ({ pageParam = 1 }) =>
             getPosts({ ...filters, page: pageParam as number, pageSize: PAGE_SIZE, userId: user?.id }),
@@ -208,31 +210,26 @@ export function useToggleLike() {
             // Optimistically update the like count
             queryClient.setQueriesData(
                 { queryKey: communityKeys.all },
-                (old: any) => {
+                (old: CommunityFeedData | undefined) => {
                     if (!old) return old;
 
-                    // Handle infinite query structure
-                    if (old.pages) {
-                        return {
-                            ...old,
-                            pages: old.pages.map((page: any) => ({
-                                ...page,
-                                posts: page.posts.map((post: PostRow) =>
-                                    post.id === postId
-                                        ? {
-                                            ...post,
-                                            liked: !post.liked,
-                                            likes_count: post.liked
-                                                ? post.likes_count - 1
-                                                : post.likes_count + 1,
-                                        }
-                                        : post
-                                ),
-                            })),
-                        };
-                    }
-
-                    return old;
+                    return {
+                        ...old,
+                        pages: old.pages.map((page) => ({
+                            ...page,
+                            posts: page.posts.map((post) =>
+                                post.id === postId
+                                    ? {
+                                        ...post,
+                                        liked: !post.liked,
+                                        likes_count: post.liked
+                                            ? post.likes_count - 1
+                                            : post.likes_count + 1,
+                                    }
+                                    : post
+                            ),
+                        })),
+                    };
                 }
             );
 
@@ -301,7 +298,7 @@ export function useDeleteComment() {
     const { user } = useAuth();
 
     return useMutation({
-        mutationFn: async ({ commentId, postId }: { commentId: string; postId: string }) => {
+        mutationFn: async ({ commentId }: { commentId: string; postId: string }) => {
             if (!user) {
                 throw new Error('Vui lòng đăng nhập');
             }

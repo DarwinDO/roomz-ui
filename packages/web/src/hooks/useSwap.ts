@@ -17,7 +17,6 @@ import {
 import { toast } from 'sonner';
 import type {
     SwapRequest,
-    CreateSwapRequest,
     RespondToSwapRequest,
     PotentialMatchResponse,
 } from '@roomz/shared/types/swap';

@@ -5,7 +5,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as adminService from '@/services/admin';
-import type { AdminRoom, AdminUser, AdminStats } from '@/services/admin';
 
 // Query key factory
 export const adminKeys = {

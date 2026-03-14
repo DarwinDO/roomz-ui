@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Partner Leads API Service
  * Xử lý đăng ký đối tác mới từ form "Trở thành đối tác"
@@ -38,7 +39,6 @@ export async function createPartnerLead(data: CreatePartnerLeadRequest): Promise
         throw new Error('Không thể gửi đăng ký từ server. Vui lòng tải lại trang.');
     }
 
-    // Use type assertion because partner_leads table might not be in generated types
     const client = supabase as any;
 
     const { error } = await client
@@ -88,7 +88,6 @@ export async function createPartnerLead(data: CreatePartnerLeadRequest): Promise
  * Check if email already exists in partner leads
  */
 export async function checkPartnerLeadExists(email: string): Promise<boolean> {
-    // Use type assertion because partner_leads table might not be in generated types
     const client = supabase as any;
 
     const { data, error } = await client
@@ -116,7 +115,6 @@ export async function getPartnerLeads(): Promise<PartnerLead[]> {
         throw new Error('Not authenticated');
     }
 
-    // Use type assertion because partner_leads table might not be in generated types
     const client = supabase as any;
 
     const { data, error } = await client
@@ -146,7 +144,6 @@ export async function updatePartnerLeadStatus(
         throw new Error('Not authenticated');
     }
 
-    // Use type assertion because partner_leads table might not be in generated types
     const client = supabase as any;
 
     const { data, error } = await client

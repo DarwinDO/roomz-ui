@@ -1,5 +1,5 @@
 import { StatsCard } from "@/components/admin/StatsCard";
-import { LineChartComponent, BarChartComponent, PieChartComponent } from "@/components/admin/Charts";
+import { LineChartComponent, PieChartComponent } from "@/components/admin/Charts";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Home, DollarSign, ShieldCheck, ArrowRight, Loader2, Building2, UserPlus, CalendarPlus, Flag } from "lucide-react";

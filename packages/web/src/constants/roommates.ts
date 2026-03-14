@@ -10,9 +10,6 @@ import {
     Palette,
     Code,
     Users,
-    Briefcase,
-    GraduationCap,
-    Laptop,
 } from 'lucide-react';
 
 export const HOBBY_OPTIONS = [

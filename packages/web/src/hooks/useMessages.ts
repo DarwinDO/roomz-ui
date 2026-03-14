@@ -169,8 +169,7 @@ export function useConversations(): UseConversationsReturn {
  * Hook to manage messages in a specific conversation with realtime
  */
 export function useConversationMessages(
-  conversationId: string,
-  roomId?: string
+  conversationId: string
 ): UseMessagesReturn {
   const { user, profile } = useAuth();
   const [messages, setMessages] = useState<MessageWithSender[]>([]);

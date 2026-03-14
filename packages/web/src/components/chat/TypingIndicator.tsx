@@ -3,7 +3,7 @@
  * Animated dots showing someone is typing
  */
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import type { TypingIndicator as TypingIndicatorType } from '@/services/chat';
 
 interface TypingIndicatorProps {

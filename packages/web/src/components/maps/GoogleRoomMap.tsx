@@ -124,7 +124,6 @@ export function GoogleRoomMap({
     center,
     onMapLoad,
 }: GoogleRoomMapProps) {
-    const navigate = useNavigate();
     const mapRef = useRef<google.maps.Map | null>(null);
     const [selectedRoom, setSelectedRoom] = useState<RoomWithDetails | null>(null);
 

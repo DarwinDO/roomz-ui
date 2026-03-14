@@ -22,7 +22,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Eye, Ban, CheckCircle } from "lucide-react";
 import { useAdminReports, useUpdateReportStatus } from "@/hooks/useAdminReports";
 import type { Report } from "@/services/reports";
-import { toast } from "sonner";
 
 export default function ReportsPage() {
   const [filter, setFilter] = useState("all");

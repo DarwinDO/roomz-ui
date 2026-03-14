@@ -162,7 +162,7 @@ export function EditRoommateProfile() {
             });
 
             navigate('/roommates/profile');
-        } catch (error) {
+        } catch {
             toast.error('Không thể cập nhật profile. Vui lòng thử lại.');
         } finally {
             setSaving(false);
