@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+﻿import { Badge } from "@/components/ui/badge";
 import { Heart, MapPin } from "lucide-react";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
 import { useState, useEffect } from "react";
@@ -39,72 +39,53 @@ export function RoomCard({
 }: RoomCardProps) {
   const [localFavorited, setLocalFavorited] = useState(isFavoritedProp);
 
-  // Sync local state with prop when prop changes
   useEffect(() => {
     setLocalFavorited(isFavoritedProp);
   }, [isFavoritedProp]);
 
-  const handleFavorite = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleFavorite = (event: React.MouseEvent) => {
+    event.stopPropagation();
     setLocalFavorited(!localFavorited);
     onFavorite?.(id);
   };
 
   return (
     <div
-      className="bg-card rounded-2xl shadow-soft hover:shadow-soft-lg transition-all duration-300 overflow-hidden cursor-pointer hover-lift border border-border"
-      onClick={() => onClick?.(id)}>
+      className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg"
+      onClick={() => onClick?.(id)}
+    >
       <div className="relative">
-        <ImageWithFallback
-          src={image}
-          alt={title}
-          className="w-full h-48 object-cover"
-        />
-        {showFavoriteButton && (
+        <ImageWithFallback src={image} alt={title} className="h-48 w-full object-cover" />
+        {showFavoriteButton ? (
           <button
             onClick={handleFavorite}
-            className="absolute top-3 right-3 bg-card/90 backdrop-blur-sm rounded-full p-2.5 shadow-md hover:scale-110 hover:bg-card transition-all duration-200 z-10"
+            className="absolute right-3 top-3 z-10 rounded-full bg-card/90 p-2.5 shadow-md backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-card"
             aria-label={localFavorited ? "Bỏ yêu thích" : "Thêm yêu thích"}
           >
-            <Heart
-              className={`w-5 h-5 transition-colors ${localFavorited ? "fill-destructive text-destructive" : "text-muted-foreground"
-                }`}
-            />
+            <Heart className={`h-5 w-5 transition-colors ${localFavorited ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
           </button>
-        )}
-        {verified && (
-          <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground shadow-sm">
-            Verified+
-          </Badge>
-        )}
-        {isSublet && (
-          <Badge className="absolute bottom-3 left-3 bg-accent text-accent-foreground shadow-sm">
-            Cho thuê ngắn hạn
-          </Badge>
-        )}
-        {matchPercentage && (
-          <Badge className="absolute bottom-3 right-3 bg-secondary text-secondary-foreground shadow-sm">
-            {matchPercentage}% phù hợp
-          </Badge>
-        )}
+        ) : null}
+        {verified ? <Badge className="absolute left-3 top-3 bg-primary text-primary-foreground shadow-sm">Verified+</Badge> : null}
+        {isSublet ? <Badge className="absolute bottom-3 left-3 bg-accent text-accent-foreground shadow-sm">Ở ngắn hạn</Badge> : null}
+        {matchPercentage ? <Badge className="absolute bottom-3 right-3 bg-secondary text-secondary-foreground shadow-sm">{matchPercentage}% phù hợp</Badge> : null}
       </div>
       <div className="p-4">
-        <h3 className="font-medium text-card-foreground mb-1 line-clamp-1">{title}</h3>
-        <div className="flex items-center gap-1 text-muted-foreground mb-2">
-          <MapPin className="w-4 h-4" />
+        <h3 className="mb-1 line-clamp-1 font-medium text-card-foreground">{title}</h3>
+        <div className="mb-2 flex items-center gap-1 text-muted-foreground">
+          <MapPin className="h-4 w-4" />
           <span className="text-sm">{location}</span>
-          {distance && <span className="text-sm">• {distance}</span>}
+          {distance ? <span className="text-sm">• {distance}</span> : null}
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-primary font-semibold">{formatPriceInMillions(price)}tr</span>
+            <span className="font-semibold text-primary">{formatPriceInMillions(price)}tr</span>
             <span className="text-sm text-muted-foreground">/tháng</span>
           </div>
-          {available && (
+          {available ? (
             <Badge variant="outline" className="border-secondary text-secondary">
               Còn trống
             </Badge>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

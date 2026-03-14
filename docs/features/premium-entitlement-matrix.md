@@ -10,7 +10,7 @@ This file exists to keep pricing copy, paywalls, profile banners, and admin/prod
 
 | Benefit | Free | RommZ+ | Type | Notes |
 |---|---|---|---|---|
-| Xem số điện thoại chủ nhà | 3 lượt/ngày | 100 lượt/ngày | Hard entitlement | Enforced via room contact gate |
+| Xem số điện thoại host | 3 lượt/ngày | 100 lượt/ngày | Hard entitlement | Enforced via room contact gate |
 | Lưu phòng yêu thích | 5 phòng | Không giới hạn | Hard entitlement | Enforced in favorites lane |
 | Xem hồ sơ roommate | 10 lượt/ngày | Không giới hạn | Hard entitlement | Enforced server-side |
 | Gửi lời chào / request roommate | 5 lượt/ngày | Không giới hạn | Hard entitlement | Enforced server-side |

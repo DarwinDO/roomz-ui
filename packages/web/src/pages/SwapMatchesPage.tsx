@@ -1,178 +1,162 @@
-/**
+﻿/**
  * SwapMatchesPage
- * Display potential swap matches using RPC
- * Simplified version - no swipe mechanism
+ * Display secondary swap opportunities for users who already have a short-stay listing.
  */
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Star, ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Sparkles, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SwapMatchCard } from '@/components/swap';
 import { SwapRequestDialog } from '@/components/modals/SwapRequestDialog';
 import { useSwapMatches } from '@/hooks/useSwap';
-import { toast } from 'sonner';
 import type { PotentialMatch } from '@roomz/shared/types/swap';
 
-/**
- * Interface for swap dialog target - only includes fields needed by SwapRequestDialog
- * This avoids creating fake SubletListing objects with garbage default values
- */
 interface SwapDialogTarget {
+  id: string;
+  start_date: string;
+  end_date: string;
+  sublet_price: number;
+  room: {
+    title: string;
+    address: string;
+    district: string;
+    city: string;
+  };
+  owner: {
     id: string;
-    room: {
-        title: string;
-        address: string;
-        district: string;
-        city: string;
-    };
-    owner: {
-        full_name: string;
-        avatar_url: string | null;
-    };
-    images: Array<{ image_url: string }>;
-    sublet_price: number;
-    start_date: string;
-    end_date: string;
+    full_name: string;
+    avatar_url: string | null;
+  };
+  images: Array<{ image_url: string }>;
 }
 
-/**
- * Adapter function to convert PotentialMatch to SwapDialogTarget
- * Properly typed, no fake data or unsafe casts
- */
 function adaptMatchToDialogTarget(match: PotentialMatch): SwapDialogTarget {
-    const matchedListing = match.matched_listing;
-    const now = new Date().toISOString();
-    return {
-        id: match.matched_listing_id,
-        room: {
-            title: matchedListing.title,
-            address: matchedListing.address,
-            district: matchedListing.district,
-            city: matchedListing.city,
-        },
-        owner: {
-            full_name: matchedListing.owner_name,
-            avatar_url: matchedListing.owner_avatar,
-        },
-        images: matchedListing.images.map(img => ({ image_url: img.image_url })),
-        sublet_price: matchedListing.sublet_price,
-        start_date: (matchedListing as any).start_date || now.split('T')[0],
-        end_date: (matchedListing as any).end_date || now.split('T')[0],
-    };
+  const listing = match.matched_listing;
+  const fallbackDate = new Date().toISOString().split('T')[0];
+
+  return {
+    id: match.matched_listing_id,
+    start_date: listing.start_date || fallbackDate,
+    end_date: listing.end_date || fallbackDate,
+    sublet_price: listing.sublet_price,
+    room: {
+      title: listing.title,
+      address: listing.address,
+      district: listing.district,
+      city: listing.city,
+    },
+    owner: {
+      id: '',
+      full_name: listing.owner_name,
+      avatar_url: listing.owner_avatar,
+    },
+    images: listing.images.map((image) => ({ image_url: image.image_url })),
+  };
 }
 
 export default function SwapMatchesPage() {
-    const navigate = useNavigate();
-    const { data, isLoading, isError, refetch } = useSwapMatches(40);
+  const navigate = useNavigate();
+  const { data, isLoading, isError, refetch } = useSwapMatches(40);
 
-    const [selectedMatch, setSelectedMatch] = useState<PotentialMatch | null>(null);
-    const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<PotentialMatch | null>(null);
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
 
-    const matches = data?.matches || [];
+  const matches = data?.matches || [];
 
-    const handleRequestSwap = (match: PotentialMatch) => {
-        setSelectedMatch(match);
-        setIsRequestDialogOpen(true);
-    };
+  const openSwapRequest = (match: PotentialMatch) => {
+    setSelectedMatch(match);
+    setIsRequestDialogOpen(true);
+  };
 
-    return (
-        <div className="pb-20 md:pb-8 min-h-screen bg-background">
-            {/* Header */}
-            <div className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-30 px-6 py-4">
-                <div className="max-w-6xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" onClick={() => navigate('/swap')}>
-                            <ArrowLeft className="w-5 h-5" />
-                        </Button>
-                        <div>
-                            <h1 className="text-xl font-bold">Gợi ý hoán đổi</h1>
-                            <p className="text-muted-foreground text-sm hidden sm:block">
-                                Những phòng phù hợp để hoán đổi với bạn
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-primary" />
-                        <span className="text-sm font-medium">
-                            {matches.length} gợi ý
-                        </span>
-                    </div>
-                </div>
+  return (
+    <div className="min-h-screen bg-background pb-20 md:pb-8">
+      <div className="sticky top-0 z-30 border-b border-border bg-card/95 px-6 py-4 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/swap')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold">Cơ hội hoán đổi</h1>
+              <p className="hidden text-sm text-muted-foreground sm:block">
+                Xem thêm các cơ hội phụ trợ khi bạn đã có chỗ ở ngắn hạn phù hợp.
+              </p>
             </div>
-
-            <div className="max-w-6xl mx-auto px-4 py-6">
-                {/* Info Card */}
-                <Card className="p-6 mb-6 rounded-2xl bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/10">
-                    <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
-                            <Star className="w-6 h-6 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                            <h3 className="mb-2 font-semibold">Thuật toán tìm kiếm thông minh</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Chúng tôi phân tích vị trí (50%) và giá cả (50%) để tìm
-                                những phòng phù hợp nhất với nhu cầu hoán đổi của bạn.
-                                Điểm càng cao, khả năng hoán đổi càng tốt.
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
-                {/* Matches Grid */}
-                {isLoading ? (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[1, 2, 3].map((i) => (
-                            <Card key={i} className="h-96 animate-pulse" />
-                        ))}
-                    </div>
-                ) : isError ? (
-                    <Card className="p-8 text-center">
-                        <p className="text-muted-foreground mb-4">Có lỗi xảy ra khi tải dữ liệu</p>
-                        <Button onClick={() => refetch()}>Thử lại</Button>
-                    </Card>
-                ) : matches.length === 0 ? (
-                    <Card className="p-12 text-center">
-                        <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <RefreshCw className="w-8 h-8 text-muted-foreground" />
-                        </div>
-                        <h3 className="mb-2 font-medium text-lg">Chưa có gợi ý nào</h3>
-                        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                            Bạn cần đăng tin cho thuê phòng active để nhận gợi ý hoán đổi.
-                            Hoặc thử điều chỉnh bộ lọc để tìm thêm kết quả.
-                        </p>
-                        <div className="flex gap-2 justify-center">
-                            <Button variant="outline" onClick={() => navigate('/swap')}>
-                                Tìm phòng
-                            </Button>
-                            <Button onClick={() => navigate('/my-sublets')}>
-                                Đăng phòng của tôi
-                            </Button>
-                        </div>
-                    </Card>
-                ) : (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {matches.map((match) => (
-                            <SwapMatchCard
-                                key={`${match.listing_id}-${match.matched_listing_id}`}
-                                match={match}
-                                onRequestSwap={() => handleRequestSwap(match)}
-                            />
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Swap Request Dialog */}
-            <SwapRequestDialog
-                targetSublet={selectedMatch ? adaptMatchToDialogTarget(selectedMatch) as unknown as Parameters<typeof SwapRequestDialog>[0]['targetSublet'] : null}
-                isOpen={isRequestDialogOpen}
-                onClose={() => {
-                    setIsRequestDialogOpen(false);
-                    setSelectedMatch(null);
-                }}
-            />
+          </div>
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <span>{matches.length} cơ hội</span>
+          </div>
         </div>
-    );
+      </div>
+
+      <div className="mx-auto max-w-6xl px-4 py-6">
+        <Card className="mb-6 rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/5 to-secondary/5 p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+              <Star className="h-6 w-6 text-primary" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="font-semibold text-slate-950">Gợi ý phụ trợ, không phải cam kết tự động</h2>
+              <p className="text-sm leading-6 text-muted-foreground">
+                Hệ thống chỉ dùng các tín hiệu gần nhau về khu vực, mức giá và thời gian ở để gợi ý nơi nên nói chuyện thêm.
+                Hãy xem đây là một cơ hội bổ sung bên cạnh việc tìm chỗ ở ngắn hạn phù hợp.
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {isLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((item) => (
+              <Card key={item} className="h-96 animate-pulse" />
+            ))}
+          </div>
+        ) : isError ? (
+          <Card className="p-8 text-center">
+            <p className="mb-4 text-muted-foreground">Không thể tải danh sách cơ hội hoán đổi lúc này.</p>
+            <Button onClick={() => refetch()}>Tải lại</Button>
+          </Card>
+        ) : matches.length === 0 ? (
+          <Card className="p-12 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50">
+              <RefreshCw className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="mb-2 text-lg font-medium">Chưa có cơ hội phù hợp</h3>
+            <p className="mx-auto mb-6 max-w-md text-muted-foreground">
+              Hãy đăng một chỗ ở ngắn hạn đang hoạt động trước. Khi có đủ tín hiệu về khu vực, giá và thời gian ở,
+              hệ thống sẽ gợi ý các cơ hội nên trao đổi thêm.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button variant="outline" onClick={() => navigate('/swap')}>
+                Xem chỗ ở ngắn hạn
+              </Button>
+              <Button onClick={() => navigate('/my-sublets')}>Quản lý chỗ ở của tôi</Button>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {matches.map((match) => (
+              <SwapMatchCard
+                key={`${match.listing_id}-${match.matched_listing_id}`}
+                match={match}
+                onRequestSwap={() => openSwapRequest(match)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <SwapRequestDialog
+        targetSublet={selectedMatch ? adaptMatchToDialogTarget(selectedMatch) : null}
+        isOpen={isRequestDialogOpen}
+        onClose={() => {
+          setIsRequestDialogOpen(false);
+          setSelectedMatch(null);
+        }}
+      />
+    </div>
+  );
 }

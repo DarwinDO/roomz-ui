@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -24,23 +24,25 @@ import {
   X,
   LogOut,
   ChevronRight,
+  Building2,
 } from 'lucide-react';
 
 const navItems = [
   { path: '/admin/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
   { path: '/admin/users', label: 'Người dùng', icon: Users },
   { path: '/admin/rooms', label: 'Phòng trọ', icon: Home },
+  { path: '/admin/host-applications', label: 'Hồ sơ host', icon: Building2 },
   { path: '/admin/verifications', label: 'Xác thực', icon: ShieldCheck },
   { path: '/admin/reports', label: 'Báo cáo', icon: Flag },
   { path: '/admin/analytics', label: 'Phân tích', icon: BarChart3 },
   { path: '/admin/revenue', label: 'Doanh thu', icon: DollarSign },
   { path: '/admin/partners', label: 'Đối tác', icon: Handshake },
   { path: '/admin/partner-leads', label: 'Đơn đăng ký', icon: ClipboardList },
-  { path: '/admin/ingestion-review', label: 'Duyệt Crawl', icon: Database },
+  { path: '/admin/ingestion-review', label: 'Duyệt crawl', icon: Database },
   { path: '/admin/locations', label: 'Địa điểm', icon: MapPinned },
   { path: '/admin/data-quality', label: 'Chất lượng dữ liệu', icon: AlertTriangle },
   { path: '/admin/service-leads', label: 'Dịch vụ', icon: ClipboardList },
-];
+] as const;
 
 function SidebarNav({ currentPath, onItemClick }: { currentPath: string; onItemClick?: () => void }) {
   return (

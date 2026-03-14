@@ -79,11 +79,12 @@ export function useLandlordRooms(landlordId: string | undefined) {
     staleTime: 30_000,
   });
 
-  const rooms = query.data || [];
+  const rooms = useMemo(() => query.data ?? [], [query.data]);
   const stats = useMemo(() => ({
     total: rooms.length,
     pending: rooms.filter(r => r.status === 'pending').length,
     active: rooms.filter(r => r.status === 'active').length,
+    rejected: rooms.filter(r => r.status === 'rejected').length,
     totalViews: rooms.reduce((sum, r) => sum + (r.view_count || 0), 0),
     totalFavorites: rooms.reduce((sum, r) => sum + (r.favorite_count || 0), 0),
   }), [rooms]);

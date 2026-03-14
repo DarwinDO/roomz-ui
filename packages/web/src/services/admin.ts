@@ -5,6 +5,7 @@
 
 import { supabase } from '@/lib/supabase';
 import type { Tables } from '@/lib/database.types';
+import { reviewHostApplicationForUser } from '@/services/hostApplications';
 
 export type AdminRoom = Tables<'rooms'> & {
   landlord?: {
@@ -208,17 +209,7 @@ export async function deleteUser(userId: string): Promise<void> {
  */
 export async function approveLandlordApplication(userId: string): Promise<void> {
   await refreshSession();
-
-  const { error } = await supabase
-    .from('users')
-    .update({
-      role: 'landlord',
-      account_status: 'active',
-      updated_at: new Date().toISOString(),
-    } as never)
-    .eq('id', userId);
-
-  if (error) throw error;
+  await reviewHostApplicationForUser(userId, 'approved');
 }
 
 /**
@@ -227,22 +218,7 @@ export async function approveLandlordApplication(userId: string): Promise<void> 
  */
 export async function rejectLandlordApplication(userId: string, reason?: string): Promise<void> {
   await refreshSession();
-
-  const updateData: Record<string, unknown> = {
-    account_status: 'active',
-    updated_at: new Date().toISOString(),
-  };
-
-  if (reason) {
-    updateData.rejection_reason = reason;
-  }
-
-  const { error } = await supabase
-    .from('users')
-    .update(updateData as never)
-    .eq('id', userId);
-
-  if (error) throw error;
+  await reviewHostApplicationForUser(userId, 'rejected', reason);
 }
 
 /**

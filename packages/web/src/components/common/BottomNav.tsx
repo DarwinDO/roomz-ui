@@ -1,74 +1,60 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Home, Search, MessageCircle, User, Plus, Users, RefreshCw, Gift, Settings, Truck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+﻿import { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Home, Search, MessageCircle, User, Plus, Users, RefreshCw, Gift, Settings, Truck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function BottomNav() {
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
 
-  // Hide BottomNav when user is in chat view (messages page)
-  // This prevents the nav from overlapping the message input on mobile
   if (location.pathname === '/messages') {
     return null;
   }
 
   const mainNavItems = [
-    { id: "home", label: "Trang chủ", icon: Home, path: "/" },
-    { id: "search", label: "Tìm kiếm", icon: Search, path: "/search" },
+    { id: 'home', label: 'Trang chủ', icon: Home, path: '/' },
+    { id: 'search', label: 'Tìm kiếm', icon: Search, path: '/search' },
   ];
 
   const rightNavItems = [
-    { id: "messages", label: "Tin nhắn", icon: MessageCircle, path: "/messages" },
-    { id: "profile", label: "Hồ sơ", icon: User, path: "/profile" },
+    { id: 'messages', label: 'Tin nhắn', icon: MessageCircle, path: '/messages' },
+    { id: 'profile', label: 'Hồ sơ', icon: User, path: '/profile' },
   ];
 
   const expandedMenuItems = [
-    { id: "roommates", label: "Tìm bạn cùng phòng", icon: Users, color: "bg-blue-50", path: "/roommates" },
-    { id: "services", label: "Dịch vụ", icon: Truck, color: "bg-orange-50", path: "/support-services" },
-    { id: "community", label: "Cộng đồng", icon: Users, color: "bg-indigo-50", path: "/community" },
-    { id: "swap", label: "SwapRoom", icon: RefreshCw, color: "bg-green-50", path: "/swap" },
-    { id: "local-passport", label: "Ưu đãi", icon: Gift, color: "bg-purple-50", path: "/local-passport" },
-    { id: "settings", label: "Cài đặt", icon: Settings, color: "bg-gray-50", path: "/settings" },
+    { id: 'roommates', label: 'Tìm bạn cùng phòng', icon: Users, color: 'bg-blue-50', path: '/roommates' },
+    { id: 'services', label: 'Dịch vụ', icon: Truck, color: 'bg-orange-50', path: '/support-services' },
+    { id: 'community', label: 'Cộng đồng', icon: Users, color: 'bg-indigo-50', path: '/community' },
+    { id: 'swap', label: 'Ở ngắn hạn', icon: RefreshCw, color: 'bg-green-50', path: '/swap' },
+    { id: 'local-passport', label: 'Ưu đãi', icon: Gift, color: 'bg-purple-50', path: '/local-passport' },
+    { id: 'settings', label: 'Cài đặt', icon: Settings, color: 'bg-gray-50', path: '/settings' },
   ];
 
   const isActive = (path: string) => {
-    if (path === "/" && location.pathname === "/") return true;
-    if (path !== "/" && location.pathname.startsWith(path)) return true;
+    if (path === '/' && location.pathname === '/') return true;
+    if (path !== '/' && location.pathname.startsWith(path)) return true;
     return false;
   };
 
   return (
     <>
-      {/* Overlay */}
       {isExpanded && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 md:hidden"
-          style={{
-            animation: "fadeIn 300ms ease-out",
-          }}
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          style={{ animation: 'fadeIn 300ms ease-out' }}
           onClick={() => setIsExpanded(false)}
         />
       )}
 
-      {/* Expandable Bottom Sheet */}
       {isExpanded && (
         <div
-          className="fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl z-50 md:hidden overflow-hidden shadow-[0_-4px_12px_rgba(0,0,0,0.08)]"
-          style={{
-            height: "65vh",
-            maxHeight: "600px",
-            animation: "slideUp 300ms ease-out",
-          }}
+          className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden rounded-t-3xl bg-card shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:hidden"
+          style={{ height: '65vh', maxHeight: '600px', animation: 'slideUp 300ms ease-out' }}
         >
-          <div className="h-full flex flex-col p-5">
-            {/* Handle Bar */}
-            <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
-
-            {/* Menu Title */}
+          <div className="flex h-full flex-col p-5">
+            <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-muted-foreground/30" />
             <h3 className="mb-4 text-center">Truy cập nhanh</h3>
 
-            {/* Menu Grid - Scrollable */}
             <div className="flex-1 overflow-y-auto">
               <div className="grid grid-cols-2 gap-3 pb-4">
                 {expandedMenuItems.map((item) => {
@@ -79,27 +65,22 @@ export function BottomNav() {
                       key={item.id}
                       to={item.path}
                       onClick={() => setIsExpanded(false)}
-                      className={`flex flex-col items-center gap-2.5 p-3 rounded-2xl transition-all active:scale-95 ${active ? 'bg-primary/10' : 'hover:bg-muted'
-                        }`}
+                      className={`flex flex-col items-center gap-2.5 rounded-2xl p-3 transition-all active:scale-95 ${active ? 'bg-primary/10' : 'hover:bg-muted'}`}
                     >
-                      <div
-                        className={`w-14 h-14 rounded-2xl flex items-center justify-center ${active ? 'bg-primary' : item.color
-                          }`}
-                      >
-                        <Icon className={`w-6 h-6 ${active ? 'text-white' : 'text-primary'}`} />
+                      <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${active ? 'bg-primary' : item.color}`}>
+                        <Icon className={`h-6 w-6 ${active ? 'text-white' : 'text-primary'}`} />
                       </div>
-                      <span className={`text-sm text-center ${active ? 'text-primary font-medium' : ''}`}>{item.label}</span>
+                      <span className={`text-center text-sm ${active ? 'font-medium text-primary' : ''}`}>{item.label}</span>
                     </Link>
                   );
                 })}
               </div>
             </div>
 
-            {/* Cancel Button */}
             <Button
               onClick={() => setIsExpanded(false)}
               variant="outline"
-              className="w-full h-11 rounded-full text-muted-foreground border-border mt-3 shrink-0"
+              className="mt-3 h-11 w-full shrink-0 rounded-full border-border text-muted-foreground"
             >
               Hủy
             </Button>
@@ -107,29 +88,17 @@ export function BottomNav() {
         </div>
       )}
 
-      {/* Bottom Navigation Bar */}
-      <div
-        className="fixed bottom-0 left-0 right-0 bg-card z-40 md:hidden shadow-[0_-2px_6px_rgba(0,0,0,0.05)]"
-      >
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-card shadow-[0_-2px_6px_rgba(0,0,0,0.05)] md:hidden">
         <div className="flex items-center justify-around px-4 py-3">
-          {/* Left Navigation Items */}
           {mainNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             return (
-              <Link
-                key={item.id}
-                to={item.path}
-                className="flex flex-col items-center gap-1 min-w-[48px] transition-all active:scale-95"
-              >
-                <Icon
-                  className={`w-6 h-6 ${active ? "text-primary" : "text-muted-foreground"
-                    }`}
-                />
+              <Link key={item.id} to={item.path} className="flex min-w-[48px] flex-col items-center gap-1 transition-all active:scale-95">
+                <Icon className={`h-6 w-6 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
                 <span
-                  className={`text-xs ${active ? "text-primary font-medium" : "text-muted-foreground"
-                    }`}
-                  style={{ fontSize: "12px", fontWeight: active ? 500 : 400 }}
+                  className={`text-xs ${active ? 'font-medium text-primary' : 'text-muted-foreground'}`}
+                  style={{ fontSize: '12px', fontWeight: active ? 500 : 400 }}
                 >
                   {item.label}
                 </span>
@@ -137,40 +106,30 @@ export function BottomNav() {
             );
           })}
 
-          {/* Center Action Button */}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex flex-col items-center gap-1 -mt-2 min-w-[48px] transition-all active:scale-95"
+            className="-mt-2 flex min-w-[48px] flex-col items-center gap-1 transition-all active:scale-95"
           >
             <div
-              className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform"
+              className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-transform"
               style={{
-                background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)",
-                transform: isExpanded ? "rotate(45deg)" : "rotate(0deg)",
+                background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+                transform: isExpanded ? 'rotate(45deg)' : 'rotate(0deg)',
               }}
             >
-              <Plus className="w-7 h-7 text-white" />
+              <Plus className="h-7 w-7 text-white" />
             </div>
           </button>
 
-          {/* Right Navigation Items */}
           {rightNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             return (
-              <Link
-                key={item.id}
-                to={item.path}
-                className="flex flex-col items-center gap-1 min-w-[48px] transition-all active:scale-95"
-              >
-                <Icon
-                  className={`w-6 h-6 ${active ? "text-primary" : "text-muted-foreground"
-                    }`}
-                />
+              <Link key={item.id} to={item.path} className="flex min-w-[48px] flex-col items-center gap-1 transition-all active:scale-95">
+                <Icon className={`h-6 w-6 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
                 <span
-                  className={`text-xs ${active ? "text-primary font-medium" : "text-muted-foreground"
-                    }`}
-                  style={{ fontSize: "12px", fontWeight: active ? 500 : 400 }}
+                  className={`text-xs ${active ? 'font-medium text-primary' : 'text-muted-foreground'}`}
+                  style={{ fontSize: '12px', fontWeight: active ? 500 : 400 }}
                 >
                   {item.label}
                 </span>
@@ -180,7 +139,6 @@ export function BottomNav() {
         </div>
       </div>
 
-      {/* Animation Styles */}
       <style>{`
         @keyframes slideUp {
           from {
@@ -192,7 +150,7 @@ export function BottomNav() {
             opacity: 1;
           }
         }
-        
+
         @keyframes fadeIn {
           from {
             opacity: 0;

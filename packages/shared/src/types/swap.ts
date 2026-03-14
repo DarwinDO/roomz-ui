@@ -90,6 +90,16 @@ export interface SubletListing {
         latitude: number | null;
         longitude: number | null;
         room_type: string;
+        amenities?: {
+            wifi: boolean;
+            air_conditioning: boolean;
+            parking: boolean;
+            washing_machine: boolean;
+            refrigerator: boolean;
+            heater: boolean;
+            security_camera: boolean;
+            balcony: boolean;
+        } | null;
     };
     // Joined data from rooms
     room?: {
@@ -105,6 +115,16 @@ export interface SubletListing {
         latitude: number | null;
         longitude: number | null;
         room_type: string;
+        amenities?: {
+            wifi: boolean;
+            air_conditioning: boolean;
+            parking: boolean;
+            washing_machine: boolean;
+            refrigerator: boolean;
+            heater: boolean;
+            security_camera: boolean;
+            balcony: boolean;
+        } | null;
     };
     // Joined data from users (owner)
     owner?: {
@@ -112,6 +132,8 @@ export interface SubletListing {
         full_name: string;
         avatar_url: string | null;
         id_card_verified: boolean | null;
+        email?: string | null;
+        trust_score?: number | null;
     };
     // Joined data from room_images
     images?: Array<{
@@ -211,6 +233,8 @@ export interface PotentialMatch {
     match_score: number;
     matched_listing: {
         id: string;
+        start_date?: string;
+        end_date?: string;
         sublet_price: number;
         title: string;
         address: string;

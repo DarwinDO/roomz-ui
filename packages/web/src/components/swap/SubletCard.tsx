@@ -1,13 +1,7 @@
-/**
- * SubletCard Component
- * Display card for sublet listings
- * Following Supabase Postgres Best Practices
- */
-
-import { useNavigate } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { MapPin, Calendar, User, Star, BadgeCheck } from 'lucide-react';
+import { BadgeCheck, CalendarRange, MapPin, Star, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -16,155 +10,137 @@ import { formatMonthlyPrice } from '@roomz/shared/utils/format';
 import type { SubletListingWithDetails } from '@roomz/shared/types/swap';
 
 interface SubletCardProps {
-    sublet: SubletListingWithDetails;
-    showMatchScore?: boolean;
-    onApply?: (sublet: SubletListingWithDetails) => void;
-    onSwapRequest?: (sublet: SubletListingWithDetails) => void;
+  sublet: SubletListingWithDetails;
+  showMatchScore?: boolean;
+  onApply?: (sublet: SubletListingWithDetails) => void;
+  onSwapRequest?: (sublet: SubletListingWithDetails) => void;
 }
 
-export function SubletCard({
-    sublet,
-    showMatchScore = false,
-    onApply,
-    onSwapRequest,
-}: SubletCardProps) {
-    const navigate = useNavigate();
+export function SubletCard({ sublet, showMatchScore = false, onApply, onSwapRequest }: SubletCardProps) {
+  const startDate = new Date(sublet.start_date);
+  const endDate = new Date(sublet.end_date);
+  const durationMonths = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+  const discount = sublet.original_price > 0
+    ? Math.round(((sublet.original_price - sublet.sublet_price) / sublet.original_price) * 100)
+    : 0;
 
-    const handleClick = () => {
-        navigate(`/sublet/${sublet.id}`);
-    };
+  return (
+    <Card className="group overflow-hidden border border-slate-200 bg-white shadow-soft transition-all hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(15,23,42,0.10)]">
+      <Link to={`/sublet/${sublet.id}`} className="block w-full text-left">
+        <div className="relative aspect-[4/3] overflow-hidden">
+          <LazyImage
+            src={sublet.images?.[0]?.image_url || '/placeholder-room.jpg'}
+            alt={sublet.room_title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
 
-    const startDate = new Date(sublet.start_date);
-    const endDate = new Date(sublet.end_date);
-    const durationMonths = Math.ceil(
-        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
-    );
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
 
-    const discount = sublet.original_price > 0
-        ? Math.round(((sublet.original_price - sublet.sublet_price) / sublet.original_price) * 100)
-        : 0;
+          <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+            <Badge className="border-0 bg-white/92 text-slate-900">Ở ngắn hạn</Badge>
+            {showMatchScore && sublet.matchPercentage ? (
+              <Badge className="border-0 bg-emerald-500/92 text-white">
+                <Star className="mr-1 h-3 w-3 fill-current" />
+                {sublet.matchPercentage}% phù hợp
+              </Badge>
+            ) : null}
+          </div>
 
-    return (
-        <Card className="overflow-hidden group cursor-pointer hover:shadow-lg transition-shadow">
-            {/* Image */}
-            <div className="relative aspect-[4/3] overflow-hidden" onClick={handleClick}>
-                <LazyImage
-                    src={sublet.images?.[0]?.image_url || '/placeholder-room.jpg'}
-                    alt={sublet.room_title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+          <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-2">
+            {discount > 0 ? <Badge className="border-0 bg-rose-500/92 text-white">-{discount}%</Badge> : null}
+            {sublet.owner_verified ? (
+              <Badge className="border-0 bg-sky-500/92 text-white">
+                <BadgeCheck className="mr-1 h-3 w-3" />
+                Host đã xác thực
+              </Badge>
+            ) : null}
+          </div>
 
-                {/* Match Score Badge */}
-                {showMatchScore && sublet.matchPercentage && (
-                    <Badge className="absolute top-3 left-3 bg-green-500/90 text-white border-0">
-                        <Star className="w-3 h-3 mr-1 fill-current" />
-                        Match {sublet.matchPercentage}%
-                    </Badge>
-                )}
-
-                {/* Discount Badge */}
-                {discount > 0 && (
-                    <Badge className="absolute top-3 right-3 bg-red-500/90 text-white border-0">
-                        -{discount}%
-                    </Badge>
-                )}
-
-                {/* Verified Badge */}
-                {sublet.owner_verified && (
-                    <Badge className="absolute bottom-3 right-3 bg-blue-500/90 text-white border-0">
-                        <BadgeCheck className="w-3 h-3 mr-1" />
-                        Đã xác thực
-                    </Badge>
-                )}
+          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3 text-white">
+            <div>
+              <p className="line-clamp-1 text-lg font-semibold">{sublet.room_title}</p>
+              <p className="mt-1 flex items-center gap-1 text-sm text-white/85">
+                <MapPin className="h-3.5 w-3.5" />
+                {sublet.district}, {sublet.city}
+              </p>
             </div>
-
-            {/* Content */}
-            <div className="p-4 space-y-3">
-                {/* Title & Price */}
-                <div className="flex justify-between items-start gap-2">
-                    <h3
-                        className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors"
-                        onClick={handleClick}
-                    >
-                        {sublet.room_title}
-                    </h3>
-                    <div className="text-right shrink-0">
-                        <div className="font-bold text-primary text-lg">
-                            {formatMonthlyPrice(sublet.sublet_price)}
-                        </div>
-                        {sublet.original_price > sublet.sublet_price && (
-                            <div className="text-sm text-muted-foreground line-through">
-                                {formatMonthlyPrice(sublet.original_price)}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Location */}
-                <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
-                    <MapPin className="w-4 h-4 shrink-0" />
-                    <span className="line-clamp-1">
-                        {sublet.district}, {sublet.city}
-                    </span>
-                </div>
-
-                {/* Duration */}
-                <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
-                    <Calendar className="w-4 h-4 shrink-0" />
-                    <span>
-                        {format(startDate, 'dd/MM/yyyy', { locale: vi })} -{' '}
-                        {format(endDate, 'dd/MM/yyyy', { locale: vi })} ({durationMonths} tháng)
-                    </span>
-                </div>
-
-                {/* Owner */}
-                <div className="flex items-center gap-2 pt-2 border-t">
-                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                        {sublet.owner_avatar ? (
-                            <img
-                                src={sublet.owner_avatar}
-                                alt={sublet.owner_name}
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <User className="w-4 h-4 text-muted-foreground" />
-                        )}
-                    </div>
-                    <span className="text-sm font-medium">{sublet.owner_name}</span>
-                    {sublet.owner_verified && (
-                        <BadgeCheck className="w-4 h-4 text-blue-500" />
-                    )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-2">
-                    {onApply && (
-                        <Button
-                            className="flex-1"
-                            size="sm"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onApply(sublet);
-                            }}
-                        >
-                            Đăng ký thuê
-                        </Button>
-                    )}
-                    {onSwapRequest && (
-                        <Button
-                            className="flex-1"
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onSwapRequest(sublet);
-                            }}
-                        >
-                            Đề nghị hoán đổi
-                        </Button>
-                    )}
-                </div>
+            <div className="rounded-2xl bg-white/92 px-3 py-2 text-right text-slate-950 shadow-sm">
+              <p className="text-sm font-semibold text-primary">{formatMonthlyPrice(sublet.sublet_price)}</p>
+              {sublet.original_price > sublet.sublet_price ? (
+                <p className="text-xs text-muted-foreground line-through">{formatMonthlyPrice(sublet.original_price)}</p>
+              ) : null}
             </div>
-        </Card>
-    );
+          </div>
+        </div>
+      </Link>
+
+      <div className="space-y-4 p-4">
+        <div className="flex flex-wrap gap-2 text-xs">
+          <Badge variant="secondary" className="rounded-full px-2.5 py-1">
+            <CalendarRange className="mr-1 h-3 w-3" />
+            {durationMonths} tháng
+          </Badge>
+          <Badge variant="secondary" className="rounded-full px-2.5 py-1">
+            {format(startDate, 'dd/MM', { locale: vi })} - {format(endDate, 'dd/MM', { locale: vi })}
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-xs text-muted-foreground">Khu vực</p>
+            <p className="mt-1 font-medium text-slate-900">{sublet.district}</p>
+          </div>
+          <div className="rounded-2xl bg-slate-50 p-3">
+            <p className="text-xs text-muted-foreground">Thời gian</p>
+            <p className="mt-1 font-medium text-slate-900">{durationMonths} tháng</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-2xl border border-slate-200 p-3">
+          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-muted">
+            {sublet.owner_avatar ? (
+              <img src={sublet.owner_avatar} alt={sublet.owner_name} className="h-full w-full object-cover" />
+            ) : (
+              <User className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-slate-900">{sublet.owner_name}</p>
+            <p className="text-xs text-muted-foreground">Host của listing short-stay</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <Button asChild className="flex-1" variant="outline" size="sm">
+            <Link to={`/sublet/${sublet.id}`}>Xem chi tiết</Link>
+          </Button>
+          {onApply ? (
+            <Button
+              className="flex-1"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                onApply(sublet);
+              }}
+            >
+              Đăng ký ở
+            </Button>
+          ) : null}
+          {onSwapRequest ? (
+            <Button
+              className="flex-1"
+              variant="secondary"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                onSwapRequest(sublet);
+              }}
+            >
+              Hoán đổi
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </Card>
+  );
 }

@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, DollarSign } from "lucide-react";
+import { Calendar, DollarSign, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@roomz/shared/utils/format";
 
@@ -17,7 +17,7 @@ interface ConfirmBookingModalProps {
 
 export function ConfirmBookingModal({ isOpen, onClose, sublet }: ConfirmBookingModalProps) {
   const handleConfirm = () => {
-    toast.success("Đã gửi yêu cầu đặt phòng tới chủ nhà!");
+    toast.success("Đã gửi yêu cầu đặt phòng tới host.");
     onClose();
   };
 
@@ -29,48 +29,38 @@ export function ConfirmBookingModal({ isOpen, onClose, sublet }: ConfirmBookingM
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Room Details */}
-          <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-4 space-y-3">
-            <h3 className="text-base">{sublet.title}</h3>
+          <div className="space-y-3 rounded-2xl bg-gradient-to-br from-primary/5 to-secondary/5 p-4">
+            <h3 className="text-base font-medium">{sublet.title}</h3>
 
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <MapPin className="w-4 h-4" />
+              <MapPin className="h-4 w-4" />
               <span>{sublet.location}</span>
             </div>
 
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Calendar className="w-4 h-4" />
+              <Calendar className="h-4 w-4" />
               <span>{sublet.distance}</span>
             </div>
 
-            <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
-              <DollarSign className="w-5 h-5 text-primary" />
-              <span className="text-primary">{formatCurrency(sublet.price)}</span>
+            <div className="flex items-center gap-2 border-t border-gray-200 pt-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <span className="font-medium text-primary">{formatCurrency(sublet.price)}</span>
               <span className="text-sm text-gray-600">/tháng</span>
             </div>
           </div>
 
-          {/* Booking Details */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
             <p className="text-sm text-gray-700">
-              <strong>Lưu ý:</strong> Yêu cầu đặt phòng của bạn sẽ được gửi tới chủ nhà để xác nhận.
-              Bạn sẽ nhận thông báo ngay khi họ phản hồi.
+              <strong>Lưu ý:</strong> Yêu cầu đặt phòng của bạn sẽ được gửi tới host để xác nhận.
+              Bạn sẽ nhận thông báo ngay khi host phản hồi.
             </p>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex gap-3 pt-2">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="flex-1 rounded-full"
-            >
+            <Button variant="outline" onClick={onClose} className="flex-1 rounded-full">
               Hủy
             </Button>
-            <Button
-              onClick={handleConfirm}
-              className="flex-1 bg-primary hover:bg-primary/90 rounded-full"
-            >
+            <Button onClick={handleConfirm} className="flex-1 rounded-full bg-primary hover:bg-primary/90">
               Gửi yêu cầu
             </Button>
           </div>

@@ -85,7 +85,7 @@ export default function LoginPage() {
   const { sendEmailOtp, signInWithGoogle, verifyEmailOtp } = useAuth();
 
   const savedPath = (location.state as { from?: { pathname?: string } })?.from?.pathname;
-  const landlordOnlyPaths = ['/landlord', '/post-room'];
+  const landlordOnlyPaths = ['/host', '/landlord', '/post-room'];
   const isLandlordPath = !!savedPath && landlordOnlyPaths.some((path) => savedPath.startsWith(path));
   const redirectPath = useMemo(() => getPublicRedirectPath(savedPath), [savedPath]);
 

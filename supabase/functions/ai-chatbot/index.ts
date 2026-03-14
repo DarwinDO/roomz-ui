@@ -262,6 +262,30 @@ function normalizeOptionalText(input: unknown): string {
     return typeof input === 'string' ? normalizeText(input) : '';
 }
 
+function isGreetingMessage(text: string): boolean {
+    const normalized = text.trim();
+    if (!normalized) return false;
+
+    return /^(xin chao|chao|hello|hi|helo|alo|hey|yo|romi oi|romi)$/.test(normalized);
+}
+
+function buildGreetingReply(): string {
+    return 'Xin chào. Tôi là ROMI, trợ lý của RommZ. Tôi có thể giúp bạn tìm phòng, tìm dịch vụ, tìm ưu đãi và chỉ sang đúng flow tiếp theo trong app.';
+}
+
+function isRateLimitError(error: unknown): boolean {
+    const err = error as {
+        statusCode?: number;
+        response?: { status?: number };
+        message?: string;
+    };
+
+    const statusCode = err.statusCode ?? err.response?.status;
+    const message = err.message || '';
+
+    return statusCode === 429 || /429|RESOURCE_EXHAUSTED|rate limit|Too Many Requests/i.test(message);
+}
+
 function clampLimit(input: unknown, fallback = 5, max = 8): number {
     const value =
         typeof input === 'number'
@@ -511,6 +535,68 @@ function buildRomiActions(functionCalls: Array<{ name: ToolName; result: unknown
     }
 
     return actions;
+}
+
+function buildRateLimitedFallback(toolNames: ToolName[]): { message: string; actions: RomiAction[] } {
+    if (toolNames.includes('search_rooms')) {
+        return {
+            message: 'ROMI đang quá tải ở bước phân tích câu hỏi. Bạn vẫn có thể mở thẳng trang tìm phòng để tiếp tục lọc theo khu vực và ngân sách.',
+            actions: [
+                {
+                    type: 'open_search',
+                    label: 'Mở tìm phòng',
+                    href: '/search',
+                    description: 'Tiếp tục tìm phòng trực tiếp trong app',
+                },
+            ],
+        };
+    }
+
+    if (toolNames.includes('search_partners')) {
+        return {
+            message: 'ROMI đang quá tải ở bước xử lý yêu cầu. Bạn có thể mở thẳng trang dịch vụ để xem các đối tác phù hợp.',
+            actions: [
+                { type: 'open_support_services', label: 'Mở dịch vụ', href: '/support-services' },
+                { type: 'open_local_passport', label: 'Mở Local Passport', href: '/local-passport' },
+            ],
+        };
+    }
+
+    if (toolNames.includes('search_deals')) {
+        return {
+            message: 'ROMI đang quá tải ở bước xử lý ưu đãi. Bạn có thể mở Local Passport để xem deal đang hoạt động.',
+            actions: [
+                { type: 'open_local_passport', label: 'Mở Local Passport', href: '/local-passport' },
+            ],
+        };
+    }
+
+    if (toolNames.includes('search_locations')) {
+        return {
+            message: 'ROMI đang quá tải ở bước xử lý địa điểm. Bạn có thể mở tìm phòng và nhập thẳng khu vực hoặc trường học cần tìm.',
+            actions: [
+                { type: 'open_search', label: 'Mở tìm phòng', href: '/search' },
+            ],
+        };
+    }
+
+    if (toolNames.includes('get_app_info')) {
+        return {
+            message: getRomiAppInfo('general'),
+            actions: [
+                { type: 'open_search', label: 'Bắt đầu tìm phòng', href: '/search' },
+                { type: 'open_roommates', label: 'Tìm bạn cùng phòng', href: '/roommates' },
+            ],
+        };
+    }
+
+    return {
+        message: 'ROMI đang quá tải tạm thời. Bạn thử lại sau ít phút, hoặc mở trực tiếp các flow chính của RommZ ở bên dưới.',
+        actions: [
+            { type: 'open_search', label: 'Tìm phòng', href: '/search' },
+            { type: 'open_roommates', label: 'Tìm bạn cùng phòng', href: '/roommates' },
+        ],
+    };
 }
 
 async function hasActiveRommzPlus(userId: string, adminClient: AdminClient): Promise<boolean> {
@@ -1350,7 +1436,7 @@ function getToolChoice(forceFunctionNames: ToolName[]) {
 
 async function generateTextWithRetry(
     options: Parameters<typeof generateText>[0],
-    maxRetries = 2
+    maxRetries = 1
 ) {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
@@ -1371,7 +1457,7 @@ async function generateTextWithRetry(
                 throw error;
             }
 
-            const delayMs = Math.pow(2, attempt + 1) * 1000;
+            const delayMs = (attempt + 1) * 1200;
             console.log(`Gemini 429, retrying in ${delayMs}ms (attempt ${attempt + 1})`);
             await new Promise(resolve => setTimeout(resolve, delayMs));
         }
@@ -1532,69 +1618,93 @@ Deno.serve(async (req) => {
             }
         );
 
-        const aiResult = await generateTextWithRetry({
-            model: google('gemini-2.5-flash-lite'),
-            system: SYSTEM_PROMPT,
-            messages,
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-            topP: 0.95,
-            providerOptions: {
-                google: {
-                    safetySettings: [
-                        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-                        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-                        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-                        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-                    ],
-                },
-            },
-            ...(hasTools
-                ? {
-                    tools: toolset,
-                    toolChoice: getToolChoice(forceFunctionNames),
-                    stopWhen: stepCountIs(1),
+        let responseText = '';
+        let finishReason = 'rule_based';
+        let geminiCallCount = 0;
+        let usage: unknown = null;
+        let responseSource = 'rule_based';
+        let functionCallResults: Array<{ name: string; result: unknown }> = [];
+        let romiActions: RomiAction[] = [];
+
+        if (!hasTools && isGreetingMessage(normalizeText(message))) {
+            responseText = buildGreetingReply();
+            romiActions = [
+                { type: 'open_search', label: 'Tìm phòng', href: '/search' },
+                { type: 'open_roommates', label: 'Tìm bạn cùng phòng', href: '/roommates' },
+            ];
+            responseSource = 'rule_based_greeting';
+        } else {
+            try {
+                const aiResult = await generateTextWithRetry({
+                    model: google('gemini-2.0-flash-001'),
+                    system: SYSTEM_PROMPT,
+                    messages,
+                    temperature: 0.7,
+                    maxOutputTokens: 1024,
+                    topP: 0.95,
+                    ...(hasTools
+                        ? {
+                            tools: toolset,
+                            toolChoice: getToolChoice(forceFunctionNames),
+                            stopWhen: stepCountIs(1),
+                        }
+                        : {}),
+                });
+
+                responseText = aiResult.text?.trim() || '';
+                functionCallResults = (aiResult.toolResults || []).map(result => ({
+                    name: result.toolName,
+                    result: result.output,
+                }));
+
+                if (!responseText && functionCallResults.length > 0) {
+                    responseText = functionCallResults
+                        .map((call, index) => {
+                            const formatted = formatToolResultReply(call.name, call.result);
+                            if (functionCallResults.length === 1) return formatted;
+                            return `Kết quả ${index + 1} (${call.name}):\n${formatted}`;
+                        })
+                        .join('\n\n');
                 }
-                : {}),
-        });
 
-        let responseText = aiResult.text?.trim() || '';
-        const functionCallResults = (aiResult.toolResults || []).map(result => ({
-            name: result.toolName,
-            result: result.output,
-        }));
+                if (!responseText) {
+                    responseText = 'Xin lỗi, ROMI chưa thể xử lý yêu cầu này lúc này. Bạn thử lại giúp mình nhé.';
+                }
 
-        if (!responseText && functionCallResults.length > 0) {
-            responseText = functionCallResults
-                .map((call, index) => {
-                    const formatted = formatToolResultReply(call.name, call.result);
-                    if (functionCallResults.length === 1) return formatted;
-                    return `Kết quả ${index + 1} (${call.name}):\n${formatted}`;
-                })
-                .join('\n\n');
-        }
+                finishReason = String(aiResult.finishReason || 'stop');
+                geminiCallCount = aiResult.steps?.length || 1;
+                usage = aiResult.usage;
+                responseSource = 'model';
+                romiActions = buildRomiActions(
+                    functionCallResults
+                        .filter((call): call is { name: ToolName; result: unknown } =>
+                            typeof call.name === 'string' &&
+                            (call.name in TOOLS)
+                        )
+                );
+            } catch (modelError) {
+                if (!isRateLimitError(modelError)) {
+                    throw modelError;
+                }
 
-        if (!responseText) {
-            responseText = 'Xin lỗi, ROMI chưa thể xử lý yêu cầu này lúc này. Bạn thử lại giúp mình nhé.';
+                const fallback = buildRateLimitedFallback(selectedToolNames);
+                responseText = fallback.message;
+                romiActions = fallback.actions;
+                finishReason = 'provider_rate_limited';
+                responseSource = 'provider_rate_limited_fallback';
+            }
         }
 
         const responseMetadata: Record<string, unknown> = {
-            geminiCallCount: aiResult.steps?.length || 1,
-            finishReason: aiResult.finishReason,
-            usage: aiResult.usage,
+            source: responseSource,
+            geminiCallCount,
+            finishReason,
+            usage,
         };
 
         if (functionCallResults.length > 0) {
             responseMetadata.functionCalls = functionCallResults;
         }
-
-        const romiActions = buildRomiActions(
-            functionCallResults
-                .filter((call): call is { name: ToolName; result: unknown } =>
-                    typeof call.name === 'string' &&
-                    (call.name in TOOLS)
-                )
-        );
 
         if (romiActions.length > 0) {
             responseMetadata.actions = romiActions;
@@ -1635,8 +1745,9 @@ Deno.serve(async (req) => {
                 response_length: responseText.length,
                 tool_count: functionCallResults.length,
                 tool_names: functionCallResults.map((call) => call.name),
-                finish_reason: aiResult.finishReason,
-                gemini_call_count: aiResult.steps?.length || 1,
+                finish_reason: finishReason,
+                gemini_call_count: geminiCallCount,
+                source: responseSource,
             }
         );
 
@@ -1711,3 +1822,4 @@ Deno.serve(async (req) => {
         );
     }
 });
+

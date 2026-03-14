@@ -1,23 +1,23 @@
-import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+﻿import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { formatDistanceToNow, parseISO } from "date-fns";
+import { vi } from "date-fns/locale";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, Clock, User, Loader2 } from "lucide-react";
+import { Clock, Loader2, Send, User } from "lucide-react";
 import { useAuth } from "@/contexts";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  getOrCreateConversation,
   getConversationMessages,
+  getOrCreateConversation,
   sendMessage,
-  type MessageWithUsers
+  type MessageWithUsers,
 } from "@/services/messages";
 import { subscribeToConversationMessages } from "@/services/realtime";
-import { formatDistanceToNow, parseISO } from "date-fns";
-import { vi } from "date-fns/locale";
 
 interface LandlordInfo {
   id: string;
@@ -38,23 +38,25 @@ export function ContactLandlordModal({
   isOpen,
   onClose,
   landlord,
-  roomId,
-  roomTitle
+  roomTitle,
 }: ContactLandlordModalProps) {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<MessageWithUsers[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Get landlord display info with fallback
-  const landlordName = landlord?.full_name || "Chủ nhà";
-  const landlordInitials = landlordName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const hostName = landlord?.full_name || "Host";
+  const hostInitials = hostName
+    .split(" ")
+    .map((name) => name[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
-  // Load or create conversation when modal opens
   useEffect(() => {
     if (!isOpen || !user?.id || !landlord?.id) {
       setLoading(false);
@@ -63,39 +65,41 @@ export function ContactLandlordModal({
 
     const initConversation = async () => {
       setLoading(true);
-      try {
-        // Get or create conversation
-        const convId = await getOrCreateConversation(user.id, landlord.id);
-        setConversationId(convId);
 
-        // Load existing messages
-        const existingMessages = await getConversationMessages(convId);
+      try {
+        const nextConversationId = await getOrCreateConversation(user.id, landlord.id);
+        setConversationId(nextConversationId);
+
+        const existingMessages = await getConversationMessages(nextConversationId);
         setMessages(existingMessages);
       } catch (error) {
-        console.error('[ContactLandlordModal] Error:', error);
+        console.error("[ContactLandlordModal] Error:", error);
         toast.error("Không thể tải tin nhắn");
       } finally {
         setLoading(false);
       }
     };
 
-    initConversation();
-  }, [isOpen, user?.id, landlord?.id]);
+    void initConversation();
+  }, [isOpen, landlord?.id, user?.id]);
 
-  // Subscribe to realtime messages
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId) {
+      return;
+    }
 
     const subscription = subscribeToConversationMessages(conversationId, {
       onNewMessage: (newMessage) => {
-        setMessages(prev => {
-          // Avoid duplicates
-          if (prev.some(m => m.id === newMessage.id)) return prev;
-          return [...prev, newMessage as MessageWithUsers];
+        setMessages((currentMessages) => {
+          if (currentMessages.some((message) => message.id === newMessage.id)) {
+            return currentMessages;
+          }
+
+          return [...currentMessages, newMessage as MessageWithUsers];
         });
       },
-      onError: (err) => {
-        console.error('[ContactLandlordModal] Realtime error:', err);
+      onError: (error) => {
+        console.error("[ContactLandlordModal] Realtime error:", error);
       },
     });
 
@@ -104,19 +108,19 @@ export function ContactLandlordModal({
     };
   }, [conversationId]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || !user?.id || !conversationId) return;
+    if (!inputValue.trim() || !user?.id || !conversationId) {
+      return;
+    }
 
     const messageContent = inputValue.trim();
     setInputValue("");
     setSending(true);
 
-    // Optimistic update - use minimal required fields
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
       conversation_id: conversationId,
@@ -126,42 +130,45 @@ export function ContactLandlordModal({
       created_at: new Date().toISOString(),
       sender: {
         id: user.id,
-        full_name: profile?.full_name || 'Bạn',
+        full_name: profile?.full_name || "Bạn",
         avatar_url: profile?.avatar_url || null,
-      }
+      },
     } as MessageWithUsers;
 
-    setMessages(prev => [...prev, optimisticMessage]);
+    setMessages((currentMessages) => [...currentMessages, optimisticMessage]);
 
     try {
       const sentMessage = await sendMessage(conversationId, user.id, messageContent);
 
-      // Replace optimistic message with real one
-      setMessages(prev =>
-        prev.map(m => m.id === optimisticMessage.id ? { ...sentMessage, sender: optimisticMessage.sender } : m)
+      setMessages((currentMessages) =>
+        currentMessages.map((message) =>
+          message.id === optimisticMessage.id
+            ? { ...sentMessage, sender: optimisticMessage.sender }
+            : message,
+        ),
       );
     } catch (error) {
-      console.error('[ContactLandlordModal] Send error:', error);
+      console.error("[ContactLandlordModal] Send error:", error);
       toast.error("Không thể gửi tin nhắn");
-      // Remove optimistic message on error
-      setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
-      setInputValue(messageContent); // Restore input
+      setMessages((currentMessages) =>
+        currentMessages.filter((message) => message.id !== optimisticMessage.id),
+      );
+      setInputValue(messageContent);
     } finally {
       setSending(false);
     }
   };
 
   const handleOpenFullMessages = () => {
-    if (conversationId) {
-      navigate(`/messages?conversation=${conversationId}`);
-    } else {
-      navigate('/messages');
-    }
+    navigate(conversationId ? `/messages?conversation=${conversationId}` : "/messages");
     onClose();
   };
 
   const formatTime = (dateString?: string | null) => {
-    if (!dateString) return "";
+    if (!dateString) {
+      return "";
+    }
+
     try {
       return formatDistanceToNow(parseISO(dateString), { addSuffix: true, locale: vi });
     } catch {
@@ -169,22 +176,21 @@ export function ContactLandlordModal({
     }
   };
 
-  // Not logged in
   if (!user) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[400px] rounded-3xl" aria-describedby={undefined}>
+        <DialogContent className="rounded-3xl sm:max-w-[400px]" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>Đăng nhập để nhắn tin</DialogTitle>
             <DialogDescription>
-              Bạn cần đăng nhập để liên hệ với chủ nhà.
+              Bạn cần đăng nhập để liên hệ với host.
             </DialogDescription>
           </DialogHeader>
           <div className="pt-4">
             <Button
               onClick={() => {
                 onClose();
-                navigate('/login');
+                navigate("/login");
               }}
               className="w-full rounded-full"
             >
@@ -198,22 +204,22 @@ export function ContactLandlordModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[450px] rounded-3xl p-0 h-[600px] flex flex-col" aria-describedby={undefined}>
-        <DialogHeader className="p-5 pb-4 border-b border-border shrink-0">
+      <DialogContent className="flex h-[600px] flex-col rounded-3xl p-0 sm:max-w-[450px]" aria-describedby={undefined}>
+        <DialogHeader className="shrink-0 border-b border-border p-5 pb-4">
           <VisuallyHidden>
-            <DialogTitle>Liên hệ chủ nhà</DialogTitle>
-            <DialogDescription>Trò chuyện với chủ nhà</DialogDescription>
+            <DialogTitle>Liên hệ host</DialogTitle>
+            <DialogDescription>Trò chuyện với host</DialogDescription>
           </VisuallyHidden>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Avatar className="w-12 h-12 bg-gradient-to-br from-primary/20 to-secondary/20">
+              <Avatar className="h-12 w-12 bg-gradient-to-br from-primary/20 to-secondary/20">
                 <AvatarImage src={landlord?.avatar_url || undefined} />
-                <AvatarFallback>{landlordInitials}</AvatarFallback>
+                <AvatarFallback>{hostInitials}</AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-base font-medium">{landlordName}</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <p className="text-base font-medium">{hostName}</p>
+                <div className="mt-0.5 flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-green-500" />
                   <span className="text-xs text-muted-foreground">Đang hoạt động</span>
                 </div>
               </div>
@@ -227,39 +233,42 @@ export function ContactLandlordModal({
               Xem tất cả
             </Button>
           </div>
-          {roomTitle && (
+
+          {roomTitle ? (
             <Badge variant="outline" className="mt-3 w-fit text-xs">
               📍 {roomTitle}
             </Badge>
-          )}
+          ) : null}
+
           <Badge variant="outline" className="mt-2 w-fit text-xs">
-            <Clock className="w-3 h-3 mr-1" />
-            Thường trả lời trong vòng 1 giờ
+            <Clock className="mr-1 h-3 w-3" />
+            Thường phản hồi trong vòng 1 giờ
           </Badge>
         </DialogHeader>
 
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex h-full items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : messages.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
+            <div className="py-8 text-center text-gray-500">
               <p className="text-sm">Chưa có tin nhắn</p>
-              <p className="text-xs mt-1">Bắt đầu cuộc trò chuyện với {landlordName}</p>
+              <p className="mt-1 text-xs">Bắt đầu cuộc trò chuyện với {hostName}</p>
             </div>
           ) : (
             messages.map((message) => {
               const isFromMe = message.sender_id === user?.id;
+
               return (
                 <div
                   key={message.id}
                   className={`flex gap-2 ${isFromMe ? "flex-row-reverse" : "flex-row"}`}
                 >
-                  {/* Avatar */}
-                  <Avatar className="w-8 h-8 shrink-0">
-                    <AvatarImage src={isFromMe ? profile?.avatar_url || undefined : landlord?.avatar_url || undefined} />
+                  <Avatar className="h-8 w-8 shrink-0">
+                    <AvatarImage
+                      src={isFromMe ? profile?.avatar_url || undefined : landlord?.avatar_url || undefined}
+                    />
                     <AvatarFallback
                       className={
                         isFromMe
@@ -267,28 +276,25 @@ export function ContactLandlordModal({
                           : "bg-gradient-to-br from-primary/20 to-secondary/20"
                       }
                     >
-                      {isFromMe ? (
-                        <User className="w-4 h-4" />
-                      ) : (
-                        landlordInitials
-                      )}
+                      {isFromMe ? <User className="h-4 w-4" /> : hostInitials}
                     </AvatarFallback>
                   </Avatar>
 
-                  {/* Message Bubble */}
                   <div
-                    className={`max-w-[75%] ${isFromMe ? "items-end" : "items-start"
-                      } flex flex-col gap-1`}
+                    className={`flex max-w-[75%] flex-col gap-1 ${
+                      isFromMe ? "items-end" : "items-start"
+                    }`}
                   >
                     <div
-                      className={`rounded-2xl px-4 py-2.5 ${isFromMe
-                        ? "bg-primary text-white rounded-tr-sm"
-                        : "bg-muted text-foreground rounded-tl-sm"
-                        }`}
+                      className={`rounded-2xl px-4 py-2.5 ${
+                        isFromMe
+                          ? "rounded-tr-sm bg-primary text-white"
+                          : "rounded-tl-sm bg-muted text-foreground"
+                      }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <p className="whitespace-pre-wrap text-sm">{message.content}</p>
                     </div>
-                    <span className="text-xs text-muted-foreground px-1">
+                    <span className="px-1 text-xs text-muted-foreground">
                       {formatTime(message.created_at)}
                     </span>
                   </div>
@@ -299,28 +305,28 @@ export function ContactLandlordModal({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <div className="border-t border-border p-4 shrink-0">
+        <div className="shrink-0 border-t border-border p-4">
           <div className="flex items-center gap-2">
             <Input
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+              onChange={(event) => setInputValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void handleSendMessage();
+                }
+              }}
               placeholder="Nhập tin nhắn của bạn..."
               className="flex-1 rounded-full border-2 focus-visible:ring-primary"
               disabled={loading || sending}
             />
             <Button
-              onClick={handleSendMessage}
+              onClick={() => void handleSendMessage()}
               size="icon"
-              className="rounded-full bg-primary hover:bg-primary/90 shrink-0"
+              className="shrink-0 rounded-full bg-primary hover:bg-primary/90"
               disabled={!inputValue.trim() || loading || sending}
             >
-              {sending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
         </div>

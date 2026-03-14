@@ -1,108 +1,198 @@
-import { useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
 import { ContactLandlordModal } from "@/components/modals/ContactLandlordModal";
 import { ApplySubletDialog } from "@/components/modals/ApplySubletDialog";
-import { useSublet } from "@/hooks/useSublets";
+import { GalleryModal } from "@/components/modals/GalleryModal";
+import {
+  ListingHostCard,
+  ListingLocationContext,
+  ListingMediaHero,
+  ListingMetricGrid,
+  ListingSafetyCard,
+} from "@/components/listings";
 import { useAuth } from "@/contexts";
-import { formatMonthlyPrice } from "@roomz/shared/utils/format";
-import { toast } from "sonner";
+import { useIncrementSubletView, useSublet } from "@/hooks/useSublets";
+import { formatPriceInMillions } from "@roomz/shared/utils/format";
 import { format } from "date-fns";
 import {
-  ArrowLeft,
-  Heart,
-  Share2,
-  Calendar,
-  MapPin,
-  CheckCircle2,
-  ShieldCheck,
-  Star,
-  MessageCircle,
   AlertCircle,
+  ArrowLeft,
+  Bath,
+  BedDouble,
+  CalendarDays,
+  CheckCircle2,
+  CircleDollarSign,
   Edit,
+  Heart,
+  Images,
+  MapPin,
+  MessageCircle,
+  Ruler,
+  Share2,
+  Sofa,
   Users,
-  Info,
 } from "lucide-react";
+import { toast } from "sonner";
 
-const SubletDetailPage = () => {
+const amenityLabels: Array<{
+  key:
+    | "wifi"
+    | "air_conditioning"
+    | "parking"
+    | "washing_machine"
+    | "refrigerator"
+    | "heater"
+    | "security_camera"
+    | "balcony";
+  label: string;
+}> = [
+  { key: "wifi", label: "Wi‑Fi" },
+  { key: "air_conditioning", label: "Điều hòa" },
+  { key: "parking", label: "Chỗ để xe" },
+  { key: "washing_machine", label: "Máy giặt" },
+  { key: "refrigerator", label: "Tủ lạnh" },
+  { key: "heater", label: "Bình nóng lạnh" },
+  { key: "security_camera", label: "Camera an ninh" },
+  { key: "balcony", label: "Ban công" },
+];
+
+function formatCompactMonthlyPrice(price: number | null | undefined) {
+  if (!price || !Number.isFinite(price)) {
+    return "Liên hệ";
+  }
+
+  if (price >= 1_000_000) {
+    return `${formatPriceInMillions(price)}tr/tháng`;
+  }
+
+  return `${price.toLocaleString("vi-VN")}đ/tháng`;
+}
+
+function formatDateRange(startDate?: string, endDate?: string) {
+  if (!startDate || !endDate) {
+    return "Đang cập nhật";
+  }
+
+  return `${format(new Date(startDate), "dd/MM/yyyy")} - ${format(new Date(endDate), "dd/MM/yyyy")}`;
+}
+
+export default function SubletDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
-
-  const { data: sublet, isLoading, error } = useSublet(id);
   const { user } = useAuth();
+  const { data: sublet, isLoading, error } = useSublet(id);
+  const incrementViewMutation = useIncrementSubletView();
+  const trackedSubletViewId = useRef<string | null>(null);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isApplyOpen, setIsApplyOpen] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
-  const images = sublet?.images?.map((img) => img.image_url) || [];
+  useEffect(() => {
+    if (!sublet?.id || trackedSubletViewId.current === sublet.id) {
+      return;
+    }
+
+    trackedSubletViewId.current = sublet.id;
+    incrementViewMutation.mutate(sublet.id);
+  }, [incrementViewMutation, sublet?.id]);
+
+  const images = useMemo(
+    () =>
+      sublet?.images
+        ?.slice()
+        .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+        .map((image) => image.image_url) ?? [],
+    [sublet?.images],
+  );
+
   const room = sublet?.room;
   const owner = sublet?.owner;
+  const title = room?.title || "Chỗ ở ngắn hạn";
+  const location = [room?.address, room?.district, room?.city].filter(Boolean).join(", ");
+  const isOwner = Boolean(user?.id && owner?.id && user.id === owner.id);
+  const dateRange = formatDateRange(sublet?.start_date, sublet?.end_date);
+  const hostName = owner?.full_name || "Host";
 
-  // Computed values from API data
-  const title = room?.title || "Phòng cho thuê";
-  const location = room ? `${room.address}, ${room.district}, ${room.city}` : "";
-  const subletPrice = sublet?.sublet_price || 0;
-  const dateRange = sublet
-    ? `${format(new Date(sublet.start_date), 'dd/MM/yyyy')} - ${format(new Date(sublet.end_date), 'dd/MM/yyyy')}`
-    : "";
-  const isVerified = owner?.id_card_verified || false;
-  const isOwner = !!(user?.id && owner?.id && user.id === owner.id);
+  const amenityItems = useMemo(
+    () =>
+      amenityLabels.filter((item) => Boolean(room?.amenities?.[item.key])),
+    [room?.amenities],
+  );
+
+  const detailItems = useMemo(
+    () => [
+      {
+        icon: Ruler,
+        label: "Diện tích",
+        value: room?.area_sqm ? `${room.area_sqm} m²` : "Đang cập nhật",
+      },
+      {
+        icon: BedDouble,
+        label: "Phòng ngủ",
+        value: room?.bedroom_count ? `${room.bedroom_count} phòng` : "Đang cập nhật",
+      },
+      {
+        icon: Bath,
+        label: "Phòng tắm",
+        value: room?.bathroom_count ? `${room.bathroom_count} phòng` : "Đang cập nhật",
+      },
+      {
+        icon: Sofa,
+        label: "Nội thất",
+        value: room?.furnished ? "Có sẵn" : "Cơ bản / chưa rõ",
+      },
+    ],
+    [room?.area_sqm, room?.bathroom_count, room?.bedroom_count, room?.furnished],
+  );
 
   const handleBack = () => navigate(-1);
-  const handleBookSublet = () => {
-    setIsApplyOpen(true);
-  };
+  const handleApplyShortStay = () => setIsApplyOpen(true);
   const handleMessageHost = () => {
     if (!owner?.id) {
-      toast.error('Không thể nhắn tin. Thông tin chủ nhà không khả dụng.');
+      toast.error("Không thể nhắn host vì thiếu thông tin liên hệ.");
       return;
     }
     setIsContactOpen(true);
   };
 
-  // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white pb-24 md:pb-24">
-        <div className="sticky top-0 z-20 bg-white border-b px-4 py-3">
-          <div className="max-w-6xl mx-auto flex items-center justify-between">
-            <Skeleton className="w-10 h-10 rounded-full" />
+      <div className="min-h-screen bg-background pb-24 md:pb-8">
+        <div className="sticky top-0 z-20 border-b bg-card px-4 py-3">
+          <div className="mx-auto flex max-w-6xl items-center justify-between">
+            <Skeleton className="h-10 w-10 rounded-xl" />
             <div className="flex gap-2">
-              <Skeleton className="w-10 h-10 rounded-full" />
-              <Skeleton className="w-10 h-10 rounded-full" />
+              <Skeleton className="h-10 w-10 rounded-xl" />
+              <Skeleton className="h-10 w-10 rounded-xl" />
             </div>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto">
-          <Skeleton className="w-full aspect-[4/3] md:aspect-video" />
-          <div className="px-4 md:px-6 py-6 space-y-6">
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-6 w-1/2" />
-            <Skeleton className="h-32 w-full" />
-          </div>
+        <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 md:px-6">
+          <Skeleton className="aspect-[4/3] w-full rounded-3xl md:aspect-video" />
+          <Skeleton className="h-10 w-2/3 rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-2xl" />
+          <Skeleton className="h-56 w-full rounded-2xl" />
         </div>
       </div>
     );
   }
 
-  // Error state
   if (error || !sublet) {
     return (
-      <div className="min-h-screen bg-white pb-24 md:pb-24 flex items-center justify-center">
-        <div className="text-center space-y-4 p-6">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
-          <h2 className="text-xl font-semibold">Không tìm thấy tin đăng</h2>
-          <p className="text-gray-600">
-            Tin đăng này có thể đã bị xóa hoặc không tồn tại.
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="max-w-md space-y-4 text-center">
+          <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
+          <h2 className="text-2xl font-semibold">Không tìm thấy tin ở ngắn hạn</h2>
+          <p className="text-muted-foreground">
+            Tin đăng này có thể đã bị gỡ hoặc hiện không còn khả dụng.
           </p>
-          <Button onClick={() => navigate(-1)} className="rounded-full">
-            Quay lại
+          <Button onClick={() => navigate("/swap")} className="rounded-xl">
+            Quay về danh sách ở ngắn hạn
           </Button>
         </div>
       </div>
@@ -110,263 +200,303 @@ const SubletDetailPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-24 md:pb-24">
-      {/* Header with Back, Favorite, Share */}
-      <div className="sticky top-0 z-20 bg-white border-b px-4 py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleBack}
-            className="rounded-full"
-          >
-            <ArrowLeft className="w-5 h-5" />
+    <div className="min-h-screen bg-background pb-24 md:pb-8">
+      <div className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <Button variant="ghost" size="icon" onClick={handleBack} className="rounded-xl hover:bg-muted">
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled
-              title="Coming soon"
-              className="rounded-full"
-            >
-              <Heart className="w-5 h-5" />
+            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted" disabled>
+              <Share2 className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" disabled title="Coming soon" className="rounded-full">
-              <Share2 className="w-5 h-5" />
+            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted" disabled>
+              <Heart className="h-5 w-5" />
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto">
-        {/* Image Gallery */}
-        <div className="bg-black">
-          {images.length <= 1 ? (
-            <div className="w-full aspect-[4/3] md:aspect-video overflow-hidden bg-muted">
-              {images[0] ? (
-                <ImageWithFallback
-                  src={images[0]}
-                  alt={title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-gray-100">
-                  <span className="text-sm">Không có ảnh</span>
+      <div className="mx-auto max-w-6xl">
+        <ListingMediaHero
+          images={images}
+          title={title}
+          currentIndex={currentImageIndex}
+          onIndexChange={setCurrentImageIndex}
+          emptyStateText="Chưa có ảnh"
+          topLeftBadges={[
+            {
+              id: "short-stay",
+              label: (
+                <>
+                  <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
+                  Ở ngắn hạn
+                </>
+              ),
+              className: "border-0 bg-white/95 text-primary backdrop-blur-sm",
+            },
+          ]}
+          topRightBadges={
+            owner?.id_card_verified
+              ? [
+                  {
+                    id: "host-verified",
+                    label: (
+                      <>
+                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                        Host đã xác thực
+                      </>
+                    ),
+                    className: "border-0 bg-primary/95 text-white backdrop-blur-sm",
+                  },
+                ]
+              : []
+          }
+          bottomRightActions={
+            images.length ? (
+              <Button onClick={() => setIsGalleryOpen(true)} className="rounded-xl bg-white/95 text-foreground hover:bg-white">
+                <Images className="mr-2 h-4 w-4" />
+                Xem tất cả ảnh
+              </Button>
+            ) : null
+          }
+        />
+
+        <div className="px-4 py-6 md:px-6">
+          <div className="grid gap-8 md:grid-cols-3">
+            <div className="space-y-6 md:col-span-2">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="rounded-full border-primary/20 bg-primary/5 text-primary">
+                    Ở ngắn hạn / thuê lại
+                  </Badge>
+                  {sublet.status !== "active" ? (
+                    <Badge variant="outline" className="rounded-full">
+                      {sublet.status}
+                    </Badge>
+                  ) : null}
                 </div>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="relative w-full aspect-[4/3] md:aspect-video">
-                <ImageWithFallback
-                  src={images[currentImageIndex] || ""}
-                  alt={title}
-                  className="w-full h-full object-cover"
-                />
 
-                {/* Image Counter */}
-                <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
-                  {currentImageIndex + 1} / {images.length}
-                </div>
-              </div>
-
-              {/* Thumbnails */}
-              <div className="grid grid-cols-3 gap-1 md:gap-2 p-2 md:p-3">
-                {images.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    aria-label={`Xem ảnh ${index + 1}`}
-                    className={`relative aspect-video overflow-hidden rounded-lg transition-all ${index === currentImageIndex
-                      ? "ring-2 ring-primary ring-offset-2 ring-offset-black"
-                      : "opacity-60 hover:opacity-100"
-                      }`}
-                  >
-                    <ImageWithFallback
-                      src={image}
-                      alt={`Góc nhìn ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="px-4 md:px-6 py-6 space-y-6">
-          {/* Owner Banner */}
-          {isOwner && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
-              <Info className="w-5 h-5 text-blue-600 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-blue-900">Đây là tin đăng của bạn</p>
-                <p className="text-xs text-blue-700">Bạn đang xem tin đăng của mình. Sử dụng các nút bên dưới để quản lý.</p>
-              </div>
-            </div>
-          )}
-          {/* Title and Location */}
-          <div>
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h1 className="mb-2">{title}</h1>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <MapPin className="w-4 h-4" />
-                  <p className="text-sm">{location}</p>
-                </div>
-              </div>
-              {isVerified && (
-                <Badge className="bg-primary/10 text-primary border-0">
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                  Đã xác thực
-                </Badge>
-              )}
-            </div>
-
-            {/* Price and Availability */}
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <h2 className="text-primary">
-                  {formatMonthlyPrice(subletPrice)}
-                </h2>
-              </div>
-              <Badge
-                variant="outline"
-                className="bg-gradient-to-br from-primary/5 to-secondary/5"
-              >
-                <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                Lịch trống: {dateRange}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="bg-gray-50 rounded-2xl p-5">
-            <h3 className="mb-3">Giới thiệu về chỗ ở</h3>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              {sublet.description || "Chưa có mô tả."}
-            </p>
-          </div>
-
-          {/* Host Information */}
-          {owner && (
-            <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10">
-              <h3 className="mb-4">Chủ nhà</h3>
-              <div className="flex items-start gap-4">
-                <Avatar className="w-16 h-16">
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-xl">
-                    {owner.full_name
-                      ?.split(" ")
-                      .map((n) => n[0])
-                      .join("") || "?"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium">{owner.full_name}</p>
-                    {owner.id_card_verified && (
-                      <Badge className="bg-secondary text-white text-xs">
-                        <ShieldCheck className="w-3 h-3 mr-1" />
-                        Đã xác thực
-                      </Badge>
-                    )}
+                <div>
+                  <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{title}</h1>
+                  <div className="mt-3 flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <p className="text-sm md:text-base">{location || "Đang cập nhật địa chỉ"}</p>
                   </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    <span className="text-gray-500">Chủ phòng</span>
-                  </div>
-                  {!isOwner && (
-                    <Button
-                      onClick={handleMessageHost}
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 rounded-full border-primary text-primary hover:bg-primary/10"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-1.5" />
-                      Nhắn chủ nhà
-                    </Button>
-                  )}
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Safety Note */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-            <div className="flex gap-3">
-              <ShieldCheck className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm mb-1">An toàn trên hết</p>
-                <p className="text-xs text-gray-700">
-                  Hãy gặp trực tiếp và kiểm tra giấy tờ trước khi thanh
-                  toán. RommZ hỗ trợ quy trình thanh toán an toàn cho các
-                  tin đăng đã được xác thực.
+              <div className="grid gap-4 rounded-3xl border border-border bg-card p-5 shadow-soft md:grid-cols-3">
+                <div>
+                  <p className="text-3xl font-semibold text-primary">{formatCompactMonthlyPrice(sublet.sublet_price)}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Giá ở ngắn hạn</p>
+                </div>
+                <div className="rounded-2xl border border-border/70 bg-muted/40 p-4">
+                  <p className="mb-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">Thời gian trống</p>
+                  <p className="text-sm font-medium text-foreground">{dateRange}</p>
+                </div>
+                <div className="rounded-2xl border border-border/70 bg-muted/40 p-4">
+                  <p className="mb-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">Giá gốc của phòng</p>
+                  <p className="text-sm font-medium text-foreground">{formatCompactMonthlyPrice(sublet.original_price)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Đặt cọc: {sublet.deposit_required ? formatCompactMonthlyPrice(sublet.deposit_required) : "Không yêu cầu thêm"}
+                  </p>
+                </div>
+              </div>
+
+              <ListingMetricGrid items={detailItems} />
+
+              <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
+                <h3 className="mb-3 text-lg font-semibold">Giới thiệu về chỗ ở</h3>
+                <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
+                  {sublet.description || "Host chưa thêm mô tả cho chỗ ở ngắn hạn này."}
                 </p>
               </div>
+
+              {sublet.requirements?.length ? (
+                <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
+                  <h3 className="mb-3 text-lg font-semibold">Điều kiện lưu trú</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {sublet.requirements.map((requirement) => (
+                      <Badge key={requirement} variant="outline" className="rounded-full px-3 py-1 text-sm">
+                        {requirement}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {amenityItems.length ? (
+                <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
+                  <h3 className="mb-3 text-lg font-semibold">Tiện ích chỗ ở</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {amenityItems.map((amenity) => (
+                      <Badge key={amenity.key} variant="secondary" className="rounded-full px-3 py-1.5">
+                        {amenity.label}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {room ? (
+                <ListingLocationContext
+                  listing={{
+                    id: room.id,
+                    title,
+                    city: room.city,
+                    district: room.district,
+                    latitude: room.latitude,
+                    longitude: room.longitude,
+                    price_per_month: sublet.sublet_price,
+                    images: sublet.images,
+                  }}
+                  nearbyTitle="Điểm mốc quanh chỗ ở"
+                />
+              ) : null}
+            </div>
+
+            <div className="space-y-6 md:sticky md:top-20 md:self-start">
+              {owner ? (
+                <ListingHostCard
+                  name={hostName}
+                  avatarUrl={owner.avatar_url}
+                  isVerified={owner.id_card_verified || false}
+                  roleLabel={isOwner ? "Bạn là host của tin đăng này" : "Host của chỗ ở ngắn hạn"}
+                  email={owner.email || null}
+                  trustScore={owner.trust_score ?? null}
+                  onMessageClick={!isOwner ? handleMessageHost : undefined}
+                  messageLabel="Nhắn host"
+                  footer={
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="rounded-xl bg-muted/50 p-3">
+                        <p className="text-muted-foreground">Lượt xem</p>
+                        <p className="mt-1 font-medium text-foreground">{sublet.view_count ?? 0}</p>
+                      </div>
+                      <div className="rounded-xl bg-muted/50 p-3">
+                        <p className="text-muted-foreground">Đơn đăng ký</p>
+                        <p className="mt-1 font-medium text-foreground">{sublet.application_count ?? 0}</p>
+                      </div>
+                    </div>
+                  }
+                />
+              ) : null}
+
+              <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
+                <p className="mb-4 text-sm text-muted-foreground">
+                  {isOwner
+                    ? "Bạn đang xem tin ở ngắn hạn của mình. Quản lý đơn đăng ký hoặc cập nhật nội dung ngay trong host console."
+                    : "Nếu thời gian và mức giá phù hợp, hãy gửi đơn đăng ký trước rồi nhắn host để chốt thêm các chi tiết cần thiết."}
+                </p>
+                {isOwner ? (
+                  <div className="flex flex-col gap-3">
+                    <Button onClick={() => navigate(`/sublet/${id}/applications`)} variant="outline" className="h-11 rounded-xl">
+                      <Users className="mr-2 h-4 w-4" />
+                      Xem đơn đăng ký
+                    </Button>
+                    <Button onClick={() => navigate(`/sublet/${id}/edit`)} className="h-11 rounded-xl">
+                      <Edit className="mr-2 h-4 w-4" />
+                      Chỉnh sửa tin đăng
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <Button onClick={handleApplyShortStay} className="h-11 rounded-xl">
+                      <CalendarDays className="mr-2 h-4 w-4" />
+                      Đăng ký ở ngắn hạn
+                    </Button>
+                    <Button onClick={handleMessageHost} variant="outline" className="h-11 rounded-xl">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      Nhắn host
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
+                <h3 className="mb-3 text-lg font-semibold">Thông tin nhanh</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <CircleDollarSign className="h-4 w-4" />
+                      Mức giá
+                    </div>
+                    <span className="font-medium text-foreground">{formatCompactMonthlyPrice(sublet.sublet_price)}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <CalendarDays className="h-4 w-4" />
+                      Khả dụng
+                    </div>
+                    <span className="text-right font-medium text-foreground">{dateRange}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      Khu vực
+                    </div>
+                    <span className="text-right font-medium text-foreground">{[room?.district, room?.city].filter(Boolean).join(", ") || "Đang cập nhật"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <ListingSafetyCard description="Chỉ chuyển khoản khi bạn đã xác minh người đăng, thời gian ở và tình trạng chỗ ở. Nếu có thể, hãy xem phòng trực tiếp hoặc gọi video trước khi chốt." />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Sticky Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg px-4 py-2 md:px-6 z-50 mb-16 md:mb-0">
-        <div className="max-w-6xl mx-auto">
-          {isOwner ? (
-            <div className="flex gap-2">
-              <Button
-                onClick={() => navigate(`/sublet/${id}/applications`)}
-                variant="outline"
-                className="flex-1 rounded-full h-11"
-              >
-                <Users className="w-5 h-5 mr-2" />
-                Xem đơn đăng ký
-              </Button>
-              <Button
-                onClick={() => navigate(`/sublet/${id}/edit`)}
-                className="flex-1 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-11 text-white shadow-md"
-              >
-                <Edit className="w-5 h-5 mr-2" />
-                Chỉnh sửa tin đăng
-              </Button>
-            </div>
-          ) : (
-            <Button
-              onClick={handleBookSublet}
-              className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-11 text-white shadow-md"
-            >
-              <Calendar className="w-5 h-5 mr-2" />
-              Đăng ký thuê
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card px-4 py-3 shadow-lg md:hidden">
+        {isOwner ? (
+          <div className="mx-auto flex max-w-6xl gap-2">
+            <Button onClick={() => navigate(`/sublet/${id}/applications`)} variant="outline" className="h-11 flex-1 rounded-full">
+              <Users className="mr-2 h-4 w-4" />
+              Đơn đăng ký
             </Button>
-          )}
-        </div>
+            <Button onClick={() => navigate(`/sublet/${id}/edit`)} className="h-11 flex-1 rounded-full">
+              <Edit className="mr-2 h-4 w-4" />
+              Chỉnh sửa
+            </Button>
+          </div>
+        ) : (
+          <div className="mx-auto flex max-w-6xl gap-2">
+            <Button onClick={handleMessageHost} variant="outline" className="h-11 flex-1 rounded-full">
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Nhắn host
+            </Button>
+            <Button onClick={handleApplyShortStay} className="h-11 flex-[1.4] rounded-full">
+              <CalendarDays className="mr-2 h-4 w-4" />
+              Đăng ký ở ngắn hạn
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Contact Landlord Modal - only for non-owners */}
-      {!isOwner && owner && (
+      <GalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        images={images.length ? images : [""]}
+        initialIndex={currentImageIndex}
+      />
+
+      {!isOwner && owner ? (
         <ContactLandlordModal
           isOpen={isContactOpen}
           onClose={() => setIsContactOpen(false)}
           landlord={{
             id: owner.id,
-            full_name: owner.full_name || "Chủ nhà",
+            full_name: owner.full_name || "Host",
             avatar_url: owner.avatar_url || null,
+            email: owner.email || undefined,
           }}
-          roomId={sublet?.room?.id}
-          roomTitle={sublet?.room?.title}
+          roomId={room?.id}
+          roomTitle={title}
         />
-      )}
+      ) : null}
 
-      {/* Apply Sublet Dialog - only for non-owners */}
-      {!isOwner && (
-        <ApplySubletDialog
-          sublet={sublet}
-          isOpen={isApplyOpen}
-          onClose={() => setIsApplyOpen(false)}
-        />
-      )}
+      {!isOwner ? (
+        <ApplySubletDialog sublet={sublet} isOpen={isApplyOpen} onClose={() => setIsApplyOpen(false)} />
+      ) : null}
     </div>
   );
-};
-
-export default SubletDetailPage;
+}

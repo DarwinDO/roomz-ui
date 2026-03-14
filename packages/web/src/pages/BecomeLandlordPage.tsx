@@ -1,98 +1,103 @@
-import { useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts';
-import { supabase } from '@/lib/supabase';
+import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/contexts';
+import { useMyHostApplication, useSubmitHostApplication } from '@/hooks/useHostApplications';
+import { mapApplicationToDraft } from '@/services/hostApplications';
 import type { BecomeLandlordFormData } from './become-landlord/types';
-
-// Components
-import { BecomeLandlordIntro } from './become-landlord/components/BecomeLandlordIntro';
 import { BecomeLandlordForm } from './become-landlord/components/BecomeLandlordForm';
+import { BecomeLandlordIntro } from './become-landlord/components/BecomeLandlordIntro';
 import { BecomeLandlordPending } from './become-landlord/components/BecomeLandlordPending';
 
 export default function BecomeLandlordPage() {
-    const navigate = useNavigate();
-    const { user, profile } = useAuth();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [formData, setFormData] = useState<BecomeLandlordFormData>({
-        phone: profile?.phone || '',
-        address: '',
-        propertyCount: '',
-        experience: '',
-        description: '',
-    });
+  const navigate = useNavigate();
+  const { user, profile, refreshUser } = useAuth();
+  const { data: application, isLoading: isApplicationLoading } = useMyHostApplication(Boolean(user));
+  const submitMutation = useSubmitHostApplication();
+  const [formData, setFormData] = useState<BecomeLandlordFormData>({
+    phone: profile?.phone || '',
+    address: '',
+    propertyCount: '',
+    experience: '',
+    description: '',
+  });
 
-    // Check if already landlord
+  useEffect(() => {
+    if (!application) {
+      return;
+    }
+
+    setFormData(mapApplicationToDraft(application));
+  }, [application]);
+
+  useEffect(() => {
     if (profile?.role === 'landlord') {
-        navigate('/landlord');
-        return null;
+      navigate('/host', { replace: true });
+    }
+  }, [navigate, profile?.role]);
+
+  const isPendingApproval = application?.status === 'submitted' || profile?.account_status === 'pending_landlord';
+  const rejectionReason = application?.status === 'rejected' ? application.rejectionReason : null;
+  const helperTitle = useMemo(() => {
+    if (application?.status === 'rejected') {
+      return 'Cập nhật lại hồ sơ host';
     }
 
-    // Check if pending approval
-    const isPendingApproval = profile?.account_status === 'pending_landlord';
+    return 'Thông tin đăng ký';
+  }, [application?.status]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
-        if (!user) {
-            toast.error('Vui lòng đăng nhập để tiếp tục');
-            navigate('/login');
-            return;
-        }
-
-        setIsSubmitting(true);
-
-        try {
-            // Update user profile with landlord application info
-            const { error } = await supabase
-                .from('users')
-                .update({
-                    phone: formData.phone,
-                    account_status: 'pending_landlord',
-                    preferences: {
-                        ...(profile?.preferences as object),
-                        landlord_application: {
-                            address: formData.address,
-                            property_count: formData.propertyCount,
-                            experience: formData.experience,
-                            description: formData.description,
-                            applied_at: new Date().toISOString(),
-                        },
-                    },
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('id', user.id);
-
-            if (error) throw error;
-
-            toast.success('Đơn đăng ký đã được gửi! Admin sẽ xem xét trong 24-48 giờ.');
-            // Reload to show pending status
-            window.location.reload();
-        } catch (error) {
-            console.error('Error submitting landlord application:', error);
-            toast.error('Có lỗi xảy ra. Vui lòng thử lại sau.');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    // Pending approval state
-    if (isPendingApproval) {
-        return <BecomeLandlordPending />;
+    if (!user) {
+      toast.error('Vui lòng đăng nhập để tiếp tục');
+      navigate('/login');
+      return;
     }
 
+    try {
+      await submitMutation.mutateAsync(formData);
+      await refreshUser();
+    } catch (error) {
+      console.error('Error submitting host application:', error);
+    }
+  };
+
+  if (isPendingApproval) {
+    return <BecomeLandlordPending submittedAt={application?.submittedAt ?? null} />;
+  }
+
+  if (isApplicationLoading) {
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-            <div className="container max-w-4xl mx-auto px-4 py-8">
-                <BecomeLandlordIntro />
-
-                <BecomeLandlordForm
-                    formData={formData}
-                    setFormData={setFormData}
-                    handleSubmit={handleSubmit}
-                    isSubmitting={isSubmitting}
-                />
-            </div>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <p className="text-sm text-muted-foreground">Đang tải hồ sơ host...</p>
+      </div>
     );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="container mx-auto max-w-4xl px-4 py-8">
+        <BecomeLandlordIntro />
+
+        {rejectionReason ? (
+          <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-900">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Hồ sơ host cần bổ sung thêm thông tin</AlertTitle>
+            <AlertDescription className="mt-2 leading-6">{rejectionReason}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <BecomeLandlordForm
+          title={helperTitle}
+          formData={formData}
+          setFormData={setFormData}
+          handleSubmit={handleSubmit}
+          isSubmitting={submitMutation.isPending}
+        />
+      </div>
+    </div>
+  );
 }

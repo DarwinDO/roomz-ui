@@ -1,239 +1,248 @@
-/**
+﻿/**
  * SwapRequestsPage
- * Manage incoming and outgoing swap requests
+ * Manage incoming and outgoing swap requests inside the short-stay lane.
  */
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Inbox, Send, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Inbox, RotateCcw, Send } from 'lucide-react';
+import { useAuth } from '@/contexts';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { SwapRequestCard } from '@/components/swap';
-import {
-    useSwapRequests,
-    useRespondToSwapRequest,
-    useCancelSwapRequest,
-} from '@/hooks/useSwap';
+import { useCancelSwapRequest, useRespondToSwapRequest, useSwapRequests } from '@/hooks/useSwap';
 import { toast } from 'sonner';
 import type { SwapRequest } from '@roomz/shared/types/swap';
 
 export default function SwapRequestsPage() {
-    const navigate = useNavigate();
-    const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-    const { data: requests, isLoading, isError } = useSwapRequests();
-    const respondToRequest = useRespondToSwapRequest();
-    const cancelRequest = useCancelSwapRequest();
+  const { data: requests, isLoading, isError, refetch } = useSwapRequests();
+  const respondToRequest = useRespondToSwapRequest();
+  const cancelRequest = useCancelSwapRequest();
 
-    const [processingId, setProcessingId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-    const incomingRequests =
-        requests?.filter((r) => r.status === 'pending' && r.recipient_id === user?.id) || [];
-    const outgoingRequests =
-        requests?.filter((r) => r.requester_id === user?.id) || [];
-    const allRequests = requests || [];
+  const incomingRequests = requests?.filter((request) => request.status === 'pending' && request.recipient_id === user?.id) || [];
+  const outgoingRequests = requests?.filter((request) => request.requester_id === user?.id) || [];
+  const allRequests = requests || [];
 
-    const handleAccept = async (request: SwapRequest) => {
-        setProcessingId(request.id);
-        try {
-            await respondToRequest.mutateAsync({
-                requestId: request.id,
-                response: { status: 'accepted' },
-            });
-            toast.success('Đã chấp nhận!', {
-                description: 'Yêu cầu hoán đổi đã được chấp nhận.',
-            });
-        } catch (error) {
-            toast.error('Lỗi', {
-                description: 'Không thể chấp nhận yêu cầu.',
-            });
-        } finally {
-            setProcessingId(null);
-        }
-    };
+  const handleAccept = async (request: SwapRequest) => {
+    setProcessingId(request.id);
 
-    const handleReject = async (request: SwapRequest) => {
-        const reason = window.prompt('Lý do từ chối:');
-        if (reason === null) return; // User cancelled
+    try {
+      await respondToRequest.mutateAsync({
+        requestId: request.id,
+        response: { status: 'accepted' },
+      });
+      toast.success('Đã chấp nhận', {
+        description: 'Đề xuất hoán đổi đã được chấp nhận.',
+      });
+    } catch {
+      toast.error('Không thể chấp nhận', {
+        description: 'Vui lòng thử lại sau.',
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
-        setProcessingId(request.id);
-        try {
-            await respondToRequest.mutateAsync({
-                requestId: request.id,
-                response: { status: 'rejected', rejection_reason: reason || 'Không phù hợp' },
-            });
-            toast.success('Đã từ chối', {
-                description: 'Yêu cầu đã bị từ chối.',
-            });
-        } catch (error) {
-            toast.error('Lỗi', {
-                description: 'Không thể từ chối yêu cầu.',
-            });
-        } finally {
-            setProcessingId(null);
-        }
-    };
+  const handleReject = async (request: SwapRequest) => {
+    const reason = window.prompt('Lý do từ chối (tùy chọn):');
+    if (reason === null) {
+      return;
+    }
 
-    const handleCancel = async (request: SwapRequest) => {
-        setProcessingId(request.id);
-        try {
-            await cancelRequest.mutateAsync(request.id);
-            toast.success('Đã hủy', {
-                description: 'Yêu cầu của bạn đã được hủy.',
-            });
-        } catch (error) {
-            toast.error('Lỗi', {
-                description: 'Không thể hủy yêu cầu.',
-            });
-        } finally {
-            setProcessingId(null);
-        }
-    };
+    setProcessingId(request.id);
 
-    return (
-        <div className="pb-20 md:pb-8 min-h-screen bg-background">
-            {/* Header */}
-            <div className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-30 px-6 py-4">
-                <div className="max-w-6xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" onClick={() => navigate('/swap')}>
-                            <ArrowLeft className="w-5 h-5" />
-                        </Button>
-                        <div>
-                            <h1 className="text-xl font-bold">Yêu cầu hoán đổi</h1>
-                            <p className="text-muted-foreground text-sm hidden sm:block">
-                                Quản lý yêu cầu gửi đến và đã gửi
-                            </p>
-                        </div>
-                    </div>
-                </div>
+    try {
+      await respondToRequest.mutateAsync({
+        requestId: request.id,
+        response: {
+          status: 'rejected',
+          rejection_reason: reason || 'Chưa phù hợp vào lúc này',
+        },
+      });
+      toast.success('Đã từ chối', {
+        description: 'Đề xuất hoán đổi đã được cập nhật.',
+      });
+    } catch {
+      toast.error('Không thể từ chối', {
+        description: 'Vui lòng thử lại sau.',
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleCancel = async (request: SwapRequest) => {
+    setProcessingId(request.id);
+
+    try {
+      await cancelRequest.mutateAsync(request.id);
+      toast.success('Đã hủy đề xuất', {
+        description: 'Yêu cầu của bạn không còn chờ phản hồi nữa.',
+      });
+    } catch {
+      toast.error('Không thể hủy đề xuất', {
+        description: 'Vui lòng thử lại sau.',
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-20 md:pb-8">
+      <div className="sticky top-0 z-30 border-b border-border bg-card/95 px-6 py-4 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/swap')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold">Quản lý đề xuất hoán đổi</h1>
+              <p className="hidden text-sm text-muted-foreground sm:block">
+                Theo dõi các đề xuất bạn nhận được và những đề xuất bạn đã gửi trong lane ở ngắn hạn.
+              </p>
             </div>
-
-            <div className="max-w-6xl mx-auto px-4 py-6">
-                <Tabs defaultValue="incoming" className="w-full">
-                    <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8 rounded-xl bg-muted/50 p-1">
-                        <TabsTrigger value="incoming" className="rounded-lg">
-                            <Inbox className="w-4 h-4 mr-2" />
-                            Đến
-                            {incomingRequests.length > 0 && (
-                                <Badge variant="destructive" className="ml-2">
-                                    {incomingRequests.length}
-                                </Badge>
-                            )}
-                        </TabsTrigger>
-                        <TabsTrigger value="outgoing" className="rounded-lg">
-                            <Send className="w-4 h-4 mr-2" />
-                            Đã gửi
-                        </TabsTrigger>
-                        <TabsTrigger value="all" className="rounded-lg">
-                            <RotateCcw className="w-4 h-4 mr-2" />
-                            Tất cả
-                        </TabsTrigger>
-                    </TabsList>
-
-                    {/* Incoming */}
-                    <TabsContent value="incoming" className="space-y-4">
-                        {isLoading ? (
-                            <div className="space-y-4">
-                                {[1, 2].map((i) => (
-                                    <Card key={i} className="h-48 animate-pulse" />
-                                ))}
-                            </div>
-                        ) : incomingRequests.length === 0 ? (
-                            <Card className="p-12 text-center">
-                                <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                    <Inbox className="w-8 h-8 text-muted-foreground" />
-                                </div>
-                                <h3 className="mb-2 font-medium">Chưa có yêu cầu nào</h3>
-                                <p className="text-muted-foreground">
-                                    Khi có người gửi yêu cầu hoán đổi, bạn sẽ thấy ở đây.
-                                </p>
-                            </Card>
-                        ) : (
-                            <div className="space-y-4">
-                                {incomingRequests.map((request) => (
-                                    <SwapRequestCard
-                                        key={request.id}
-                                        request={request}
-                                        isIncoming={true}
-                                        onAccept={() => handleAccept(request)}
-                                        onReject={() => handleReject(request)}
-                                        disabled={processingId === request.id}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </TabsContent>
-
-                    {/* Outgoing */}
-                    <TabsContent value="outgoing" className="space-y-4">
-                        {isLoading ? (
-                            <div className="space-y-4">
-                                {[1, 2].map((i) => (
-                                    <Card key={i} className="h-48 animate-pulse" />
-                                ))}
-                            </div>
-                        ) : outgoingRequests.length === 0 ? (
-                            <Card className="p-12 text-center">
-                                <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                    <Send className="w-8 h-8 text-muted-foreground" />
-                                </div>
-                                <h3 className="mb-2 font-medium">Chưa gửi yêu cầu nào</h3>
-                                <p className="text-muted-foreground mb-4">
-                                    Tìm phòng và gửi yêu cầu hoán đổi ngay.
-                                </p>
-                                <Button onClick={() => navigate('/swap')}>Tìm phòng</Button>
-                            </Card>
-                        ) : (
-                            <div className="space-y-4">
-                                {outgoingRequests.map((request) => (
-                                    <SwapRequestCard
-                                        key={request.id}
-                                        request={request}
-                                        isIncoming={false}
-                                        onCancel={() => handleCancel(request)}
-                                        disabled={processingId === request.id}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </TabsContent>
-
-                    {/* All */}
-                    <TabsContent value="all" className="space-y-4">
-                        {isLoading ? (
-                            <div className="space-y-4">
-                                {[1, 2, 3].map((i) => (
-                                    <Card key={i} className="h-48 animate-pulse" />
-                                ))}
-                            </div>
-                        ) : allRequests.length === 0 ? (
-                            <Card className="p-12 text-center">
-                                <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                    <RotateCcw className="w-8 h-8 text-muted-foreground" />
-                                </div>
-                                <h3 className="mb-2 font-medium">Chưa có yêu cầu nào</h3>
-                                <p className="text-muted-foreground">
-                                    Lịch sử yêu cầu hoán đổi sẽ hiển thị ở đây.
-                                </p>
-                            </Card>
-                        ) : (
-                            <div className="space-y-4">
-                                {allRequests.map((request) => (
-                                    <SwapRequestCard
-                                        key={request.id}
-                                        request={request}
-                                        isIncoming={request.recipient_id === user?.id}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </TabsContent>
-                </Tabs>
-            </div>
+          </div>
         </div>
-    );
+      </div>
+
+      <div className="mx-auto max-w-6xl px-4 py-6">
+        <Tabs defaultValue="incoming" className="w-full">
+          <TabsList className="mx-auto mb-8 grid w-full max-w-md grid-cols-3 rounded-xl bg-muted/50 p-1">
+            <TabsTrigger value="incoming" className="rounded-lg">
+              <Inbox className="mr-2 h-4 w-4" />
+              Nhận được
+              {incomingRequests.length > 0 ? (
+                <Badge variant="destructive" className="ml-2">{incomingRequests.length}</Badge>
+              ) : null}
+            </TabsTrigger>
+            <TabsTrigger value="outgoing" className="rounded-lg">
+              <Send className="mr-2 h-4 w-4" />
+              Đã gửi
+            </TabsTrigger>
+            <TabsTrigger value="all" className="rounded-lg">
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Tất cả
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="incoming" className="space-y-4">
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2].map((item) => (
+                  <Card key={item} className="h-48 animate-pulse" />
+                ))}
+              </div>
+            ) : isError ? (
+              <Card className="p-10 text-center">
+                <p className="mb-4 text-muted-foreground">Không thể tải các đề xuất bạn nhận được.</p>
+                <Button onClick={() => refetch()}>Tải lại</Button>
+              </Card>
+            ) : incomingRequests.length === 0 ? (
+              <Card className="p-12 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50">
+                  <Inbox className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="mb-2 font-medium">Chưa có đề xuất nào</h3>
+                <p className="text-muted-foreground">
+                  Khi có người muốn trao đổi thêm với tin ở ngắn hạn của bạn, mục này sẽ hiện ngay.
+                </p>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {incomingRequests.map((request) => (
+                  <SwapRequestCard
+                    key={request.id}
+                    request={request}
+                    isIncoming
+                    onAccept={() => handleAccept(request)}
+                    onReject={() => handleReject(request)}
+                    disabled={processingId === request.id}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="outgoing" className="space-y-4">
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2].map((item) => (
+                  <Card key={item} className="h-48 animate-pulse" />
+                ))}
+              </div>
+            ) : isError ? (
+              <Card className="p-10 text-center">
+                <p className="mb-4 text-muted-foreground">Không thể tải các đề xuất bạn đã gửi.</p>
+                <Button onClick={() => refetch()}>Tải lại</Button>
+              </Card>
+            ) : outgoingRequests.length === 0 ? (
+              <Card className="p-12 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50">
+                  <Send className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="mb-2 font-medium">Bạn chưa gửi đề xuất nào</h3>
+                <p className="mb-4 text-muted-foreground">
+                  Hãy xem các cơ hội phù hợp trong mục hoán đổi nếu bạn muốn trao đổi thêm với một host khác.
+                </p>
+                <Button onClick={() => navigate('/swap-matches')}>Xem cơ hội hoán đổi</Button>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {outgoingRequests.map((request) => (
+                  <SwapRequestCard
+                    key={request.id}
+                    request={request}
+                    isIncoming={false}
+                    onCancel={() => handleCancel(request)}
+                    disabled={processingId === request.id}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="all" className="space-y-4">
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((item) => (
+                  <Card key={item} className="h-48 animate-pulse" />
+                ))}
+              </div>
+            ) : isError ? (
+              <Card className="p-10 text-center">
+                <p className="mb-4 text-muted-foreground">Không thể tải lịch sử đề xuất.</p>
+                <Button onClick={() => refetch()}>Tải lại</Button>
+              </Card>
+            ) : allRequests.length === 0 ? (
+              <Card className="p-12 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50">
+                  <RotateCcw className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="mb-2 font-medium">Chưa có lịch sử nào</h3>
+                <p className="text-muted-foreground">Lịch sử đề xuất hoán đổi sẽ xuất hiện ở đây khi bạn bắt đầu sử dụng lane này.</p>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {allRequests.map((request) => (
+                  <SwapRequestCard
+                    key={request.id}
+                    request={request}
+                    isIncoming={request.recipient_id === user?.id}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
 }

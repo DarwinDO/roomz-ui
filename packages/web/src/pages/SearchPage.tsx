@@ -20,7 +20,7 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { useAuth } from "@/contexts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, UtensilsCrossed, PawPrint, Armchair, CheckCircle2, Loader2, AlertCircle, ChevronDown, GraduationCap, Landmark, TrainFront, MapPinned, Sparkles } from "lucide-react";
+import { Search, SlidersHorizontal, Map, List, X, Wifi, Car, WashingMachine, UtensilsCrossed, PawPrint, Armchair, CheckCircle2, Loader2, AlertCircle, ChevronDown, GraduationCap, Landmark, TrainFront, MapPinned, Sparkles, LocateFixed } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -31,11 +31,19 @@ import {
   locationCatalogToSelectedPlace,
   type LocationCatalogEntry,
 } from "@/services/locations";
+import { reverseGeocodeCoordinates } from "@/services/mapboxGeocoding";
+import { searchRooms } from "@/services/rooms";
 import {
   trackFeatureEvent,
   trackLocationSelected,
   trackSearchPerformed,
 } from "@/services/analyticsTracking";
+import {
+  buildSearchParamsFromState,
+  getNextRadiusOption,
+  getSelectedLocationLabel,
+  parseSearchLocationState,
+} from "./searchPage.utils";
 
 function getLocationIcon(type: LocationCatalogEntry["location_type"]) {
   switch (type) {
@@ -51,12 +59,16 @@ function getLocationIcon(type: LocationCatalogEntry["location_type"]) {
   }
 }
 
+const DEFAULT_SEARCH_RADIUS_KM = 5;
+const CURRENT_LOCATION_LABEL = "V\u1ecb tr\u00ed hi\u1ec7n t\u1ea1i";
+
 export default function SearchPage() {
   const locationRadiusOptions = [3, 5, 10, 20];
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const lastTrackedSearchFingerprint = useRef<string | null>(null);
+  const isHydratingFromUrlRef = useRef(true);
 
   // Filters state
   const [searchInput, setSearchInput] = useState("");
@@ -69,37 +81,24 @@ export default function SearchPage() {
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [showVerifiedCheck, setShowVerifiedCheck] = useState(false);
+  const [isLocatingCurrentLocation, setIsLocatingCurrentLocation] = useState(false);
+  const [isCurrentLocationSearch, setIsCurrentLocationSearch] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
 
   useEffect(() => {
-    const query = searchParams.get("q")?.trim() ?? "";
-    const address = searchParams.get("address")?.trim() || query;
-    const city = searchParams.get("city")?.trim() || undefined;
-    const district = searchParams.get("district")?.trim() || undefined;
-    const latitude = Number(searchParams.get("lat"));
-    const longitude = Number(searchParams.get("lng"));
-    const radius = Number(searchParams.get("radius"));
-    const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
+    isHydratingFromUrlRef.current = true;
+
+    const {
+      query,
+      selectedLocation: nextLocation,
+      radiusKm,
+      locationSource,
+    } = parseSearchLocationState(searchParams);
 
     setSearchInput((current) => (current === query ? current : query));
-    setSearchRadiusKm((current) => {
-      if (!hasCoordinates || !Number.isFinite(radius)) {
-        return current;
-      }
-
-      return current === radius ? current : radius;
-    });
+    setSearchRadiusKm((current) => (current === radiusKm ? current : radiusKm));
+    setIsCurrentLocationSearch(locationSource === "current_location");
     setSelectedLocation((current) => {
-      const nextLocation = hasCoordinates
-        ? {
-            address,
-            lat: latitude,
-            lng: longitude,
-            city,
-            district,
-          }
-        : null;
-
       if (
         current?.address === nextLocation?.address &&
         current?.lat === nextLocation?.lat &&
@@ -116,15 +115,62 @@ export default function SearchPage() {
 
   const effectiveSearchQuery = useMemo(() => {
     if (selectedLocation) {
-      return buildRoomSearchQuery(selectedLocation);
+      return isCurrentLocationSearch
+        ? sanitizeRoomSearchInput(searchInput)
+        : buildRoomSearchQuery(selectedLocation);
     }
 
     return sanitizeRoomSearchInput(searchInput);
-  }, [searchInput, selectedLocation]);
+  }, [isCurrentLocationSearch, searchInput, selectedLocation]);
 
-  // Debounce search query to reduce API calls (only fires after user stops typing for 400ms)
   const debouncedSearchQuery = useDebounce(effectiveSearchQuery, 400);
   const debouncedCatalogQuery = useDebounce(searchInput.trim(), 250);
+  const selectedLocationLabel = useMemo(() => {
+    if (!selectedLocation) {
+      return "";
+    }
+
+    if (!isCurrentLocationSearch) {
+      return getSelectedLocationLabel(selectedLocation);
+    }
+
+    const areaLabel = getSelectedLocationLabel(selectedLocation);
+    return areaLabel ? `${areaLabel} - ${CURRENT_LOCATION_LABEL}` : CURRENT_LOCATION_LABEL;
+  }, [isCurrentLocationSearch, selectedLocation]);
+
+  useEffect(() => {
+    if (isHydratingFromUrlRef.current) {
+      isHydratingFromUrlRef.current = false;
+      return;
+    }
+
+    const nextParams = buildSearchParamsFromState({
+      searchInput,
+      selectedLocation,
+      radiusKm: searchRadiusKm,
+      locationSource: selectedLocation
+        ? isCurrentLocationSearch
+          ? "current_location"
+          : "mapbox"
+        : null,
+    });
+
+    const currentParams = searchParams.toString();
+    const nextParamsString = nextParams.toString();
+
+    if (currentParams === nextParamsString) {
+      return;
+    }
+
+    setSearchParams(nextParams, { replace: true });
+  }, [
+    isCurrentLocationSearch,
+    searchInput,
+    searchParams,
+    searchRadiusKm,
+    selectedLocation,
+    setSearchParams,
+  ]);
 
   // Extract price range values for stable dependencies
   const minPrice = priceRange[0];
@@ -186,7 +232,7 @@ export default function SearchPage() {
       room_types: selectedRoomTypes,
       amenities: selectedAmenities,
       has_location: Boolean(selectedLocation),
-      location_label: selectedLocation ? buildRoomSearchQuery(selectedLocation) : null,
+      location_label: selectedLocationLabel || null,
       location_city: selectedLocation?.city ?? null,
       location_district: selectedLocation?.district ?? null,
       radius_km: selectedLocation ? searchRadiusKm : null,
@@ -199,6 +245,7 @@ export default function SearchPage() {
       selectedRoomTypes,
       selectedAmenities,
       selectedLocation,
+      selectedLocationLabel,
       searchRadiusKm,
       sortBy,
     ],
@@ -217,7 +264,7 @@ export default function SearchPage() {
 
     const fingerprint = JSON.stringify({
       query: debouncedSearchQuery,
-      location: selectedLocation?.address ?? null,
+      location: selectedLocationLabel || selectedLocation?.address || null,
       radius: selectedLocation ? searchRadiusKm : null,
       filters: searchAnalyticsFilters,
       result_count: totalCount,
@@ -229,7 +276,7 @@ export default function SearchPage() {
 
     lastTrackedSearchFingerprint.current = fingerprint;
     void trackSearchPerformed(user?.id ?? null, {
-      query: debouncedSearchQuery || (selectedLocation ? buildRoomSearchQuery(selectedLocation) : "browse_all"),
+      query: debouncedSearchQuery || (selectedLocation ? selectedLocationLabel : "browse_all"),
       resultCount: totalCount,
       filters: searchAnalyticsFilters,
     });
@@ -242,6 +289,7 @@ export default function SearchPage() {
     searchAnalyticsFilters,
     searchRadiusKm,
     selectedLocation,
+    selectedLocationLabel,
     totalCount,
     user?.id,
   ]);
@@ -321,7 +369,7 @@ export default function SearchPage() {
 
   const amenities = [
     { id: "wifi", label: "WiFi", icon: Wifi },
-    { id: "parking", label: "Chỗ đỗ xe", icon: Car },
+    { id: "parking", label: "Chỗ để xe", icon: Car },
     { id: "washing_machine", label: "Giặt là", icon: WashingMachine },
     { id: "kitchen", label: "Bếp", icon: UtensilsCrossed },
     { id: "pet_allowed", label: "Cho phép thú cưng", icon: PawPrint },
@@ -348,7 +396,8 @@ export default function SearchPage() {
     setShowVerifiedCheck(false);
     setSearchInput("");
     setSelectedLocation(null);
-    setSearchRadiusKm(5);
+    setSearchRadiusKm(DEFAULT_SEARCH_RADIUS_KM);
+    setIsCurrentLocationSearch(false);
     setSortBy('newest');
     toast.success("Đã đặt lại bộ lọc");
   };
@@ -364,13 +413,15 @@ export default function SearchPage() {
 
     if (selectedLocation && value.trim() !== selectedLocation.address) {
       setSelectedLocation(null);
+      setIsCurrentLocationSearch(false);
     }
   };
 
   const handleLocationSelect = (place: SelectedMapboxPlace) => {
     setSelectedLocation(place);
     setSearchInput(place.address);
-    setSearchRadiusKm(5);
+    setSearchRadiusKm(DEFAULT_SEARCH_RADIUS_KM);
+    setIsCurrentLocationSearch(false);
     void trackLocationSelected(user?.id ?? null, {
       source: "mapbox",
       label: buildRoomSearchQuery(place),
@@ -392,7 +443,8 @@ export default function SearchPage() {
 
     setSelectedLocation(selectedPlace);
     setSearchInput(selectedPlace.address);
-    setSearchRadiusKm(5);
+    setSearchRadiusKm(DEFAULT_SEARCH_RADIUS_KM);
+    setIsCurrentLocationSearch(false);
     void trackLocationSelected(user?.id ?? null, {
       source: "catalog",
       label: location.name,
@@ -405,10 +457,130 @@ export default function SearchPage() {
     });
   };
 
+  const clearSelectedLocation = () => {
+    setSelectedLocation(null);
+    setIsCurrentLocationSearch(false);
+    setSearchInput("");
+    setSearchRadiusKm(DEFAULT_SEARCH_RADIUS_KM);
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (isLocatingCurrentLocation) {
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      toast.error("Trình duyệt này không hỗ trợ định vị.");
+      return;
+    }
+
+    setIsLocatingCurrentLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const reversePlace = await reverseGeocodeCoordinates(latitude, longitude).catch(() => null);
+        const nextLocation: SelectedMapboxPlace = reversePlace
+          ? {
+              ...reversePlace,
+              lat: latitude,
+              lng: longitude,
+            }
+          : {
+              address: "",
+              lat: latitude,
+              lng: longitude,
+            };
+
+        setSelectedLocation(nextLocation);
+        setSearchInput("");
+        setSearchRadiusKm(DEFAULT_SEARCH_RADIUS_KM);
+        setIsCurrentLocationSearch(true);
+        setIsLocatingCurrentLocation(false);
+
+        void trackLocationSelected(user?.id ?? null, {
+          source: "current_location",
+          label: CURRENT_LOCATION_LABEL,
+          address: nextLocation.address,
+          city: nextLocation.city ?? null,
+          district: nextLocation.district ?? null,
+          latitude: nextLocation.lat,
+          longitude: nextLocation.lng,
+        });
+
+        toast.success(
+          reversePlace
+            ? `Đang tìm quanh ${getSelectedLocationLabel(nextLocation)}.`
+            : "Đang tìm quanh vị trí hiện tại.",
+        );
+      },
+      (error) => {
+        setIsLocatingCurrentLocation(false);
+
+        if (error.code === GeolocationPositionError.PERMISSION_DENIED) {
+          toast.info("Bạn chưa cấp quyền vị trí. Hãy cho phép trình duyệt truy cập vị trí nếu muốn tìm quanh đây.");
+          return;
+        }
+
+        toast.error("Không thể lấy vị trí hiện tại. Hãy thử lại sau.");
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000,
+      },
+    );
+  };
+
   // Transform rooms to card props (no more client-side filtering!)
   const roomCards = useMemo(() => {
     return rooms.map(room => transformRoomToCardProps(room, isFavorited(room.id)));
   }, [rooms, isFavorited]);
+
+  const emptyRadiusSuggestion = useQuery({
+    queryKey: [
+      "rooms",
+      "search-radius-suggestion",
+      selectedLocation?.lat ?? null,
+      selectedLocation?.lng ?? null,
+      debouncedSearchQuery || null,
+      minPrice,
+      maxPrice,
+      verifiedOnly,
+      selectedRoomTypes.join(","),
+      selectedAmenities.join(","),
+      sortBy,
+      searchRadiusKm,
+    ],
+    enabled: Boolean(selectedLocation) && !isLoading && !error && roomCards.length === 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const nextRadii = locationRadiusOptions.filter((radius) => radius > searchRadiusKm);
+
+      for (const radius of nextRadii) {
+        const result = await searchRooms({
+          ...roomFilters,
+          radiusKm: radius,
+          page: 1,
+          pageSize: 1,
+        });
+
+        if (result.totalCount > 0) {
+          return {
+            radius,
+            totalCount: result.totalCount,
+          };
+        }
+      }
+
+      return null;
+    },
+  });
+
+  const suggestedRadius = emptyRadiusSuggestion.data?.radius ?? null;
+  const suggestedRoomCount = emptyRadiusSuggestion.data?.totalCount ?? 0;
+  const nextRadiusOption = getNextRadiusOption(searchRadiusKm, locationRadiusOptions);
 
   return (
     <div className="pb-20 md:pb-8">
@@ -424,6 +596,22 @@ export default function SearchPage() {
               className="flex-1"
               suppressSuggestions={shouldSuppressMapboxSuggestions}
             />
+            <Button
+              type="button"
+              variant={isCurrentLocationSearch ? "default" : "outline"}
+              onClick={handleUseCurrentLocation}
+              disabled={isLocatingCurrentLocation}
+              className="shrink-0 rounded-full px-3 md:px-4"
+            >
+              {isLocatingCurrentLocation ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LocateFixed className="h-4 w-4" />
+              )}
+              <span className="ml-2 hidden lg:inline">
+                {isCurrentLocationSearch ? "Đang dùng vị trí hiện tại" : "Dùng vị trí hiện tại"}
+              </span>
+            </Button>
             <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="rounded-xl shrink-0 border-border hover-scale">
@@ -636,7 +824,7 @@ export default function SearchPage() {
               <p className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Map className="w-3.5 h-3.5" />
                 Đang tìm quanh:
-                <span className="font-medium text-foreground">{buildRoomSearchQuery(selectedLocation)}</span>
+                <span className="font-medium text-foreground">{selectedLocationLabel}</span>
               </p>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -653,6 +841,15 @@ export default function SearchPage() {
                     {radius} km
                   </Button>
                 ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={clearSelectedLocation}
+                  className="h-8 rounded-full px-3 text-xs"
+                >
+                  Bỏ vị trí
+                </Button>
               </div>
             </div>
           )}
@@ -678,8 +875,8 @@ export default function SearchPage() {
                 className="text-sm border border-border rounded-xl px-3 py-1.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <option value="newest">Mới nhất</option>
-                <option value="price_asc">Giá thấp → cao</option>
-                <option value="price_desc">Giá cao → thấp</option>
+                <option value="price_asc">Giá thấp đến cao</option>
+                <option value="price_desc">Giá cao đến thấp</option>
                 <option value="most_viewed">Xem nhiều nhất</option>
               </select>
               <div className="flex gap-2">
@@ -773,11 +970,35 @@ export default function SearchPage() {
         {!isLoading && !error && roomCards.length === 0 && (
           <div className="bg-muted/30 border border-border rounded-2xl p-12 text-center animate-fade-in">
             <Search className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Không tìm thấy phòng</h3>
-            <p className="text-muted-foreground mb-4">Thử điều chỉnh bộ lọc để xem thêm kết quả</p>
-            <Button onClick={handleResetFilters} variant="outline" className="rounded-xl">
-              Đặt lại bộ lọc
-            </Button>
+            <h3 className="text-xl font-semibold mb-2">
+              {selectedLocation ? `Không có phòng trong ${searchRadiusKm} km` : "Không tìm thấy phòng"}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {selectedLocation
+                ? suggestedRadius
+                  ? `Hiện chưa có phòng trong ${searchRadiusKm} km quanh ${selectedLocationLabel}. Có ${suggestedRoomCount} phòng nếu mở rộng lên ${suggestedRadius} km.`
+                  : `Hiện chưa có phòng phù hợp trong ${searchRadiusKm} km quanh ${selectedLocationLabel}.`
+                : "Thử điều chỉnh bộ lọc để xem thêm kết quả."}
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {selectedLocation && suggestedRadius ? (
+                <Button onClick={() => setSearchRadiusKm(suggestedRadius)} className="rounded-xl">
+                  Mở rộng lên {suggestedRadius} km
+                </Button>
+              ) : selectedLocation && nextRadiusOption ? (
+                <Button onClick={() => setSearchRadiusKm(nextRadiusOption)} className="rounded-xl">
+                  Thử {nextRadiusOption} km
+                </Button>
+              ) : null}
+              {selectedLocation ? (
+                <Button onClick={clearSelectedLocation} variant="outline" className="rounded-xl">
+                  Bỏ vị trí và xem tất cả
+                </Button>
+              ) : null}
+              <Button onClick={handleResetFilters} variant="outline" className="rounded-xl">
+                Đặt lại bộ lọc
+              </Button>
+            </div>
           </div>
         )}
 
@@ -828,3 +1049,4 @@ export default function SearchPage() {
     </div>
   );
 }
+

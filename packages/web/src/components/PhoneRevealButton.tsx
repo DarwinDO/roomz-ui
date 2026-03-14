@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Phone, Lock, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ export function PhoneRevealButton({ roomId, className = "" }: PhoneRevealButtonP
       });
     } catch (err) {
       console.error("Failed to reveal phone:", err);
-      setError("Không thể lấy thông tin liên hệ");
+      setError("Không thể lấy thông tin liên hệ.");
     } finally {
       setLoading(false);
     }
@@ -81,19 +81,9 @@ export function PhoneRevealButton({ roomId, className = "" }: PhoneRevealButtonP
       {error ? (
         <p className="text-sm text-red-500">{error}</p>
       ) : (
-        <Button
-          onClick={handleReveal}
-          disabled={loading}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-        >
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Phone className="h-4 w-4" />
-          )}
-          Xem SĐT
+        <Button onClick={handleReveal} disabled={loading} variant="outline" size="sm" className="gap-2">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
+          Xem số điện thoại
         </Button>
       )}
     </div>

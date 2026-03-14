@@ -14,7 +14,7 @@ type SearchAnalyticsPayload = {
 };
 
 type LocationSelectionPayload = {
-  source: 'mapbox' | 'catalog';
+  source: 'mapbox' | 'catalog' | 'current_location';
   label: string;
   address: string;
   city?: string | null;

@@ -95,7 +95,7 @@ export default function PostRoomPage() {
           return;
         }
 
-        // Check if user is the landlord
+        // Check if user owns this listing
         if (room.landlord_id !== user.id) {
           setLoadError("Bạn không có quyền chỉnh sửa phòng này");
           return;
@@ -391,7 +391,7 @@ export default function PostRoomPage() {
             </div>
             <h2 className="text-xl font-bold mb-2">Không thể tải phòng</h2>
             <p className="text-muted-foreground mb-8">{loadError}</p>
-            <Button onClick={() => navigate("/landlord")} className="w-full max-w-xs rounded-xl h-12">
+            <Button onClick={() => navigate("/host")} className="w-full max-w-xs rounded-xl h-12">
               Quay về Quản lý phòng
             </Button>
           </CardContent>
@@ -437,7 +437,7 @@ export default function PostRoomPage() {
               <Button
                 variant="outline"
                 className="w-full h-12 rounded-xl border-primary/20 hover:bg-primary/5 text-primary"
-                onClick={() => navigate("/landlord")}
+                onClick={() => navigate("/host")}
               >
                 <div className="flex items-center gap-2">
                   <Home className="w-4 h-4" />

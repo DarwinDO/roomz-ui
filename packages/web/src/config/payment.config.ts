@@ -52,7 +52,7 @@ export const PLANS: PlanDetails[] = [
       'Lưu tối đa 5 phòng yêu thích',
       'Nhắn tin cơ bản',
       'Đặt lịch xem phòng',
-      'Xem số điện thoại chủ nhà 3 lượt/ngày',
+      'Xem số điện thoại host 3 lượt/ngày',
     ],
   },
   {

@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 
 const PUBLIC_AUTH_REDIRECT_KEY = 'rommz_public_auth_redirect';
-const LANDLORD_ONLY_PATHS = ['/landlord', '/post-room'];
+const LANDLORD_ONLY_PATHS = ['/host', '/landlord', '/post-room'];
 
 type CallbackStatus = 'processing' | 'success' | 'error';
 type UserRole = 'admin' | 'landlord' | 'student' | 'renter' | null;

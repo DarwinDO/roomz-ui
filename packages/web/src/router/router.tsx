@@ -56,6 +56,7 @@ const PartnerLeadsPage = lazy(() => import('@/pages/admin/PartnerLeadsPage'));
 const IngestionReviewPage = lazy(() => import('@/pages/admin/IngestionReviewPage'));
 const DataQualityPage = lazy(() => import('@/pages/admin/DataQualityPage'));
 const LocationsPage = lazy(() => import('@/pages/admin/LocationsPage'));
+const HostApplicationsPage = lazy(() => import('@/pages/admin/HostApplicationsPage'));
 
 
 
@@ -257,7 +258,7 @@ export const router = createBrowserRouter([
         element: <Navigate to="/local-passport" replace />,
       },
       {
-        path: 'become-landlord',
+        path: 'become-host',
         element: (
           <ProtectedRoute>
             <BecomeLandlordPage />
@@ -265,12 +266,20 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: 'landlord',
+        path: 'become-landlord',
+        element: <Navigate to="/become-host" replace />,
+      },
+      {
+        path: 'host',
         element: (
           <LandlordRoute>
             <LandlordDashboardPage />
           </LandlordRoute>
         ),
+      },
+      {
+        path: 'landlord',
+        element: <Navigate to="/host" replace />,
       },
       {
         path: 'post-room',
@@ -290,12 +299,16 @@ export const router = createBrowserRouter([
       },
       // Booking detail routes - redirect to proper dashboard
       {
-        path: 'landlord/bookings/:id',
+        path: 'host/bookings/:id',
         element: (
           <LandlordRoute>
-            <Navigate to="/landlord?tab=bookings" replace />
+            <Navigate to="/host?tab=bookings" replace />
           </LandlordRoute>
         ),
+      },
+      {
+        path: 'landlord/bookings/:id',
+        element: <Navigate to="/host?tab=bookings" replace />,
       },
       {
         path: 'bookings/:id',
@@ -365,6 +378,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<PageLoader />}>
             <LocationsPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'host-applications',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <HostApplicationsPage />
           </Suspense>
         ),
       },

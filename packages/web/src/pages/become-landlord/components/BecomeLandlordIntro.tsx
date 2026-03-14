@@ -1,71 +1,67 @@
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Building2, Users, Shield, CheckCircle, ArrowLeft } from "lucide-react";
+﻿import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { ArrowLeft, Building2, CheckCircle, Shield, Users } from 'lucide-react';
 
 export function BecomeLandlordIntro() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    return (
-        <div className="mb-12">
-            <Button
-                variant="ghost"
-                onClick={() => navigate(-1)}
-                className="mb-6 hover:bg-white/50"
-            >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Quay lại
-            </Button>
+  return (
+    <div className="mb-12">
+      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6 hover:bg-white/50">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Quay lại
+      </Button>
 
-            {/* Hero Section */}
-            <div className="text-center mb-12 animate-fade-in">
-                <div className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center mb-6 shadow-lg shadow-primary/20">
-                    <Building2 className="w-10 h-10 text-white" />
-                </div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                    Trở thành Chủ trọ trên RommZ
-                </h1>
-                <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-                    Đăng ký để đăng tin cho thuê phòng, quản lý khách thuê và tiếp cận hàng nghìn sinh viên đang tìm phòng.
-                </p>
-            </div>
-
-            {/* Benefits */}
-            <div className="grid md:grid-cols-3 gap-6 mb-12">
-                <Card className="text-center border-none shadow-soft hover:shadow-soft-lg transition-all duration-300 bg-white/60 backdrop-blur-sm">
-                    <CardContent className="pt-8 pb-8">
-                        <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
-                            <Users className="w-7 h-7 text-blue-600" />
-                        </div>
-                        <h3 className="font-semibold text-lg mb-2">Tiếp cận khách thuê</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Hàng nghìn sinh viên và người đi làm trẻ đang tìm phòng mỗi ngày trên RommZ
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card className="text-center border-none shadow-soft hover:shadow-soft-lg transition-all duration-300 bg-white/60 backdrop-blur-sm">
-                    <CardContent className="pt-8 pb-8">
-                        <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
-                            <Shield className="w-7 h-7 text-green-600" />
-                        </div>
-                        <h3 className="font-semibold text-lg mb-2">Xác thực uy tín</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Tin đăng được xác thực, tăng độ tin cậy và chuyên nghiệp với khách thuê
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card className="text-center border-none shadow-soft hover:shadow-soft-lg transition-all duration-300 bg-white/60 backdrop-blur-sm">
-                    <CardContent className="pt-8 pb-8">
-                        <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform">
-                            <CheckCircle className="w-7 h-7 text-orange-600" />
-                        </div>
-                        <h3 className="font-semibold text-lg mb-2">Quản lý dễ dàng</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Dashboard quản lý phòng, tin nhắn, đặt lịch và thanh toán tiện lợi
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
+      <div className="mb-12 text-center animate-fade-in">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-secondary shadow-lg shadow-primary/20">
+          <Building2 className="h-10 w-10 text-white" />
         </div>
-    );
+        <h1 className="mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-3xl font-bold text-transparent md:text-4xl">
+          Đăng ký làm host trên RommZ
+        </h1>
+        <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground">
+          Bắt đầu quy trình để đăng tin, quản lý lịch xem phòng và vận hành listing trong một host console rõ ràng hơn.
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="border-none bg-white/60 shadow-soft backdrop-blur-sm transition-all duration-300 hover:shadow-soft-lg">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
+              <Users className="h-7 w-7 text-blue-600" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold">Tiếp cận đúng người thuê</h3>
+            <p className="text-sm text-muted-foreground">
+              Kết nối với sinh viên và người đi làm trẻ đang chủ động tìm chỗ ở hoặc ở ngắn hạn mỗi ngày trên RommZ.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none bg-white/60 shadow-soft backdrop-blur-sm transition-all duration-300 hover:shadow-soft-lg">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+              <Shield className="h-7 w-7 text-green-600" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold">Tăng tín hiệu tin cậy</h3>
+            <p className="text-sm text-muted-foreground">
+              Quy trình host rõ ràng giúp listing của bạn có nền tảng tốt hơn về moderation, xác thực và hỗ trợ vận hành.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none bg-white/60 shadow-soft backdrop-blur-sm transition-all duration-300 hover:shadow-soft-lg">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
+              <CheckCircle className="h-7 w-7 text-orange-600" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold">Vận hành gọn hơn</h3>
+            <p className="text-sm text-muted-foreground">
+              Theo dõi tin đăng, lịch xem phòng, phản hồi moderation và các cảnh báo dữ liệu trong một lane riêng cho host.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }

@@ -19,6 +19,20 @@ import type {
 
 const PAGE_SIZE = 12;
 
+interface SubletRoomImage {
+    image_url: string;
+    is_primary: boolean | null;
+    display_order: number | null;
+}
+
+interface SubletRoomRelation {
+    images?: SubletRoomImage[] | null;
+}
+
+interface SubletApplicationCountRelation {
+    sublet_applications?: Array<{ count: number | null }> | null;
+}
+
 /**
  * Fetch sublet listings with filters and pagination
  * Uses cursor-based pagination for O(1) performance
@@ -38,10 +52,11 @@ export async function fetchSublets(
         id, title, address, district, city, area_sqm,
         bedroom_count, bathroom_count, furnished,
         latitude, longitude, room_type,
-        room_images(image_url, is_primary, display_order)
+        images:room_images(image_url, is_primary, display_order),
+        amenities:room_amenities(*)
       ),
       owner:owner_id (
-        id, full_name, avatar_url, id_card_verified
+        id, full_name, avatar_url, id_card_verified, email, trust_score
       )
     `,
             { count: 'exact' }
@@ -103,7 +118,7 @@ export async function fetchSublets(
         owner_name: item.owner?.full_name || '',
         owner_avatar: item.owner?.avatar_url,
         owner_verified: item.owner?.id_card_verified,
-        images: (item.original_room as any)?.room_images?.map((img: any) => ({
+        images: ((item.original_room as unknown as SubletRoomRelation | null)?.images || []).map((img) => ({
             image_url: img.image_url,
             is_primary: img.is_primary,
             display_order: img.display_order,
@@ -133,10 +148,11 @@ export async function fetchSubletById(id: string): Promise<SubletListing | null>
         id, title, address, district, city, area_sqm,
         bedroom_count, bathroom_count, furnished,
         latitude, longitude, room_type,
-        room_images(image_url, is_primary, display_order)
+        images:room_images(image_url, is_primary, display_order),
+        amenities:room_amenities(*)
       ),
       owner:owner_id (
-        id, full_name, avatar_url, id_card_verified
+        id, full_name, avatar_url, id_card_verified, email, trust_score
       )
     `
         )
@@ -153,7 +169,7 @@ export async function fetchSubletById(id: string): Promise<SubletListing | null>
         ...data,
         room: data.original_room,
         owner: data.owner,
-        images: (data.original_room as any)?.room_images?.map((img: any) => ({
+        images: ((data.original_room as unknown as SubletRoomRelation | null)?.images || []).map((img) => ({
             image_url: img.image_url,
             is_primary: img.is_primary,
             display_order: img.display_order,
@@ -616,10 +632,14 @@ export async function fetchMySublets(): Promise<SubletListing[]> {
       original_room:original_room_id (
         id, title, address, district, city,
         area_sqm, bedroom_count, bathroom_count, room_type, price_per_month,
-        room_images(image_url, is_primary, display_order)
+        furnished,
+        latitude,
+        longitude,
+        images:room_images(image_url, is_primary, display_order),
+        amenities:room_amenities(*)
       ),
       owner:owner_id (
-        id, full_name, avatar_url, id_card_verified
+        id, full_name, avatar_url, id_card_verified, email, trust_score
       ),
       sublet_applications(count)
     `
@@ -646,10 +666,10 @@ export async function fetchMySublets(): Promise<SubletListing[]> {
         owner_name: item.owner?.full_name || '',
         owner_avatar: item.owner?.avatar_url,
         owner_verified: item.owner?.id_card_verified,
-        application_count: (item as any).sublet_applications?.[0]?.count || 0,
+        application_count: (item as SubletApplicationCountRelation).sublet_applications?.[0]?.count || 0,
         room: item.original_room,
         owner: item.owner,
-        images: (item.original_room as any)?.room_images?.map((img: any) => ({
+        images: ((item.original_room as unknown as SubletRoomRelation | null)?.images || []).map((img) => ({
             image_url: img.image_url,
             is_primary: img.is_primary,
             display_order: img.display_order,

@@ -1,5 +1,6 @@
-﻿import {
+import {
   mapboxFeatureToSelectedPlace,
+  type SelectedMapboxPlace,
   type MapboxFeature,
 } from '@/components/maps/mapboxGeocoding.utils';
 
@@ -182,4 +183,36 @@ export async function geocodeRoomLocation(
     longitude: place.lng,
     placeName: feature.place_name,
   };
+}
+
+export async function reverseGeocodeCoordinates(
+  latitude: number,
+  longitude: number,
+): Promise<SelectedMapboxPlace | null> {
+  if (!MAPBOX_TOKEN) {
+    return null;
+  }
+
+  const response = await fetch(
+    `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?` +
+      `access_token=${MAPBOX_TOKEN}&` +
+      'country=vn&' +
+      'language=vi&' +
+      'types=address,district,locality,place,region,neighborhood&' +
+      `bbox=${VIETNAM_BOUNDING_BOX}&` +
+      'limit=1',
+  );
+
+  if (!response.ok) {
+    throw new Error(`Mapbox reverse geocoding failed with status ${response.status}`);
+  }
+
+  const data = (await response.json()) as { features?: MapboxFeature[] };
+  const [feature] = data.features ?? [];
+
+  if (!feature) {
+    return null;
+  }
+
+  return mapboxFeatureToSelectedPlace(feature);
 }

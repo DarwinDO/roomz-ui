@@ -36,7 +36,7 @@ export interface PremiumPublicBenefit {
 export const PREMIUM_ENTITLEMENT_MATRIX: readonly PremiumEntitlementRow[] = [
   {
     id: 'phone_views',
-    title: 'Xem số điện thoại chủ nhà',
+    title: 'Xem số điện thoại host',
     status: 'live',
     kind: 'hard_entitlement',
     freeValue: `${FREE_LIMITS.PHONE_VIEWS_PER_DAY} lượt/ngày`,
@@ -129,7 +129,7 @@ export const PREMIUM_ENTITLEMENT_MATRIX: readonly PremiumEntitlementRow[] = [
 export const PREMIUM_PUBLIC_BENEFITS: readonly PremiumPublicBenefit[] = [
   {
     id: 'phone_views',
-    label: `Xem SĐT chủ nhà tới ${PREMIUM_LIMITS.PHONE_VIEWS_PER_DAY} lượt/ngày`,
+    label: `Xem SĐT host tới ${PREMIUM_LIMITS.PHONE_VIEWS_PER_DAY} lượt/ngày`,
   },
   {
     id: 'favorites',
@@ -156,6 +156,6 @@ export const PREMIUM_PUBLIC_BENEFIT_LABELS = PREMIUM_PUBLIC_BENEFITS.map(
 export const PREMIUM_ROOMMATE_UPSELL_BENEFITS = [
   'Xem hồ sơ roommate không giới hạn',
   'Gửi lời chào và yêu cầu kết nối không giới hạn',
-  `Xem SĐT chủ nhà tới ${PREMIUM_LIMITS.PHONE_VIEWS_PER_DAY} lượt/ngày`,
+  `Xem SĐT host tới ${PREMIUM_LIMITS.PHONE_VIEWS_PER_DAY} lượt/ngày`,
   'Mở khóa deal Premium của Local Passport',
 ] as const;

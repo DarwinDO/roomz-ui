@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Home, MapPin, DollarSign, Users, Maximize, Camera } from "lucide-react";
+import { Home, MapPin, DollarSign, Users, Maximize } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { TablesInsert } from "@/lib/database.types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,10 +69,10 @@ export function PostListingModal({ isOpen, onClose, onSubmit }: PostListingModal
       return;
     }
 
-    // Check if user is landlord
+    // Check if user is an approved host
     if (profile?.role !== "landlord") {
-      toast.error("Bạn cần trở thành chủ nhà để đăng tin");
-      navigate("/become-landlord");
+      toast.error("Bạn cần trở thành host để đăng tin");
+      navigate("/become-host");
       return;
     }
 
@@ -126,7 +126,7 @@ export function PostListingModal({ isOpen, onClose, onSubmit }: PostListingModal
         // Don't throw - room was created successfully
       }
 
-      toast.success("Tin đăng đã được tạo! Vui lòng chờ admin phê duyệt.");
+      toast.success("Tin đăng đã được tạo. Hệ thống đang chờ admin phê duyệt.");
       onSubmit();
 
       // Reset form
@@ -141,9 +141,10 @@ export function PostListingModal({ isOpen, onClose, onSubmit }: PostListingModal
       });
       setSelectedAmenities([]);
       onClose();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating listing:", error);
-      toast.error(error.message || "Lỗi khi tạo tin đăng");
+      const message = error instanceof Error ? error.message : "Lỗi khi tạo tin đăng";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -153,9 +154,9 @@ export function PostListingModal({ isOpen, onClose, onSubmit }: PostListingModal
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Đăng tin cho thuê phòng</DialogTitle>
+          <DialogTitle>Đăng tin cho thuê</DialogTitle>
           <DialogDescription>
-            Điền thông tin chi tiết về phòng của bạn để bắt đầu tìm kiếm người thuê phù hợp
+            Điền thông tin chi tiết về chỗ ở của bạn để bắt đầu tìm người thuê phù hợp
           </DialogDescription>
         </DialogHeader>
 
