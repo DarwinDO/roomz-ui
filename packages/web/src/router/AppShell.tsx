@@ -7,7 +7,7 @@ import { NotificationBell } from '@/components/common/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { LogIn, LogOut, User as UserIcon, Building2, Home, Crown, MessageCircle, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useConversations } from '@/hooks/chat/useConversations';
+import { useUnreadConversationCount } from '@/hooks/chat/useUnreadConversationCount';
 import RommzLogo from '@/assets/logo/rommz-logo.png';
 import { useAuth } from '@/contexts';
 import { usePremiumLimits } from '@/hooks/usePremiumLimits';
@@ -28,7 +28,7 @@ export default function AppShell() {
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
   const { isPremium } = usePremiumLimits();
-  const { unreadCount: messagesUnreadCount } = useConversations();
+  const { unreadCount: messagesUnreadCount } = useUnreadConversationCount();
 
   useActivityTracker();
 
