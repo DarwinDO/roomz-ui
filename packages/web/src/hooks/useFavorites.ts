@@ -47,7 +47,7 @@ export function useFavorites(): UseFavoritesReturn {
     try {
       const data = await getUserFavorites(user.id);
       setFavorites(data);
-      setFavoritedRoomIds(new Set(data.map(f => f.room_id)));
+      setFavoritedRoomIds(new Set(data.map((favorite) => favorite.room_id)));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch favorites';
       setError(errorMessage);
@@ -55,7 +55,7 @@ export function useFavorites(): UseFavoritesReturn {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]); // Use user.id instead of user object
+  }, [user?.id]);
 
   useEffect(() => {
     fetchFavorites();
@@ -66,77 +66,70 @@ export function useFavorites(): UseFavoritesReturn {
       throw new Error('User must be logged in to favorite rooms');
     }
 
-    // Check if already pending - prevent race condition
     if (pendingRoomIds.has(roomId)) {
       return favoritedRoomIds.has(roomId);
     }
 
-    // Mark as pending
-    setPendingRoomIds(prev => new Set([...prev, roomId]));
+    setPendingRoomIds((previous) => new Set([...previous, roomId]));
 
-    // Store previous state for rollback
     const wasFavorited = favoritedRoomIds.has(roomId);
     const previousFavorites = favorites;
 
-    // Optimistic update
     if (!wasFavorited) {
-      setFavoritedRoomIds(prev => new Set([...prev, roomId]));
+      setFavoritedRoomIds((previous) => new Set([...previous, roomId]));
     } else {
-      setFavoritedRoomIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(roomId);
-        return newSet;
+      setFavoritedRoomIds((previous) => {
+        const nextIds = new Set(previous);
+        nextIds.delete(roomId);
+        return nextIds;
       });
-      setFavorites(prev => prev.filter(f => f.room_id !== roomId));
+      setFavorites((previous) => previous.filter((favorite) => favorite.room_id !== roomId));
     }
 
     try {
       const result = await toggleFavorite(user.id, roomId);
 
-      // Verify optimistic update matches server response
       if (result.favorited !== !wasFavorited) {
-        // Server state differs, sync with server
         if (result.favorited) {
-          setFavoritedRoomIds(prev => new Set([...prev, roomId]));
+          setFavoritedRoomIds((previous) => new Set([...previous, roomId]));
         } else {
-          setFavoritedRoomIds(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(roomId);
-            return newSet;
+          setFavoritedRoomIds((previous) => {
+            const nextIds = new Set(previous);
+            nextIds.delete(roomId);
+            return nextIds;
           });
-          setFavorites(prev => prev.filter(f => f.room_id !== roomId));
+          setFavorites((previous) => previous.filter((favorite) => favorite.room_id !== roomId));
         }
       }
 
       return result.favorited;
     } catch (err: unknown) {
-      // Handle favorite limit error
       if (err instanceof Error && err.message === 'FAVORITE_LIMIT_REACHED') {
         toast.error(
-          `B?n ?? ??t gi?i h?n ${FREE_LIMITS.FAVORITES_MAX} ph?ng y?u th?ch. N?ng c?p RommZ+ ?? l?u kh?ng gi?i h?n.`,
+          `Bạn đã đạt giới hạn ${FREE_LIMITS.FAVORITES_MAX} phòng yêu thích. Nâng cấp RommZ+ để lưu không giới hạn.`,
           {
             action: {
-              label: 'N?ng c?p',
-              onClick: () => window.location.href = '/payment',
+              label: 'Nâng cấp',
+              onClick: () => {
+                window.location.href = '/payment';
+              },
             },
           },
         );
-        // Rollback optimistic update
-        setFavoritedRoomIds(new Set(Array.from(previousFavorites).map(f => f.room_id)));
+        setFavoritedRoomIds(new Set(Array.from(previousFavorites).map((favorite) => favorite.room_id)));
         setFavorites(previousFavorites);
         return false;
       }
-      // Rollback on other errors
-      setFavoritedRoomIds(new Set(Array.from(previousFavorites).map(f => f.room_id)));
+
+      setFavoritedRoomIds(new Set(Array.from(previousFavorites).map((favorite) => favorite.room_id)));
       setFavorites(previousFavorites);
       console.error('Error toggling favorite:', err);
       throw err;
     } finally {
-      // Always remove from pending
-      setPendingRoomIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(roomId);
-        return newSet;
+      setPendingRoomIds((previous) => {
+        const nextIds = new Set(previous);
+        nextIds.delete(roomId);
+        return nextIds;
       });
     }
   }, [user, favoritedRoomIds, favorites, pendingRoomIds]);
@@ -186,43 +179,40 @@ export function useIsFavorited(roomId: string): {
     };
 
     checkFavorite();
-  }, [user?.id, roomId]); // Use user.id to prevent unnecessary refetch
+  }, [user?.id, roomId]);
 
   const toggle = useCallback(async () => {
-    if (!user?.id) return;
-
-    // Check if already pending - prevent race condition
-    if (isPending) {
+    if (!user?.id || isPending) {
       return;
     }
 
     setIsPending(true);
 
-    // Optimistic update
     const previousState = isFavorited;
     setIsFavorited(!previousState);
 
     try {
       const result = await toggleFavorite(user.id, roomId);
 
-      // Verify with server response
       if (result.favorited !== !previousState) {
         setIsFavorited(result.favorited);
       }
     } catch (err: unknown) {
-      // Handle favorite limit error
       if (err instanceof Error && err.message === 'FAVORITE_LIMIT_REACHED') {
         setIsFavorited(previousState);
         return;
       }
-      // Rollback on other errors
+
       setIsFavorited(previousState);
       console.error('Error toggling favorite:', err);
-      throw err;
     } finally {
       setIsPending(false);
     }
-  }, [user?.id, roomId, isFavorited, isPending]);
+  }, [user?.id, roomId, isPending, isFavorited]);
 
-  return { isFavorited, loading, toggle };
+  return {
+    isFavorited,
+    loading,
+    toggle,
+  };
 }

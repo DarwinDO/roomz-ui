@@ -21,7 +21,7 @@ export function BecomeLandlordIntro() {
           Đăng ký làm host trên RommZ
         </h1>
         <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground">
-          Bắt đầu quy trình để đăng tin, quản lý lịch xem phòng và vận hành listing trong một host console rõ ràng hơn.
+          Bắt đầu quy trình để đăng tin, quản lý lịch xem phòng và theo dõi mọi việc trong cùng một nơi.
         </p>
       </div>
 
@@ -45,7 +45,7 @@ export function BecomeLandlordIntro() {
             </div>
             <h3 className="mb-2 text-lg font-semibold">Tăng tín hiệu tin cậy</h3>
             <p className="text-sm text-muted-foreground">
-              Quy trình host rõ ràng giúp listing của bạn có nền tảng tốt hơn về moderation, xác thực và hỗ trợ vận hành.
+              Quy trình rõ ràng giúp tin đăng của bạn đáng tin hơn và dễ được duyệt hơn.
             </p>
           </CardContent>
         </Card>
@@ -57,7 +57,7 @@ export function BecomeLandlordIntro() {
             </div>
             <h3 className="mb-2 text-lg font-semibold">Vận hành gọn hơn</h3>
             <p className="text-sm text-muted-foreground">
-              Theo dõi tin đăng, lịch xem phòng, phản hồi moderation và các cảnh báo dữ liệu trong một lane riêng cho host.
+              Theo dõi tin đăng, lịch xem phòng và các việc cần xử lý trong một nơi dành riêng cho host.
             </p>
           </CardContent>
         </Card>

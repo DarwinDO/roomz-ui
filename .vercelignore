@@ -5,5 +5,25 @@ node_modules
 *.log
 *.md
 docs
+.env
+.env.*
+.expo
+.tmp
+.tmp*
+.worktrees
+.agent
+.agents
+.augment
+.claude
+.codex
+.cursor
+dist
+playwright-report
+test-results
+tests
+plans
+scripts
+supabase
+packages/mobile
 
 

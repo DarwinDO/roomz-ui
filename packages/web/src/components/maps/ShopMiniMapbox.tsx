@@ -36,7 +36,7 @@ function TokenError() {
     >
       <p className="mb-1 text-sm font-medium text-destructive">Mapbox chưa được cấu hình</p>
       <p className="px-4 text-center text-xs text-muted-foreground">
-        Vui lòng thêm `VITE_MAPBOX_ACCESS_TOKEN` vào file `.env`
+        Vui lòng cấu hình `VITE_MAPBOX_ACCESS_TOKEN` cho môi trường hiện tại
       </p>
     </div>
   );

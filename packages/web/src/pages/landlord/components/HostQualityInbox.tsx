@@ -24,7 +24,7 @@ function buildIssues(pendingRooms: RoomWithDetails[], rejectedRooms: RoomWithDet
     title: room.title,
     address: room.address,
     status: "pending" as const,
-    note: "Tin đang chờ moderation. Nếu đã quá 24 giờ, hãy kiểm tra lại ảnh, địa chỉ và mức giá để tránh phải sửa ở vòng sau.",
+    note: "Tin đang chờ duyệt. Nếu đã quá 24 giờ, hãy kiểm tra lại ảnh, địa chỉ và mức giá để tránh phải sửa ở vòng sau.",
   }));
 
   const rejectedIssues = rejectedRooms.map((room) => ({
@@ -51,10 +51,10 @@ export function HostQualityInbox({ pendingRooms, rejectedRooms }: HostQualityInb
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">Listing khỏe mạnh</p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">Tin đăng ổn định</p>
               <h2 className="mt-1 text-lg font-semibold text-slate-950">Không có tin nào cần chỉnh ngay</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Các listing hiện không có cảnh báo moderation. Bạn có thể tiếp tục theo dõi booking và hiệu quả tin đăng.
+                Các tin hiện không có cảnh báo duyệt. Bạn có thể tiếp tục theo dõi booking và hiệu quả tin đăng.
               </p>
             </div>
           </div>
@@ -76,9 +76,9 @@ export function HostQualityInbox({ pendingRooms, rejectedRooms }: HostQualityInb
             </div>
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-amber-700">Cần xử lý sớm</p>
-              <CardTitle className="mt-1 text-xl text-slate-950">{issues.length} listing cần bạn kiểm tra lại</CardTitle>
+              <CardTitle className="mt-1 text-xl text-slate-950">{issues.length} tin cần bạn kiểm tra lại</CardTitle>
               <p className="mt-2 text-sm text-slate-600">
-                Ưu tiên các tin bị từ chối trước. Tin chờ duyệt quá lâu cũng nên rà lại để tránh mất thêm một vòng moderation.
+                Ưu tiên các tin bị từ chối trước. Tin chờ duyệt quá lâu cũng nên rà lại để tránh mất thêm một vòng duyệt.
               </p>
             </div>
           </div>
@@ -128,7 +128,7 @@ export function HostQualityInbox({ pendingRooms, rejectedRooms }: HostQualityInb
 
         {issues.length > 4 ? (
           <Button variant="ghost" className="rounded-xl px-2 text-sm text-primary" onClick={() => navigate("/host?tab=my-rooms")}>
-            Xem toàn bộ listing cần xử lý
+            Xem toàn bộ tin cần xử lý
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         ) : null}

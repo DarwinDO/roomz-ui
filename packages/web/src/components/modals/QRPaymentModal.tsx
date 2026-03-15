@@ -21,8 +21,11 @@ import {
     type BillingCycle,
     type PaymentOrderStatus,
 } from '@/services/payments';
+import { verifyPayment } from '@/services/sepay';
 import { getRemainingSeconds } from './qrPaymentTimer';
 import { toast } from 'sonner';
+
+const DIRECT_VERIFY_INTERVAL_MS = 12_000;
 
 interface QRPaymentModalProps {
     isOpen: boolean;
@@ -55,6 +58,7 @@ export function QRPaymentModal({
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const hasCompletedRef = useRef(false);
     const lastStatusRef = useRef<PaymentOrderStatus | null>(null);
+    const lastDirectVerifyAtRef = useRef(0);
 
     // Clear checkout session
     const clearCheckoutSession = useCallback(() => {
@@ -113,6 +117,24 @@ export function QRPaymentModal({
                 const status = await getPaymentOrderStatus(orderCode);
                 if (!cancelled && status) {
                     handleOrderStatus(status);
+                }
+
+                if (
+                    !cancelled &&
+                    status === 'pending' &&
+                    Date.now() - lastDirectVerifyAtRef.current >= DIRECT_VERIFY_INTERVAL_MS
+                ) {
+                    lastDirectVerifyAtRef.current = Date.now();
+                    const verification = await verifyPayment(orderCode);
+
+                    if (verification.success) {
+                        handleOrderStatus('paid');
+                        return;
+                    }
+
+                    if (verification.status && verification.status !== 'pending') {
+                        handleOrderStatus(verification.status);
+                    }
                 }
             } catch (err) {
                 if (import.meta.env.DEV) {
@@ -184,6 +206,7 @@ export function QRPaymentModal({
             const nextTimeLeft = getRemainingSeconds(expiresAt);
             hasCompletedRef.current = false;
             lastStatusRef.current = null;
+            lastDirectVerifyAtRef.current = 0;
             setTimeLeft(nextTimeLeft);
             setIsExpired(nextTimeLeft === 0);
             setOrderState('waiting');

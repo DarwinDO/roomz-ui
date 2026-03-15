@@ -25,7 +25,7 @@ export function SubletCard({ sublet, showMatchScore = false, onApply, onSwapRequ
     : 0;
 
   return (
-    <Card className="group overflow-hidden border border-slate-200 bg-white shadow-soft transition-all hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(15,23,42,0.10)]">
+    <Card className="group overflow-hidden border border-slate-200 bg-white transition-colors hover:border-slate-300">
       <Link to={`/sublet/${sublet.id}`} className="block w-full text-left">
         <div className="relative aspect-[4/3] overflow-hidden">
           <LazyImage
@@ -33,8 +33,6 @@ export function SubletCard({ sublet, showMatchScore = false, onApply, onSwapRequ
             alt={sublet.room_title}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
 
           <div className="absolute left-3 top-3 flex flex-wrap gap-2">
             <Badge className="border-0 bg-white/92 text-slate-900">Ở ngắn hạn</Badge>
@@ -46,35 +44,24 @@ export function SubletCard({ sublet, showMatchScore = false, onApply, onSwapRequ
             ) : null}
           </div>
 
-          <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-2">
-            {discount > 0 ? <Badge className="border-0 bg-rose-500/92 text-white">-{discount}%</Badge> : null}
-            {sublet.owner_verified ? (
-              <Badge className="border-0 bg-sky-500/92 text-white">
-                <BadgeCheck className="mr-1 h-3 w-3" />
-                Host đã xác thực
-              </Badge>
+          <div className="absolute bottom-3 right-3 rounded-2xl bg-white/94 px-3 py-2 text-right text-slate-950 shadow-sm">
+            <p className="text-sm font-semibold text-primary">{formatMonthlyPrice(sublet.sublet_price)}</p>
+            {sublet.original_price > sublet.sublet_price ? (
+              <p className="text-xs text-muted-foreground line-through">{formatMonthlyPrice(sublet.original_price)}</p>
             ) : null}
-          </div>
-
-          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3 text-white">
-            <div>
-              <p className="line-clamp-1 text-lg font-semibold">{sublet.room_title}</p>
-              <p className="mt-1 flex items-center gap-1 text-sm text-white/85">
-                <MapPin className="h-3.5 w-3.5" />
-                {sublet.district}, {sublet.city}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-white/92 px-3 py-2 text-right text-slate-950 shadow-sm">
-              <p className="text-sm font-semibold text-primary">{formatMonthlyPrice(sublet.sublet_price)}</p>
-              {sublet.original_price > sublet.sublet_price ? (
-                <p className="text-xs text-muted-foreground line-through">{formatMonthlyPrice(sublet.original_price)}</p>
-              ) : null}
-            </div>
           </div>
         </div>
       </Link>
 
       <div className="space-y-4 p-4">
+        <div className="space-y-2">
+          <p className="line-clamp-2 text-lg font-semibold text-slate-950">{sublet.room_title}</p>
+          <p className="flex items-center gap-2 text-sm text-slate-600">
+            <MapPin className="h-4 w-4 text-slate-400" />
+            {sublet.district}, {sublet.city}
+          </p>
+        </div>
+
         <div className="flex flex-wrap gap-2 text-xs">
           <Badge variant="secondary" className="rounded-full px-2.5 py-1">
             <CalendarRange className="mr-1 h-3 w-3" />
@@ -83,20 +70,10 @@ export function SubletCard({ sublet, showMatchScore = false, onApply, onSwapRequ
           <Badge variant="secondary" className="rounded-full px-2.5 py-1">
             {format(startDate, 'dd/MM', { locale: vi })} - {format(endDate, 'dd/MM', { locale: vi })}
           </Badge>
+          {discount > 0 ? <Badge variant="secondary" className="rounded-full px-2.5 py-1">Tiết kiệm {discount}%</Badge> : null}
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs text-muted-foreground">Khu vực</p>
-            <p className="mt-1 font-medium text-slate-900">{sublet.district}</p>
-          </div>
-          <div className="rounded-2xl bg-slate-50 p-3">
-            <p className="text-xs text-muted-foreground">Thời gian</p>
-            <p className="mt-1 font-medium text-slate-900">{durationMonths} tháng</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 rounded-2xl border border-slate-200 p-3">
+        <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-muted">
             {sublet.owner_avatar ? (
               <img src={sublet.owner_avatar} alt={sublet.owner_name} className="h-full w-full object-cover" />
@@ -106,7 +83,18 @@ export function SubletCard({ sublet, showMatchScore = false, onApply, onSwapRequ
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-slate-900">{sublet.owner_name}</p>
-            <p className="text-xs text-muted-foreground">Host của listing short-stay</p>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span>Host</span>
+              {sublet.owner_verified ? (
+                <>
+                  <span>•</span>
+                  <span className="inline-flex items-center gap-1 text-sky-700">
+                    <BadgeCheck className="h-3 w-3" />
+                    Đã xác thực
+                  </span>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
 

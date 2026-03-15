@@ -106,7 +106,7 @@ export default function SwapRequestsPage() {
             <div>
               <h1 className="text-xl font-bold">Quản lý đề xuất hoán đổi</h1>
               <p className="hidden text-sm text-muted-foreground sm:block">
-                Theo dõi các đề xuất bạn nhận được và những đề xuất bạn đã gửi trong lane ở ngắn hạn.
+                Theo dõi các đề xuất bạn nhận được và đã gửi cho chỗ ở ngắn hạn.
               </p>
             </div>
           </div>
@@ -227,7 +227,7 @@ export default function SwapRequestsPage() {
                   <RotateCcw className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <h3 className="mb-2 font-medium">Chưa có lịch sử nào</h3>
-                <p className="text-muted-foreground">Lịch sử đề xuất hoán đổi sẽ xuất hiện ở đây khi bạn bắt đầu sử dụng lane này.</p>
+                <p className="text-muted-foreground">Lịch sử đề xuất hoán đổi sẽ xuất hiện ở đây khi bạn bắt đầu dùng mục này.</p>
               </Card>
             ) : (
               <div className="space-y-4">

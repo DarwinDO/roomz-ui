@@ -385,7 +385,7 @@ export default function SubletDetailPage() {
               <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
                 <p className="mb-4 text-sm text-muted-foreground">
                   {isOwner
-                    ? "Bạn đang xem tin ở ngắn hạn của mình. Quản lý đơn đăng ký hoặc cập nhật nội dung ngay trong host console."
+                    ? "Bạn đang xem tin ở ngắn hạn của mình. Quản lý đơn đăng ký hoặc cập nhật nội dung ngay tại đây."
                     : "Nếu thời gian và mức giá phù hợp, hãy gửi đơn đăng ký trước rồi nhắn host để chốt thêm các chi tiết cần thiết."}
                 </p>
                 {isOwner ? (

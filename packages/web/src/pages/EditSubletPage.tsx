@@ -169,7 +169,7 @@ export default function EditSubletPage() {
                 <div>
                   <p className="text-sm font-semibold text-warning-foreground">Chỗ ở đã được lưu thay đổi</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Những thông tin mới sẽ xuất hiện ngay trên lane ở ngắn hạn và trong trang chi tiết chỗ ở.
+                    Những thông tin mới sẽ xuất hiện ngay trong mục ở ngắn hạn và trên trang chi tiết chỗ ở.
                   </p>
                 </div>
               </div>

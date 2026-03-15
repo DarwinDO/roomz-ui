@@ -157,8 +157,8 @@ export default function LandlordDashboardPage() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-xl font-bold text-transparent">Host console</h1>
-              <p className="hidden text-sm text-muted-foreground sm:block">Quản lý listing, lịch xem phòng và chất lượng tin đăng</p>
+              <h1 className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-xl font-bold text-transparent">Bảng điều khiển host</h1>
+              <p className="hidden text-sm text-muted-foreground sm:block">Quản lý tin đăng, lịch xem phòng và chất lượng tin</p>
             </div>
           </div>
           <Button onClick={() => navigate('/post-room')} className="rounded-xl shadow-lg shadow-primary/20">
@@ -204,8 +204,8 @@ export default function LandlordDashboardPage() {
         >
           <TabsList className="grid h-auto w-full grid-cols-4 rounded-xl bg-muted/50 p-1">
             <TabsTrigger value="my-rooms" className="rounded-lg py-2.5 data-[state=active]:shadow-sm">
-              <span className="hidden sm:inline">Listing của tôi</span>
-              <span className="sm:hidden">Listing</span>
+              <span className="hidden sm:inline">Tin của tôi</span>
+              <span className="sm:hidden">Tin</span>
               <span className="ml-1.5 rounded-full bg-muted-foreground/10 px-1.5 py-0.5 text-xs">{rooms.length}</span>
             </TabsTrigger>
             <TabsTrigger value="pending" className="rounded-lg py-2.5 data-[state=active]:shadow-sm">
@@ -228,11 +228,11 @@ export default function LandlordDashboardPage() {
             {rooms.length === 0 ? (
               <Card className="border-2 border-dashed bg-transparent shadow-none">
                 <CardContent className="py-16 text-center">
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                    <Home className="h-8 w-8 text-muted-foreground/50" />
-                  </div>
-                  <h3 className="mb-2 text-lg font-medium">Bạn chưa có listing nào</h3>
-                  <p className="mx-auto mb-6 max-w-sm text-muted-foreground">Tạo listing đầu tiên để bắt đầu nhận lịch xem phòng và quản lý supply trong Host console.</p>
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                  <Home className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+                  <h3 className="mb-2 text-lg font-medium">Bạn chưa có tin nào</h3>
+                  <p className="mx-auto mb-6 max-w-sm text-muted-foreground">Đăng tin đầu tiên để bắt đầu nhận lịch xem phòng và quản lý mọi việc ở đây.</p>
                   <Button onClick={() => navigate('/post-room')} size="lg" className="rounded-xl">
                     <Plus className="mr-2 h-4 w-4" />
                     Đăng phòng đầu tiên
@@ -357,7 +357,7 @@ export default function LandlordDashboardPage() {
               </div>
               <div>
                 <p className="text-lg font-semibold">Đăng phòng mới</p>
-                <p className="text-sm text-muted-foreground">Thêm listing cho thuê</p>
+                <p className="text-sm text-muted-foreground">Thêm tin cho thuê mới</p>
               </div>
             </CardContent>
           </Card>
@@ -388,7 +388,7 @@ export default function LandlordDashboardPage() {
               </div>
               <div>
                 <p className="text-lg font-semibold">Hồ sơ host</p>
-                <p className="text-sm text-muted-foreground">Cập nhật thông tin và trạng thái tài khoản host</p>
+                <p className="text-sm text-muted-foreground">Cập nhật thông tin và trạng thái tài khoản</p>
               </div>
             </CardContent>
           </Card>

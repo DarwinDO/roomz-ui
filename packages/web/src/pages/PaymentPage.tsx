@@ -107,13 +107,13 @@ export default function PaymentPage() {
 
   const handleSubscribe = async (plan: SubscriptionPlan) => {
     if (!user) {
-      toast.error('Vui l?ng ??ng nh?p ?? ??ng k?');
+      toast.error('Vui lòng đăng nhập để đăng ký');
       navigate('/login');
       return;
     }
 
     if (plan === 'free') {
-      toast.info('B?n ?ang s? d?ng g?i mi?n ph?');
+      toast.info('Bạn đang sử dụng gói miễn phí');
       return;
     }
 
@@ -122,7 +122,7 @@ export default function PaymentPage() {
       await createCheckout(plan, billingCycle, remainingSlots > 0);
     } catch (error) {
       console.error('Checkout error:', error);
-      toast.error('Kh?ng th? t?o phi?n thanh to?n. Vui l?ng th? l?i.');
+      toast.error('Không thể tạo phiên thanh toán. Vui lòng thử lại.');
     } finally {
       setProcessingPlan(null);
     }
@@ -131,7 +131,7 @@ export default function PaymentPage() {
   const handlePaymentSuccess = () => {
     setQrModalData(null);
     setShowSuccess(true);
-    toast.success('Thanh to?n th?nh c?ng. Ch?o m?ng b?n ??n v?i RommZ+.');
+    toast.success('Thanh toán thành công. Chào mừng bạn đến với RommZ+.');
 
     if (user) {
       void getUserSubscription(user.id).then(setSubscription);
@@ -142,7 +142,7 @@ export default function PaymentPage() {
     if (!qrModalData) return;
 
     if (!user) {
-      toast.error('Vui l?ng ??ng nh?p l?i ?? ti?p t?c thanh to?n.');
+      toast.error('Vui lòng đăng nhập lại để tiếp tục thanh toán.');
       navigate('/login');
       return;
     }
@@ -199,16 +199,16 @@ export default function PaymentPage() {
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
               <CheckCircle className="h-10 w-10 text-green-600" />
             </div>
-            <h2 className="mb-2 text-2xl font-bold">Ch?o m?ng ??n v?i RommZ+</h2>
+            <h2 className="mb-2 text-2xl font-bold">Chào mừng đến với RommZ+</h2>
             <p className="mb-6 text-gray-600">
-              T?i kho?n c?a b?n ?? ???c n?ng c?p th?nh c?ng. B?n c? th? quay l?i t?m ph?ng, m? kh?a roommate v? d?ng deal premium ngay b?y gi?.
+              Tài khoản của bạn đã được nâng cấp thành công. Bạn có thể quay lại tìm phòng, mở khóa roommate và dùng deal premium ngay bây giờ.
             </p>
             <div className="space-y-3">
               <Button onClick={() => navigate('/profile')} className="w-full">
-                Xem h? s? c?a t?i
+                Xem hồ sơ của tôi
               </Button>
               <Button variant="outline" onClick={() => navigate('/search')} className="w-full">
-                T?m ph?ng ngay
+                Tìm phòng ngay
               </Button>
             </div>
           </CardContent>
@@ -225,8 +225,8 @@ export default function PaymentPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="ml-3">
-            <h1 className="text-lg font-semibold">N?ng c?p t?i kho?n</h1>
-            <p className="text-sm text-gray-500">Ch?n g?i ph? h?p v?i nhu c?u t?m ph?ng v? roommate c?a b?n</p>
+            <h1 className="text-lg font-semibold">Nâng cấp tài khoản</h1>
+            <p className="text-sm text-gray-500">Chọn gói phù hợp với nhu cầu tìm phòng và roommate của bạn</p>
           </div>
         </div>
       </div>
@@ -235,13 +235,13 @@ export default function PaymentPage() {
         <div className="mb-8 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
             <Crown className="h-4 w-4" />
-            N?ng c?p ngay h?m nay
+            Nâng cấp ngay hôm nay
           </div>
           <h1 className="mb-4 text-3xl font-bold md:text-4xl">
-            M? kh?a c?c quy?n l?i c?t l?i v?i RommZ+
+            Mở khóa các quyền lợi cốt lõi với RommZ+
           </h1>
           <p className="mx-auto max-w-2xl text-gray-600">
-            RommZ+ t?p trung v?o nh?ng g? ?ang ch?y th?t: roommate kh?ng gi?i h?n, contact m?nh h?n, favorites kh?ng gi?i h?n v? deal Premium c?a Local Passport.
+            RommZ+ tập trung vào những gì đang chạy thật: roommate không giới hạn, contact mạnh hơn, favorites không giới hạn và deal Premium của Local Passport.
           </p>
         </div>
 
@@ -250,7 +250,7 @@ export default function PaymentPage() {
             <div className="flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 text-white shadow-lg">
               <Flame className="h-5 w-5" />
               <span className="font-medium">
-                Ch? c?n <strong>{remainingSlots}</strong> slot gi? 24.500?
+                Chỉ còn <strong>{remainingSlots}</strong> slot giá 24.500đ
               </span>
             </div>
           </div>
@@ -266,7 +266,7 @@ export default function PaymentPage() {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              Th?ng {rommzPlusPlan?.price?.toLocaleString('vi-VN')}?
+              Tháng {rommzPlusPlan?.price?.toLocaleString('vi-VN')}đ
             </button>
             <button
               onClick={() => setBillingCycle('quarterly')}
@@ -276,9 +276,9 @@ export default function PaymentPage() {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              Qu? {(rommzPlusPlan?.quarterlyPrice || 119_000).toLocaleString('vi-VN')}?
+              Quý {(rommzPlusPlan?.quarterlyPrice || 119_000).toLocaleString('vi-VN')}đ
               <Badge variant="secondary" className="bg-green-100 text-xs text-green-700">
-                Ti?t ki?m 19%
+                Tiết kiệm 19%
               </Badge>
             </button>
           </div>
@@ -288,7 +288,7 @@ export default function PaymentPage() {
           <div className="mb-6 flex justify-center">
             <Badge className="border-green-300 bg-green-100 px-4 py-2 text-green-700">
               <Shield className="mr-2 h-4 w-4" />
-              ?ang s? d?ng: {PLANS.find((plan) => plan.id === subscription.plan)?.name}
+              Đang sử dụng: {PLANS.find((plan) => plan.id === subscription.plan)?.name}
             </Badge>
           </div>
         )}
@@ -308,7 +308,7 @@ export default function PaymentPage() {
               >
                 {plan.recommended && (
                   <div className="absolute left-0 right-0 top-0 bg-primary py-1 text-center text-sm font-medium text-white">
-                    Ph? bi?n nh?t
+                    Phổ biến nhất
                   </div>
                 )}
                 <CardHeader className={plan.recommended ? 'pt-10' : ''}>
@@ -326,11 +326,11 @@ export default function PaymentPage() {
                         {plan.recommended ? (
                           <>
                             {billingCycle === 'monthly'
-                              ? `${getCurrentPrice().toLocaleString('vi-VN')}?/th?ng`
-                              : `${Math.floor((rommzPlusPlan?.quarterlyPrice || 119_000) / 3).toLocaleString('vi-VN')}?/th?ng`}
+                              ? `${getCurrentPrice().toLocaleString('vi-VN')}đ/tháng`
+                              : `${Math.floor((rommzPlusPlan?.quarterlyPrice || 119_000) / 3).toLocaleString('vi-VN')}đ/tháng`}
                             {billingCycle === 'quarterly' && (
                               <span className="ml-1 text-xs font-normal text-gray-500">
-                                ({rommzPlusPlan?.quarterlyPrice?.toLocaleString('vi-VN')}?/qu?)
+                                ({rommzPlusPlan?.quarterlyPrice?.toLocaleString('vi-VN')}đ/quý)
                               </span>
                             )}
                           </>
@@ -340,7 +340,7 @@ export default function PaymentPage() {
                       </CardDescription>
                       {plan.recommended && billingCycle === 'quarterly' && (
                         <span className="text-xs font-medium text-green-600">
-                          Ti?t ki?m {getSavings().toLocaleString('vi-VN')}?
+                          Tiết kiệm {getSavings().toLocaleString('vi-VN')}đ
                         </span>
                       )}
                     </div>
@@ -365,19 +365,19 @@ export default function PaymentPage() {
                     {isProcessing ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ?ang x? l?...
+                        Đang xử lý...
                       </>
                     ) : isCurrentPlan ? (
                       <>
                         <Check className="mr-2 h-4 w-4" />
-                        G?i hi?n t?i
+                        Gói hiện tại
                       </>
                     ) : plan.id === 'free' ? (
-                      'Mi?n ph?'
+                      'Miễn phí'
                     ) : (
                       <>
                         <CreditCard className="mr-2 h-4 w-4" />
-                        N?ng c?p ngay
+                        Nâng cấp ngay
                       </>
                     )}
                   </Button>
@@ -388,7 +388,7 @@ export default function PaymentPage() {
         </div>
 
         <div className="mt-12 text-center">
-          <p className="mb-4 text-sm text-gray-500">Thanh to?n an to?n</p>
+          <p className="mb-4 text-sm text-gray-500">Thanh toán an toàn</p>
           <div className="flex items-center justify-center gap-6 opacity-60">
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
@@ -400,25 +400,25 @@ export default function PaymentPage() {
             </div>
           </div>
           <p className="mt-4 text-xs text-gray-400">
-            H?y b?t c? l?c n?o. Kh?ng cam k?t d?i h?n.
+            Hủy bất cứ lúc nào. Không cam kết dài hạn.
           </p>
         </div>
 
         <div className="mx-auto mt-16 max-w-2xl">
-          <h2 className="mb-8 text-center text-2xl font-bold">C?u h?i th??ng g?p</h2>
+          <h2 className="mb-8 text-center text-2xl font-bold">Câu hỏi thường gặp</h2>
           <div className="space-y-4">
             {[
               {
-                q: 'T?i c? th? h?y ??ng k? b?t c? l?c n?o kh?ng?',
-                a: 'C?. B?n c? th? h?y b?t c? l?c n?o v? quy?n l?i RommZ+ s? ti?p t?c cho ??n h?t chu k? ?? thanh to?n.',
+                q: 'Tôi có thể hủy đăng ký bất cứ lúc nào không?',
+                a: 'Có. Bạn có thể hủy bất cứ lúc nào và quyền lợi RommZ+ sẽ tiếp tục cho đến hết chu kỳ đã thanh toán.',
               },
               {
-                q: 'C? trial mi?n ph? kh?ng?',
-                a: 'Hi?n t?i ch?a c? trial mi?n ph?. B?n v?n c? th? b?t ??u theo th?ng v? theo d?i m?c d?ng th?c t? c?a c?c quy?n l?i premium.',
+                q: 'Có trial miễn phí không?',
+                a: 'Hiện tại chưa có trial miễn phí. Bạn vẫn có thể bắt đầu theo tháng và theo dõi mức dùng thực tế của các quyền lợi premium.',
               },
               {
-                q: 'Thanh to?n c? an to?n kh?ng?',
-                a: 'M?i giao d?ch ??u ?i qua lu?ng thanh to?n b?o m?t. RommZ kh?ng l?u th?ng tin th? ng?n h?ng c?a b?n.',
+                q: 'Thanh toán có an toàn không?',
+                a: 'Mọi giao dịch đều đi qua luồng thanh toán bảo mật. RommZ không lưu thông tin thẻ ngân hàng của bạn.',
               },
             ].map((faq) => (
               <Card key={faq.q}>

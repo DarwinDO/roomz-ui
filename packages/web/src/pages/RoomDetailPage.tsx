@@ -362,7 +362,7 @@ export default function RoomDetailPage() {
                     <p className="mb-1 text-xs uppercase tracking-[0.18em] text-primary">Ở ngắn hạn</p>
                     <h2 className="text-lg font-semibold">Phòng này hiện có lịch short-stay</h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Nếu bạn cần ở tạm thời hoặc thuê lại ngắn hạn, hãy xem ngay lịch khả dụng của listing này.
+                      Nếu bạn cần ở tạm thời hoặc thuê lại ngắn hạn, hãy xem ngay lịch ở hiện có của tin này.
                     </p>
                   </div>
                   <Button onClick={() => navigate(`/sublet/${subletData.id}`)} className="rounded-xl">
