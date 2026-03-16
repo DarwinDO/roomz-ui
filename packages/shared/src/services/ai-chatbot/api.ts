@@ -11,6 +11,13 @@ import type {
     AIChatMessage,
 } from './types';
 
+function isResponseLike(context: unknown): context is Response {
+    return typeof context === 'object'
+        && context !== null
+        && 'clone' in context
+        && typeof (context as Response).clone === 'function';
+}
+
 /**
  * Send a message to the AI chatbot
  */
@@ -39,10 +46,10 @@ export async function sendAIChatMessage(
     });
 
     if (error) {
-        const context = (error as { context?: Response }).context;
+        const context = (error as { context?: unknown }).context;
         let detailedMessage: string | null = null;
 
-        if (context) {
+        if (isResponseLike(context)) {
             const payload = await context.clone().json().catch(() => null) as
                 | { error?: string; message?: string; code?: string | number; details?: string | null }
                 | null;
@@ -59,7 +66,7 @@ export async function sendAIChatMessage(
             }
         }
 
-        throw new Error(detailedMessage || error.message || 'Failed to send message');
+        throw new Error(detailedMessage || error.message || 'Không thể gửi tin nhắn tới ROMI.');
     }
 
     return data as AIChatResponse;

@@ -4,13 +4,12 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useAuth } from '@/contexts';
 import {
     getMessages,
     sendMessage as sendMessageApi,
     markMessagesAsRead,
-    subscribeToConversationMessages,
     type MessageWithSender,
 } from '@/services/chat';
 import { conversationKeys } from './useConversations';
@@ -35,8 +34,9 @@ interface UseMessagesResult {
  * Hook for messages in a specific conversation with realtime
  */
 export function useMessages(conversationId: string): UseMessagesResult {
-    const { user, profile } = useAuth();
+    const { user, profile, session, loading } = useAuth();
     const queryClient = useQueryClient();
+    const isRealtimeReady = !loading && !!user?.id && !!session?.access_token;
 
     // Fetch messages
     const {
@@ -47,9 +47,12 @@ export function useMessages(conversationId: string): UseMessagesResult {
     } = useQuery({
         queryKey: messageKeys.conversation(conversationId),
         queryFn: () => getMessages(conversationId),
-        enabled: !!conversationId,
-        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+        enabled: !!conversationId && isRealtimeReady,
+        staleTime: 5 * 1000,
         gcTime: 10 * 60 * 1000, // Keep in garbage collection for 10 minutes
+        refetchInterval: 8 * 1000,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: true,
     });
 
     // Send message mutation
@@ -102,40 +105,6 @@ export function useMessages(conversationId: string): UseMessagesResult {
             });
         },
     });
-
-    // Realtime subscription for this conversation
-    useEffect(() => {
-        if (!conversationId || !user) return;
-
-        const subscription = subscribeToConversationMessages(conversationId, {
-            onNewMessage: (message) => {
-                // Add to cache (avoid duplicates)
-                queryClient.setQueryData<MessageWithSender[]>(
-                    messageKeys.conversation(conversationId),
-                    (old = []) => {
-                        if (old.some(m => m.id === message.id)) return old;
-                        return [...old, message];
-                    }
-                );
-            },
-            onMessageUpdate: (message) => {
-                // Update message in cache (e.g., read status)
-                queryClient.setQueryData<MessageWithSender[]>(
-                    messageKeys.conversation(conversationId),
-                    (old = []) => old.map(m =>
-                        m.id === message.id ? { ...m, ...message } : m
-                    )
-                );
-            },
-            onError: (err) => {
-                console.error('[useMessages] Realtime error:', err);
-            },
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, [conversationId, user, queryClient]);
 
     // Wrapped send function
     const handleSend = useCallback(async (content: string) => {

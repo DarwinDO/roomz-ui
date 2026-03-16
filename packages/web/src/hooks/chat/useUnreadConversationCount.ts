@@ -1,7 +1,6 @@
-import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts';
-import { getUnreadCount, subscribeToUserMessages } from '@/services/chat';
+import { getUnreadCount } from '@/services/chat';
 import { conversationKeys } from './useConversations';
 
 interface UseUnreadConversationCountResult {
@@ -12,8 +11,7 @@ interface UseUnreadConversationCountResult {
 }
 
 export function useUnreadConversationCount(): UseUnreadConversationCountResult {
-    const { user } = useAuth();
-    const queryClient = useQueryClient();
+    const { user, session, loading } = useAuth();
 
     const {
         data: unreadCount = 0,
@@ -23,33 +21,12 @@ export function useUnreadConversationCount(): UseUnreadConversationCountResult {
     } = useQuery({
         queryKey: conversationKeys.unreadCount(user?.id || ''),
         queryFn: () => getUnreadCount(user!.id),
-        enabled: !!user?.id,
-        staleTime: 10 * 1000,
+        enabled: !loading && !!user?.id && !!session?.access_token,
+        staleTime: 15 * 1000,
+        refetchInterval: 30 * 1000,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: true,
     });
-
-    useEffect(() => {
-        if (!user?.id) return;
-
-        const subscription = subscribeToUserMessages(user.id, {
-            onNewMessage: (message) => {
-                if (message.sender_id === user.id) {
-                    return;
-                }
-
-                queryClient.setQueryData<number>(
-                    conversationKeys.unreadCount(user.id),
-                    (old = 0) => old + 1
-                );
-            },
-            onError: (subscriptionError) => {
-                console.error('[useUnreadConversationCount] Realtime error:', subscriptionError);
-            },
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, [user?.id, queryClient]);
 
     return {
         unreadCount,

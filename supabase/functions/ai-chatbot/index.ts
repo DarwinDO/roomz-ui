@@ -1,13 +1,13 @@
 ﻿/**
  * AI Chatbot Edge Function
- * Powered by Gemini 2.5 Flash Lite via Vercel AI SDK
+ * Powered by Vercel AI Gateway via Vercel AI SDK
  * 
  * POST /functions/v1/ai-chatbot
  * Body: { message: string, sessionId?: string }
  * Response: { message: string, sessionId: string, metadata?: object }
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { generateText, jsonSchema, stepCountIs, tool } from 'https://esm.sh/ai@5.0.56?target=deno';
+import { gateway, generateText, jsonSchema, stepCountIs, tool } from 'https://esm.sh/ai@5.0.56?target=deno';
 import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@2.0.40?target=deno';
 import {
     ROMI_APP_INFO_TOPICS,
@@ -15,13 +15,18 @@ import {
     type RomiAppInfoTopic,
 } from '../../../packages/shared/src/constants/romi.ts';
 
+const AI_GATEWAY_API_KEY = Deno.env.get('AI_GATEWAY_API_KEY');
+const AI_GATEWAY_MODEL = Deno.env.get('AI_GATEWAY_MODEL') || 'google/gemini-2.0-flash-lite';
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') || 'gemini-2.5-flash-lite';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const EXPOSE_INTERNAL_ERRORS = Deno.env.get('EXPOSE_INTERNAL_ERRORS') === 'true';
-const google = createGoogleGenerativeAI({
-    apiKey: GEMINI_API_KEY || '',
-});
+const google = GEMINI_API_KEY
+    ? createGoogleGenerativeAI({
+        apiKey: GEMINI_API_KEY,
+    })
+    : null;
 
 const CORS_BASE_HEADERS = {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -29,6 +34,8 @@ const CORS_BASE_HEADERS = {
 };
 const DEFAULT_ALLOWED_ORIGINS = [
     'https://rommz.vn',
+    'https://rommz.site',
+    'https://roomz-ui.vercel.app',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:3000',
@@ -38,9 +45,25 @@ const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') || DEFAULT_ALLOWED_ORIG
     .map(origin => origin.trim())
     .filter(Boolean);
 
+function isAllowedOrigin(origin: string | null): origin is string {
+    if (!origin) return false;
+    if (ALLOWED_ORIGINS.includes(origin)) return true;
+
+    try {
+        const { protocol, hostname } = new URL(origin);
+        if (protocol !== 'https:') return false;
+
+        return hostname === 'roomz-ui.vercel.app'
+            || hostname.startsWith('roomz-') && hostname.endsWith('.vercel.app')
+            || hostname.startsWith('roomz-ui-') && hostname.endsWith('.vercel.app');
+    } catch {
+        return false;
+    }
+}
+
 function getCorsHeaders(req: Request) {
     const origin = req.headers.get('origin');
-    const allowOrigin = origin && ALLOWED_ORIGINS.includes(origin)
+    const allowOrigin = isAllowedOrigin(origin)
         ? origin
         : ALLOWED_ORIGINS[0];
 
@@ -286,6 +309,33 @@ function isRateLimitError(error: unknown): boolean {
     return statusCode === 429 || /429|RESOURCE_EXHAUSTED|rate limit|Too Many Requests/i.test(message);
 }
 
+function isRecoverableProviderError(error: unknown): boolean {
+    const err = error as {
+        name?: string;
+        statusCode?: number;
+        response?: { status?: number };
+        message?: string;
+        responseBody?: string;
+    };
+
+    const statusCode = err.statusCode ?? err.response?.status;
+    const message = err.message || '';
+    const responseBody = err.responseBody || '';
+
+    if (!['AI_APICallError', 'APICallError'].includes(err.name || '')) {
+        return false;
+    }
+
+    if (statusCode === 429) {
+        return true;
+    }
+
+    return statusCode === 400
+        || statusCode === 401
+        || statusCode === 403
+        || /API_KEY_INVALID|API key not valid|INVALID_ARGUMENT|Bad Request/i.test(`${message} ${responseBody}`);
+}
+
 function clampLimit(input: unknown, fallback = 5, max = 8): number {
     const value =
         typeof input === 'number'
@@ -295,6 +345,18 @@ function clampLimit(input: unknown, fallback = 5, max = 8): number {
                 : fallback;
 
     return Math.min(Math.max(Math.trunc(value || fallback), 1), max);
+}
+
+function getLanguageModel() {
+    if (AI_GATEWAY_API_KEY) {
+        return gateway(AI_GATEWAY_MODEL);
+    }
+
+    if (google) {
+        return google(GEMINI_MODEL);
+    }
+
+    return null;
 }
 
 function formatPartnerCategoryLabel(category: PartnerCategory | null | undefined): string {
@@ -1317,8 +1379,8 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
                 properties: {
                     city: { type: 'string' },
                     district: { type: 'string' },
-                    max_price: { type: ['number', 'string'] },
-                    min_price: { type: ['number', 'string'] },
+                    max_price: { type: 'number' },
+                    min_price: { type: 'number' },
                     room_type: { type: 'string' },
                 },
             }),
@@ -1337,7 +1399,7 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
                     query: { type: 'string' },
                     category: { type: 'string' },
                     city: { type: 'string' },
-                    limit: { type: ['number', 'string'] },
+                    limit: { type: 'number' },
                 },
             }),
             execute: async (input: SearchPartnersToolInput) =>
@@ -1356,7 +1418,7 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
                     category: { type: 'string' },
                     city: { type: 'string' },
                     premium_only: { type: 'boolean' },
-                    limit: { type: ['number', 'string'] },
+                    limit: { type: 'number' },
                 },
             }),
             execute: async (input: SearchDealsToolInput) =>
@@ -1377,7 +1439,7 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
                         type: 'string',
                         enum: ['university', 'district', 'neighborhood', 'poi', 'campus', 'station', 'landmark'],
                     },
-                    limit: { type: ['number', 'string'] },
+                    limit: { type: 'number' },
                 },
                 required: ['query'],
             }),
@@ -1425,10 +1487,10 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
 }
 
 function getToolChoice(forceFunctionNames: ToolName[]) {
-    if (forceFunctionNames.length === 1) {
-        return { type: 'tool' as const, toolName: forceFunctionNames[0] };
-    }
     if (forceFunctionNames.length > 1) {
+        return 'required' as const;
+    }
+    if (forceFunctionNames.length === 1) {
         return 'required' as const;
     }
     return 'auto' as const;
@@ -1466,6 +1528,33 @@ async function generateTextWithRetry(
     throw new Error('generateText retry loop exhausted unexpectedly');
 }
 
+function buildErrorDebugDetails(error: unknown) {
+    const err = error as {
+        name?: string;
+        code?: string;
+        message?: string;
+        details?: string;
+        hint?: string;
+        statusCode?: number;
+        responseBody?: unknown;
+        cause?: unknown;
+    };
+
+    return {
+        name: err.name || null,
+        code: err.code || null,
+        message: err.message || null,
+        details: err.details || null,
+        hint: err.hint || null,
+        statusCode: err.statusCode ?? null,
+        responseBody: err.responseBody ?? null,
+        cause:
+            typeof err.cause === 'object' && err.cause !== null
+                ? JSON.parse(JSON.stringify(err.cause))
+                : err.cause ?? null,
+    };
+}
+
 Deno.serve(async (req) => {
     const corsHeaders = getCorsHeaders(req);
     let telemetryUserId: string | null = null;
@@ -1476,13 +1565,6 @@ Deno.serve(async (req) => {
     }
 
     try {
-        if (!GEMINI_API_KEY) {
-            return new Response(
-                JSON.stringify({ error: 'Server đang thiếu cấu hình Gemini API key.', code: 'GEMINI_ERROR' }),
-                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-        }
-
         // Verify JWT
         const authHeader = req.headers.get('Authorization');
         if (!authHeader) {
@@ -1625,6 +1707,7 @@ Deno.serve(async (req) => {
         let responseSource = 'rule_based';
         let functionCallResults: Array<{ name: string; result: unknown }> = [];
         let romiActions: RomiAction[] = [];
+        const languageModel = getLanguageModel();
 
         if (!hasTools && isGreetingMessage(normalizeText(message))) {
             responseText = buildGreetingReply();
@@ -1633,10 +1716,16 @@ Deno.serve(async (req) => {
                 { type: 'open_roommates', label: 'Tìm bạn cùng phòng', href: '/roommates' },
             ];
             responseSource = 'rule_based_greeting';
+        } else if (!languageModel) {
+            const fallback = buildRateLimitedFallback(selectedToolNames);
+            responseText = fallback.message;
+            romiActions = fallback.actions;
+            finishReason = 'provider_not_configured';
+            responseSource = 'provider_not_configured_fallback';
         } else {
             try {
                 const aiResult = await generateTextWithRetry({
-                    model: google('gemini-2.0-flash-001'),
+                    model: languageModel,
                     system: SYSTEM_PROMPT,
                     messages,
                     temperature: 0.7,
@@ -1683,15 +1772,18 @@ Deno.serve(async (req) => {
                         )
                 );
             } catch (modelError) {
-                if (!isRateLimitError(modelError)) {
+                if (!isRateLimitError(modelError) && !isRecoverableProviderError(modelError)) {
                     throw modelError;
                 }
-
                 const fallback = buildRateLimitedFallback(selectedToolNames);
                 responseText = fallback.message;
                 romiActions = fallback.actions;
-                finishReason = 'provider_rate_limited';
-                responseSource = 'provider_rate_limited_fallback';
+                finishReason = isRateLimitError(modelError)
+                    ? 'provider_rate_limited'
+                    : 'provider_unavailable';
+                responseSource = isRateLimitError(modelError)
+                    ? 'provider_rate_limited_fallback'
+                    : 'provider_unavailable_fallback';
             }
         }
 
@@ -1768,12 +1860,9 @@ Deno.serve(async (req) => {
             hint?: string;
         };
 
-        console.error('ROMI error:', {
-            code: err.code,
-            message: err.message,
-            details: err.details,
-            hint: err.hint,
-        });
+        const errorDebugDetails = buildErrorDebugDetails(error);
+
+        console.error('ROMI error:', errorDebugDetails);
 
         if (telemetryUserId) {
             await trackRomiAnalyticsEvent(
@@ -1781,10 +1870,12 @@ Deno.serve(async (req) => {
                 telemetryUserId,
                 telemetrySessionId,
                 'romi_error',
-                {
-                    code: err.code || 'UNKNOWN',
-                    message: err.message || null,
-                }
+                EXPOSE_INTERNAL_ERRORS
+                    ? errorDebugDetails
+                    : {
+                        code: err.code || 'UNKNOWN',
+                        message: err.message || null,
+                    }
             );
         }
 
@@ -1813,7 +1904,7 @@ Deno.serve(async (req) => {
             code: 'GEMINI_ERROR',
         };
         if (EXPOSE_INTERNAL_ERRORS) {
-            errorPayload.details = err.message || null;
+            errorPayload.details = errorDebugDetails;
         }
 
         return new Response(
@@ -1822,4 +1913,3 @@ Deno.serve(async (req) => {
         );
     }
 });
-
