@@ -12,8 +12,8 @@ const env = (import.meta as ImportMeta & {
 }).env ?? {};
 
 // Supabase configuration
-const supabaseUrl = env.VITE_SUPABASE_URL || 'https://vevnoxlgwisdottaifdn.supabase.co';
-const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_Md-3oao5dzebkhQcasURFw_Cz25UQmH';
+const supabaseUrl = env.VITE_SUPABASE_URL;
+const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY;
 
 // Create Supabase client
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
