@@ -23,13 +23,13 @@ This plan addresses **12 critical-to-low priority issues** identified in the Roo
 
 > **⚠️ DO NOT DEPLOY TO PRODUCTION until Phase P0 is complete**
 
-### Task 1: Fix SePay API Key + Move Secrets to `.env.local`
+### Task 1: Keep SePay Secrets Server-Side + Move Secrets to `.env.local`
 **Agent**: @security-auditor  
 **Effort**: 10 minutes  
 **Files**: `.env`, `.env.local` (create)
 
 #### Issues:
-- `VITE_SEPAY_API_KEY=sandbox_key` with production URL `https://pgapi.sepay.vn`
+- SePay secrets were mixed into Vite client env naming
 - Secrets in `.env` instead of `.env.local` (gitignored)
 
 #### Steps:
@@ -38,14 +38,16 @@ This plan addresses **12 critical-to-low priority issues** identified in the Roo
    ```bash
    VITE_SUPABASE_URL=https://...
    VITE_SUPABASE_ANON_KEY=sb_...
-   VITE_SEPAY_API_KEY=<REAL_PRODUCTION_KEY>
+   SEPAY_API_KEY=<REAL_PRODUCTION_KEY>
    VITE_MAPBOX_ACCESS_TOKEN=pk.eyJ...
+   VITE_PAYMENT_BANK=MB
+   VITE_PAYMENT_ACCOUNT=<PUBLIC_RECEIVING_ACCOUNT>
    ```
 3. [ ] Replace secrets in `.env` with placeholders:
    ```bash
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   VITE_SEPAY_API_KEY=your_sepay_api_key
+   SEPAY_API_KEY=your_sepay_api_key
    ```
 4. [ ] Add `.env.local` to `.gitignore` if not present
 
@@ -511,7 +513,7 @@ graph TD
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| SePay key still wrong in prod | 🔴 High | Triple-check `.env.local` before deploy |
+| SePay secret exposed to client | 🔴 High | Keep `SEPAY_*` server-side and only expose `VITE_PAYMENT_*` |
 | RLS policy too permissive | 🔴 High | Review policy with security auditor |
 | Schema migration breaks existing bookings | 🟠 Medium | Backup DB before Task 4, test on staging |
 | Webhook race condition persists | 🟠 Medium | Load test with concurrent requests |

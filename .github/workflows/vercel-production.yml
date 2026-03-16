@@ -1,0 +1,70 @@
+name: Vercel Production
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    branches:
+      - main
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to deploy to production
+        required: false
+        default: main
+
+jobs:
+  deploy-production:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: vercel-production-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.event.workflow_run.head_branch }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+    env:
+      DEPLOY_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.event.workflow_run.head_sha }}
+      DEPLOY_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.event.workflow_run.head_branch }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_REF }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build production artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy production
+        id: deploy
+        shell: bash
+        run: |
+          production_url="$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} --yes)"
+          echo "production_url=$production_url" >> "$GITHUB_OUTPUT"
+
+      - name: Write job summary
+        run: |
+          echo "Production branch: $DEPLOY_BRANCH" >> "$GITHUB_STEP_SUMMARY"
+          echo "Production URL: ${{ steps.deploy.outputs.production_url }}" >> "$GITHUB_STEP_SUMMARY"
