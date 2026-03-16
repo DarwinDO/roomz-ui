@@ -15,9 +15,13 @@ interface SEOProps {
   noindex?: boolean;
 }
 
+const env = (import.meta as ImportMeta & {
+  env?: Record<string, string | undefined>;
+}).env ?? {};
+
 const DEFAULT_TITLE = 'RommZ - Nền tảng tìm phòng trọ và bạn cùng phòng hàng đầu Việt Nam';
 const DEFAULT_DESCRIPTION = 'RommZ giúp bạn tìm phòng trọ, căn hộ cho thuê và bạn cùng phòng phù hợp. Tin đăng xác thực, giá tốt, khu vực Hà Nội, HCM, Đà Nẵng.';
-const SITE_URL = 'https://rommz.vn';
+const DEFAULT_SITE_URL = 'https://rommz.site';
 
 export function SEO({
   title,
@@ -28,9 +32,11 @@ export function SEO({
   type = 'website',
   noindex = false,
 }: SEOProps) {
+  const siteUrl = env.VITE_SITE_URL
+    || (typeof window !== 'undefined' ? window.location.origin : DEFAULT_SITE_URL);
   const pageTitle = title ? `${title} | RommZ` : DEFAULT_TITLE;
-  const pageUrl = url ? `${SITE_URL}${url}` : SITE_URL;
-  const imageUrl = image.startsWith('http') ? image : `${SITE_URL}${image}`;
+  const pageUrl = url ? `${siteUrl}${url}` : siteUrl;
+  const imageUrl = image.startsWith('http') ? image : `${siteUrl}${image}`;
 
   useEffect(() => {
     // Update document title
@@ -162,7 +168,7 @@ export function BreadcrumbStructuredData({ items }: { items: BreadcrumbItem[] })
         '@type': 'ListItem',
         position: index + 1,
         name: item.name,
-        item: `${SITE_URL}${item.url}`,
+        item: `${DEFAULT_SITE_URL}${item.url}`,
       })),
     };
 
