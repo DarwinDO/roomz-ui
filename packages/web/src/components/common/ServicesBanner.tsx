@@ -6,7 +6,7 @@ const serviceCards = [
   {
     title: 'Dịch vụ chuyển chỗ ở',
     description: 'Kết nối nhanh với dịch vụ chuyển nhà, dọn phòng và các hỗ trợ thiết thực sau khi chốt chỗ ở.',
-    path: '/support-services',
+    path: '/services?tab=services',
     cta: 'Xem dịch vụ',
     icon: Truck,
     tone: 'from-sky-100 via-white to-slate-50 text-sky-700 border-sky-200/80',
@@ -14,7 +14,7 @@ const serviceCards = [
   {
     title: 'Ưu đãi Local Passport',
     description: 'Mở deal quanh khu vực bạn đang ở hoặc sắp chuyển tới, thay vì phải tự đi tìm từng nơi một.',
-    path: '/local-passport',
+    path: '/services?tab=deals',
     cta: 'Khám phá ưu đãi',
     icon: Gift,
     tone: 'from-amber-100 via-white to-orange-50 text-amber-700 border-amber-200/80',
@@ -36,7 +36,7 @@ export function ServicesBanner() {
             Mở nhanh các dịch vụ và ưu đãi thực sự cần sau khi chốt chỗ ở.
           </p>
         </div>
-        <Button variant="outline" className="rounded-2xl px-5" onClick={() => navigate('/support-services')}>
+        <Button variant="outline" className="rounded-2xl px-5" onClick={() => navigate('/services')}>
           Xem tất cả
         </Button>
       </div>

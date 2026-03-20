@@ -63,3 +63,14 @@ description: Technical implementation notes, patterns, and code guidelines
 - Data encryption
 - Secrets management
 
+## Task Logs
+
+- After each code task, create or update `task-YYYYMMDD-<slug>.md`
+- Task logs should summarize:
+  - goal
+  - files changed
+  - validation run
+  - docs updated
+  - remaining follow-ups
+- Use `task-template.md` as the default structure
+

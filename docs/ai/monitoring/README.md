@@ -78,3 +78,9 @@ description: Define monitoring strategy, metrics, alerts, and incident response
 - Dependency checks
 - Automated smoke tests
 
+## Living Snapshot Convention
+
+- Keep the current project snapshot in `project-status.md`
+- Update `project-status.md` after every code task
+- Use `project-status.md` as the first read before repo-affecting work
+

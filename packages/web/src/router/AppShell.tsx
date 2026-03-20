@@ -32,7 +32,8 @@ export default function AppShell() {
 
   useActivityTracker();
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) =>
+    path === '/' ? location.pathname === path : location.pathname.startsWith(path);
   const isHost = profile?.role === 'landlord';
   const isPendingHostApplication = profile?.account_status === 'pending_landlord';
 
@@ -40,9 +41,8 @@ export default function AppShell() {
     { path: '/search', label: 'Tìm phòng' },
     { path: '/roommates', label: 'Tìm bạn cùng phòng' },
     { path: '/swap', label: 'Ở ngắn hạn' },
-    { path: '/support-services', label: 'Dịch vụ' },
+    { path: '/services', label: 'Dịch vụ & Ưu đãi' },
     { path: '/community', label: 'Cộng đồng' },
-    { path: '/local-passport', label: 'Ưu đãi' },
   ];
 
   const handleSignOut = async () => {

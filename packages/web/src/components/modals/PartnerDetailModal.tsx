@@ -24,7 +24,7 @@ export function PartnerDetailModal({ isOpen, onClose, partner }: PartnerDetailMo
   };
 
   const handleBookService = () => {
-    navigate('/support-services');
+    navigate('/services?tab=services');
     onClose();
   };
 

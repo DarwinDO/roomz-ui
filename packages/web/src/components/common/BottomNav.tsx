@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, MessageCircle, User, Plus, Users, RefreshCw, Gift, Settings, Truck } from 'lucide-react';
+import { Home, Search, MessageCircle, User, Plus, Users, RefreshCw, Settings, BriefcaseBusiness } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function BottomNav() {
@@ -23,10 +23,9 @@ export function BottomNav() {
 
   const expandedMenuItems = [
     { id: 'roommates', label: 'Tìm bạn cùng phòng', icon: Users, color: 'bg-blue-50', path: '/roommates' },
-    { id: 'services', label: 'Dịch vụ', icon: Truck, color: 'bg-orange-50', path: '/support-services' },
+    { id: 'services', label: 'Dịch vụ & Ưu đãi', icon: BriefcaseBusiness, color: 'bg-amber-50', path: '/services' },
     { id: 'community', label: 'Cộng đồng', icon: Users, color: 'bg-indigo-50', path: '/community' },
     { id: 'swap', label: 'Ở ngắn hạn', icon: RefreshCw, color: 'bg-green-50', path: '/swap' },
-    { id: 'local-passport', label: 'Ưu đãi', icon: Gift, color: 'bg-purple-50', path: '/local-passport' },
     { id: 'settings', label: 'Cài đặt', icon: Settings, color: 'bg-gray-50', path: '/settings' },
   ];
 

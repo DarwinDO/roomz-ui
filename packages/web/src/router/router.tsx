@@ -4,6 +4,7 @@ import AppShell from './AppShell.tsx';
 import AdminShell from './AdminShell.tsx';
 import PageLoader from './PageLoader';
 import ProtectedAdminRoute from './ProtectedAdminRoute';
+import LegacyServicesRedirect from './LegacyServicesRedirect';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { LandlordRoute } from '@/components/LandlordRoute';
 
@@ -27,8 +28,7 @@ const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const VerifyEmailPage = lazy(() => import('@/pages/VerifyEmailPage'));
 const AuthCallbackPage = lazy(() => import('@/pages/AuthCallbackPage'));
 const VerificationPage = lazy(() => import('@/pages/VerificationPage'));
-const SupportServicesPage = lazy(() => import('@/pages/SupportServicesPage'));
-const LocalPassportPage = lazy(() => import('@/pages/LocalPassportPage'));
+const ServicesHubPage = lazy(() => import('@/pages/ServicesHubPage'));
 const SubletDetailPage = lazy(() => import('@/pages/SubletDetailPage'));
 const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
 const LandlordDashboardPage = lazy(() => import('@/pages/LandlordDashboardPage'));
@@ -57,7 +57,6 @@ const IngestionReviewPage = lazy(() => import('@/pages/admin/IngestionReviewPage
 const DataQualityPage = lazy(() => import('@/pages/admin/DataQualityPage'));
 const LocationsPage = lazy(() => import('@/pages/admin/LocationsPage'));
 const HostApplicationsPage = lazy(() => import('@/pages/admin/HostApplicationsPage'));
-
 
 
 export const router = createBrowserRouter([
@@ -218,16 +217,16 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: 'support-services',
-        element: (
-          <ProtectedRoute>
-            <SupportServicesPage />
-          </ProtectedRoute>
-        ),
+        path: 'services',
+        element: <ServicesHubPage />,
       },
       {
         path: 'local-passport',
-        element: <LocalPassportPage />,
+        element: <LegacyServicesRedirect tab="deals" />,
+      },
+      {
+        path: 'support-services',
+        element: <LegacyServicesRedirect tab="services" />,
       },
       {
         path: 'settings',
@@ -255,7 +254,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'partners',
-        element: <Navigate to="/local-passport" replace />,
+        element: <LegacyServicesRedirect tab="deals" />,
       },
       {
         path: 'become-host',

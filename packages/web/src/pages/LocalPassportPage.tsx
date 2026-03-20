@@ -56,6 +56,10 @@ interface PerkCardData {
   isPremiumLocked?: boolean;
 }
 
+interface LocalPassportContentProps {
+  embedded?: boolean;
+}
+
 function getPassportLocationIcon(type: LocationCatalogEntry["location_type"]) {
   switch (type) {
     case "university":
@@ -70,7 +74,9 @@ function getPassportLocationIcon(type: LocationCatalogEntry["location_type"]) {
   }
 }
 
-export default function LocalPassportPage() {
+export function LocalPassportContent({
+  embedded = false,
+}: LocalPassportContentProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -161,12 +167,12 @@ export default function LocalPassportPage() {
         coffee: { emoji: "☕", color: "bg-amber-100 text-amber-700" },
         fitness: { emoji: "🏋️", color: "bg-red-100 text-red-700" },
         gym: { emoji: "🏋️", color: "bg-red-100 text-red-700" },
-        entertainment: { emoji: "🎬", color: "bg-purple-100 text-purple-700" },
+        entertainment: { emoji: "🎬", color: "bg-sky-100 text-sky-700" },
         food: { emoji: "🍔", color: "bg-orange-100 text-orange-700" },
         laundry: { emoji: "👕", color: "bg-blue-100 text-blue-700" },
         cleaning: { emoji: "🧹", color: "bg-teal-100 text-teal-700" },
         moving: { emoji: "📦", color: "bg-gray-100 text-gray-700" },
-        other: { emoji: "✨", color: "bg-pink-100 text-pink-700" },
+        other: { emoji: "✨", color: "bg-stone-100 text-stone-700" },
       };
 
       const config = categoryConfig[partner.category] || categoryConfig.other;
@@ -287,28 +293,35 @@ export default function LocalPassportPage() {
   // ============================================
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F8FAFF] to-white pb-24 md:pb-8">
-      {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-border z-40 px-4 py-3">
-        <div className="max-w-6xl mx-auto flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="rounded-full"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h3 className="ml-3">RommZ Passport</h3>
+    <div
+      className={
+        embedded
+          ? "space-y-8"
+          : "min-h-screen bg-gradient-to-b from-[#f5f9ff] via-[#fffdf9] to-white pb-24 md:pb-8"
+      }
+    >
+      {!embedded ? (
+        <div className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-6xl items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="rounded-full"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h3 className="ml-3 font-display text-xl">RommZ Passport</h3>
+          </div>
         </div>
-      </div>
+      ) : null}
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <div className={embedded ? "space-y-8" : "mx-auto max-w-6xl space-y-8 px-4 py-8"}>
         {/* Search Bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
+            aria-label="Tìm kiếm đối tác và ưu đãi"
             placeholder="Tìm kiếm đối tác, ưu đãi..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -703,5 +716,9 @@ export default function LocalPassportPage() {
       />
     </div>
   );
+}
+
+export default function LocalPassportPage() {
+  return <LocalPassportContent />;
 }
 
