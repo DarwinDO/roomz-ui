@@ -351,7 +351,17 @@ export default function LocationsPage() {
 
           return (
             <div className="flex flex-wrap justify-end gap-2">
-              <Button size="sm" variant="outline" className="rounded-full border-slate-200" onClick={() => openEditor(location)}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-full border-slate-200"
+                onClick={() => openEditor(location)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.currentTarget.blur();
+                  }
+                }}
+              >
                 <PencilLine className="h-4 w-4" />
                 Sửa
               </Button>

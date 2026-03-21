@@ -6,7 +6,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
-import { Heart, MessageCircle, Share2, Send, ShieldCheck, MoreHorizontal, Flag, Loader2, Pencil, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Flag,
+  Heart,
+  Loader2,
+  MessageCircle,
+  MoreHorizontal,
+  Pencil,
+  Send,
+  Share2,
+  ShieldCheck,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +48,7 @@ export function PostDetailModal({ isOpen, onClose, post, onLike, onEdit, onDelet
   const [replyingTo, setReplyingTo] = useState<{ id: string; author: string } | null>(null);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [reportReason, setReportReason] = useState("");
+  const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Fetch real comments
@@ -49,6 +64,7 @@ export function PostDetailModal({ isOpen, onClose, post, onLike, onEdit, onDelet
       setReplyingTo(null);
       setShowReportDialog(false);
       setReportReason("");
+      setActiveImageIndex(null);
     }
   }, [isOpen]);
 
@@ -153,6 +169,27 @@ export function PostDetailModal({ isOpen, onClose, post, onLike, onEdit, onDelet
   };
 
   const isSubmitting = createCommentMutation.isPending;
+  const activeImage = activeImageIndex !== null ? post.images[activeImageIndex] : null;
+
+  const goToPreviousImage = () => {
+    setActiveImageIndex((current) => {
+      if (current === null) {
+        return current;
+      }
+
+      return current === 0 ? post.images.length - 1 : current - 1;
+    });
+  };
+
+  const goToNextImage = () => {
+    setActiveImageIndex((current) => {
+      if (current === null) {
+        return current;
+      }
+
+      return current === post.images.length - 1 ? 0 : current + 1;
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -246,9 +283,20 @@ export function PostDetailModal({ isOpen, onClose, post, onLike, onEdit, onDelet
                 }`}
             >
               {post.images.map((image, index) => (
-                <div key={index} className="relative aspect-video overflow-hidden rounded-xl">
-                  <ImageWithFallback src={image} alt={`Ảnh ${index + 1}`} className="w-full h-full object-cover" />
-                </div>
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => setActiveImageIndex(index)}
+                  className="relative aspect-video overflow-hidden rounded-xl transition-transform hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  aria-label={`Xem ảnh ${index + 1} ở kích thước lớn`}
+                >
+                  <ImageWithFallback
+                    src={image}
+                    alt={`Ảnh ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-slate-950/0 transition-colors hover:bg-slate-950/12" />
+                </button>
               ))}
             </div>
           )}
@@ -349,6 +397,80 @@ export function PostDetailModal({ isOpen, onClose, post, onLike, onEdit, onDelet
             </Button>
           </div>
         </div>
+
+        {activeImage ? (
+          <div className="absolute inset-0 z-50 flex flex-col bg-slate-950/88 p-4 backdrop-blur-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-sm font-medium text-white">
+                Ảnh {activeImageIndex! + 1}/{post.images.length}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="rounded-full text-white hover:bg-white/12 hover:text-white"
+                onClick={() => setActiveImageIndex(null)}
+                aria-label="Đóng xem ảnh"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="flex flex-1 items-center justify-center gap-3">
+              {post.images.length > 1 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11 rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                  onClick={goToPreviousImage}
+                  aria-label="Ảnh trước"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+              ) : null}
+
+              <img
+                src={activeImage}
+                alt={`Ảnh ${activeImageIndex! + 1} của bài viết ${post.title}`}
+                className="max-h-full max-w-full rounded-[24px] object-contain shadow-[0_30px_80px_rgba(15,23,42,0.42)]"
+              />
+
+              {post.images.length > 1 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-11 w-11 rounded-full bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                  onClick={goToNextImage}
+                  aria-label="Ảnh kế tiếp"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              ) : null}
+            </div>
+
+            {post.images.length > 1 ? (
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                {post.images.map((image, index) => (
+                  <button
+                    key={`${image}-${index}`}
+                    type="button"
+                    onClick={() => setActiveImageIndex(index)}
+                    className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-2xl border transition-all ${
+                      index === activeImageIndex
+                        ? "border-white shadow-[0_0_0_2px_rgba(255,255,255,0.15)]"
+                        : "border-white/20 opacity-70 hover:opacity-100"
+                    }`}
+                    aria-label={`Mở ảnh ${index + 1}`}
+                  >
+                    <img src={image} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {/* Report Dialog */}
         {showReportDialog && (

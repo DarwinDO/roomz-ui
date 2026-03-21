@@ -52,7 +52,7 @@ export function BookingsTab() {
 
     if (error) {
         return (
-            <Card className="border-destructive/20 bg-destructive/5">
+            <Card className="rounded-[28px] border-destructive/20 bg-destructive/5 shadow-soft">
                 <CardContent className="py-8 text-center">
                     <p className="text-destructive mb-4">{error}</p>
                     <Button variant="outline" onClick={refetch}>Thử lại</Button>
@@ -63,7 +63,7 @@ export function BookingsTab() {
 
     if (bookings.length === 0) {
         return (
-            <Card className="border-dashed">
+            <Card className="rounded-[28px] border-dashed border-border/70 shadow-soft">
                 <CardContent className="py-16 text-center">
                     <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                         <CalendarCheck className="w-8 h-8 text-muted-foreground/50" />
@@ -78,9 +78,9 @@ export function BookingsTab() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 rounded-[28px] border border-border/70 bg-card/85 p-5 shadow-soft">
             <Tabs defaultValue="upcoming" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4 rounded-xl">
+                <TabsList className="mb-4 grid w-full grid-cols-3 rounded-[22px] border border-border/70 bg-background p-1.5">
                     <TabsTrigger value="upcoming">
                         Chờ xác nhận
                         {pendingBookings.length > 0 && (
@@ -102,7 +102,7 @@ export function BookingsTab() {
 
                 <TabsContent value="upcoming" className="space-y-4">
                     {pendingBookings.length === 0 ? (
-                        <Card className="border-dashed bg-muted/20">
+                        <Card className="rounded-[24px] border-dashed border-border/70 bg-muted/20">
                             <CardContent className="py-8 text-center">
                                 <Calendar className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
                                 <p className="text-muted-foreground">Không có lịch hẹn đang chờ xác nhận</p>
@@ -123,7 +123,7 @@ export function BookingsTab() {
 
                 <TabsContent value="confirmed" className="space-y-4">
                     {confirmedBookings.length === 0 ? (
-                        <Card className="border-dashed bg-muted/20">
+                        <Card className="rounded-[24px] border-dashed border-border/70 bg-muted/20">
                             <CardContent className="py-8 text-center">
                                 <CalendarCheck className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
                                 <p className="text-muted-foreground">Không có lịch hẹn sắp tới</p>
@@ -140,7 +140,7 @@ export function BookingsTab() {
 
                 <TabsContent value="history" className="space-y-4">
                     {historyBookings.length === 0 ? (
-                        <Card className="border-dashed bg-muted/20">
+                        <Card className="rounded-[24px] border-dashed border-border/70 bg-muted/20">
                             <CardContent className="py-8 text-center">
                                 <Calendar className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
                                 <p className="text-muted-foreground">Chưa có lịch sử lịch hẹn</p>

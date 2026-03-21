@@ -136,7 +136,7 @@ export default function AuthCallbackPage() {
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-            <h1 className="mb-2 text-2xl font-bold">{message}</h1>
+            <h2 className="mb-2 text-2xl font-bold">{message}</h2>
             <p className="text-gray-600">Vui lòng đợi trong giây lát...</p>
           </>
         )}
@@ -146,7 +146,7 @@ export default function AuthCallbackPage() {
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <h1 className="mb-2 text-2xl font-bold text-green-700">{message}</h1>
+            <h2 className="mb-2 text-2xl font-bold text-green-700">{message}</h2>
             <p className="text-gray-600">Bạn sẽ được chuyển hướng tự động...</p>
           </>
         )}
@@ -156,9 +156,17 @@ export default function AuthCallbackPage() {
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
               <AlertCircle className="h-8 w-8 text-red-600" />
             </div>
-            <h1 className="mb-2 text-2xl font-bold text-red-700">Xác thực thất bại</h1>
+            <h2 className="mb-2 text-2xl font-bold text-red-700">Xác thực thất bại</h2>
             <p className="mb-6 text-gray-600">{errorMessage}</p>
-            <Button onClick={() => navigate('/login', { replace: true })} className="h-12 w-full rounded-full bg-primary hover:bg-primary/90">
+            <Button
+              onClick={() => navigate('/login', { replace: true })}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  navigate('/login', { replace: true });
+                }
+              }}
+              className="h-12 w-full rounded-full bg-primary hover:bg-primary/90"
+            >
               Quay lại đăng nhập
             </Button>
           </>

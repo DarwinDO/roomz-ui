@@ -1,5 +1,5 @@
 ﻿import { useState, useRef, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,7 @@ const WELCOME_MESSAGE = ROMI_WELCOME_MESSAGE;
 
 export function Chatbot() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -157,6 +158,17 @@ export function Chatbot() {
     hour: "numeric",
     minute: "2-digit",
   });
+
+  const shouldHideOnRoute =
+    location.pathname === "/" ||
+    location.pathname === "/services" ||
+    location.pathname === "/community" ||
+    location.pathname.startsWith("/room/") ||
+    location.pathname.startsWith("/roommates");
+
+  if (shouldHideOnRoute) {
+    return null;
+  }
 
   return (
     <>

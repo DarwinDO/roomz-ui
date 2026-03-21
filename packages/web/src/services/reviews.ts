@@ -11,7 +11,10 @@ export type ReviewInsert = TablesInsert<'reviews'>;
 export async function getReviews(targetId: string, type: 'room' | 'partner' | 'user') {
     let query = supabase
         .from('reviews')
-        .select(`*, reviewer:users(*)`)
+        .select(`
+            *,
+            reviewer:users!reviews_reviewer_id_fkey(id, full_name, avatar_url)
+        `)
         .order('created_at', { ascending: false });
 
     if (type === 'room') query = query.eq('room_id', targetId);

@@ -64,7 +64,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="pb-20 md:pb-8">
+    <div className="bg-[var(--hero-bg)] pb-20 md:pb-8">
       <ProfileHeader
         user={user}
         profile={profile}
@@ -79,9 +79,9 @@ export default function ProfilePage() {
         isPremium={isPremium}
       />
 
-      <div className="px-6 max-w-6xl mx-auto">
+      <div className="mx-auto max-w-6xl px-4 pb-8 sm:px-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6 rounded-xl">
+          <TabsList className="mb-6 grid w-full grid-cols-3 rounded-[24px] border border-border/70 bg-card/90 p-1.5 shadow-soft">
             <TabsTrigger value="favorites">
               <Heart className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Yêu thích</span>
@@ -99,7 +99,7 @@ export default function ProfilePage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="favorites">
+          <TabsContent value="favorites" className="mt-0">
             <FavoritesTab
               savedRooms={savedRooms}
               loading={favoritesLoading}
@@ -109,11 +109,11 @@ export default function ProfilePage() {
             />
           </TabsContent>
 
-          <TabsContent value="bookings">
+          <TabsContent value="bookings" className="mt-0">
             <BookingsTab />
           </TabsContent>
 
-          <TabsContent value="settings">
+          <TabsContent value="settings" className="mt-0">
             <SettingsTab
               profile={profile}
               isPremium={isPremium}

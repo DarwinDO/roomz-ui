@@ -71,15 +71,15 @@ export default function BecomeLandlordPage() {
 
   if (isApplicationLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--hero-bg)]">
         <p className="text-sm text-muted-foreground">Đang tải hồ sơ host...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="container mx-auto max-w-4xl px-4 py-8">
+    <div className="min-h-screen bg-[var(--hero-bg)] pb-20">
+      <div className="container mx-auto max-w-5xl px-4 py-8">
         <BecomeLandlordIntro />
 
         {rejectionReason ? (

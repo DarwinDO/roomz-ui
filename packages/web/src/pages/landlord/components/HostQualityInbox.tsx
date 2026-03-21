@@ -44,7 +44,7 @@ export function HostQualityInbox({ pendingRooms, rejectedRooms }: HostQualityInb
 
   if (issues.length === 0) {
     return (
-      <Card className="mb-6 border border-emerald-100 bg-emerald-50/70 shadow-soft">
+      <Card className="mb-6 rounded-[28px] border border-emerald-100 bg-emerald-50/70 shadow-soft">
         <CardContent className="flex flex-col gap-3 px-6 py-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-3">
             <div className="rounded-2xl bg-emerald-500/10 p-3 text-emerald-600">
@@ -67,7 +67,7 @@ export function HostQualityInbox({ pendingRooms, rejectedRooms }: HostQualityInb
   }
 
   return (
-    <Card className="mb-6 border border-amber-200 bg-amber-50/50 shadow-soft">
+      <Card className="mb-6 rounded-[28px] border border-amber-200 bg-amber-50/50 shadow-soft">
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="flex items-start gap-3">
@@ -94,7 +94,7 @@ export function HostQualityInbox({ pendingRooms, rejectedRooms }: HostQualityInb
       </CardHeader>
       <CardContent className="space-y-3">
         {issues.slice(0, 4).map((issue) => (
-          <div key={issue.id} className="rounded-2xl border border-white bg-white/90 p-4 shadow-sm">
+          <div key={issue.id} className="rounded-[24px] border border-white bg-white/90 p-4 shadow-sm">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">

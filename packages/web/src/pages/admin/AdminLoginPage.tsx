@@ -81,7 +81,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-white to-secondary/10 px-4">
+    <div lang="vi" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-white to-secondary/10 px-4">
       <Card className="w-full max-w-md p-8 shadow-2xl">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-card rounded-2xl flex items-center justify-center mb-4 border border-border">
@@ -151,6 +151,12 @@ export default function AdminLoginPage() {
             variant="link"
             className="text-xs text-primary mt-2"
             onClick={() => navigate("/login")}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                navigate("/login");
+              }
+            }}
           >
             Quay lại trang đăng nhập chung
           </Button>

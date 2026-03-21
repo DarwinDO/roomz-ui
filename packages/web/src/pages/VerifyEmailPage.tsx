@@ -79,7 +79,7 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center p-4">
+    <div lang="vi" className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/10 flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8 rounded-3xl shadow-2xl border-0 bg-white">
         {/* Header */}
         <div className="text-center mb-6">
@@ -143,6 +143,11 @@ export default function VerifyEmailPage() {
         <div className="space-y-3">
           <Button
             onClick={handleResendEmail}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.currentTarget.blur();
+              }
+            }}
             disabled={loading || countdown > 0}
             className="w-full h-12 bg-primary hover:bg-primary/90 rounded-full"
             variant="default"
@@ -164,6 +169,12 @@ export default function VerifyEmailPage() {
 
           <Button
             onClick={handleBackToLogin}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                handleBackToLogin();
+              }
+            }}
             variant="outline"
             className="w-full h-12 rounded-full"
           >

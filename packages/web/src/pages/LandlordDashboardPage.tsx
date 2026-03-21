@@ -124,9 +124,16 @@ export default function LandlordDashboardPage() {
     }
   };
 
+  const handleQuickActionKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, destination: string) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      navigate(destination);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--hero-bg)]">
         <div className="text-center">
           <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-primary" />
           <p className="text-muted-foreground">Đang tải dữ liệu host...</p>
@@ -137,7 +144,7 @@ export default function LandlordDashboardPage() {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--hero-bg)] px-4">
         <div className="max-w-md text-center">
           <AlertCircle className="mx-auto mb-4 h-16 w-16 text-warning" />
           <h2 className="mb-2 text-xl font-semibold">Vui lòng đăng nhập</h2>
@@ -149,7 +156,7 @@ export default function LandlordDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24 md:pb-8">
+    <div lang="vi" className="min-h-screen bg-[var(--hero-bg)] pb-24 md:pb-8">
       <div className="sticky top-0 z-40 border-b border-border bg-background/95 px-6 py-4 backdrop-blur-sm transition-all">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-3">
@@ -157,7 +164,7 @@ export default function LandlordDashboardPage() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-xl font-bold text-transparent">Bảng điều khiển host</h1>
+              <h1 className="font-display text-xl text-foreground">Bảng điều khiển host</h1>
               <p className="hidden text-sm text-muted-foreground sm:block">Quản lý tin đăng, lịch xem phòng và chất lượng tin</p>
             </div>
           </div>
@@ -170,6 +177,36 @@ export default function LandlordDashboardPage() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 py-8">
+        <div className="mb-6 rounded-[32px] border border-border/70 bg-[linear-gradient(135deg,#102131_0%,#16324b_52%,#22597a_100%)] p-6 text-white shadow-soft-lg">
+          <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">Host console</p>
+              <h2 className="mt-3 font-display text-white">Theo dõi listing, lịch xem và các việc cần xử lý trong cùng một nhịp.</h2>
+              <p className="mt-3 max-w-[64ch] text-sm leading-7 text-slate-300 md:text-base">
+                Dashboard này ưu tiên những gì ảnh hưởng trực tiếp tới độ tin cậy của tin đăng và khả năng chốt khách: tình trạng duyệt, lịch xem và tín hiệu quan tâm.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <Card className="rounded-[24px] border-white/10 bg-white/8 p-4 text-white shadow-none backdrop-blur-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Listing</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{rooms.length}</p>
+                <p className="mt-1 text-sm text-slate-300">Tổng tin đang được quản lý trong console.</p>
+              </Card>
+              <Card className="rounded-[24px] border-white/10 bg-white/8 p-4 text-white shadow-none backdrop-blur-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Lịch chờ xác nhận</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{pendingBookings.length}</p>
+                <p className="mt-1 text-sm text-slate-300">Những lịch xem cần host phản hồi sớm.</p>
+              </Card>
+              <Card className="rounded-[24px] border-white/10 bg-white/8 p-4 text-white shadow-none backdrop-blur-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Tin nhắn chưa đọc</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{messagesUnreadCount}</p>
+                <p className="mt-1 text-sm text-slate-300">Tín hiệu liên hệ cần được xử lý để giữ conversion.</p>
+              </Card>
+            </div>
+          </div>
+        </div>
+
         <LandlordStats stats={roomStats} />
         <HostQualityInbox pendingRooms={pendingRooms} rejectedRooms={rejectedRooms} />
 
@@ -202,7 +239,7 @@ export default function LandlordDashboardPage() {
           }}
           className="space-y-6"
         >
-          <TabsList className="grid h-auto w-full grid-cols-4 rounded-xl bg-muted/50 p-1">
+          <TabsList className="grid h-auto w-full grid-cols-4 rounded-[24px] border border-border/70 bg-card/90 p-1.5 shadow-soft">
             <TabsTrigger value="my-rooms" className="rounded-lg py-2.5 data-[state=active]:shadow-sm">
               <span className="hidden sm:inline">Tin của tôi</span>
               <span className="sm:hidden">Tin</span>
@@ -350,7 +387,13 @@ export default function LandlordDashboardPage() {
         </Tabs>
 
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <Card className="group cursor-pointer border border-border transition-all duration-300 hover:shadow-soft-lg" onClick={() => navigate('/post-room')}>
+          <Card
+            className="group cursor-pointer border border-border transition-all duration-300 hover:shadow-soft-lg"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/post-room')}
+            onKeyDown={(event) => handleQuickActionKeyDown(event, '/post-room')}
+          >
             <CardContent className="flex items-center gap-4 pt-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 transition-transform group-hover:scale-110">
                 <Plus className="h-6 w-6 text-primary" />
@@ -362,7 +405,13 @@ export default function LandlordDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="group relative cursor-pointer overflow-visible border border-border transition-all duration-300 hover:shadow-soft-lg" onClick={() => navigate('/messages')}>
+          <Card
+            className="group relative cursor-pointer overflow-visible border border-border transition-all duration-300 hover:shadow-soft-lg"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/messages')}
+            onKeyDown={(event) => handleQuickActionKeyDown(event, '/messages')}
+          >
             {messagesUnreadCount > 0 ? (
               <span className="absolute -right-2 -top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-xs font-bold text-white shadow-md animate-pulse">
                 {messagesUnreadCount > 9 ? '9+' : messagesUnreadCount}
@@ -381,7 +430,13 @@ export default function LandlordDashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="group cursor-pointer border border-border transition-all duration-300 hover:shadow-soft-lg" onClick={() => navigate('/profile')}>
+          <Card
+            className="group cursor-pointer border border-border transition-all duration-300 hover:shadow-soft-lg"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/profile')}
+            onKeyDown={(event) => handleQuickActionKeyDown(event, '/profile')}
+          >
             <CardContent className="flex items-center gap-4 pt-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 transition-transform group-hover:scale-110">
                 <TrendingUp className="h-6 w-6 text-green-600" />

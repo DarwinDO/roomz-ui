@@ -54,6 +54,13 @@ export function SwapMatchCard({ match, onRequestSwap }: SwapMatchCardProps) {
     || matchedListing.images?.[0]?.image_url
     || '/placeholder-room.jpg';
 
+  const handlePreviewKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      navigate(`/sublet/${matchedListing.id}`);
+    }
+  };
+
   return (
     <Card className={cn('overflow-hidden border-2 border-transparent transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl')}>
       <div className={cn('flex items-center justify-between px-4 py-3', getScoreColor(match.match_score))}>
@@ -69,7 +76,14 @@ export function SwapMatchCard({ match, onRequestSwap }: SwapMatchCardProps) {
       </div>
 
       <div className="space-y-4 p-4">
-        <div className="relative aspect-video cursor-pointer overflow-hidden rounded-lg" onClick={() => navigate(`/sublet/${matchedListing.id}`)}>
+        <div
+          className="relative aspect-video cursor-pointer overflow-hidden rounded-lg"
+          role="button"
+          tabIndex={0}
+          aria-label={`Xem chi tiết ${matchedListing.title}`}
+          onClick={() => navigate(`/sublet/${matchedListing.id}`)}
+          onKeyDown={handlePreviewKeyDown}
+        >
           <LazyImage src={primaryImage} alt={matchedListing.title} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute bottom-3 left-3 right-3">

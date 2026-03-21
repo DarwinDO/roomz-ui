@@ -171,7 +171,7 @@ export default function ReportsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Báo cáo & Khiếu nại</h1>
+          <h2 className="text-3xl font-bold text-gray-900">Báo cáo & Khiếu nại</h2>
           <p className="text-gray-600 mt-1">Quản lý các báo cáo vi phạm từ người dùng</p>
         </div>
 

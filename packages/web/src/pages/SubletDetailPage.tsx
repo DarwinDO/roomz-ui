@@ -203,7 +203,17 @@ export default function SubletDetailPage() {
     <div className="min-h-screen bg-background pb-24 md:pb-8">
       <div className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Button variant="ghost" size="icon" onClick={handleBack} className="rounded-xl hover:bg-muted">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBack}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                handleBack();
+              }
+            }}
+            className="rounded-xl hover:bg-muted"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex gap-2">

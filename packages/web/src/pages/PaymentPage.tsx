@@ -221,7 +221,17 @@ export default function PaymentPage() {
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/5 pb-24 md:pb-8">
       <div className="sticky top-0 z-40 border-b border-border bg-white/80 px-4 py-3 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                navigate(-1);
+              }
+            }}
+            className="rounded-full"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="ml-3">
@@ -237,9 +247,9 @@ export default function PaymentPage() {
             <Crown className="h-4 w-4" />
             Nâng cấp ngay hôm nay
           </div>
-          <h1 className="mb-4 text-3xl font-bold md:text-4xl">
+          <h2 className="mb-4 text-3xl font-bold md:text-4xl">
             Mở khóa các quyền lợi cốt lõi với RommZ+
-          </h1>
+          </h2>
           <p className="mx-auto max-w-2xl text-gray-600">
             RommZ+ tập trung vào những gì đang chạy thật: roommate không giới hạn, contact mạnh hơn, favorites không giới hạn và deal Premium của Local Passport.
           </p>

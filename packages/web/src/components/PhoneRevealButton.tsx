@@ -65,6 +65,11 @@ export function PhoneRevealButton({ roomId, className = "" }: PhoneRevealButtonP
         </div>
         <Button
           onClick={handleUpgrade}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.currentTarget.blur();
+            }
+          }}
           variant="outline"
           size="sm"
           className="w-full border-primary/20 text-primary hover:bg-primary/5"
@@ -81,7 +86,18 @@ export function PhoneRevealButton({ roomId, className = "" }: PhoneRevealButtonP
       {error ? (
         <p className="text-sm text-red-500">{error}</p>
       ) : (
-        <Button onClick={handleReveal} disabled={loading} variant="outline" size="sm" className="gap-2">
+        <Button
+          onClick={handleReveal}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.currentTarget.blur();
+            }
+          }}
+          disabled={loading}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+        >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
           Xem số điện thoại
         </Button>

@@ -282,6 +282,13 @@ export function LocalPassportContent({
     perksGrid?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handlePremiumBannerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      navigate(`/payment?source=${UPGRADE_SOURCES.DEAL_PREMIUM}`);
+    }
+  };
+
   const handlePartnerSubmit = () => {
     toast.success(
       "Cảm ơn bạn đã tham gia RommZ Passport! Đội ngũ RommZ sẽ liên hệ sớm nhất."
@@ -294,6 +301,7 @@ export function LocalPassportContent({
 
   return (
     <div
+      lang="vi"
       className={
         embedded
           ? "space-y-8"
@@ -333,7 +341,11 @@ export function LocalPassportContent({
         {!isPremium && (
           <Card
             className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 cursor-pointer hover:shadow-md transition-shadow"
+            role="button"
+            tabIndex={0}
+            aria-label="Nâng cấp RommZ Premium"
             onClick={() => navigate(`/payment?source=${UPGRADE_SOURCES.DEAL_PREMIUM}`)}
+            onKeyDown={handlePremiumBannerKeyDown}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -562,7 +574,7 @@ export function LocalPassportContent({
               {filteredPerks.map((perk) => (
                 <Card
                   key={perk.id}
-                  className="overflow-hidden rounded-2xl shadow-sm hover:shadow-lg transition-all border-border cursor-pointer group"
+                  className="group overflow-hidden rounded-2xl border-border shadow-sm transition-all hover:shadow-lg"
                 >
                   {/* Image */}
                   <div className="relative h-40 overflow-hidden">

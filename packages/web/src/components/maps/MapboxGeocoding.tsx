@@ -20,6 +20,8 @@ interface MapboxGeocodingProps {
   disabled?: boolean;
   className?: string;
   suppressSuggestions?: boolean;
+  inputId?: string;
+  inputAriaLabel?: string;
 }
 
 export function MapboxGeocoding({
@@ -30,6 +32,8 @@ export function MapboxGeocoding({
   disabled = false,
   className = '',
   suppressSuggestions = false,
+  inputId,
+  inputAriaLabel,
 }: MapboxGeocodingProps) {
   const [suggestions, setSuggestions] = useState<MapboxFeature[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -173,6 +177,7 @@ export function MapboxGeocoding({
     <div ref={containerRef} className={`relative ${className}`}>
       <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
+        id={inputId}
         value={value}
         onChange={handleInputChange}
         placeholder={placeholder}
@@ -185,6 +190,7 @@ export function MapboxGeocoding({
         aria-expanded={showSuggestions}
         aria-autocomplete="list"
         aria-activedescendant={activeIndex >= 0 ? `mapbox-suggestion-${activeIndex}` : undefined}
+        aria-label={inputAriaLabel}
       />
 
       {isLoading && (

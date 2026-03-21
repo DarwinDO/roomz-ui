@@ -68,7 +68,16 @@ export default function MySubletsPage() {
       <div className="sticky top-0 z-30 border-b border-border bg-card/95 px-6 py-4 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/swap')}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/swap')}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  navigate('/swap');
+                }
+              }}
+            >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>

@@ -197,7 +197,17 @@ export default function EditSubletPage() {
     <div className="min-h-screen bg-gray-50 pb-24">
       <div className="sticky top-0 z-40 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm transition-all">
         <div className="mx-auto flex max-w-3xl items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full hover:bg-muted">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                navigate(-1);
+              }
+            }}
+            className="rounded-full hover:bg-muted"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

@@ -481,11 +481,21 @@ export default function PostRoomPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div lang="vi" className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-40 px-4 py-3 transition-all">
         <div className="max-w-3xl mx-auto flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full hover:bg-muted">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                navigate(-1);
+              }
+            }}
+            className="rounded-full hover:bg-muted"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>

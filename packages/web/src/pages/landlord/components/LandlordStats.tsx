@@ -57,14 +57,14 @@ export function LandlordStats({ stats }: LandlordStatsProps) {
         const Icon = card.icon;
 
         return (
-          <Card key={card.label} className="border border-border shadow-soft transition-all duration-300 hover:shadow-soft-lg">
+          <Card key={card.label} className="rounded-[24px] border border-border/70 shadow-soft transition-all duration-300 hover:shadow-soft-lg">
             <CardContent className="px-4 pb-4 pt-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="mb-1 text-sm font-medium text-muted-foreground">{card.label}</p>
                   <p className={`text-2xl font-bold ${card.valueClassName}`}>{card.value}</p>
                 </div>
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full ${card.iconClassName}`}>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${card.iconClassName}`}>
                   <Icon className="h-5 w-5" />
                 </div>
               </div>

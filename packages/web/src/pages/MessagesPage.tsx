@@ -105,7 +105,7 @@ export default function MessagesPage() {
   const showChat = !isMobileView || selectedConversation;
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div lang="vi" className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0 bg-card/95 backdrop-blur-sm border-b border-border z-40 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -167,6 +167,8 @@ export default function MessagesPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
+                    id="conversation-search"
+                    aria-label="Tìm kiếm cuộc trò chuyện"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Tìm kiếm cuộc trò chuyện..."
@@ -409,6 +411,8 @@ function ChatPanel({ conversation, currentUserId }: ChatPanelProps) {
       <div className="flex-shrink-0 p-4 border-t border-border bg-card safe-area-pb">
         <div className="flex items-center gap-3">
           <Input
+            id="message-composer"
+            aria-label="Nhập tin nhắn"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}

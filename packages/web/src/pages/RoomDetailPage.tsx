@@ -1,34 +1,29 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  AlertCircle,
-  ArrowLeft,
   Bath,
   BedDouble,
   CalendarCheck,
   CalendarDays,
   CheckCircle2,
   CircleDollarSign,
+  Fence,
   Heart,
-  Images,
-  Map,
   MapPin,
   MessageCircle,
-  Ruler,
-  Share2,
-  Sofa,
-  Sparkles,
-  Users,
-  Wifi,
   ParkingCircle,
+  Ruler,
+  ShieldCheck,
+  Snowflake,
+  Sofa,
+  Star,
+  Users,
   UtensilsCrossed,
   WashingMachine,
-  Snowflake,
-  ShieldCheck,
-  Fence,
+  Wifi,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,19 +33,20 @@ import { ContactLandlordModal } from "@/components/modals/ContactLandlordModal";
 import { GalleryModal } from "@/components/modals/GalleryModal";
 import { MapModal } from "@/components/modals/MapModal";
 import { PhoneRevealButton } from "@/components/PhoneRevealButton";
-import {
-  ListingHostCard,
-  ListingLocationContext,
-  ListingMediaHero,
-  ListingMetricGrid,
-  ListingSafetyCard,
-} from "@/components/listings";
+import { StitchFooter } from "@/components/common/StitchFooter";
 import { useAuth } from "@/contexts";
 import { useIsFavorited } from "@/hooks/useFavorites";
 import { useRoom } from "@/hooks/useRooms";
 import { supabase } from "@/lib/supabase";
+import { stitchAssets } from "@/lib/stitchAssets";
 import { trackFeatureEvent, trackRoomViewed } from "@/services/analyticsTracking";
+import { searchRooms } from "@/services/rooms";
+import { getReviews } from "@/services/reviews";
 import { formatPriceInMillions } from "@roomz/shared/utils/format";
+
+const InlineRoomMap = lazy(() =>
+  import("@/components/maps").then((module) => ({ default: module.MapboxRoomMap })),
+);
 
 const amenityLabels: Array<{
   key:
@@ -65,15 +61,17 @@ const amenityLabels: Array<{
   label: string;
   icon: typeof Wifi;
 }> = [
-  { key: "wifi", label: "Wi-Fi", icon: Wifi },
-  { key: "air_conditioning", label: "Điều hòa", icon: Snowflake },
-  { key: "parking", label: "Chỗ để xe", icon: ParkingCircle },
-  { key: "washing_machine", label: "Máy giặt", icon: WashingMachine },
-  { key: "refrigerator", label: "Tủ lạnh", icon: Snowflake },
-  { key: "heater", label: "Bình nóng lạnh", icon: Snowflake },
-  { key: "security_camera", label: "Camera an ninh", icon: ShieldCheck },
-  { key: "balcony", label: "Ban công", icon: Fence },
+  { key: "wifi", label: "Wifi tốc độ cao", icon: Wifi },
+  { key: "air_conditioning", label: "Máy lạnh Inverter", icon: Snowflake },
+  { key: "parking", label: "Chỗ để xe an ninh", icon: ParkingCircle },
+  { key: "washing_machine", label: "Máy giặt riêng", icon: WashingMachine },
+  { key: "refrigerator", label: "Tủ lạnh riêng", icon: Snowflake },
+  { key: "heater", label: "Nước nóng đầy đủ", icon: Snowflake },
+  { key: "security_camera", label: "Camera giám sát", icon: ShieldCheck },
+  { key: "balcony", label: "Ban công riêng", icon: Fence },
 ];
+
+type RoomReview = Awaited<ReturnType<typeof getReviews>> extends Array<infer T> ? T : never;
 
 function formatCompactMonthlyPrice(price: number | null | undefined) {
   if (!price || !Number.isFinite(price)) {
@@ -81,10 +79,10 @@ function formatCompactMonthlyPrice(price: number | null | undefined) {
   }
 
   if (price >= 1_000_000) {
-    return `${formatPriceInMillions(price)}tr/tháng`;
+    return `${formatPriceInMillions(price)}tr`;
   }
 
-  return `${price.toLocaleString("vi-VN")}đ/tháng`;
+  return `${price.toLocaleString("vi-VN")}đ`;
 }
 
 function formatAvailability(date?: string | null) {
@@ -95,6 +93,43 @@ function formatAvailability(date?: string | null) {
   return format(new Date(date), "dd/MM/yyyy");
 }
 
+function formatRoomType(roomType?: string | null) {
+  switch (roomType) {
+    case "private":
+      return "Phòng riêng";
+    case "shared":
+      return "Phòng ở ghép";
+    case "studio":
+      return "Studio";
+    case "entire":
+      return "Căn hộ nguyên căn";
+    default:
+      return "Đang cập nhật";
+  }
+}
+
+function buildHighlightItems(room: NonNullable<ReturnType<typeof useRoom>["data"]>) {
+  const highlights = [];
+
+  if (room.max_occupants) {
+    highlights.push(`Phù hợp tối đa ${room.max_occupants} người.`);
+  }
+
+  if (room.min_lease_term) {
+    highlights.push(`Thời hạn thuê tối thiểu ${room.min_lease_term} tháng.`);
+  }
+
+  if (room.available_from) {
+    highlights.push(`Có thể dọn vào từ ${formatAvailability(room.available_from)}.`);
+  }
+
+  if (room.is_verified) {
+    highlights.push("Tin đăng đã được hệ thống xác minh.");
+  }
+
+  return highlights;
+}
+
 export default function RoomDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -102,12 +137,15 @@ export default function RoomDetailPage() {
   const trackedRoomViewId = useRef<string | null>(null);
 
   const { data: room, isLoading, error: queryError, refetch } = useRoom(id);
-  const error = queryError?.message || null;
+  const error = queryError instanceof Error ? queryError.message : null;
 
   const { data: subletData } = useQuery({
     queryKey: ["sublet-by-room", id],
     queryFn: async () => {
-      if (!id) return null;
+      if (!id) {
+        return null;
+      }
+
       const { data, error: subletError } = await supabase
         .from("sublet_listings")
         .select("id, status")
@@ -115,7 +153,10 @@ export default function RoomDetailPage() {
         .eq("status", "active")
         .maybeSingle();
 
-      if (subletError) throw subletError;
+      if (subletError) {
+        throw subletError;
+      }
+
       return data;
     },
     enabled: Boolean(id),
@@ -139,20 +180,28 @@ export default function RoomDetailPage() {
     void trackRoomViewed(user?.id ?? null, room.id, room.title, Number(room.price_per_month ?? 0));
   }, [room, user?.id]);
 
-  const images = useMemo(
+  const roomImages = useMemo(
     () =>
       room?.images
         ?.slice()
-        .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+        .sort((left, right) => (left.display_order ?? 0) - (right.display_order ?? 0))
         .map((image) => image.image_url) ?? [],
     [room?.images],
   );
+
+  const galleryImages = useMemo(() => {
+    if (roomImages.length >= 4) {
+      return roomImages;
+    }
+
+    return [...roomImages, ...stitchAssets.roomDetail.gallery.filter((image) => !roomImages.includes(image))];
+  }, [roomImages]);
 
   const amenityItems = useMemo(() => {
     const amenityList = amenityLabels.filter((item) => Boolean(room?.amenities?.[item.key]));
 
     if (room?.furnished) {
-      amenityList.unshift({ key: "wifi", label: "Có nội thất", icon: Sofa });
+      amenityList.unshift({ key: "wifi", label: "Nội thất cơ bản", icon: Sofa });
     }
 
     return amenityList;
@@ -161,28 +210,66 @@ export default function RoomDetailPage() {
   const detailItems = useMemo(
     () => [
       {
+        icon: CircleDollarSign,
+        label: "Giá thuê",
+        value: `${formatCompactMonthlyPrice(room?.price_per_month)}/tháng`,
+      },
+      {
         icon: Ruler,
         label: "Diện tích",
-        value: room?.area_sqm ? `${room.area_sqm} m²` : "Đang cập nhật",
+        value: room?.area_sqm ? `${room.area_sqm}m²` : "Đang cập nhật",
       },
       {
         icon: BedDouble,
         label: "Phòng ngủ",
-        value: room?.bedroom_count ? `${room.bedroom_count} phòng` : "Đang cập nhật",
+        value: room?.bedroom_count ? `${room.bedroom_count} phòng` : "Studio / mở",
       },
       {
         icon: Bath,
         label: "Phòng tắm",
-        value: room?.bathroom_count ? `${room.bathroom_count} phòng` : "Đang cập nhật",
-      },
-      {
-        icon: Sofa,
-        label: "Nội thất",
-        value: room?.furnished ? "Có sẵn" : "Cơ bản / chưa rõ",
+        value: room?.bathroom_count ? `${room.bathroom_count} phòng` : "Dùng riêng / chưa rõ",
       },
     ],
-    [room?.area_sqm, room?.bathroom_count, room?.bedroom_count, room?.furnished],
+    [room?.area_sqm, room?.bathroom_count, room?.bedroom_count, room?.price_per_month],
   );
+
+  const { data: reviews = [] } = useQuery<RoomReview[]>({
+    queryKey: ["room-reviews", room?.id],
+    queryFn: () => getReviews(room!.id, "room"),
+    enabled: Boolean(room?.id),
+    staleTime: 60_000,
+  });
+
+  const { data: relatedRooms = [] } = useQuery({
+    queryKey: ["related-rooms", room?.id, room?.district, room?.room_type],
+    queryFn: async () => {
+      if (!room) {
+        return [];
+      }
+
+      const response = await searchRooms({
+        district: room.district ?? undefined,
+        roomTypes: room.room_type ? [room.room_type] : undefined,
+        minPrice: room.price_per_month ? Math.max(0, room.price_per_month - 1_500_000) : undefined,
+        maxPrice: room.price_per_month ? room.price_per_month + 1_500_000 : undefined,
+        page: 1,
+        pageSize: 4,
+      });
+
+      return response.rooms.filter((candidate) => candidate.id !== room.id).slice(0, 3);
+    },
+    enabled: Boolean(room),
+    staleTime: 60_000,
+  });
+
+  const averageRating = useMemo(() => {
+    if (!reviews.length) {
+      return 0;
+    }
+
+    const total = reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0);
+    return Math.round((total / reviews.length) * 10) / 10;
+  }, [reviews]);
 
   const handleFavoriteClick = async () => {
     if (!user) {
@@ -214,21 +301,18 @@ export default function RoomDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-24 md:pb-8">
-        <div className="sticky top-0 z-20 border-b bg-card px-4 py-3">
-          <div className="mx-auto flex max-w-6xl items-center justify-between">
-            <Skeleton className="h-10 w-10 rounded-xl" />
-            <div className="flex gap-2">
-              <Skeleton className="h-10 w-10 rounded-xl" />
-              <Skeleton className="h-10 w-10 rounded-xl" />
+      <div className="min-h-screen bg-background pt-24">
+        <div className="mx-auto max-w-7xl px-6 pb-16">
+          <Skeleton className="mb-10 h-[420px] w-full rounded-[32px]" />
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="space-y-6">
+              <Skeleton className="h-10 w-64 rounded-full" />
+              <Skeleton className="h-16 w-5/6 rounded-3xl" />
+              <Skeleton className="h-40 w-full rounded-[32px]" />
+              <Skeleton className="h-72 w-full rounded-[32px]" />
             </div>
+            <Skeleton className="h-[420px] w-full rounded-[32px]" />
           </div>
-        </div>
-        <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 md:px-6">
-          <Skeleton className="aspect-[4/3] w-full rounded-3xl md:aspect-video" />
-          <Skeleton className="h-10 w-2/3 rounded-xl" />
-          <Skeleton className="h-28 w-full rounded-2xl" />
-          <Skeleton className="h-56 w-full rounded-2xl" />
         </div>
       </div>
     );
@@ -236,16 +320,15 @@ export default function RoomDetailPage() {
 
   if (error || !room) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="max-w-md space-y-4 text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-destructive" />
-          <h2 className="text-2xl font-semibold">Không tìm thấy phòng</h2>
-          <p className="text-muted-foreground">{error || "Tin đăng này có thể đã bị gỡ hoặc hiện không còn khả dụng."}</p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Button onClick={() => navigate("/search")} className="rounded-xl">
-              Quay về tìm phòng
-            </Button>
-            <Button onClick={() => refetch()} variant="outline" className="rounded-xl">
+      <div className="flex min-h-screen items-center justify-center bg-background px-6">
+        <div className="max-w-lg rounded-[32px] border border-outline-variant/20 bg-white p-10 text-center shadow-sm">
+          <h2 className="text-3xl text-on-surface">Không tìm thấy phòng</h2>
+          <p className="mt-3 text-base leading-8 text-on-surface-variant">
+            {error || "Tin đăng này hiện không còn khả dụng hoặc đã được gỡ khỏi hệ thống."}
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Button onClick={() => navigate("/search")}>Quay về tìm phòng</Button>
+            <Button variant="outline" onClick={() => refetch()}>
               Tải lại
             </Button>
           </div>
@@ -255,279 +338,447 @@ export default function RoomDetailPage() {
   }
 
   const location = [room.address, room.district, room.city].filter(Boolean).join(", ");
-  const hostName = room.landlord?.full_name || "Host";
-  const quickFacts = [
-    {
-      icon: CircleDollarSign,
-      label: "Mức giá",
-      value: formatCompactMonthlyPrice(room.price_per_month),
-    },
-    {
-      icon: CalendarDays,
-      label: "Có thể dọn vào",
-      value: formatAvailability(room.available_from),
-    },
-    {
-      icon: Users,
-      label: "Sức chứa",
-      value: room.max_occupants ? `${room.max_occupants} người` : "Đang cập nhật",
-    },
-  ];
+  const displayImages = galleryImages.slice(0, 4);
+  const extraImageCount = Math.max(roomImages.length - 4, 0);
+  const descriptionHighlights = buildHighlightItems(room);
+  const hostRating = room.landlord?.trust_score
+    ? Math.min(5, Math.max(4, room.landlord.trust_score / 20)).toFixed(1)
+    : "5.0";
+  const hostAvatar = room.landlord?.avatar_url || stitchAssets.roomDetail.reviewAvatars[0];
 
   return (
-    <div className="min-h-screen bg-background pb-24 md:pb-8">
-      <div className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-xl hover:bg-muted">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted" disabled>
-              <Share2 className="h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-xl hover:bg-muted"
-              onClick={handleFavoriteClick}
+    <div className="min-h-screen bg-background text-on-surface">
+      <main
+        className="mx-auto max-w-7xl px-6 pb-20 pt-24"
+        aria-label="Noi dung chinh chi tiet phong, skip link duoc cung cap boi AppShell"
+      >
+        <section className="mb-12 grid gap-4 lg:grid-cols-[minmax(0,1.24fr)_minmax(0,0.96fr)]">
+          <div
+            role="button"
+            tabIndex={0}
+            className="group relative overflow-hidden rounded-[32px]"
+            onClick={() => {
+              setCurrentImageIndex(0);
+              setIsGalleryOpen(true);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setCurrentImageIndex(0);
+                setIsGalleryOpen(true);
+              }
+            }}
+          >
+            <img
+              src={displayImages[0]}
+              alt={room.title}
+              className="aspect-[4/3] h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            />
+            <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+              {room.is_available ? (
+                <Badge className="rounded-full bg-tertiary-container px-4 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-on-tertiary-container">
+                  Phòng trống
+                </Badge>
+              ) : null}
+              {room.is_verified ? (
+                <Badge className="rounded-full bg-secondary-container px-4 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-on-secondary-container">
+                  Tin xác minh
+                </Badge>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                void handleFavoriteClick();
+              }}
               disabled={favoriteLoading}
+              className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/92 text-on-surface shadow-lg transition hover:bg-white"
+              aria-label={isFavorited ? "Bỏ yêu thích" : "Lưu phòng yêu thích"}
             >
-              <Heart className={`h-5 w-5 ${isFavorited ? "fill-destructive text-destructive" : ""}`} />
-            </Button>
+              <Heart className={`h-5 w-5 ${isFavorited ? "fill-red-500 text-red-500" : ""}`} />
+            </button>
           </div>
-        </div>
-      </div>
 
-      <div className="mx-auto max-w-6xl">
-        <ListingMediaHero
-          images={images}
-          title={room.title}
-          currentIndex={currentImageIndex}
-          onIndexChange={setCurrentImageIndex}
-          emptyStateText="Chưa có ảnh"
-          topLeftBadges={[
-            ...(room.is_verified
-              ? [
-                  {
-                    id: "verified",
-                    label: (
-                      <>
-                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                        Tin đã xác minh
-                      </>
-                    ),
-                    className: "border-0 bg-white/95 text-primary backdrop-blur-sm",
-                  },
-                ]
-              : []),
-            ...(room.has_360_photos
-              ? [
-                  {
-                    id: "360",
-                    label: (
-                      <>
-                        <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                        Có ảnh 360°
-                      </>
-                    ),
-                    className: "border-0 bg-primary/95 text-white backdrop-blur-sm",
-                  },
-                ]
-              : []),
-          ]}
-          bottomRightActions={
-            images.length ? (
-              <div className="flex items-center gap-2">
-                {room.latitude && room.longitude ? (
-                  <Button variant="secondary" onClick={() => setIsMapOpen(true)} className="rounded-xl bg-white/90 text-foreground hover:bg-white">
-                    <Map className="mr-2 h-4 w-4" />
-                    Xem bản đồ
-                  </Button>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {displayImages.slice(1, 3).map((image, index) => {
+              const imageIndex = index + 1;
+
+              return (
+                <button
+                  key={`${image}-${imageIndex}`}
+                  type="button"
+                  className="group relative overflow-hidden rounded-[32px]"
+                  onClick={() => {
+                    setCurrentImageIndex(imageIndex);
+                    setIsGalleryOpen(true);
+                  }}
+                >
+                  <img
+                    src={image}
+                    alt={`${room.title} - ảnh ${imageIndex + 1}`}
+                    className="aspect-square h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  />
+                </button>
+              );
+            })}
+
+            {displayImages[3] ? (
+              <button
+                type="button"
+                className="group relative overflow-hidden rounded-[32px] sm:col-span-2"
+                onClick={() => {
+                  setCurrentImageIndex(3);
+                  setIsGalleryOpen(true);
+                }}
+              >
+                <img
+                  src={displayImages[3]}
+                  alt={`${room.title} - ảnh 4`}
+                  className="aspect-[2.08/1] h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                />
+                {extraImageCount > 0 ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-surface-container-highest/78">
+                    <span className="text-lg font-bold text-on-surface">+{extraImageCount} ảnh</span>
+                  </div>
                 ) : null}
-                <Button onClick={() => setIsGalleryOpen(true)} className="rounded-xl bg-white/95 text-foreground hover:bg-white">
-                  <Images className="mr-2 h-4 w-4" />
-                  Xem tất cả ảnh
-                </Button>
-              </div>
-            ) : null
-          }
-        />
+              </button>
+            ) : null}
+          </div>
+        </section>
 
-        <div className="px-4 py-6 md:px-6">
-          <div className="grid gap-8 md:grid-cols-3">
-            <div className="space-y-6 md:col-span-2">
-              {subletData ? (
-                <div className="flex items-center justify-between gap-4 rounded-3xl border border-primary/20 bg-primary/5 p-5 shadow-soft">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div>
+            <section className="mb-10">
+              <div className="mb-4 flex flex-wrap gap-3">
+                <Badge className="rounded-full bg-tertiary-container px-4 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-on-tertiary-container">
+                  {room.is_available ? "Phòng trống" : "Theo lịch chủ nhà"}
+                </Badge>
+                <Badge className="rounded-full bg-secondary-container px-4 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-on-secondary-container">
+                  {room.is_verified ? "Premium match" : "Tin đang hoạt động"}
+                </Badge>
+                {subletData ? (
+                  <Badge className="rounded-full bg-primary-container px-4 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-on-primary-container">
+                    Có lịch short-stay
+                  </Badge>
+                ) : null}
+              </div>
+
+              <h1 className="text-4xl font-extrabold leading-tight text-on-surface md:text-5xl">
+                {room.title}
+              </h1>
+              <div className="mt-4 flex items-center gap-2 text-on-surface-variant">
+                <MapPin className="h-5 w-5 text-primary" />
+                <span className="text-lg">{location}</span>
+              </div>
+
+              <div className="mt-8 grid gap-6 rounded-[32px] bg-surface-container-low p-6 sm:grid-cols-2 xl:grid-cols-4 xl:p-8">
+                {detailItems.map((item) => (
+                  <div key={item.label} className="flex flex-col gap-1">
+                    <span className="text-sm font-medium text-on-surface-variant">{item.label}</span>
+                    <span className="text-xl font-bold text-on-surface xl:text-2xl">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="mb-12">
+              <h2 className="mb-6 text-2xl font-bold text-on-surface">Tiện ích căn hộ</h2>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {amenityItems.length ? (
+                  amenityItems.map((amenity) => (
+                    <div
+                      key={`${amenity.key}-${amenity.label}`}
+                      className="flex items-center gap-4 rounded-[24px] bg-surface-container-lowest p-4 shadow-sm"
+                    >
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container/20 text-primary">
+                        <amenity.icon className="h-5 w-5" />
+                      </div>
+                      <span className="font-medium text-on-surface">{amenity.label}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-[24px] bg-surface-container-lowest p-6 text-sm leading-7 text-on-surface-variant shadow-sm md:col-span-2 xl:col-span-3">
+                    Chủ nhà chưa cập nhật chi tiết tiện ích cho tin đăng này.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="mb-12">
+              <h2 className="mb-6 text-2xl font-bold text-on-surface">Mô tả chi tiết</h2>
+              <div className="rounded-[32px] bg-surface-container-lowest p-8 shadow-sm">
+                <p className="text-base leading-8 text-on-surface-variant">
+                  {room.description || "Tin đăng chưa có mô tả chi tiết. Hãy nhắn host để xác nhận thêm điều kiện ở thực tế."}
+                </p>
+
+                {descriptionHighlights.length ? (
+                  <ul className="mt-6 space-y-3">
+                    {descriptionHighlights.map((item) => (
+                      <li key={item} className="flex items-start gap-3 text-sm leading-7 text-on-surface-variant">
+                        <CheckCircle2 className="mt-1 h-4 w-4 text-primary" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            </section>
+
+            <section className="mb-12">
+              <h2 className="mb-6 text-2xl font-bold text-on-surface">Vị trí &amp; xung quanh</h2>
+              <div className="relative overflow-hidden rounded-[32px] bg-surface-container-high">
+                <Suspense
+                  fallback={<div className="h-80 w-full animate-pulse bg-surface-container-low" />}
+                >
+                  <InlineRoomMap
+                    rooms={[room]}
+                    singleRoom
+                    interactive={Boolean(room.latitude && room.longitude)}
+                    className="h-80 rounded-none border-0"
+                  />
+                </Suspense>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background/60 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between rounded-[24px] bg-white/92 p-4 shadow-lg backdrop-blur">
                   <div>
-                    <p className="mb-1 text-xs uppercase tracking-[0.18em] text-primary">Ở ngắn hạn</p>
-                    <h2 className="text-lg font-semibold">Phòng này hiện có lịch short-stay</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Nếu bạn cần ở tạm thời hoặc thuê lại ngắn hạn, hãy xem ngay lịch ở hiện có của tin này.
+                    <h3 className="font-bold text-on-surface">{[room.district, room.city].filter(Boolean).join(", ")}</h3>
+                    <p className="text-xs text-on-surface-variant">
+                      {room.address || "Xác nhận vị trí chi tiết trực tiếp với chủ nhà."}
                     </p>
                   </div>
-                  <Button onClick={() => navigate(`/sublet/${subletData.id}`)} className="rounded-xl">
-                    Xem lịch ở ngắn hạn
+                  <Button
+                    className="rounded-full bg-primary-container text-on-primary-container hover:bg-primary-container/90"
+                    onClick={() => setIsMapOpen(true)}
+                    disabled={!room.latitude || !room.longitude}
+                  >
+                    Chỉ đường
                   </Button>
                 </div>
-              ) : null}
-
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="rounded-full border-primary/20 bg-primary/5 text-primary">
-                    Phòng dài hạn
-                  </Badge>
-                  {room.room_type ? <Badge variant="outline" className="rounded-full">{room.room_type}</Badge> : null}
-                </div>
-
-                <div>
-                  <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{room.title}</h1>
-                  <div className="mt-3 flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <p className="text-sm md:text-base">{location || "Đang cập nhật địa chỉ"}</p>
-                  </div>
-                </div>
               </div>
+            </section>
 
-              <div className="grid gap-4 rounded-3xl border border-border bg-card p-5 shadow-soft md:grid-cols-3">
-                <div>
-                  <p className="text-3xl font-semibold text-primary">{formatCompactMonthlyPrice(room.price_per_month)}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Giá thuê mỗi tháng</p>
-                </div>
-                <div className="rounded-2xl border border-border/70 bg-muted/40 p-4">
-                  <p className="mb-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">Có thể dọn vào</p>
-                  <p className="text-sm font-medium text-foreground">{formatAvailability(room.available_from)}</p>
-                </div>
-                <div className="rounded-2xl border border-border/70 bg-muted/40 p-4">
-                  <p className="mb-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">Thông tin nhanh</p>
-                  <p className="text-sm font-medium text-foreground">
-                    {room.min_lease_term ? `Tối thiểu ${room.min_lease_term} tháng` : "Không giới hạn rõ"}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Đặt cọc: {room.deposit_amount ? formatCompactMonthlyPrice(room.deposit_amount) : "Thỏa thuận thêm"}
-                  </p>
-                </div>
-              </div>
-
-              <ListingMetricGrid items={detailItems} />
-
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
-                <h3 className="mb-3 text-lg font-semibold">Giới thiệu về chỗ ở</h3>
-                <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
-                  {room.description || "Host chưa thêm mô tả chi tiết cho phòng này."}
-                </p>
-              </div>
-
-              {amenityItems.length ? (
-                <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
-                  <h3 className="mb-3 text-lg font-semibold">Tiện ích của phòng</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {amenityItems.map((amenity) => (
-                      <Badge key={`${amenity.key}-${amenity.label}`} variant="secondary" className="rounded-full px-3 py-1.5">
-                        {amenity.label}
-                      </Badge>
+            <section className="mb-12">
+              <div className="mb-8 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-on-surface">Đánh giá khách thuê</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-3xl font-black text-on-surface">
+                    {averageRating ? averageRating.toFixed(1) : "—"}
+                  </span>
+                  <div className="flex text-secondary">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star
+                        key={index}
+                        className={`h-4 w-4 ${index < Math.round(averageRating) ? "fill-current" : ""}`}
+                      />
                     ))}
                   </div>
+                  <span className="text-sm text-on-surface-variant">
+                    ({reviews.length} đánh giá)
+                  </span>
+                </div>
+              </div>
+
+              {reviews.length ? (
+                <div className="space-y-6">
+                  {reviews.slice(0, 2).map((review, index) => (
+                    <article
+                      key={review.id}
+                      className="rounded-[28px] bg-surface-container-lowest p-6 shadow-sm"
+                    >
+                      <div className="mb-4 flex items-start justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 overflow-hidden rounded-full bg-surface-container-highest">
+                            <img
+                              src={review.reviewer?.avatar_url || stitchAssets.roomDetail.reviewAvatars[index % stitchAssets.roomDetail.reviewAvatars.length]}
+                              alt={review.reviewer?.full_name || "Khách thuê"}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-on-surface">
+                              {review.reviewer?.full_name || "Khách thuê"}
+                            </h3>
+                            <p className="text-xs text-on-surface-variant">
+                              {review.created_at
+                                ? format(new Date(review.created_at), "dd/MM/yyyy")
+                                : "Đánh giá gần đây"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex scale-90 text-secondary">
+                          {Array.from({ length: 5 }).map((_, starIndex) => (
+                            <Star
+                              key={`${review.id}-${starIndex}`}
+                              className={`h-4 w-4 ${starIndex < Number(review.rating || 0) ? "fill-current" : ""}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-sm leading-7 text-on-surface-variant">
+                        {review.comment || "Khách thuê đánh giá tốt về trải nghiệm ở và mức độ hỗ trợ của chủ nhà."}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-[28px] bg-surface-container-lowest p-8 shadow-sm">
+                  <p className="text-sm leading-7 text-on-surface-variant">
+                    Chưa có đánh giá công khai cho căn này. Bạn có thể nhắn chủ nhà để xin thêm phản hồi từ người ở trước.
+                  </p>
+                </div>
+              )}
+            </section>
+          </div>
+
+          <aside className="space-y-8 lg:sticky lg:top-28 lg:self-start">
+            <div className="rounded-[32px] border border-outline-variant/10 bg-white p-8 shadow-[0_20px_40px_rgba(40,43,81,0.06)]">
+              <div className="mb-6 text-center">
+                <div className="mx-auto mb-4 h-24 w-24 overflow-hidden rounded-full bg-surface-container-high ring-4 ring-primary-container/20">
+                  <img src={hostAvatar} alt={room.landlord?.full_name || "Chủ nhà"} className="h-full w-full object-cover" />
+                </div>
+                <h2 className="text-xl font-bold text-on-surface">
+                  {room.landlord?.full_name || "Chủ nhà RommZ"}
+                </h2>
+                <div className="mt-2 flex items-center justify-center gap-1 text-secondary">
+                  <Star className="h-4 w-4 fill-current" />
+                  <span className="text-sm font-bold">{hostRating}</span>
+                  <span className="ml-1 text-xs font-normal text-on-surface-variant">• Chủ nhà uy tín</span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Button
+                  className="stitch-primary-gradient h-14 w-full rounded-full text-base font-bold text-white"
+                  onClick={() => setIsContactHostOpen(true)}
+                >
+                  <MessageCircle className="mr-2 h-5 w-5" />
+                  Nhắn tin ngay
+                </Button>
+
+                <div className="[&_button]:h-14 [&_button]:w-full [&_button]:rounded-full [&_button]:border-none [&_button]:bg-surface-container-highest [&_button]:font-bold [&_button]:text-on-primary-container [&_button]:text-base [&_button]:hover:bg-surface-container-high">
+                  <PhoneRevealButton roomId={room.id} />
+                </div>
+
+                <Button
+                  variant="outline"
+                  className="h-14 w-full rounded-full border-outline-variant/30 bg-white text-base"
+                  onClick={() => setIsBookViewingOpen(true)}
+                >
+                  <CalendarCheck className="mr-2 h-5 w-5" />
+                  Đặt lịch xem phòng
+                </Button>
+              </div>
+
+              <div className="mt-6 border-t border-outline-variant/10 pt-6">
+                <p className="text-center text-xs italic leading-6 text-on-surface-variant">
+                  “Cam kết phản hồi người thuê trong vòng 24 giờ và hỗ trợ rõ ràng trước khi chốt cọc.”
+                </p>
+              </div>
+
+              <div className="mt-6 grid gap-3 rounded-[24px] bg-surface-container-low p-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 text-on-surface-variant">
+                    <Users className="h-4 w-4" />
+                    Sức chứa
+                  </span>
+                  <span className="font-semibold text-on-surface">
+                    {room.max_occupants ? `${room.max_occupants} người` : "Đang cập nhật"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 text-on-surface-variant">
+                    <CalendarDays className="h-4 w-4" />
+                    Dọn vào
+                  </span>
+                  <span className="font-semibold text-on-surface">{formatAvailability(room.available_from)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 text-on-surface-variant">
+                    <UtensilsCrossed className="h-4 w-4" />
+                    Đặt cọc
+                  </span>
+                  <span className="font-semibold text-on-surface">
+                    {room.deposit_amount ? `${formatCompactMonthlyPrice(room.deposit_amount)}` : "Thỏa thuận"}
+                  </span>
+                </div>
+              </div>
+
+              {subletData ? (
+                <div className="mt-4 rounded-[24px] bg-primary-container/20 p-4 text-sm leading-7 text-on-surface-variant">
+                  Tin này hiện có lịch short-stay.{" "}
+                  <button
+                    type="button"
+                    className="font-bold text-primary"
+                    onClick={() => navigate(`/sublet/${subletData.id}`)}
+                  >
+                    Xem lịch ở ngắn hạn
+                  </button>
                 </div>
               ) : null}
-
-              <ListingLocationContext
-                listing={{
-                  id: room.id,
-                  title: room.title,
-                  city: room.city,
-                  district: room.district,
-                  latitude: room.latitude,
-                  longitude: room.longitude,
-                  price_per_month: room.price_per_month,
-                  images: room.images,
-                }}
-                nearbyTitle="Điểm mốc quanh phòng"
-                emptyCoordsText="Tin đăng này chưa có tọa độ đủ chính xác để hiển thị bản đồ và các điểm mốc lân cận."
-              />
             </div>
 
-            <div className="space-y-6 md:sticky md:top-20 md:self-start">
-              <ListingHostCard
-                name={hostName}
-                avatarUrl={room.landlord?.avatar_url}
-                email={room.landlord?.email}
-                trustScore={Number(room.landlord?.trust_score) || null}
-                roleLabel="Host của tin đăng này"
-                onMessageClick={() => setIsContactHostOpen(true)}
-                messageLabel="Nhắn host"
-                footer={
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="rounded-xl bg-muted/50 p-3">
-                        <p className="text-muted-foreground">Lượt xem</p>
-                        <p className="mt-1 font-medium text-foreground">{room.view_count ?? 0}</p>
-                      </div>
-                      <div className="rounded-xl bg-muted/50 p-3">
-                        <p className="text-muted-foreground">Yêu thích</p>
-                        <p className="mt-1 font-medium text-foreground">{room.favorite_count ?? 0}</p>
-                      </div>
-                    </div>
-                    <PhoneRevealButton roomId={room.id} />
-                  </div>
-                }
-              />
-
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
-                <p className="mb-4 text-sm text-muted-foreground">
-                  Nếu bạn muốn chốt nhanh, hãy nhắn host để xác nhận thời gian dọn vào, các khoản phí và điều kiện ở thực tế trước khi đặt cọc.
-                </p>
-                <div className="flex flex-col gap-3">
-                  <Button onClick={() => setIsBookViewingOpen(true)} className="h-11 rounded-xl">
-                    <CalendarCheck className="mr-2 h-4 w-4" />
-                    Đặt lịch xem phòng
-                  </Button>
-                  <Button onClick={() => setIsContactHostOpen(true)} variant="outline" className="h-11 rounded-xl">
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Nhắn host
-                  </Button>
+            <div className="rounded-[28px] bg-surface-container-low p-6">
+              <div className="flex gap-4">
+                <ShieldCheck className="h-5 w-5 text-secondary" />
+                <div>
+                  <h3 className="font-bold text-on-surface">Mẹo an toàn</h3>
+                  <p className="mt-1 text-xs leading-6 text-on-surface-variant">
+                    Luôn xem phòng trực tiếp và yêu cầu hợp đồng rõ ràng trước khi chuyển khoản tiền cọc.
+                  </p>
                 </div>
               </div>
-
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
-                <h3 className="mb-3 text-lg font-semibold">Thông tin nhanh</h3>
-                <div className="space-y-3 text-sm">
-                  {quickFacts.map((fact) => (
-                    <div key={fact.label} className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <fact.icon className="h-4 w-4" />
-                        {fact.label}
-                      </div>
-                      <span className="text-right font-medium text-foreground">{fact.value}</span>
-                    </div>
-                  ))}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <UtensilsCrossed className="h-4 w-4" />
-                      Khu vực
-                    </div>
-                    <span className="text-right font-medium text-foreground">{[room.district, room.city].filter(Boolean).join(", ") || "Đang cập nhật"}</span>
-                  </div>
-                </div>
-              </div>
-
-              <ListingSafetyCard description="Chỉ chuyển khoản khi bạn đã xác minh người đăng, điều kiện ở và tình trạng thật của căn phòng. Nếu có thể, hãy xem phòng trực tiếp trước khi chốt." />
             </div>
-          </div>
+          </aside>
         </div>
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card px-4 py-3 shadow-lg md:hidden">
-        <div className="mx-auto flex max-w-6xl gap-2">
-          <Button onClick={() => setIsContactHostOpen(true)} variant="outline" className="h-11 flex-1 rounded-full">
-            <MessageCircle className="mr-2 h-4 w-4" />
-            Nhắn host
-          </Button>
-          <Button onClick={() => setIsBookViewingOpen(true)} className="h-11 flex-[1.4] rounded-full">
-            <CalendarCheck className="mr-2 h-4 w-4" />
-            Đặt lịch xem
-          </Button>
-        </div>
-      </div>
+        {relatedRooms.length ? (
+          <section className="mt-20">
+            <h2 className="mb-10 text-3xl font-extrabold text-on-surface">
+              Phòng tương tự tại {room.district || room.city || "khu vực này"}
+            </h2>
+            <div className="grid gap-8 md:grid-cols-3">
+              {relatedRooms.map((relatedRoom, index) => (
+                <button
+                  key={relatedRoom.id}
+                  type="button"
+                  onClick={() => navigate(`/room/${relatedRoom.id}`)}
+                  className="group overflow-hidden rounded-[28px] bg-surface-container-lowest text-left shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
+                >
+                  <div className="relative aspect-video overflow-hidden">
+                    <img
+                      src={relatedRoom.images?.[0]?.image_url || stitchAssets.roomDetail.related[index % stitchAssets.roomDetail.related.length]}
+                      alt={relatedRoom.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    {index === 0 ? (
+                      <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-primary">
+                        Giá tốt
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-lg font-bold text-on-surface">{relatedRoom.title}</h3>
+                    <p className="mt-2 text-sm text-on-surface-variant">
+                      {[relatedRoom.district, relatedRoom.city].filter(Boolean).join(", ")}
+                    </p>
+                    <div className="mt-4 flex items-center justify-between">
+                      <span className="text-xl font-bold text-primary">
+                        {formatCompactMonthlyPrice(relatedRoom.price_per_month)}
+                        <span className="text-xs font-normal text-on-surface-variant">/tháng</span>
+                      </span>
+                      <span className="text-sm font-medium text-on-surface-variant">
+                        {relatedRoom.area_sqm ? `${relatedRoom.area_sqm}m²` : formatRoomType(relatedRoom.room_type)}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </main>
+
+      <StitchFooter />
 
       <MapModal isOpen={isMapOpen} onClose={() => setIsMapOpen(false)} room={room} />
       <BookViewingModal
@@ -544,7 +795,7 @@ export default function RoomDetailPage() {
           room.landlord
             ? {
                 id: room.landlord_id,
-                full_name: room.landlord.full_name || "Host",
+                full_name: room.landlord.full_name || "Chủ nhà",
                 avatar_url: room.landlord.avatar_url,
                 email: room.landlord.email,
               }
@@ -553,7 +804,12 @@ export default function RoomDetailPage() {
         roomId={room.id}
         roomTitle={room.title}
       />
-      <GalleryModal isOpen={isGalleryOpen} onClose={() => setIsGalleryOpen(false)} images={images.length ? images : [""]} initialIndex={currentImageIndex} />
+      <GalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        images={galleryImages.length ? galleryImages : [""]}
+        initialIndex={currentImageIndex}
+      />
     </div>
   );
 }

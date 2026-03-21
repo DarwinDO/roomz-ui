@@ -82,15 +82,18 @@ export default function SwapRoomPage() {
   }).length;
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-8">
-      <div className="sticky top-0 z-30 border-b border-border bg-card/95 px-6 py-4 backdrop-blur-sm">
+    <div
+      lang="vi"
+      className="min-h-screen bg-[var(--hero-bg)] pb-20 md:pb-8"
+    >
+      <div className="sticky top-0 z-30 border-b border-border bg-background/95 px-6 py-4 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <CalendarRange className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-950">Ở ngắn hạn</h1>
+              <h1 className="font-display text-xl text-slate-950">Ở ngắn hạn</h1>
               <p className="hidden text-sm text-muted-foreground sm:block">Chọn chỗ ở theo khu vực, thời gian và giá phù hợp.</p>
             </div>
           </div>
@@ -102,6 +105,83 @@ export default function SwapRoomPage() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 py-6">
+        <Card className="mb-6 overflow-hidden rounded-[32px] border-border/70 bg-[var(--hero-card-swap)] p-6 shadow-soft-lg">
+          <div className="grid gap-5 lg:grid-cols-[0.98fr_1.02fr] lg:items-start">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary shadow-sm">
+                Ở ngắn hạn
+              </div>
+              <h2 className="mt-5 max-w-[14ch] text-foreground">
+                Chốt nhu cầu ở tạm theo thời gian trước, rồi mới so giá và khu vực.
+              </h2>
+              <p className="mt-4 max-w-[58ch] text-sm leading-7 text-muted-foreground md:text-base">
+                Luồng này dành cho sublet, ở chuyển tiếp và đổi chỗ ở ngắn hạn. Bạn có thể duyệt tin đang mở,
+                xem cơ hội hoán đổi hoặc quản lý listing của chính mình trong cùng một hub.
+              </p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                <span className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
+                  Theo thời gian ở
+                </span>
+                <span className="rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-semibold text-secondary">
+                  Sublet và hoán đổi
+                </span>
+                <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-warning">
+                  Quản lý listing ngay trong hub
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-[1.08fr_0.92fr]">
+              <Card className="rounded-[28px] border-border/70 bg-[#102131] p-5 text-white shadow-none">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">Nhịp ngắn hạn</p>
+                    <p className="mt-3 max-w-[24ch] text-2xl font-semibold leading-tight text-white">
+                      Search ngắn hạn bắt đầu từ ngày ở, rồi mới siết dần theo giá và nội thất.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 p-3 text-sky-100">
+                    <CalendarRange className="h-5 w-5" />
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Tin đang mở</p>
+                    <p className="mt-2 text-sm font-semibold text-white">{filteredSublets.length} kết quả</p>
+                  </div>
+                  <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Bộ lọc</p>
+                    <p className="mt-2 text-sm font-semibold text-white">{activeFilterCount} đang bật</p>
+                  </div>
+                  <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Tin của bạn</p>
+                    <p className="mt-2 text-sm font-semibold text-white">{mySublets?.length ?? 0} tin đang quản lý</p>
+                  </div>
+                </div>
+              </Card>
+
+              <div className="grid gap-4">
+                <Card className="rounded-[24px] border-border/70 bg-card/92 p-5 shadow-soft">
+                  <Filter className="h-6 w-6 text-primary" />
+                  <p className="mt-4 text-sm font-semibold text-foreground">Bám đúng constraint</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Dùng thời gian, giá và mức độ furnished để giữ danh sách gọn hơn ngay từ đầu.
+                  </p>
+                </Card>
+                <Card className="rounded-[24px] border-border/70 bg-card/92 p-5 shadow-soft">
+                  <RefreshCw className="h-6 w-6 text-secondary" />
+                  <p className="mt-4 text-sm font-semibold text-foreground">Mở sang hoán đổi khi cần</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Khi đã có chỗ ở, bạn có thể chuyển sang nhánh hoán đổi mà không rời khỏi hệ short-stay.
+                  </p>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </Card>
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm font-medium text-slate-500">{filteredSublets.length} tin đang mở</p>
           <div className="flex flex-wrap gap-3">
@@ -116,16 +196,18 @@ export default function SwapRoomPage() {
         </div>
 
         <Tabs defaultValue="browse" className="mt-6 w-full">
-          <TabsList className="mb-4 grid w-full max-w-xl grid-cols-3 rounded-xl bg-muted/50 p-1">
+          <TabsList className="mb-4 grid w-full max-w-xl grid-cols-3 rounded-[24px] border border-border/70 bg-card/90 p-1.5 shadow-soft">
             <TabsTrigger value="browse" className="rounded-lg">Tìm chỗ ở</TabsTrigger>
             <TabsTrigger value="matches" className="rounded-lg">Hoán đổi</TabsTrigger>
             <TabsTrigger value="mylistings" className="rounded-lg">Tin của tôi</TabsTrigger>
           </TabsList>
 
-          <div className="flex flex-col gap-3 rounded-[20px] border border-slate-200 bg-white p-3 lg:flex-row lg:items-center">
+          <div className="flex flex-col gap-3 rounded-[24px] border border-border/70 bg-card/90 p-3 shadow-soft lg:flex-row lg:items-center">
           <div className="flex flex-1 items-center gap-3 px-3">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <Input
+              id="swap-search"
+              aria-label="Tìm chỗ ở ngắn hạn theo tên, khu vực hoặc địa chỉ"
               placeholder="Tên chỗ ở, khu vực hoặc địa chỉ bạn muốn tìm..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
@@ -134,7 +216,17 @@ export default function SwapRoomPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {activeFilterCount > 0 ? <Badge variant="secondary">{activeFilterCount} bộ lọc</Badge> : null}
-            <Button variant="outline" onClick={() => setShowFilters((value) => !value)} className={showFilters ? 'bg-primary/10' : ''}>
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters((value) => !value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape' && showFilters) {
+                  event.preventDefault();
+                  setShowFilters(false);
+                }
+              }}
+              className={showFilters ? 'bg-primary/10' : ''}
+            >
               <Filter className="mr-2 h-4 w-4" />
               Bộ lọc
             </Button>
@@ -155,12 +247,12 @@ export default function SwapRoomPage() {
                 ))}
               </div>
             ) : isError ? (
-              <Card className="p-8 text-center">
+              <Card className="rounded-[28px] border border-destructive/20 p-8 text-center shadow-soft">
                 <p className="mb-4 text-muted-foreground">Có lỗi khi tải dữ liệu chỗ ở ngắn hạn.</p>
                 <Button onClick={() => refetch()}>Thử lại</Button>
               </Card>
             ) : filteredSublets.length === 0 ? (
-              <Card className="p-8 text-center">
+              <Card className="rounded-[32px] border border-border/70 bg-[var(--hero-empty-state)] p-8 text-center shadow-soft">
                 <p className="text-muted-foreground">Chưa có chỗ ở phù hợp với tìm kiếm hoặc bộ lọc hiện tại.</p>
               </Card>
             ) : (
@@ -183,7 +275,7 @@ export default function SwapRoomPage() {
           </TabsContent>
 
           <TabsContent value="matches" className="mt-6 space-y-6">
-            <Card className="p-8 text-center">
+              <Card className="rounded-[32px] border border-border/70 bg-[var(--hero-empty-state)] p-8 text-center shadow-soft">
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <RefreshCw className="h-7 w-7" />
               </div>
@@ -228,7 +320,7 @@ export default function SwapRoomPage() {
                 ))}
               </div>
             ) : !mySublets || mySublets.length === 0 ? (
-              <Card className="rounded-2xl border-2 border-dashed border-muted bg-transparent p-12 text-center">
+              <Card className="rounded-[32px] border-2 border-dashed border-muted bg-transparent p-12 text-center shadow-soft">
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/60">
                   <Plus className="h-8 w-8 text-muted-foreground" />
                 </div>

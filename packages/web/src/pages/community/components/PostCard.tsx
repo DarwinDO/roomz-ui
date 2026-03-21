@@ -16,7 +16,7 @@ interface PostCardProps {
     post: Post;
     currentUserId?: string;
     onLike: (postId: string) => void;
-    onClick: () => void;
+    onOpenPost: () => void;
     onEdit?: (post: Post) => void;
     onDelete?: (postId: string) => void;
     getTimeAgo: (timestamp: string) => string;
@@ -24,7 +24,7 @@ interface PostCardProps {
     getTypeLabel: (type: string) => string;
 }
 
-export function PostCard({ post, currentUserId, onLike, onClick, onEdit, onDelete, getTimeAgo, getTypeColor, getTypeLabel }: PostCardProps) {
+export function PostCard({ post, currentUserId, onLike, onOpenPost, onEdit, onDelete, getTimeAgo, getTypeColor, getTypeLabel }: PostCardProps) {
     const [isHovered, setIsHovered] = useState(false);
     const isOwner = currentUserId && post.user_id === currentUserId;
 
@@ -38,7 +38,17 @@ export function PostCard({ post, currentUserId, onLike, onClick, onEdit, onDelet
             onMouseLeave={() => setIsHovered(false)}
         >
             {/* Clickable Card Body */}
-            <div onClick={onClick}>
+            <div
+                role="button"
+                tabIndex={0}
+                onClick={onOpenPost}
+                onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onOpenPost();
+                    }
+                }}
+            >
                 {/* Author Info */}
                 <div className="flex items-start gap-3 mb-4">
                     <Avatar className="w-10 h-10">
@@ -147,7 +157,7 @@ export function PostCard({ post, currentUserId, onLike, onClick, onEdit, onDelet
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        onClick();
+                        onOpenPost();
                     }}
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer group"
                 >

@@ -86,7 +86,17 @@ function ApplicationCard({
           </div>
 
           <div className="flex flex-wrap gap-2 lg:justify-end">
-            <Button variant="outline" size="sm" className="rounded-full" onClick={() => onOpen(application)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={() => onOpen(application)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  event.currentTarget.blur();
+                }
+              }}
+            >
               Xem chi tiết
             </Button>
             {application.status === 'submitted' ? (

@@ -109,11 +109,22 @@ export default function VerificationPage() {
   }
 
   return (
-    <div className="pb-20 md:pb-8 min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
+    <div lang="vi" className="pb-20 md:pb-8 min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
       {/* Header */}
       <div className="sticky top-0 bg-white border-b border-border z-40 px-4 py-3">
         <div className="max-w-3xl mx-auto flex items-center">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.currentTarget.blur();
+              }
+            }}
+            aria-label="Quay lại"
+            className="rounded-full"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h3 className="ml-3">Xác thực danh tính</h3>
@@ -206,7 +217,14 @@ export default function VerificationPage() {
                   <div className="relative rounded-xl overflow-hidden border-2 border-primary/30">
                     <img src={frontPreview} alt="Mặt trước" className="w-full h-48 object-cover" />
                     <button
+                      type="button"
                       onClick={() => clearFile('front')}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                          event.currentTarget.blur();
+                        }
+                      }}
+                      aria-label="Xóa ảnh mặt trước CCCD"
                       className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 transition"
                     >
                       <X className="w-4 h-4" />
@@ -218,7 +236,7 @@ export default function VerificationPage() {
                     className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${frontDropzone.isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary/50'
                       }`}
                   >
-                    <input {...frontDropzone.getInputProps()} />
+                    <input aria-label="Tải ảnh mặt trước CCCD" {...frontDropzone.getInputProps()} />
                     <ImageIcon className="w-10 h-10 text-gray-400 mx-auto mb-3" />
                     <p className="text-sm text-gray-500">Kéo thả hoặc bấm để chọn ảnh</p>
                     <p className="text-xs text-gray-400 mt-1">JPG, PNG • Tối đa 5MB</p>
@@ -233,7 +251,14 @@ export default function VerificationPage() {
                   <div className="relative rounded-xl overflow-hidden border-2 border-primary/30">
                     <img src={backPreview} alt="Mặt sau" className="w-full h-48 object-cover" />
                     <button
+                      type="button"
                       onClick={() => clearFile('back')}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                          event.currentTarget.blur();
+                        }
+                      }}
+                      aria-label="Xóa ảnh mặt sau CCCD"
                       className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 transition"
                     >
                       <X className="w-4 h-4" />
@@ -245,7 +270,7 @@ export default function VerificationPage() {
                     className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${backDropzone.isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary/50'
                       }`}
                   >
-                    <input {...backDropzone.getInputProps()} />
+                    <input aria-label="Tải ảnh mặt sau CCCD" {...backDropzone.getInputProps()} />
                     <ImageIcon className="w-10 h-10 text-gray-400 mx-auto mb-3" />
                     <p className="text-sm text-gray-500">Kéo thả hoặc bấm để chọn ảnh</p>
                     <p className="text-xs text-gray-400 mt-1">JPG, PNG • Tối đa 5MB</p>

@@ -26,7 +26,7 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "bg-muted/80 text-muted-foreground inline-flex min-h-11 w-fit items-center justify-center rounded-full p-1 flex",
+        "bg-[var(--surface-container-low)] text-muted-foreground inline-flex min-h-11 w-fit items-center justify-center rounded-full border border-[color:var(--border)] p-1 shadow-[0_18px_34px_-28px_rgba(40,43,81,0.32)] flex",
         className,
       )}
       {...props}
@@ -42,7 +42,7 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-[0_14px_30px_-24px_rgba(24,34,48,0.4)] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:text-foreground dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground/80 dark:text-muted-foreground inline-flex h-[calc(100%-2px)] flex-1 items-center justify-center gap-1.5 rounded-full border border-transparent px-3 py-2 text-sm font-semibold whitespace-nowrap transition-[color,box-shadow,background-color] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "data-[state=active]:bg-[var(--surface-container-lowest)] data-[state=active]:text-foreground data-[state=active]:shadow-[0_18px_34px_-26px_rgba(40,43,81,0.36)] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring text-foreground/80 dark:text-muted-foreground inline-flex h-[calc(100%-2px)] flex-1 items-center justify-center gap-1.5 rounded-full border border-transparent px-3 py-2 text-sm font-semibold whitespace-nowrap transition-[color,box-shadow,background-color,border-color] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}

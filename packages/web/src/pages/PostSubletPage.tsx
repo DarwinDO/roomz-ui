@@ -4,7 +4,7 @@
  * All state and logic lives in usePostSubletForm hook.
  */
 
-import { useRef, type ChangeEvent, type DragEvent } from 'react';
+import { useRef, type ChangeEvent, type DragEvent, type KeyboardEvent } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -54,6 +54,17 @@ export default function PostSubletPage() {
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     form.processFiles(Array.from(event.dataTransfer.files));
+  };
+
+  const handleUploadZoneKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (form.selectedFiles.length >= MAX_IMAGES) {
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      fileInputRef.current?.click();
+    }
   };
 
   if (!form.user) {
@@ -110,7 +121,7 @@ export default function PostSubletPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div lang="vi" className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 z-40 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center gap-4">
           <Button variant="ghost" size="icon" onClick={form.handleBack} className="rounded-full">
@@ -338,8 +349,12 @@ export default function PostSubletPage() {
                         ? 'cursor-not-allowed opacity-50'
                         : 'hover:border-primary/50 hover:bg-primary/5'
                     }`}
+                    role="button"
+                    tabIndex={form.selectedFiles.length >= MAX_IMAGES ? -1 : 0}
+                    aria-label="Tải ảnh chỗ ở"
                     onDragOver={(event) => event.preventDefault()}
                     onDrop={form.selectedFiles.length >= MAX_IMAGES ? undefined : handleDrop}
+                    onKeyDown={handleUploadZoneKeyDown}
                     onClick={
                       form.selectedFiles.length >= MAX_IMAGES
                         ? undefined
@@ -358,6 +373,7 @@ export default function PostSubletPage() {
                     <input
                       ref={fileInputRef}
                       type="file"
+                      aria-label="Chọn ảnh chỗ ở"
                       accept="image/*"
                       multiple
                       className="hidden"
@@ -372,7 +388,7 @@ export default function PostSubletPage() {
                           key={url}
                           className="group relative aspect-square overflow-hidden rounded-lg"
                         >
-                          <img src={url} alt="" className="h-full w-full object-cover" />
+                          <img src={url} alt={`Xem trước ảnh chỗ ở ${index + 1}`} className="h-full w-full object-cover" />
                           <button
                             onClick={(event) => {
                               event.stopPropagation();

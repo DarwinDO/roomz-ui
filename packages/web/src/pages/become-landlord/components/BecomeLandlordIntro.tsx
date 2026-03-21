@@ -8,13 +8,13 @@ export function BecomeLandlordIntro() {
 
   return (
     <div className="mb-12">
-      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6 hover:bg-white/50">
+      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6 rounded-full hover:bg-white/50">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Quay lại
       </Button>
 
       <div className="mb-12 text-center animate-fade-in">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-secondary shadow-lg shadow-primary/20">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[24px] bg-gradient-to-br from-primary to-secondary shadow-lg shadow-primary/20">
           <Building2 className="h-10 w-10 text-white" />
         </div>
         <h1 className="mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-3xl font-bold text-transparent md:text-4xl">
@@ -26,7 +26,7 @@ export function BecomeLandlordIntro() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <Card className="border-none bg-white/60 shadow-soft backdrop-blur-sm transition-all duration-300 hover:shadow-soft-lg">
+        <Card className="rounded-[24px] border border-border/70 bg-white/70 shadow-soft backdrop-blur-sm transition-all duration-300 hover:shadow-soft-lg">
           <CardContent className="pt-8 pb-8 text-center">
             <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
               <Users className="h-7 w-7 text-blue-600" />
@@ -38,7 +38,7 @@ export function BecomeLandlordIntro() {
           </CardContent>
         </Card>
 
-        <Card className="border-none bg-white/60 shadow-soft backdrop-blur-sm transition-all duration-300 hover:shadow-soft-lg">
+        <Card className="rounded-[24px] border border-border/70 bg-white/70 shadow-soft backdrop-blur-sm transition-all duration-300 hover:shadow-soft-lg">
           <CardContent className="pt-8 pb-8 text-center">
             <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
               <Shield className="h-7 w-7 text-green-600" />
@@ -50,7 +50,7 @@ export function BecomeLandlordIntro() {
           </CardContent>
         </Card>
 
-        <Card className="border-none bg-white/60 shadow-soft backdrop-blur-sm transition-all duration-300 hover:shadow-soft-lg">
+        <Card className="rounded-[24px] border border-border/70 bg-white/70 shadow-soft backdrop-blur-sm transition-all duration-300 hover:shadow-soft-lg">
           <CardContent className="pt-8 pb-8 text-center">
             <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-orange-100">
               <CheckCircle className="h-7 w-7 text-orange-600" />

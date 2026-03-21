@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -581,13 +582,127 @@ export default function SearchPage() {
   const suggestedRadius = emptyRadiusSuggestion.data?.radius ?? null;
   const suggestedRoomCount = emptyRadiusSuggestion.data?.totalCount ?? 0;
   const nextRadiusOption = getNextRadiusOption(searchRadiusKm, locationRadiusOptions);
+  const activeFilterCount =
+    (verifiedOnly ? 1 : 0) +
+    (priceRange[0] > 0 || priceRange[1] < 10000000 ? 1 : 0) +
+    selectedRoomTypes.length +
+    selectedAmenities.length +
+    (selectedLocation ? 1 : 0);
+  const hasActiveFilters =
+    verifiedOnly ||
+    priceRange[0] > 0 ||
+    priceRange[1] < 10000000 ||
+    selectedRoomTypes.length > 0 ||
+    selectedAmenities.length > 0;
+  const selectedAmenityItems = amenities.filter((amenity) =>
+    selectedAmenities.includes(amenity.id),
+  );
+  const resultsLabel = selectedLocation
+    ? `Kết quả quanh ${selectedLocationLabel}`
+    : debouncedSearchQuery
+      ? `Kết quả cho "${debouncedSearchQuery}"`
+      : "Nguồn phòng đang mở";
 
   return (
-    <div className="pb-20 md:pb-8">
+    <div className="bg-[var(--hero-bg)] pb-20 md:pb-8">
+      <section className="px-4 pb-6 pt-8">
+        <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[0.92fr_1.08fr]">
+          <Card className="rounded-[32px] border-border/70 bg-card/92 p-6 shadow-soft-lg md:p-7">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary shadow-sm">
+              <Search className="h-3.5 w-3.5" />
+              Bộ tìm phòng
+            </div>
+            <h1 className="mt-5 max-w-[14ch] text-foreground">
+              Khoá khu vực sống thật trước, rồi mới lọc sâu tới mức phòng phù hợp.
+            </h1>
+            <p className="mt-4 max-w-[58ch] text-sm leading-7 text-muted-foreground md:text-base">
+              Search của RommZ ưu tiên đúng ngữ cảnh thuê trọ: nơi ở gần trường, quận, landmark
+              hoặc vị trí hiện tại, sau đó mới chốt bộ lọc giá, tiện nghi và xác thực.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Badge className="rounded-full bg-primary/10 text-primary">Ưu tiên phòng đã xác thực</Badge>
+              <Badge className="rounded-full bg-secondary/10 text-secondary">List hoặc bản đồ</Badge>
+              <Badge className="rounded-full bg-amber-100 text-warning">Theo bán kính khu vực</Badge>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <Card className="rounded-[24px] border-border/70 bg-muted/30 p-4 shadow-none">
+                <CheckCircle2 className="h-6 w-6 text-primary" />
+                <p className="mt-4 text-sm font-semibold text-foreground">Trust signal trước</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Tin đã xác thực và trạng thái còn trống được đẩy lên sớm hơn trong decision flow.
+                </p>
+              </Card>
+              <Card className="rounded-[24px] border-border/70 bg-muted/30 p-4 shadow-none">
+                <MapPinned className="h-6 w-6 text-secondary" />
+                <p className="mt-4 text-sm font-semibold text-foreground">Theo khu vực thật</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Dùng trường, landmark hoặc vị trí hiện tại thay vì chỉ gõ tự do và lọc mù.
+                </p>
+              </Card>
+            </div>
+          </Card>
+
+          <Card className="overflow-hidden rounded-[32px] border-border/70 bg-[var(--hero-card-search)] p-6 shadow-soft-lg md:p-7">
+            <div className="rounded-[28px] bg-[#102131] p-5 text-white">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">
+                    Bảng điều hướng
+                  </p>
+                  <p className="mt-3 max-w-[28ch] text-2xl font-semibold leading-tight text-white">
+                    Nhìn nhanh khu vực, bộ lọc đang bật và cách bạn muốn xem kết quả.
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white/10 p-3 text-sky-100">
+                  <Search className="h-5 w-5" />
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Khu vực</p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    {selectedLocationLabel || "Chưa khóa"}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Bộ lọc</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{activeFilterCount} đang bật</p>
+                </div>
+                <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Chế độ xem</p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    {viewMode === "list" ? "Danh sách" : "Bản đồ"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <Card className="rounded-[24px] border-border/70 bg-white/90 p-4 shadow-soft">
+                <Map className="h-6 w-6 text-warning" />
+                <p className="mt-4 text-sm font-semibold text-foreground">Hai góc nhìn</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Xem dạng danh sách để so sánh, hoặc mở bản đồ khi bạn cần định vị nhanh hơn.
+                </p>
+              </Card>
+              <Card className="rounded-[24px] border-border/70 bg-white/90 p-4 shadow-soft">
+                <Sparkles className="h-6 w-6 text-primary" />
+                <p className="mt-4 text-sm font-semibold text-foreground">Từ khu vực đến quyết định</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Flow ưu tiên khoanh vùng trước, rồi mới đi sâu vào mức giá và tiện nghi.
+                </p>
+              </Card>
+            </div>
+          </Card>
+        </div>
+      </section>
+
       {/* Search Header */}
-      <div className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-40">
+      <div className="sticky top-0 z-40 border-b border-border bg-background/92 backdrop-blur-md">
         <div className="px-4 py-4 max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="mb-3 flex items-center gap-2">
             <MapboxGeocoding
               value={searchInput}
               onChange={handleSearchInputChange}
@@ -595,11 +710,18 @@ export default function SearchPage() {
               placeholder="Tìm theo địa chỉ, khu vực hoặc trường học..."
               className="flex-1"
               suppressSuggestions={shouldSuppressMapboxSuggestions}
+              inputId="search-location"
+              inputAriaLabel="Tìm theo địa chỉ, khu vực hoặc trường học"
             />
             <Button
               type="button"
               variant={isCurrentLocationSearch ? "default" : "outline"}
               onClick={handleUseCurrentLocation}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  setIsCurrentLocationSearch(false);
+                }
+              }}
               disabled={isLocatingCurrentLocation}
               className="shrink-0 rounded-full px-3 md:px-4"
             >
@@ -614,8 +736,14 @@ export default function SearchPage() {
             </Button>
             <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="rounded-xl shrink-0 border-border hover-scale">
-                  <SlidersHorizontal className="w-5 h-5" />
+                <Button variant="outline" className="shrink-0 rounded-full border-border px-4">
+                  <SlidersHorizontal className="mr-2 h-4 w-4" />
+                  Bộ lọc
+                  {activeFilterCount > 0 ? (
+                    <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                      {activeFilterCount}
+                    </span>
+                  ) : null}
                 </Button>
               </SheetTrigger>
               <SheetContent className="w-full sm:max-w-md flex flex-col p-0">
@@ -820,15 +948,33 @@ export default function SearchPage() {
           )}
 
           {selectedLocation && (
-            <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Map className="w-3.5 h-3.5" />
-                Đang tìm quanh:
-                <span className="font-medium text-foreground">{selectedLocationLabel}</span>
-              </p>
+            <div className="mb-4 rounded-[28px] border border-border/70 bg-card/85 p-4 shadow-soft">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Search radius
+                  </p>
+                  <p className="mt-2 flex items-center gap-2 text-sm font-medium text-foreground md:text-base">
+                    <MapPinned className="h-4 w-4 text-primary" />
+                    {selectedLocationLabel}
+                  </p>
+                </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-muted-foreground">Bán kính</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={clearSelectedLocation}
+                  className="h-10 rounded-full px-4 text-sm"
+                >
+                  Bỏ vị trí
+                </Button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Bán kính
+                </span>
                 {locationRadiusOptions.map((radius) => (
                   <Button
                     key={radius}
@@ -836,66 +982,75 @@ export default function SearchPage() {
                     size="sm"
                     variant={searchRadiusKm === radius ? "default" : "outline"}
                     onClick={() => setSearchRadiusKm(radius)}
-                    className="h-8 rounded-full px-3 text-xs"
+                    className="h-9 rounded-full px-4 text-xs"
                   >
                     {radius} km
                   </Button>
                 ))}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={clearSelectedLocation}
-                  className="h-8 rounded-full px-3 text-xs"
-                >
-                  Bỏ vị trí
-                </Button>
               </div>
             </div>
           )}
 
-          {/* View Toggle & Results Count */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Đang tải...
-                </span>
-              ) : (
-                `${totalCount} phòng còn trống`
-              )}
-            </p>
+          <div className="rounded-[28px] border border-border/70 bg-card/90 p-4 shadow-soft">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Results overview
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-semibold text-foreground md:text-2xl">{resultsLabel}</h2>
+                  <Badge variant="outline" className="rounded-full border-border/70 bg-background">
+                    {isLoading ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Đang tải
+                      </span>
+                    ) : (
+                      `${totalCount} phòng còn trống`
+                    )}
+                  </Badge>
+                </div>
+              </div>
 
-            {/* Sort Dropdown */}
-            <div className="flex gap-2 items-center">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="text-sm border border-border rounded-xl px-3 py-1.5 bg-card focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="newest">Mới nhất</option>
-                <option value="price_asc">Giá thấp đến cao</option>
-                <option value="price_desc">Giá cao đến thấp</option>
-                <option value="most_viewed">Xem nhiều nhất</option>
-              </select>
-              <div className="flex gap-2">
-                <Button
-                  variant={viewMode === "list" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                  className="rounded-xl"
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label htmlFor="search-sort" className="sr-only">
+                  Sắp xếp kết quả
+                </label>
+                <select
+                  id="search-sort"
+                  aria-label="Sắp xếp kết quả"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="h-10 rounded-full border border-border bg-card px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  <List className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "map" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("map")}
-                  className="rounded-xl"
-                >
-                  <Map className="w-4 h-4" />
-                </Button>
+                  <option value="newest">Mới nhất</option>
+                  <option value="price_asc">Giá thấp đến cao</option>
+                  <option value="price_desc">Giá cao đến thấp</option>
+                  <option value="most_viewed">Xem nhiều nhất</option>
+                </select>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant={viewMode === "list" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("list")}
+                    className="rounded-full px-4"
+                    aria-label="Hiển thị dạng danh sách"
+                  >
+                    <List className="mr-2 h-4 w-4" />
+                    Danh sách
+                  </Button>
+                  <Button
+                    variant={viewMode === "map" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("map")}
+                    className="rounded-full px-4"
+                    aria-label="Hiển thị dạng bản đồ"
+                  >
+                    <Map className="mr-2 h-4 w-4" />
+                    Bản đồ
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -903,45 +1058,124 @@ export default function SearchPage() {
       </div>
 
 
-      {/* Active Filters */}
-      {
-        (verifiedOnly || priceRange[0] > 0 || priceRange[1] < 10000000 || selectedRoomTypes.length > 0) && (
-          <div className="px-4 py-3 bg-muted/50 border-b border-border">
-            <div className="max-w-6xl mx-auto flex flex-wrap gap-2">
-              {verifiedOnly && (
-                <Badge className="bg-primary text-primary-foreground gap-1">
-                  Đã xác thực
-                  <X className="w-3 h-3 cursor-pointer" onClick={() => setVerifiedOnly(false)} />
-                </Badge>
-              )}
-              {(priceRange[0] > 0 || priceRange[1] < 10000000) && (
-                <Badge className="bg-primary text-white gap-1">
-                  {formatPriceInMillions(priceRange[0])}tr - {formatPriceInMillions(priceRange[1])}tr
-                  <X
-                    className="w-3 h-3 cursor-pointer"
+      {(selectedLocation || hasActiveFilters) && (
+        <section className="px-4 py-4">
+          <div className="mx-auto max-w-6xl rounded-[28px] border border-border/70 bg-card/85 p-4 shadow-soft">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Active filters
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Đang áp dụng {activeFilterCount} tín hiệu lọc để giữ kết quả sát hơn với nhu cầu hiện tại.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleResetFilters}
+                className="h-9 rounded-full px-4 text-sm"
+              >
+                Xóa tất cả
+              </Button>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {selectedLocation ? (
+                <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-sm shadow-sm">
+                  <MapPinned className="h-3.5 w-3.5 text-primary" />
+                  <span>{selectedLocationLabel}</span>
+                  <button
+                    type="button"
+                    onClick={clearSelectedLocation}
+                    className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label="Bỏ vị trí tìm kiếm"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : null}
+
+              {verifiedOnly ? (
+                <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-sm shadow-sm">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                  <span>Đã xác thực</span>
+                  <button
+                    type="button"
+                    onClick={() => setVerifiedOnly(false)}
+                    className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label="Bỏ lọc đã xác thực"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : null}
+
+              {priceRange[0] > 0 || priceRange[1] < 10000000 ? (
+                <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-sm shadow-sm">
+                  <span>
+                    {formatPriceInMillions(priceRange[0])}tr - {formatPriceInMillions(priceRange[1])}tr
+                  </span>
+                  <button
+                    type="button"
                     onClick={() => setPriceRange([0, 10000000])}
-                  />
-                </Badge>
-              )}
-              {selectedRoomTypes.map(type => {
-                const roomType = roomTypes.find(t => t.value === type);
+                    className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label="Bỏ lọc khoảng giá"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : null}
+
+              {selectedRoomTypes.map((type) => {
+                const roomType = roomTypes.find((item) => item.value === type);
+
                 return (
-                  <Badge key={type} className="bg-primary text-primary-foreground gap-1">
-                    {roomType?.label}
-                    <X className="w-3 h-3 cursor-pointer" onClick={() => toggleRoomType(type)} />
-                  </Badge>
+                  <div
+                    key={type}
+                    className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-sm shadow-sm"
+                  >
+                    <span>{roomType?.label}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleRoomType(type)}
+                      className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      aria-label={`Bỏ lọc loại phòng ${roomType?.label ?? type}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
                 );
               })}
+
+              {selectedAmenityItems.map((amenity) => (
+                <div
+                  key={amenity.id}
+                  className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-sm shadow-sm"
+                >
+                  <amenity.icon className="h-3.5 w-3.5 text-primary" />
+                  <span>{amenity.label}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleAmenity(amenity.id)}
+                    className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label={`Bỏ lọc tiện nghi ${amenity.label}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
-        )
-      }
+        </section>
+      )}
 
       {/* Results */}
-      <div className="px-4 py-6 max-w-6xl mx-auto">
+      <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">
         {/* Error State */}
         {error && (
-          <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-6 text-center animate-fade-in">
+          <div className="rounded-[28px] border border-destructive/20 bg-destructive/5 p-6 text-center animate-fade-in">
             <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-3" />
             <p className="text-destructive mb-4">{error instanceof Error ? error.message : 'Đã xảy ra lỗi'}</p>
             <Button onClick={() => refetch()} variant="outline" className="rounded-xl">
@@ -952,9 +1186,9 @@ export default function SearchPage() {
 
         {/* Loading State */}
         {isLoading && !error && (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
+          <div className="grid gap-4 stagger-children sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-card rounded-2xl shadow-soft border border-border overflow-hidden">
+              <div key={i} className="overflow-hidden rounded-[24px] border border-border/70 bg-card shadow-soft">
                 <div className="h-48 bg-muted animate-skeleton" />
                 <div className="p-4 space-y-3">
                   <div className="h-5 bg-muted rounded animate-skeleton w-3/4" />
@@ -968,12 +1202,12 @@ export default function SearchPage() {
 
         {/* Empty State */}
         {!isLoading && !error && roomCards.length === 0 && (
-          <div className="bg-muted/30 border border-border rounded-2xl p-12 text-center animate-fade-in">
+          <div className="rounded-[32px] border border-border/70 bg-[var(--hero-empty-state)] p-12 text-center animate-fade-in shadow-soft">
             <Search className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">
+            <h3 className="mb-2 text-xl font-semibold">
               {selectedLocation ? `Không có phòng trong ${searchRadiusKm} km` : "Không tìm thấy phòng"}
             </h3>
-            <p className="text-muted-foreground mb-4">
+            <p className="mx-auto mb-4 max-w-2xl text-muted-foreground">
               {selectedLocation
                 ? suggestedRadius
                   ? `Hiện chưa có phòng trong ${searchRadiusKm} km quanh ${selectedLocationLabel}. Có ${suggestedRoomCount} phòng nếu mở rộng lên ${suggestedRadius} km.`
@@ -1005,7 +1239,7 @@ export default function SearchPage() {
         {/* Results List */}
         {!isLoading && !error && roomCards.length > 0 && viewMode === "list" && (
           <>
-            <div className={`grid sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children ${isPlaceholderData ? 'opacity-60 transition-opacity' : ''}`}>
+            <div className={`grid gap-4 stagger-children sm:grid-cols-2 lg:grid-cols-3 ${isPlaceholderData ? 'opacity-60 transition-opacity' : ''}`}>
               {roomCards.map((room) => (
                 <RoomCard
                   key={room.id}
@@ -1019,12 +1253,12 @@ export default function SearchPage() {
 
             {/* Load More Button */}
             {hasNextPage && (
-              <div className="flex justify-center mt-8">
+              <div className="mt-8 flex justify-center">
                 <Button
                   onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
                   variant="outline"
-                  className="rounded-xl px-8 py-3 min-h-[44px] hover:bg-primary hover:text-white transition-colors"
+                  className="min-h-[44px] rounded-full px-8 py-3 transition-colors hover:bg-primary hover:text-white"
                 >
                   {isFetchingNextPage ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1040,10 +1274,12 @@ export default function SearchPage() {
 
         {/* Map View */}
         {!isLoading && !error && viewMode === "map" && (
-          <MapboxRoomMap
-            rooms={rooms}
-            className="h-[calc(100vh-200px)] min-h-[500px]"
-          />
+          <div className="overflow-hidden rounded-[32px] border border-border/70 bg-card shadow-soft">
+            <MapboxRoomMap
+              rooms={rooms}
+              className="h-[calc(100vh-220px)] min-h-[520px]"
+            />
+          </div>
         )}
       </div>
     </div>

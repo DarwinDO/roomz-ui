@@ -332,7 +332,14 @@ export default function AnalyticsPage() {
             Theo dõi số liệu cốt lõi, mức sử dụng tính năng, địa điểm phổ biến và cohort retention từ hệ analytics nội bộ.
           </p>
         </div>
-        <Button onClick={handleExport}>
+        <Button
+          onClick={handleExport}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.currentTarget.blur();
+            }
+          }}
+        >
           <Download className="mr-2 h-4 w-4" />
           Xuất báo cáo
         </Button>

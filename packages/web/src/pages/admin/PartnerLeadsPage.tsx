@@ -379,7 +379,15 @@ export default function PartnerLeadsPage() {
                             </div>
 
                             <DialogFooter className="gap-2">
-                                <Button variant="outline" onClick={() => setDetailOpen(false)}>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setDetailOpen(false)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Escape") {
+                                            event.currentTarget.blur();
+                                        }
+                                    }}
+                                >
                                     Đóng
                                 </Button>
                                 {selectedLead.status === "pending" && (

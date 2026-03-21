@@ -47,7 +47,7 @@ export default function RoommatesPage() {
     // Loading state
     if (authLoading || profileLoading) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="flex min-h-[60vh] items-center justify-center rounded-[28px] border border-border/70 bg-card/85 shadow-soft">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
         );
@@ -64,7 +64,7 @@ export default function RoommatesPage() {
         // The useEffect above handles this, but we show loading while redirecting
         if (hasProfile) {
             return (
-                <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="flex min-h-[60vh] items-center justify-center rounded-[28px] border border-border/70 bg-card/85 shadow-soft">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
             );
@@ -107,7 +107,7 @@ export default function RoommatesPage() {
                 // Navigate to /roommates for proper layout with navbar
                 navigate('/roommates', { replace: true });
                 return (
-                    <div className="flex items-center justify-center min-h-[60vh]">
+                    <div className="flex min-h-[60vh] items-center justify-center rounded-[28px] border border-border/70 bg-card/85 shadow-soft">
                         <Loader2 className="w-8 h-8 animate-spin text-primary" />
                     </div>
                 );
@@ -118,7 +118,7 @@ export default function RoommatesPage() {
     };
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-[linear-gradient(180deg,#f4f8fb_0%,#fffdf9_22%,#ffffff_72%,#f6f8fb_100%)]">
             {renderStep()}
         </div>
     );

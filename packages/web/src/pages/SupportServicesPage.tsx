@@ -78,6 +78,7 @@ export function SupportServicesContent({
 
   return (
     <div
+      lang="vi"
       className={
         embedded
           ? "space-y-8"
@@ -91,6 +92,7 @@ export function SupportServicesContent({
               variant="ghost"
               size="icon"
               onClick={() => navigate(-1)}
+              aria-label="Quay lại"
               className="rounded-full"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -114,7 +116,7 @@ export function SupportServicesContent({
                 bớt rối hơn.
               </h2>
               <p className="mt-3 max-w-md text-sm leading-7 text-slate-300">
-                Từ chuyển đồ, dọn phòng đến setup góc ở mới, RoomZ gom các dịch vụ
+                Từ chuyển đồ, dọn phòng đến setup góc ở mới, RommZ gom các dịch vụ
                 sau thuê nhà vào một cụm rõ ràng để bạn không phải tự xoay xở.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
@@ -176,7 +178,7 @@ export function SupportServicesContent({
               <p className="text-xs font-semibold uppercase tracking-[0.26em] text-muted-foreground">
                 Đối tác đề xuất
               </p>
-              <h2 className="mt-2 text-3xl text-foreground">Các đội dịch vụ được RoomZ gợi ý</h2>
+              <h2 className="mt-2 text-3xl text-foreground">Các đội dịch vụ được RommZ gợi ý</h2>
             </div>
             <Button
               onClick={() => navigate("/services?tab=deals")}
@@ -202,6 +204,18 @@ export function SupportServicesContent({
                 <Card
                   key={partner.id}
                   onClick={() => handlePartnerClick(partner)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handlePartnerClick(partner);
+                    }
+                    if (event.key === "Escape") {
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Xem chi tiết đối tác ${partner.name}`}
                   className="cursor-pointer rounded-[28px] border-border/80 p-5 transition-transform hover:-translate-y-1"
                 >
                   <div className="space-y-3">
@@ -243,7 +257,7 @@ export function SupportServicesContent({
             <div className="space-y-2 text-center md:text-left">
               <h2 className="font-display text-white">Cần hỗ trợ theo nhu cầu riêng?</h2>
               <p className="max-w-2xl text-white/88">
-                Liên hệ RoomZ để được gợi ý tổ hợp dịch vụ phù hợp với thời điểm
+                Liên hệ RommZ để được gợi ý tổ hợp dịch vụ phù hợp với thời điểm
                 chuyển phòng, ngân sách và khu vực bạn đang ở.
               </p>
             </div>

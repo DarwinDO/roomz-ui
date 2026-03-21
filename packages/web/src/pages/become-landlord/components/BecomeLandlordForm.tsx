@@ -22,7 +22,7 @@ export function BecomeLandlordForm({
   isSubmitting,
 }: BecomeLandlordFormProps) {
   return (
-    <Card className="animate-fade-in-up border-none bg-white/80 shadow-xl backdrop-blur-sm">
+    <Card className="animate-fade-in-up rounded-[28px] border border-border/70 bg-white/85 shadow-soft-lg backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">

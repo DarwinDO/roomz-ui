@@ -45,9 +45,9 @@ export function SettingsTab({
     };
 
     return (
-        <div className="space-y-6 animate-fade-in">
+        <div className="space-y-6 rounded-[28px] border border-border/70 bg-card/85 p-5 shadow-soft animate-fade-in">
             {/* Edit Profile Button */}
-            <Card className="p-6 rounded-2xl shadow-soft border border-border">
+            <Card className="rounded-[24px] border border-border/70 p-6 shadow-soft">
                 <h3 className="mb-4">Cài đặt tài khoản</h3>
                 <div className="space-y-3">
                     <Button
@@ -77,7 +77,7 @@ export function SettingsTab({
                                 />
                             </Button>
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-3 p-4 bg-muted/30 rounded-xl space-y-3">
+                        <CollapsibleContent className="mt-3 rounded-[20px] bg-muted/30 p-4 space-y-3">
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -164,7 +164,7 @@ export function SettingsTab({
                     </Collapsible>
 
                     {/* Coming Soon */}
-                    <div className="p-4 bg-muted/20 rounded-xl text-center">
+                    <div className="rounded-[20px] bg-muted/20 p-4 text-center">
                         <p className="text-sm text-muted-foreground">Cài đặt tuỳ chỉnh, bảo mật và thông báo sẽ sớm ra mắt</p>
                     </div>
                 </div>
@@ -173,7 +173,7 @@ export function SettingsTab({
             {/* Subscription Card */}
             {isPremium ? (
                 // Premium User Card
-                <Card className="p-6 rounded-2xl shadow-soft border border-amber-200 bg-gradient-to-br from-amber-50/50 to-orange-50/50">
+                <Card className="rounded-[24px] border border-amber-200 bg-gradient-to-br from-amber-50/50 to-orange-50/50 p-6 shadow-soft">
                     <div className="flex items-center gap-2 mb-4">
                         <Crown className="w-5 h-5 text-amber-500" />
                         <h3>RommZ+ Premium</h3>
@@ -195,7 +195,7 @@ export function SettingsTab({
                 </Card>
             ) : (
                 // Free User Card
-                <Card className="p-6 rounded-2xl shadow-soft border border-border">
+                <Card className="rounded-[24px] border border-border/70 p-6 shadow-soft">
                     <h3 className="mb-4">Gói dịch vụ</h3>
                     <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
                         <div>

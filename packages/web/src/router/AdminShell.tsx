@@ -114,8 +114,21 @@ export default function AdminShell() {
     return item ? item.label : 'Admin';
   };
 
+  const handleSidebarOverlayKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setSidebarOpen(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div lang="vi" className="min-h-screen bg-gray-50">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-slate-950 focus:shadow-soft"
+      >
+        Bỏ qua đến nội dung quản trị chính
+      </a>
       <aside className="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col">
         <div className="flex min-h-0 flex-1 flex-col bg-[#1a1d29]">
           <div className="flex h-16 flex-shrink-0 items-center border-b border-gray-700/50 px-4">
@@ -133,7 +146,14 @@ export default function AdminShell() {
 
       {sidebarOpen && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
+          <div
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            role="button"
+            tabIndex={0}
+            aria-label="Đóng menu admin"
+            onClick={() => setSidebarOpen(false)}
+            onKeyDown={handleSidebarOverlayKeyDown}
+          />
           <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-[#1a1d29] md:hidden">
             <div className="flex h-16 items-center justify-between border-b border-gray-700/50 px-4">
               <div className="flex items-center">
@@ -168,7 +188,7 @@ export default function AdminShell() {
           </div>
         </header>
 
-        <main className="flex-1">
+        <main id="main-content" tabIndex={-1} className="flex-1">
           <div className="px-4 py-6 sm:px-6 lg:px-8">
             <ErrorBoundary>
               <Outlet />

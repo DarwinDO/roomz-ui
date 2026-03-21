@@ -948,7 +948,17 @@ export default function IngestionReviewPage() {
 
           <DialogFooter className="flex-wrap gap-2 sm:justify-between">
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={closePartnerDialog}>Đóng</Button>
+              <Button
+                variant="outline"
+                onClick={closePartnerDialog}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.currentTarget.blur();
+                  }
+                }}
+              >
+                Đóng
+              </Button>
               <Button variant="outline" disabled={isPartnerMutating || !selectedPartner} onClick={() => selectedPartner && void handleRefreshPartner(selectedPartner)}>
                 {refreshPartner.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
                 Phân loại lại

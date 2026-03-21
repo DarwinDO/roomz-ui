@@ -250,6 +250,11 @@ function CrawlQueueIssueItem({
               className="rounded-full border-slate-200"
               disabled={isSyncing}
               onClick={() => void onSyncJob(issue.job_id!)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  event.currentTarget.blur();
+                }
+              }}
             >
               {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
               Đồng bộ

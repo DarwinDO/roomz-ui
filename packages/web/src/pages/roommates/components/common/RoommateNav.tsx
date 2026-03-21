@@ -25,7 +25,7 @@ export function RoommateNav() {
     const { pendingCount } = useRoommateRequestsQuery();
 
     return (
-        <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
+        <div className="flex items-center gap-1 rounded-full border border-outline-variant/20 bg-white/90 p-1.5 shadow-sm backdrop-blur-xl">
             {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -36,9 +36,9 @@ export function RoommateNav() {
                         variant={isActive ? 'default' : 'ghost'}
                         size="sm"
                         className={cn(
-                            'gap-2 relative',
-                            isActive && 'bg-primary text-primary-foreground shadow-sm',
-                            !isActive && 'text-foreground hover:bg-muted'
+                            'relative gap-2 rounded-full px-4',
+                            isActive && 'bg-primary text-white shadow-sm hover:bg-primary/95',
+                            !isActive && 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
                         )}
                         onClick={() => navigate(item.path)}
                     >
@@ -46,7 +46,7 @@ export function RoommateNav() {
                         <span className="hidden sm:inline">{item.label}</span>
                         {item.showBadge && pendingCount > 0 && (
                             <Badge
-                                className="absolute -top-1 -right-1 w-5 h-5 p-0 text-xs flex items-center justify-center"
+                                className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center p-0 text-xs"
                                 variant="destructive"
                             >
                                 {pendingCount}

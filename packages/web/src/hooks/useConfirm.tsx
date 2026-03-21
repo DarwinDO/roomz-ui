@@ -58,7 +58,14 @@ export function useConfirm(): UseConfirmReturn {
                         <AlertDialogDescription>{description}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => handleClose(false)}>
+                        <AlertDialogCancel
+                            onClick={() => handleClose(false)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Escape') {
+                                    handleClose(false);
+                                }
+                            }}
+                        >
                             {cancelText}
                         </AlertDialogCancel>
                         <AlertDialogAction

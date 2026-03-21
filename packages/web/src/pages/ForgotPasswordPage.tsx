@@ -277,6 +277,11 @@ export default function ForgotPasswordPage() {
                                                     <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                                         <Button
                                                             onClick={() => navigate("/login")}
+                                                            onKeyDown={(event) => {
+                                                                if (event.key === "Escape") {
+                                                                    navigate("/login");
+                                                                }
+                                                            }}
                                                             className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl transition-all duration-200"
                                                         >
                                                             Quay lại đăng nhập

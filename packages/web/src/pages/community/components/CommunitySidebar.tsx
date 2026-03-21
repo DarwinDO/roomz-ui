@@ -23,7 +23,7 @@ export function CommunitySidebar() {
     return (
         <div className="hidden lg:block space-y-6">
             {/* Top Posts */}
-            <Card className="p-5 rounded-2xl shadow-soft border border-border">
+            <Card className="rounded-[24px] border border-border/70 p-5 shadow-soft">
                 <div className="flex items-center gap-2 mb-4">
                     <TrendingUp className="w-5 h-5 text-primary" />
                     <h3 className="font-semibold">Bài viết nổi bật</h3>
@@ -64,7 +64,7 @@ export function CommunitySidebar() {
             </Card>
 
             {/* Community Guidelines */}
-            <Card className="p-5 rounded-2xl shadow-soft border border-border">
+            <Card className="rounded-[24px] border border-border/70 p-5 shadow-soft">
                 <div className="flex items-center gap-2 mb-4">
                     <Info className="w-5 h-5 text-primary" />
                     <h3 className="font-semibold">Nội quy cộng đồng</h3>

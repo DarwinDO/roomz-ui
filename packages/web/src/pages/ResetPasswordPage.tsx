@@ -344,6 +344,11 @@ export default function ResetPasswordPage() {
                                                             whileTap={{ scale: 0.95 }}
                                                             type="button"
                                                             onClick={() => setShowPassword(!showPassword)}
+                                                            onKeyDown={(event) => {
+                                                                if (event.key === "Escape") {
+                                                                    setShowPassword(false);
+                                                                }
+                                                            }}
                                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                                                             tabIndex={-1}
                                                         >

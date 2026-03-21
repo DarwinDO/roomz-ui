@@ -435,7 +435,17 @@ export default function CompatibilityPage() {
       {/* Header */}
       <div className="sticky top-0 bg-white border-b border-border z-40 px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center">
-          <Button variant="ghost" size="icon" onClick={onBack} className="rounded-full">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                onBack();
+              }
+            }}
+            className="rounded-full"
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h3 className="ml-3">Compatibility Match</h3>
