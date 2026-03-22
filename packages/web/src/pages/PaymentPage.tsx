@@ -219,7 +219,7 @@ export default function PaymentPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/5 pb-24 md:pb-8">
-      <div className="sticky top-0 z-40 border-b border-border bg-white/80 px-4 py-3 backdrop-blur-md">
+      <div className="scroll-lock-shell sticky top-0 z-40 border-b border-border bg-white/80 px-4 py-3 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center">
           <Button
             variant="ghost"

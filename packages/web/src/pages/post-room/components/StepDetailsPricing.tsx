@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -31,24 +32,22 @@ export function StepDetailsPricing({ formData, handleInputChange, onNext, onBack
                         <Label htmlFor="pricePerMonth" className="text-base font-medium">Giá thuê/tháng (VNĐ) <span className="text-destructive">*</span></Label>
                         <div className="relative mt-2">
                             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
+                            <CurrencyInput
                                 id="pricePerMonth"
-                                type="number"
                                 value={formData.pricePerMonth}
-                                onChange={(e) => handleInputChange("pricePerMonth", e.target.value)}
-                                placeholder="3000000"
+                                onValueChange={(value) => handleInputChange("pricePerMonth", value)}
+                                placeholder="3.000.000"
                                 className="pl-10 rounded-xl h-11"
                             />
                         </div>
                     </div>
                     <div>
                         <Label htmlFor="depositAmount" className="text-base font-medium">Tiền cọc (VNĐ)</Label>
-                        <Input
+                        <CurrencyInput
                             id="depositAmount"
-                            type="number"
                             value={formData.depositAmount}
-                            onChange={(e) => handleInputChange("depositAmount", e.target.value)}
-                            placeholder="3000000"
+                            onValueChange={(value) => handleInputChange("depositAmount", value)}
+                            placeholder="3.000.000"
                             className="mt-2 rounded-xl h-11"
                         />
                     </div>

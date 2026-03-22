@@ -45,7 +45,8 @@ description: Execution plan for the RoomZ Stitch-first desktop port
 - [x] Port `/room/:id` against `Chi Tiết Phòng Trọ - Living Atlas`
 - [x] Capture Playwright desktop parity screenshots for the six in-scope routes
 - [x] Stabilize typography roles and desktop breakpoints for `/`, `/login`, `/services`, and `/room/:id` after the first Stitch port review
-- [ ] Generate dedicated Stitch screens for `Search`, `Short-stay / Swap`, `Profile`, and `Landlord Dashboard` before coding them
+- [x] Generate dedicated Stitch screens for `Search`, `Short-stay / Swap`, `Profile`, and `Landlord Dashboard` before coding them
+- [x] Port `/search` against `TÃ¬m PhÃ²ng - Living Atlas (Refined)`
 - [ ] Map the refined token system to mobile / MD3 surfaces
 - [ ] Add Framer Motion polish where it improves hierarchy
 - [ ] Pilot 3D accents on landing and login only

@@ -53,6 +53,20 @@ export const stitchAssets = {
     heroImage:
       "https://lh3.googleusercontent.com/aida-public/AB6AXuCxKi8gdLLKfDBhJrbmXwwUT1eILaFjAhMEuz7OpQQkZhbp_DPbPnEugTa8uqDl62wycVB--4W6Du3t3BmT-wvxnidSdEUSl1gqWfF1uw6CLJb0U4okptpX52ECaMM9VZwuaxcomzb_im3KpBpaQJ4cWKj0EoLkUWYmBCWyWtGR8afFlOnY9I7PG6iiMosOLQRXI0tpt2HQ1kCPeAgxotSnnPYZ7MNpD51vLCqjaLVT63PcMgf4WuEF6lfd_TVHxaAkncEfv6rotszo",
   },
+  swap: {
+    featuredRoom:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuA66OVNwSw5kycFHe1VD0xJjTvQGCZF3_QU9AV8sAM1Emq-Yj02-iA1biUSK5MXG4TURq0JvM8nw2cvZyYENK3o_SZlx6IDzGqc-N93H8Y7QYMi5jfrpH8TRcmWubVUkzUUvSfKHkmbf3rcP5dUfMZzy26-hTg7lnG28OK2n3_f48rnSr8GhgQ58Eiv6TAgwiWjl6lxqojEXIPFULtmY3q1ddJ1iHWRU0gx5G0s1anhHCBydUhdQrZOLU-U1-JHMZMQo5eOCTqeyIrZ",
+    subletRoom:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuBQTTOYc2XBnhLZhj1BPJR9-vgXVwmYBtIe3nkd68-YSBiAY7E3AdrSwNCLPanWgN4_SZCfxIqpj3IhK7i8dE-P-_fQP27IuuSbvWB0dWMxGmsAeVeXcLgc5daKrE-v3YEu7SqYp_W9BCDrH23lxwPWBO1rq7-aycJPLdPD79yUDNvPhzY9DM1DSGyBfmhUlIsfy9MuuK71TtgW-DqLjrIviEvghgdhvOQ_MgOcqxw4FDfKr847wbq0oc6N4xqfC-3mbLGSbFhtw67k",
+    moveInAvatars: [
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuCukMMQtOvKn2gN6ep2-Q_x0gAh2GIepyNnRpdAdLZpMD8YhoiHIA-tsEFvzIfaeaplXdE5QTXuzpj-wIETDM6sIG7J_FZP1juiuRsgAiox_QjX28LD6ALKi5DXDfX0WrZQKKrBONkcargPx66FsI3ftq33UjTbDawud7eDZQJVw74oEjR04DZqmjsQCHoXYfHYh3sRjwzyRL5E8Z-Vcy210zrer8NuJufuwA9pODcIgpENf6LqVlfsINgsYdqHpjLPvHmE78Kr6Gkz",
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuBHS012Zoq7poIN1ksKn-qMvk8hlwsTOneWrhdMNA2ReaFcH7xrCjraDvNa5eBZV1tMw-vKJDt5Rr6ZsQA6a3MkswQW0BuTOosOw4hbnSK5eW8JUQTtFsms_iTlnGtpqsQnIQjvbZ_r9HkmobYIZgg7ca9aUqK8bax43sLxHae_GfrR-1lRPNhPt7v94CHNFotz2nFTEOrwcoWCJyNLFF4ExG0cAcm6J-WCnUzlwDdOB-SRSNuphgkPT0OoOqDNnfX7-Avrp-FB86_y",
+    ],
+  },
+  profile: {
+    preferredAreaMap:
+      "https://lh3.googleusercontent.com/aida-public/AB6AXuC5hPi0PGx7tQMm1y3V4-m_zN-pIt3BRF8BtOQW2n5K5fkj8RVLWW1cm9KVXJHgChGlhMwbeAp11ux-iigeIodJs4uBT2Jz6lNwESbSLujajSZUOvp29Y8U8pAtdSgYz-In07D4qxjKjtHQNP0QZIq23BkxI4btu1_LE4dzMWxvXNBW7Zj4oQO-fvTDjVBSib0oWBPf2FOySV1-_SVne94W0lU5-qPxDAF0pFnMIQXzFKysWoPPzHAXs_QFdXytRObn8bh4MNchiJi2",
+  },
   roomDetail: {
     gallery: [
       "https://lh3.googleusercontent.com/aida-public/AB6AXuCKjrjMzfOuy6jS-sXaskNACULuXuUfJcRATy2UAPoLWDlYNQPDg-XmVWLI6zER11iKapU1CPAcZBNDOI-RPJNKpcfOTJY3xwRMnIug5CtylQ8TP9cANkOX5X8yphxP9Cq9kWQqt0gDQb7keLjrYfjzoi2fS0EE_fExihZ2DpJxnQ9hZKlRACuv_wD-pQE0TfDvcpW2vEU_XmpmmMZuMDtuS3DG1oXyMQ6-5TVTguBFCfDh6XiTzZk6pRg_IMcmU7SMcUS07LF1jqUh",

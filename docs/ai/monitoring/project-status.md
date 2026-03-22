@@ -2,7 +2,7 @@
 phase: monitoring
 title: Project Status Snapshot
 description: Living project memory for RoomZ product scope, architecture, roadmap, and current implementation state
-updated: 2026-03-21
+updated: 2026-03-22
 ---
 
 # RommZ Project Status
@@ -51,6 +51,15 @@ updated: 2026-03-21
 - Shared Stitch asset registry lives in `packages/web/src/lib/stitchAssets.ts`
 - Shared Stitch-first footer lives in `packages/web/src/components/common/StitchFooter.tsx`
 - Stitch typography aliases now resolve globally via `font-display`, `font-headline`, `font-body`, and `font-label`
+- Fixed and sticky top shells now use the shared `scroll-lock-shell` utility so Radix `Select` overlays do not shift the navbar when `react-remove-scroll` locks the body
+- Global web layout now reserves a stable scrollbar gutter and clears Radix body compensation while scroll-locked, so centered forms no longer jump horizontally when a dropdown opens
+- User-facing VND inputs now use the shared `CurrencyInput` helper:
+  - inputs display grouped values such as `3.000.000`
+  - form state still keeps raw digits so validation and submit payloads remain numeric-safe
+- User-facing posting forms now prefer the shared `FormSelectPopover` over raw Radix `Select`:
+  - `post-room` basic info step
+  - `create-sublet`
+  - quick post-listing modal
 - The canonical services route is `/services`
 - Legacy routes redirect as follows:
   - `/support-services` -> `/services?tab=services`
@@ -64,7 +73,23 @@ updated: 2026-03-21
   - `/community` <- `Cộng đồng - Living Atlas (Updated)`
   - `/roommates` <- `Tìm Bạn Cùng Phòng - Living Atlas`
   - `/room/:id` <- `Chi Tiết Phòng Trọ - Living Atlas`
-- Search, swap, profile, landlord dashboard, Atlas Plus, admin, motion, and 3D are outside the current Stitch-first desktop scope
+- `/search` <- `Tìm Phòng - Living Atlas (Refined)`
+- `/profile` <- `Hồ Sơ Cá Nhân - Living Atlas`
+- Search route is now ported from the refined Stitch screen `screens/9c747e70493f43e2984e39691cc02b8f`
+- `/search` mini-map now keeps the same Mapbox canvas when the room dataset changes through non-empty location switches (for example quick area chips), so the selected-room camera motion stays smooth instead of resetting
+- `/search` no longer collapses into a `0 results` empty state while the user is still browsing internal location-catalog suggestions; the previous results and map stay visible until a catalog suggestion is actually chosen
+- `/swap` is now ported directly from the generated Stitch screen `screens/354de64324a047a8b1bd6202aa8612de`
+- The desktop top navigation now includes `/swap` as `Ở ngắn hạn`
+- The `/swap` browse surface now separates `Nhượng phòng` from `Hoán đổi lịch ở` more clearly:
+  - the secondary card uses a room fallback instead of an unrelated vehicle image
+  - the lower-left swap lane now becomes an onboarding explainer when the user has no own listing, instead of showing a fake progress rail
+- New UI convention for future work:
+  - when a page has a fixed or sticky top shell and also uses Radix `Select`, that shell must include `scroll-lock-shell`
+  - for inline user-facing forms and filters, prefer `FormSelectPopover` instead of raw Radix `Select`
+  - avoid reintroducing raw modal-style dropdowns for inline filters when a popover/listbox pattern is more appropriate
+  - for user-facing money fields in forms, use `packages/web/src/components/ui/currency-input.tsx` instead of raw `type="number"` inputs
+- Landlord dashboard is the only remaining generated desktop screen that still needs direct-port implementation
+- Atlas Plus, admin, motion, and 3D remain outside the current Stitch-first desktop scope
 - Desktop parity is the acceptance target for the current phase; mobile is intentionally deferred
 - The global web shell exposes a skip link target via `#main-content`
 - `docs/ai/` is initialized and validates with `npx ai-devkit@latest lint`
@@ -184,12 +209,74 @@ updated: 2026-03-21
   - `Tìm Phòng - Living Atlas (Refined)` (`screens/9c747e70493f43e2984e39691cc02b8f`)
 - The original search concept (`screens/b63e095266a44b1492325b873fc0f635`) remains available for comparison
 
+### Stitch Search Desktop Port Pass (2026-03-21)
+
+- `/search` now ports directly from the refined Stitch screen `screens/9c747e70493f43e2984e39691cc02b8f`
+- The old editorial search shell was replaced with a Stitch-first console, results overview, selected-listing hero card, split map column, and neighborhood insight card
+- `MapboxRoomMap` now supports external selected-listing control, price-pill markers, and popup suppression for split-layout usage
+- Playwright confirmed that clicking a map marker now swaps the selected listing card and the matching neighborhood insight panel
+
+### Search Interaction Bugfix Pass (2026-03-21)
+
+- `/search` now clears the fixed desktop navbar with explicit top spacing in the refined Stitch-first layout
+- Secondary result cards now navigate directly to room detail on the first click instead of first promoting themselves into the selected-listing hero card
+- `Xem tren ban do` now re-focuses the selected-listing hero card from deeper scroll positions so users do not need to manually scroll back up after choosing a room from the list
+- The split map column now uses the same selected-listing focus flow when a price marker is clicked
+
+### Search Map Focus Pass (2026-03-21)
+
+- `MapboxRoomMap` now supports a `selected-room` viewport mode for search-driven flows
+- The compact search mini-map now zooms into the currently selected room instead of fitting every result marker across Vietnam
+- The full search map now also opens around the selected room's local context by default, which makes unfiltered nationwide result sets usable without an immediate manual zoom
+
+### Search Map Animation Restore (2026-03-21)
+
+- The search map no longer recreates its Mapbox instance every time the selected room changes
+- Marker callbacks are now kept current through refs so selection changes do not force a full map teardown/rebuild
+- Smooth `easeTo` camera motion is restored for selected-room transitions on `/search`
+
+### Stitch Profile Desktop Port Pass (2026-03-21)
+
+- `/profile` now ports from the generated Stitch screen `screens/f6a00e6c38db4c7d99603ea8caf51535`
+- The old tab-first profile shell was replaced with a Stitch-first two-column dashboard built around the live RommZ auth profile, favorites, bookings, premium state, and roommate matches
+- Full favorites, booking management, and account settings remain reachable through detail dialogs so the direct-port layout does not regress existing account flows
+- The profile route now maps its location-style panels to the real `users` fields that exist in RoomZ today (`university`, `major`, `graduation_year`, and `role`) instead of assuming extra address fields that are not present in the schema
+
+### Stitch Profile Polish Pass (2026-03-21)
+
+- `/search` now persists the latest preferred search area into a small local storage snapshot so `/profile` can reopen the same search context
+- `/profile` now reads that preferred-area snapshot and uses it inside the `Vung tim kiem uu tien` card instead of relying only on static profile-field fallbacks
+- The premium upsell card on `/profile` now uses clearer `RommZ+` branding and stronger visual contrast after the live review flagged the old card as unreadable
+- Several micro-labels on `/profile` were tightened to reduce overly loose tracking in the Stitch-first port
+
+### Stitch Profile Stability Pass (2026-03-21)
+
+- `/profile` text content was normalized back to valid UTF-8 after a source-encoding drift caused visible mojibake on the protected route
+- The global dropdown-menu wrapper now defaults to `modal={false}`, which prevents the avatar profile menu from locking page scroll and shifting the fixed navbar horizontally
+- `/profile` now resolves the preferred-area card into a live Mapbox mini-map whenever the stored preferred search area has coordinates, or when coordinates can be recovered from the internal location catalog
+- The preferred-area card still falls back to the static Stitch-style placeholder only when no usable coordinates can be inferred from the saved search context
+- The premium CTA on `/profile` now opts out of the shared gradient button treatment so the premium-state copy `Xem quyen loi hien co` stays readable against a solid white button background
+
+### Stitch Swap Desktop Port Pass (2026-03-21)
+
+- `/swap` now ports from the generated Stitch screen `screens/354de64324a047a8b1bd6202aa8612de`
+- The old short-stay hub shell was replaced with a Stitch-first search console, editorial featured listing card, side utility cards, and lower `Co hoi doi den som` section
+- Existing RoomZ flows remain reachable through the new surface:
+  - `create-sublet`
+  - `my-sublets`
+  - `swap-matches`
+  - `apply sublet`
+  - `swap request`
+- The route-local `Sublet` and `Doi phong` tabs now act as lightweight lanes that preserve access to current management flows without breaking the Stitch grammar
+- Shared fallback imagery for the swap surface now lives under `stitchAssets.swap`
+
 ## Audit Baseline (2026-03-21)
 
 - `npx ai-devkit@latest lint`: pass
 - `npm run lint --workspace=@roomz/web`: pass with 3 pre-existing hook warnings
 - `npm run build --workspace=@roomz/web`: pass
 - Playwright local preview review: complete for all six Stitch-first desktop routes
+- Playwright local preview review: complete for `/search`
 - Playwright desktop stabilization review: complete for `/`, `/login`, `/services`, and `/room/:id` at `1024`, `1280`, and `1440`
 - Stitch source review: complete for all six in-scope screens
 - UX audit: fail, 70 issues
@@ -201,6 +288,27 @@ updated: 2026-03-21
 - Re-ran `npx ai-devkit@latest lint` via `C:\nvm4w\nodejs\npx.cmd`: pass
 - Re-ran `npm run lint --workspace=@roomz/web` via `C:\nvm4w\nodejs\npm.cmd`: pass with the same 3 pre-existing hook warnings
 - Re-ran `npm run build --workspace=@roomz/web` via `C:\nvm4w\nodejs\npm.cmd`: pass, with existing chunk-size warnings only
+- Re-ran `npm run lint --workspace=@roomz/web` after the `/profile` Stitch port: pass with the same 3 pre-existing hook warnings
+- Re-ran `npm run build --workspace=@roomz/web` after the `/profile` Stitch port: pass, with the same existing chunk-size warnings
+- Re-ran `npm run lint --workspace=@roomz/web` after the `/profile` preferred-area and promo-card polish pass: pass with the same 3 pre-existing hook warnings
+- Re-ran `npm run lint --workspace=@roomz/web` after the `/profile` CTA contrast fix: pass with the same 3 pre-existing hook warnings
+- Re-ran `npm run build --workspace=@roomz/web` after the `/profile` CTA contrast fix: pass, with the same existing chunk-size warnings
+- Re-ran `npm run build --workspace=@roomz/web` after the `/profile` preferred-area and promo-card polish pass: pass, with the same existing chunk-size warnings
+- Re-ran `npm run lint --workspace=@roomz/web` after the `/profile` stability pass: pass with the same 3 pre-existing hook warnings
+- Re-ran `npm run build --workspace=@roomz/web` after the `/profile` stability pass: pass, with the same existing chunk-size warnings
+- Re-ran `npx ai-devkit@latest lint` after the `/profile` stability pass: pass
+- Re-ran `npm run lint --workspace=@roomz/web` after the `/swap` Stitch port: pass with the same 3 pre-existing hook warnings
+- Re-ran `npm run build --workspace=@roomz/web` after the `/swap` Stitch port: pass, with the same existing chunk-size warnings
+- Captured a CLI Playwright smoke screenshot for `http://127.0.0.1:4181/swap` at `.tmp-swap-preview.png`
+- `/profile` now compiles and ships in the Stitch-first desktop bundle, but still needs a live authenticated visual review because anonymous automation sessions redirect away from the account route
+- Re-ran Playwright preview checks on `/search`
+- Confirmed `/search` now renders the refined Stitch-first console, selected listing card, map column, and neighborhood insight panel
+- Confirmed clicking a price marker on `/search` swaps the selected listing card and the insight panel without a full page reload
+- Confirmed via Playwright automation that the refined search console now begins below the fixed desktop navbar (`inputTop: 177`, `headerBottom: 73`)
+- Confirmed via Playwright automation that clicking the first secondary listing card on `/search` now navigates directly to its detail route on the first click
+- Confirmed via Playwright automation that invoking `Xem tren ban do` from the lower results list scrolls the viewport back toward the selected-listing hero region (`scrollY: 2739 -> 337`)
+- Confirmed via Playwright screenshot review on rebuilt preview `http://127.0.0.1:4175/search` that the compact split-map now opens around the selected room's local area rather than an all-Vietnam extent
+- Confirmed via Playwright canvas-persistence check on rebuilt preview `http://127.0.0.1:4175/search` that the search mini-map keeps the same `.mapboxgl-canvas` node when switching room focus (`sameCanvas: true`)
 - Re-ran Playwright preview checks on `/`, `/services`, `/community`, and `/login`
 - Confirmed the community featured media card now renders a near-full image block in the live page instead of the earlier clipped strip
 - Confirmed `Xem toan bo uu dai` now expands the services page in-place and switches the CTA state to `Thu gon uu dai`
@@ -216,7 +324,8 @@ updated: 2026-03-21
 ### UX / design debt
 
 - Mobile mapping has not started
-- Search, short-stay, profile, and landlord dashboard still need dedicated Stitch screens before they should receive the same direct-port treatment
+- Landlord dashboard still needs direct-port implementation from its generated Stitch screen
+- `/profile` still needs a live authenticated visual review against the Stitch concept before it can be considered parity-complete
 - The static UX audit remains noisy and still reports 70 issues across the broader web package
 
 ### Technical / structural debt
@@ -251,13 +360,12 @@ updated: 2026-03-21
 ### Phase 3: Cross-surface alignment and Stitch-first desktop port
 
 - Roommates
-- Short-stay
 - Community
 - Host flows
 - Signature visual / hero differentiation pass
 - Atlas-heavy design system groundwork
 - Stitch-first desktop port for `/`, `/login`, `/services`, `/community`, `/roommates`, `/room/:id`
-- **Status:** in progress; the six in-scope desktop routes are complete, mobile mapping is still pending
+- **Status:** in progress; `/`, `/login`, `/services`, `/community`, `/roommates`, `/room/:id`, `/search`, `/profile`, and `/swap` are now complete, mobile mapping and landlord dashboard are still pending
 
 ### Phase 4: Motion + 3D accent
 

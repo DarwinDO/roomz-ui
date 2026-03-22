@@ -326,6 +326,7 @@ When available in the environment, load the smallest relevant set from the list 
 - **3D:** `three.js` + `@react-three/fiber` + `@react-three/drei`
 - **3D Placement:** only landing, login, onboarding, or empty-state accents unless explicitly expanded
 - **Fallbacks:** reduced-motion fallback and low-end device fallback are mandatory
+- **Inline User-Facing Dropdowns:** prefer `FormSelectPopover` / listbox-style popovers over raw Radix `Select` for filters and centered forms; only use raw `Select` when the layout is isolated and verified not to cause scroll-lock layout shift
 
 ---
 

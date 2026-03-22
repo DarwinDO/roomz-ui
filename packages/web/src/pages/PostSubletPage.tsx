@@ -21,15 +21,10 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CurrencyInput } from '@/components/ui/currency-input';
+import { FormSelectPopover } from '@/components/ui/form-select-popover';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -43,6 +38,28 @@ import {
 export default function PostSubletPage() {
   const form = usePostSubletForm();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const provinceOptions = form.provinces.map((province) => ({
+    value: province.name,
+    label: province.name,
+    keywords: `${province.name} ${province.code}`,
+  }));
+  const districtOptions = form.districts.map((district) => ({
+    value: district.name,
+    label: district.name,
+    keywords: `${district.name} ${district.code}`,
+  }));
+  const roomTypeOptions = ROOM_TYPES.map((roomType) => ({
+    value: roomType.value,
+    label: roomType.label,
+  }));
+  const bedroomOptions = [1, 2, 3, 4].map((count) => ({
+    value: String(count),
+    label: String(count),
+  }));
+  const bathroomOptions = [1, 2, 3].map((count) => ({
+    value: String(count),
+    label: String(count),
+  }));
 
   const handleFileInput = (event: ChangeEvent<HTMLInputElement>) => {
     form.processFiles(Array.from(event.target.files || []));
@@ -122,7 +139,7 @@ export default function PostSubletPage() {
 
   return (
     <div lang="vi" className="min-h-screen bg-background pb-24">
-      <div className="sticky top-0 z-40 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
+      <div className="scroll-lock-shell sticky top-0 z-40 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm">
         <div className="mx-auto flex max-w-3xl items-center gap-4">
           <Button variant="ghost" size="icon" onClick={form.handleBack} className="rounded-full">
             <ArrowLeft className="h-5 w-5" />
@@ -193,82 +210,54 @@ export default function PostSubletPage() {
                     <Label>
                       Tỉnh/Thành phố <span className="text-destructive">*</span>
                     </Label>
-                    <Select
+                    <FormSelectPopover
                       value={form.roomData.city}
                       onValueChange={(value) => form.handleRoomChange('city', value)}
+                      options={provinceOptions}
+                      placeholder={form.isLoadingProvinces ? 'Đang tải...' : 'Chọn tỉnh/thành'}
                       disabled={form.isLoadingProvinces}
-                    >
-                      <SelectTrigger className="mt-1.5">
-                        <SelectValue
-                          placeholder={form.isLoadingProvinces ? 'Đang tải...' : 'Chọn tỉnh/thành'}
-                        />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {form.provinces.map((province) => (
-                          <SelectItem key={province.code} value={province.name}>
-                            {province.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      searchable
+                      searchPlaceholder="Tìm tỉnh/thành..."
+                      className="mt-1.5"
+                    />
                   </div>
                   <div>
                     <Label>Quận/Huyện</Label>
-                    <Select
+                    <FormSelectPopover
                       value={form.roomData.district}
                       onValueChange={(value) => form.handleRoomChange('district', value)}
-                      disabled={form.isLoadingDistricts || form.districts.length === 0}
-                    >
-                      <SelectTrigger className="mt-1.5">
-                        <SelectValue
-                          placeholder={form.isLoadingDistricts ? 'Đang tải...' : 'Chọn quận/huyện'}
-                        />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-60">
-                        {form.districts.map((district) => (
-                          <SelectItem key={district.code} value={district.name}>
-                            {district.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      options={districtOptions}
+                      placeholder={form.isLoadingDistricts ? 'Đang tải...' : 'Chọn quận/huyện'}
+                      disabled={form.isLoadingDistricts || districtOptions.length === 0}
+                      searchable
+                      searchPlaceholder="Tìm quận/huyện..."
+                      className="mt-1.5"
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Loại phòng</Label>
-                    <Select
+                    <FormSelectPopover
                       value={form.roomData.room_type}
                       onValueChange={(value) =>
                         form.handleRoomChange('room_type', value as (typeof form.roomData.room_type))
                       }
-                    >
-                      <SelectTrigger className="mt-1.5">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ROOM_TYPES.map((roomType) => (
-                          <SelectItem key={roomType.value} value={roomType.value}>
-                            {roomType.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      options={roomTypeOptions}
+                      placeholder="Chọn loại phòng"
+                      className="mt-1.5"
+                    />
                   </div>
                   <div>
                     <Label htmlFor="price_per_month">
                       Giá gốc/tháng (VNĐ) <span className="text-destructive">*</span>
                     </Label>
-                    <Input
+                    <CurrencyInput
                       id="price_per_month"
-                      type="number"
-                      min="0"
-                      placeholder="3000000"
+                      placeholder="3.000.000"
                       value={form.roomData.price_per_month}
-                      onChange={(event) =>
-                        form.handleRoomChange('price_per_month', event.target.value)
-                      }
+                      onValueChange={(value) => form.handleRoomChange('price_per_month', value)}
                       className="mt-1.5"
                     />
                   </div>
@@ -289,39 +278,23 @@ export default function PostSubletPage() {
                   </div>
                   <div>
                     <Label>Phòng ngủ</Label>
-                    <Select
+                    <FormSelectPopover
                       value={form.roomData.bedroom_count}
                       onValueChange={(value) => form.handleRoomChange('bedroom_count', value)}
-                    >
-                      <SelectTrigger className="mt-1.5">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3, 4].map((count) => (
-                          <SelectItem key={count} value={String(count)}>
-                            {count}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      options={bedroomOptions}
+                      placeholder="Chọn số phòng ngủ"
+                      className="mt-1.5"
+                    />
                   </div>
                   <div>
                     <Label>Phòng tắm</Label>
-                    <Select
+                    <FormSelectPopover
                       value={form.roomData.bathroom_count}
                       onValueChange={(value) => form.handleRoomChange('bathroom_count', value)}
-                    >
-                      <SelectTrigger className="mt-1.5">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3].map((count) => (
-                          <SelectItem key={count} value={String(count)}>
-                            {count}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      options={bathroomOptions}
+                      placeholder="Chọn số phòng tắm"
+                      className="mt-1.5"
+                    />
                   </div>
                 </div>
 
@@ -501,13 +474,11 @@ export default function PostSubletPage() {
                       <DollarSign className="h-3.5 w-3.5" />
                       Giá ở ngắn hạn (VNĐ) <span className="text-destructive">*</span>
                     </Label>
-                    <Input
+                    <CurrencyInput
                       id="sublet_price"
-                      type="number"
-                      min="0"
-                      placeholder="2500000"
+                      placeholder="2.500.000"
                       value={form.subletData.sublet_price}
-                      onChange={(event) => form.handleSubletChange('sublet_price', event.target.value)}
+                      onValueChange={(value) => form.handleSubletChange('sublet_price', value)}
                       className={`mt-1.5 ${
                         form.priceCapExceeded ? 'border-destructive focus-visible:ring-destructive' : ''
                       }`}
@@ -527,15 +498,11 @@ export default function PostSubletPage() {
                   </div>
                   <div>
                     <Label htmlFor="deposit">Tiền cọc (VNĐ)</Label>
-                    <Input
+                    <CurrencyInput
                       id="deposit"
-                      type="number"
-                      min="0"
-                      placeholder="500000"
+                      placeholder="500.000"
                       value={form.subletData.deposit_required}
-                      onChange={(event) =>
-                        form.handleSubletChange('deposit_required', event.target.value)
-                      }
+                      onValueChange={(value) => form.handleSubletChange('deposit_required', value)}
                       className="mt-1.5"
                     />
                   </div>

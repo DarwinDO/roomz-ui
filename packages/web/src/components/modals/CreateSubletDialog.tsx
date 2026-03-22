@@ -1,6 +1,16 @@
-﻿import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +21,8 @@ interface CreateSubletDialogProps {
 }
 
 export function CreateSubletDialog({ children }: CreateSubletDialogProps) {
+  const [price, setPrice] = useState("");
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -32,7 +44,11 @@ export function CreateSubletDialog({ children }: CreateSubletDialogProps) {
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="title">Tiêu đề tin</Label>
-            <Input id="title" placeholder="Ví dụ: Studio gần trường, trống trong 2 tháng" className="rounded-xl" />
+            <Input
+              id="title"
+              placeholder="Ví dụ: Studio gần trường, trống trong 2 tháng"
+              className="rounded-xl"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -56,7 +72,13 @@ export function CreateSubletDialog({ children }: CreateSubletDialogProps) {
             <Label htmlFor="price">Giá theo tháng (VND)</Label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input id="price" type="number" placeholder="3500000" className="rounded-xl pl-10" />
+              <CurrencyInput
+                id="price"
+                placeholder="3.500.000"
+                className="rounded-xl pl-10"
+                value={price}
+                onValueChange={setPrice}
+              />
             </div>
           </div>
 

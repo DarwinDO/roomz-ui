@@ -320,6 +320,7 @@
 
   html {
     scroll-behavior: smooth;
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -327,6 +328,12 @@
     font-family: var(--font-ui);
     font-feature-settings: "kern" 1, "liga" 1;
     text-rendering: optimizeLegibility;
+  }
+
+  body[data-scroll-locked] {
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+    --removed-body-scroll-bar-size: 0px !important;
   }
 }
 
@@ -428,6 +435,14 @@ html {
 
 .skip-link:focus {
   transform: translateY(0);
+}
+
+.scroll-lock-shell {
+  width: 100%;
+}
+
+body[data-scroll-locked] .scroll-lock-shell {
+  margin-right: 0;
 }
 
 /* ==========================================

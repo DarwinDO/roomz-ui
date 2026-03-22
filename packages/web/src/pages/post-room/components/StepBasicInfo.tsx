@@ -1,229 +1,243 @@
 import { useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormSelectPopover } from "@/components/ui/form-select-popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Home, MapPin, Loader2 } from "lucide-react";
+import { getDistricts, getProvinces, type District, type Province } from "@/services/vietnamLocations";
+import { Home, Loader2, MapPin } from "lucide-react";
+
 import type { PostRoomFormData } from "../types";
-import { getProvinces, getDistricts, type Province, type District } from "@/services/vietnamLocations";
 
 interface StepBasicInfoProps {
-    formData: PostRoomFormData;
-    handleInputChange: (field: string, value: string | boolean) => void;
-    onNext: () => void;
+  formData: PostRoomFormData;
+  handleInputChange: (field: string, value: string | boolean) => void;
+  onNext: () => void;
 }
 
-export function StepBasicInfo({ formData, handleInputChange, onNext }: StepBasicInfoProps) {
-    const [provinces, setProvinces] = useState<Province[]>([]);
-    const [districts, setDistricts] = useState<District[]>([]);
-    const [loadingProvinces, setLoadingProvinces] = useState(true);
-    const [loadingDistricts, setLoadingDistricts] = useState(false);
-    const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | null>(null);
+const ROOM_TYPE_OPTIONS = [
+  { value: "private", label: "Phòng riêng" },
+  { value: "shared", label: "Ở ghép" },
+  { value: "studio", label: "Căn hộ mini/Studio" },
+  { value: "entire", label: "Nhà nguyên căn" },
+];
 
-    // Load provinces on mount
-    useEffect(() => {
-        loadProvinces();
-    }, []);
+export function StepBasicInfo({
+  formData,
+  handleInputChange,
+  onNext,
+}: StepBasicInfoProps) {
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [loadingProvinces, setLoadingProvinces] = useState(true);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | null>(null);
 
-    // Load districts when city changes
-    useEffect(() => {
-        if (formData.city && selectedProvinceCode) {
-            loadDistrictsForCity(selectedProvinceCode, formData.city);
-        }
-    }, [formData.city, selectedProvinceCode]);
+  useEffect(() => {
+    void loadProvinces();
+  }, []);
 
-    const loadProvinces = async () => {
-        setLoadingProvinces(true);
-        try {
-            const data = await getProvinces();
-            setProvinces(data);
-        } catch (error) {
-            console.error("Failed to load provinces:", error);
-        } finally {
-            setLoadingProvinces(false);
-        }
-    };
+  useEffect(() => {
+    if (!formData.city || !selectedProvinceCode) {
+      return;
+    }
 
-    const loadDistrictsForCity = async (provinceCode: number, provinceName: string) => {
-        setLoadingDistricts(true);
-        try {
-            const data = await getDistricts(provinceCode, provinceName);
-            setDistricts(data);
-        } catch (error) {
-            console.error("Failed to load districts:", error);
-            setDistricts([]);
-        } finally {
-            setLoadingDistricts(false);
-        }
-    };
+    void loadDistrictsForCity(selectedProvinceCode, formData.city);
+  }, [formData.city, selectedProvinceCode]);
 
-    const handleCityChange = (cityName: string) => {
-        // Find province code
-        const province = provinces.find(p => p.name === cityName);
-        if (province) {
-            setSelectedProvinceCode(province.code);
-        }
+  const loadProvinces = async () => {
+    setLoadingProvinces(true);
 
-        // Update form data
-        handleInputChange("city", cityName);
+    try {
+      const data = await getProvinces();
+      setProvinces(data);
+    } catch (error) {
+      console.error("Failed to load provinces:", error);
+    } finally {
+      setLoadingProvinces(false);
+    }
+  };
 
-        // Clear district when city changes
-        handleInputChange("district", "");
-    };
+  const loadDistrictsForCity = async (provinceCode: number, provinceName: string) => {
+    setLoadingDistricts(true);
 
-    return (
-        <Card className="shadow-soft animate-fade-in border border-border">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Home className="w-5 h-5 text-primary" />
-                    </div>
-                    Thông tin cơ bản
-                </CardTitle>
-                <CardDescription>Mô tả tổng quan về phòng của bạn để thu hút người thuê</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div>
-                    <Label htmlFor="title" className="text-base font-medium">Tiêu đề tin đăng <span className="text-destructive">*</span></Label>
-                    <Input
-                        id="title"
-                        value={formData.title}
-                        onChange={(e) => handleInputChange("title", e.target.value)}
-                        placeholder="VD: Phòng trọ cao cấp full nội thất gần ĐH Bách Khoa"
-                        className="mt-2 rounded-xl h-11"
-                    />
-                </div>
+    try {
+      const data = await getDistricts(provinceCode, provinceName);
+      setDistricts(data);
+    } catch (error) {
+      console.error("Failed to load districts:", error);
+      setDistricts([]);
+    } finally {
+      setLoadingDistricts(false);
+    }
+  };
 
-                <div>
-                    <Label htmlFor="description" className="text-base font-medium">Mô tả chi tiết</Label>
-                    <Textarea
-                        id="description"
-                        value={formData.description}
-                        onChange={(e) => handleInputChange("description", e.target.value)}
-                        placeholder="Mô tả về phòng, tiện ích xung quanh, quy định giờ giấc..."
-                        className="mt-2 min-h-[120px] rounded-xl"
-                    />
-                </div>
+  const handleCityChange = (cityName: string) => {
+    const province = provinces.find((item) => item.name === cityName);
 
-                <div>
-                    <Label htmlFor="roomType" className="text-base font-medium">Loại phòng</Label>
-                    <Select
-                        value={formData.roomType}
-                        onValueChange={(v) => handleInputChange("roomType", v)}
-                    >
-                        <SelectTrigger className="mt-2 rounded-xl h-11">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="private">Phòng riêng</SelectItem>
-                            <SelectItem value="shared">Ở ghép</SelectItem>
-                            <SelectItem value="studio">Căn hộ mini/Studio</SelectItem>
-                            <SelectItem value="entire">Nhà nguyên căn</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+    if (province) {
+      setSelectedProvinceCode(province.code);
+    }
 
-                {/* City Selection */}
-                <div>
-                    <Label htmlFor="city" className="text-base font-medium">Tỉnh/Thành phố <span className="text-destructive">*</span></Label>
-                    <Select
-                        value={formData.city}
-                        onValueChange={handleCityChange}
-                        disabled={loadingProvinces}
-                    >
-                        <SelectTrigger className="mt-2 rounded-xl h-11">
-                            {loadingProvinces ? (
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>Đang tải...</span>
-                                </div>
-                            ) : (
-                                <SelectValue placeholder="Chọn tỉnh/thành phố" />
-                            )}
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                            {provinces.map((province) => (
-                                <SelectItem key={province.code} value={province.name}>
-                                    {province.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+    handleInputChange("city", cityName);
+    handleInputChange("district", "");
+  };
 
-                {/* District Selection - Cascading */}
-                <div>
-                    <Label htmlFor="district" className="text-base font-medium">Quận/Huyện</Label>
-                    {formData.city ? (
-                        <Select
-                            value={formData.district}
-                            onValueChange={(v) => handleInputChange("district", v)}
-                            disabled={loadingDistricts || districts.length === 0}
-                        >
-                            <SelectTrigger className="mt-2 rounded-xl h-11">
-                                {loadingDistricts ? (
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        <span>Đang tải...</span>
-                                    </div>
-                                ) : districts.length === 0 ? (
-                                    <SelectValue placeholder="Không có dữ liệu quận/huyện" />
-                                ) : (
-                                    <SelectValue placeholder="Chọn quận/huyện" />
-                                )}
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[300px]">
-                                {districts.map((district) => (
-                                    <SelectItem key={district.code} value={district.name}>
-                                        {district.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    ) : (
-                        <Input
-                            id="district"
-                            value={formData.district}
-                            onChange={(e) => handleInputChange("district", e.target.value)}
-                            placeholder="Chọn tỉnh/thành phố trước"
-                            className="mt-2 rounded-xl h-11"
-                            disabled
-                        />
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1.5">
-                        {formData.city && districts.length === 0 && !loadingDistricts
-                            ? "Hoặc nhập thủ công nếu không tìm thấy"
-                            : "Chọn từ danh sách hoặc nhập thủ công"}
-                    </p>
-                </div>
+  const provinceOptions = provinces.map((province) => ({
+    value: province.name,
+    label: province.name,
+    keywords: `${province.name} ${province.code}`,
+  }));
 
-                {/* Address */}
-                <div>
-                    <Label htmlFor="address" className="text-base font-medium">Địa chỉ cụ thể <span className="text-destructive">*</span></Label>
-                    <div className="relative mt-2">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                            id="address"
-                            value={formData.address}
-                            onChange={(e) => handleInputChange("address", e.target.value)}
-                            placeholder="Số nhà, tên đường..."
-                            className="pl-10 rounded-xl h-11"
-                        />
-                    </div>
-                </div>
+  const districtOptions = districts.map((district) => ({
+    value: district.name,
+    label: district.name,
+    keywords: `${district.name} ${district.code}`,
+  }));
 
-                <Button onClick={onNext} className="w-full rounded-xl h-12 text-base font-medium transition-all hover:scale-[1.02]">
-                    Tiếp tục
-                </Button>
-            </CardContent>
-        </Card>
-    );
+  return (
+    <Card className="animate-fade-in border border-border shadow-soft">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+            <Home className="h-5 w-5 text-primary" />
+          </div>
+          Thông tin cơ bản
+        </CardTitle>
+        <CardDescription>
+          Mô tả tổng quan về phòng của bạn để thu hút người thuê.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div>
+          <Label htmlFor="title" className="text-base font-medium">
+            Tiêu đề tin đăng <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="title"
+            value={formData.title}
+            onChange={(event) => handleInputChange("title", event.target.value)}
+            placeholder="VD: Phòng trọ cao cấp full nội thất gần ĐH Bách Khoa"
+            className="mt-2 h-11 rounded-xl"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="description" className="text-base font-medium">
+            Mô tả chi tiết
+          </Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(event) => handleInputChange("description", event.target.value)}
+            placeholder="Mô tả về phòng, tiện ích xung quanh, quy định giờ giấc..."
+            className="mt-2 min-h-[120px] rounded-xl"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="roomType" className="text-base font-medium">
+            Loại phòng
+          </Label>
+          <FormSelectPopover
+            value={formData.roomType}
+            onValueChange={(value) => handleInputChange("roomType", value)}
+            options={ROOM_TYPE_OPTIONS}
+            placeholder="Chọn loại phòng"
+            className="mt-2 rounded-xl"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="city" className="text-base font-medium">
+            Tỉnh/Thành phố <span className="text-destructive">*</span>
+          </Label>
+          {loadingProvinces ? (
+            <div className="mt-2 flex h-11 items-center gap-2 rounded-xl border border-input bg-input-background px-3 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Đang tải...</span>
+            </div>
+          ) : (
+            <FormSelectPopover
+              value={formData.city}
+              onValueChange={handleCityChange}
+              options={provinceOptions}
+              placeholder="Chọn tỉnh/thành phố"
+              searchable
+              searchPlaceholder="Tìm tỉnh/thành phố..."
+              className="mt-2 rounded-xl"
+            />
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="district" className="text-base font-medium">
+            Quận/Huyện
+          </Label>
+          {formData.city ? (
+            loadingDistricts ? (
+              <div className="mt-2 flex h-11 items-center gap-2 rounded-xl border border-input bg-input-background px-3 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Đang tải...</span>
+              </div>
+            ) : (
+              <FormSelectPopover
+                value={formData.district}
+                onValueChange={(value) => handleInputChange("district", value)}
+                options={districtOptions}
+                placeholder={
+                  districtOptions.length === 0
+                    ? "Không có dữ liệu quận/huyện"
+                    : "Chọn quận/huyện"
+                }
+                searchable
+                searchPlaceholder="Tìm quận/huyện..."
+                disabled={districtOptions.length === 0}
+                className="mt-2 rounded-xl"
+              />
+            )
+          ) : (
+            <Input
+              id="district"
+              value={formData.district}
+              onChange={(event) => handleInputChange("district", event.target.value)}
+              placeholder="Chọn tỉnh/thành phố trước"
+              className="mt-2 h-11 rounded-xl"
+              disabled
+            />
+          )}
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {formData.city && districtOptions.length === 0 && !loadingDistricts
+              ? "Hoặc nhập thủ công nếu không tìm thấy."
+              : "Chọn từ danh sách để tránh lệch dữ liệu vị trí."}
+          </p>
+        </div>
+
+        <div>
+          <Label htmlFor="address" className="text-base font-medium">
+            Địa chỉ cụ thể <span className="text-destructive">*</span>
+          </Label>
+          <div className="relative mt-2">
+            <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="address"
+              value={formData.address}
+              onChange={(event) => handleInputChange("address", event.target.value)}
+              placeholder="Số nhà, tên đường..."
+              className="h-11 rounded-xl pl-10"
+            />
+          </div>
+        </div>
+
+        <Button
+          onClick={onNext}
+          className="h-12 w-full rounded-xl text-base font-medium transition-all hover:scale-[1.02]"
+        >
+          Tiếp tục
+        </Button>
+      </CardContent>
+    </Card>
+  );
 }

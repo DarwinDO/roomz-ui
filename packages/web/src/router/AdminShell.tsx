@@ -172,7 +172,7 @@ export default function AdminShell() {
       )}
 
       <div className="flex flex-1 flex-col md:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 flex-shrink-0 items-center border-b border-gray-200 bg-white shadow-sm">
+        <header className="scroll-lock-shell sticky top-0 z-30 flex h-16 flex-shrink-0 items-center border-b border-gray-200 bg-white shadow-sm">
           <Button onClick={() => setSidebarOpen(true)} variant="ghost" size="icon" className="ml-4 md:hidden">
             <Menu className="h-6 w-6" />
           </Button>

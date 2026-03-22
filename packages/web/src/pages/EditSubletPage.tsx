@@ -19,11 +19,13 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts';
 import { useSublet, useUpdateSublet } from '@/hooks/useSublets';
+import { parseCurrencyInput } from '@/lib/currency';
 import { toast } from 'sonner';
 
 export default function EditSubletPage() {
@@ -35,7 +37,7 @@ export default function EditSubletPage() {
 
   const [formData, setFormData] = useState({
     description: '',
-    sublet_price: 0,
+    sublet_price: '',
     start_date: '',
     end_date: '',
     status: 'active' as 'active' | 'cancelled',
@@ -49,14 +51,14 @@ export default function EditSubletPage() {
 
     setFormData({
       description: sublet.description || '',
-      sublet_price: sublet.sublet_price || 0,
+      sublet_price: sublet.sublet_price ? String(sublet.sublet_price) : '',
       start_date: sublet.start_date || '',
       end_date: sublet.end_date || '',
       status: (sublet.status as 'active' | 'cancelled') || 'active',
     });
   }, [sublet]);
 
-  const handleInputChange = (field: string, value: string | number) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -79,7 +81,9 @@ export default function EditSubletPage() {
       return;
     }
 
-    if (formData.sublet_price <= 0) {
+    const parsedSubletPrice = parseCurrencyInput(formData.sublet_price);
+
+    if (parsedSubletPrice <= 0) {
       toast.error('Vui lòng nhập mức giá hợp lệ.');
       return;
     }
@@ -89,7 +93,7 @@ export default function EditSubletPage() {
         id,
         updates: {
           description: formData.description,
-          sublet_price: formData.sublet_price,
+          sublet_price: parsedSubletPrice,
           start_date: formData.start_date,
           end_date: formData.end_date,
           status: formData.status,
@@ -195,7 +199,7 @@ export default function EditSubletPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      <div className="sticky top-0 z-40 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm transition-all">
+      <div className="scroll-lock-shell sticky top-0 z-40 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm transition-all">
         <div className="mx-auto flex max-w-3xl items-center gap-4">
           <Button
             variant="ghost"
@@ -248,12 +252,11 @@ export default function EditSubletPage() {
                 <DollarSign className="h-4 w-4" />
                 Giá ở ngắn hạn (VNĐ/tháng) <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <CurrencyInput
                 id="price"
-                type="number"
-                min={0}
                 value={formData.sublet_price}
-                onChange={(event) => handleInputChange('sublet_price', parseInt(event.target.value, 10) || 0)}
+                onValueChange={(value) => handleInputChange('sublet_price', value)}
+                placeholder="3.000.000"
               />
               <p className="text-xs text-muted-foreground">Giá gốc: {sublet.original_price?.toLocaleString('vi-VN')} VNĐ/tháng</p>
             </div>

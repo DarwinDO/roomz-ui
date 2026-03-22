@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { path: "/", label: "Trang chủ" },
   { path: "/search", label: "Tìm phòng" },
   { path: "/roommates", label: "Tìm bạn đồng hành" },
+  { path: "/swap", label: "Ở ngắn hạn" },
   { path: "/services", label: "Dịch vụ" },
   { path: "/community", label: "Cộng đồng" },
 ];
@@ -64,7 +65,7 @@ export default function AppShell() {
         Bỏ qua đến nội dung chính
       </a>
 
-      <header className="fixed top-0 z-50 hidden w-full border-b border-white/20 bg-white/70 backdrop-blur-xl shadow-sm md:block">
+      <header className="scroll-lock-shell fixed top-0 z-50 hidden w-full border-b border-white/20 bg-white/70 backdrop-blur-xl shadow-sm md:block">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-8 py-4">
           <Link
             to="/"
@@ -166,7 +167,7 @@ export default function AppShell() {
         </div>
       </header>
 
-      <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-sm md:hidden">
+      <header className="scroll-lock-shell sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-sm md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <Link to="/" className="font-display text-xl font-black tracking-tighter text-slate-900">
             RommZ

@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts";
 import { createRoom, getRoomById, updateRoomWithData, type CreateRoomData, type UpdateRoomData } from "@/services/rooms";
 import { uploadMultipleRoomImages } from "@/services/roomImages";
 import { geocodeRoomLocation, normalizeRoomLocationInput } from "@/services/mapboxGeocoding";
+import { parseCurrencyInput } from "@/lib/currency";
 import { toast } from "sonner";
 import type { PostRoomFormData } from "./post-room/types";
 
@@ -294,8 +295,8 @@ export default function PostRoomPage() {
           city: geocodedLocation?.city || normalizedLocationInput.city || formData.city,
           latitude: geocodedLocation?.latitude ?? (hasLocationChanged ? null : undefined),
           longitude: geocodedLocation?.longitude ?? (hasLocationChanged ? null : undefined),
-          pricePerMonth: parseFloat(formData.pricePerMonth),
-          depositAmount: formData.depositAmount ? parseFloat(formData.depositAmount) : undefined,
+          pricePerMonth: parseCurrencyInput(formData.pricePerMonth),
+          depositAmount: formData.depositAmount ? parseCurrencyInput(formData.depositAmount) : undefined,
           areaSqm: formData.areaSqm ? parseFloat(formData.areaSqm) : undefined,
           bedroomCount: parseInt(formData.bedroomCount) || 1,
           bathroomCount: parseInt(formData.bathroomCount) || 1,
@@ -332,8 +333,8 @@ export default function PostRoomPage() {
           city: geocodedLocation?.city || normalizedLocationInput.city || formData.city,
           latitude: geocodedLocation?.latitude,
           longitude: geocodedLocation?.longitude,
-          pricePerMonth: parseFloat(formData.pricePerMonth),
-          depositAmount: formData.depositAmount ? parseFloat(formData.depositAmount) : undefined,
+          pricePerMonth: parseCurrencyInput(formData.pricePerMonth),
+          depositAmount: formData.depositAmount ? parseCurrencyInput(formData.depositAmount) : undefined,
           areaSqm: formData.areaSqm ? parseFloat(formData.areaSqm) : undefined,
           bedroomCount: parseInt(formData.bedroomCount) || 1,
           bathroomCount: parseInt(formData.bathroomCount) || 1,
@@ -483,7 +484,7 @@ export default function PostRoomPage() {
   return (
     <div lang="vi" className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-40 px-4 py-3 transition-all">
+      <div className="scroll-lock-shell sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-40 px-4 py-3 transition-all">
         <div className="max-w-3xl mx-auto flex items-center gap-4">
           <Button
             variant="ghost"

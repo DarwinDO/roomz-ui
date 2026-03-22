@@ -309,7 +309,7 @@ export function LocalPassportContent({
       }
     >
       {!embedded ? (
-        <div className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+        <div className="scroll-lock-shell sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
           <div className="mx-auto flex max-w-6xl items-center">
             <Button
               variant="ghost"

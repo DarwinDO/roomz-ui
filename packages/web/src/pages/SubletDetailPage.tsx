@@ -163,7 +163,7 @@ export default function SubletDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-24 md:pb-8">
-        <div className="sticky top-0 z-20 border-b bg-card px-4 py-3">
+        <div className="scroll-lock-shell sticky top-0 z-20 border-b bg-card px-4 py-3">
           <div className="mx-auto flex max-w-6xl items-center justify-between">
             <Skeleton className="h-10 w-10 rounded-xl" />
             <div className="flex gap-2">
@@ -201,7 +201,7 @@ export default function SubletDetailPage() {
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-8">
-      <div className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
+      <div className="scroll-lock-shell sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Button
             variant="ghost"

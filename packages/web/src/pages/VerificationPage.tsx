@@ -111,7 +111,7 @@ export default function VerificationPage() {
   return (
     <div lang="vi" className="pb-20 md:pb-8 min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
       {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-border z-40 px-4 py-3">
+      <div className="scroll-lock-shell sticky top-0 bg-white border-b border-border z-40 px-4 py-3">
         <div className="max-w-3xl mx-auto flex items-center">
           <Button
             variant="ghost"

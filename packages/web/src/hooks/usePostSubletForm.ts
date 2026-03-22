@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts';
+import { parseCurrencyInput } from '@/lib/currency';
 import { useCreateSubletWithRoom } from '@/hooks/useSublets';
 import { uploadMultipleRoomImages } from '@/services/roomImages';
 import { getDistricts, getProvinces } from '@/services/vietnamLocations';
@@ -118,8 +119,8 @@ export function usePostSubletForm() {
 
   const parsedPrices = useMemo(
     () => ({
-      original: parseFloat(roomData.price_per_month) || 0,
-      sublet: parseFloat(subletData.sublet_price) || 0,
+      original: parseCurrencyInput(roomData.price_per_month),
+      sublet: parseCurrencyInput(subletData.sublet_price),
     }),
     [roomData.price_per_month, subletData.sublet_price],
   );
@@ -253,7 +254,7 @@ export function usePostSubletForm() {
         end_date: subletData.end_date,
         sublet_price: parsedPrices.sublet,
         deposit_required: subletData.deposit_required
-          ? parseFloat(subletData.deposit_required)
+          ? parseCurrencyInput(subletData.deposit_required)
           : undefined,
         description: subletData.description || undefined,
       });

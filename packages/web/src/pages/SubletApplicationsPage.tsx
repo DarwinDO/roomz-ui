@@ -122,7 +122,7 @@ export default function SubletApplicationsPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="sticky top-0 z-30 border-b border-border bg-card/95 px-6 py-4 backdrop-blur-sm">
+      <div className="scroll-lock-shell sticky top-0 z-30 border-b border-border bg-card/95 px-6 py-4 backdrop-blur-sm">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Button

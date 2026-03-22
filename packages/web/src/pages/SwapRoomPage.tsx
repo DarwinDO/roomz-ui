@@ -1,362 +1,300 @@
-﻿import { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, CalendarRange, Filter, Plus, RefreshCw, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { SubletCard, SubletFilter } from '@/components/swap';
-import { ApplySubletDialog } from '@/components/modals/ApplySubletDialog';
-import { SwapRequestDialog } from '@/components/modals/SwapRequestDialog';
-import { useMySublets, useSublets } from '@/hooks/useSublets';
-import type { SubletFilters, SubletListingWithDetails } from '@roomz/shared/types/swap';
+import { useCallback, useMemo, useState } from "react";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
+import { ArrowRight, CalendarDays, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { LazyImage } from "@/components/common/LazyImage";
+import { ApplySubletDialog } from "@/components/modals/ApplySubletDialog";
+import { SwapRequestDialog } from "@/components/modals/SwapRequestDialog";
+import { SubletCard, SubletFilter } from "@/components/swap";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts";
+import { useMySublets, useSublets } from "@/hooks/useSublets";
+import { stitchAssets } from "@/lib/stitchAssets";
+import type { SubletFilters, SubletListingWithDetails } from "@roomz/shared/types/swap";
+import { formatMonthlyPrice } from "@roomz/shared/utils/format";
 
-const INITIAL_FILTERS: SubletFilters = {
-  city: '',
-  district: '',
-  min_price: undefined,
-  max_price: undefined,
-  start_date: '',
-  end_date: '',
-  room_type: undefined,
-  furnished: undefined,
-};
+const INITIAL_FILTERS: SubletFilters = { city: "", district: "", start_date: "", end_date: "" };
+const PRICE_RANGES = [
+  { label: "Tất cả mức giá", min: undefined, max: undefined },
+  { label: "Dưới 3 triệu", min: 0, max: 3_000_000 },
+  { label: "3 - 5 triệu", min: 3_000_000, max: 5_000_000 },
+  { label: "5 - 8 triệu", min: 5_000_000, max: 8_000_000 },
+  { label: "Trên 8 triệu", min: 8_000_000, max: undefined },
+] as const;
+
+type SwapTab = "browse" | "sublet" | "swap";
+
+const fmtMove = (date?: string) =>
+  date ? format(new Date(date), "dd / MM / yyyy", { locale: vi }) : "Linh hoạt";
+const fmtType = (value?: string) =>
+  value === "studio" ? "Studio" : value === "entire" ? "Nguyên căn" : value === "shared" ? "Phòng chung" : value === "private" ? "Phòng riêng" : "Ở ngắn hạn";
 
 export default function SwapRoomPage() {
   const navigate = useNavigate();
-  const [selectedSublet, setSelectedSublet] = useState<SubletListingWithDetails | null>(null);
-  const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
-  const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<SwapTab>("browse");
   const [filters, setFilters] = useState<SubletFilters>(INITIAL_FILTERS);
-
-  const { data: mySublets, isLoading: isMySubletsLoading } = useMySublets();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedSublet, setSelectedSublet] = useState<SubletListingWithDetails | null>(null);
+  const [applyOpen, setApplyOpen] = useState(false);
+  const [swapOpen, setSwapOpen] = useState(false);
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, refetch } = useSublets(filters);
+  const { data: mySublets, isLoading: mySubletsLoading } = useMySublets();
 
   const sublets = useMemo(() => data?.pages.flatMap((page) => page.sublets) || [], [data]);
-
-  const filteredSublets = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return sublets;
-
-    return sublets.filter((sublet) => {
-      const haystack = [sublet.room?.title, sublet.room?.district, sublet.room?.city, sublet.room?.address]
+  const myListings = useMemo(() => ((mySublets as unknown as SubletListingWithDetails[] | undefined) ?? []), [mySublets]);
+  const visibleSublets = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return sublets;
+    return sublets.filter((sublet) =>
+      [sublet.room_title, sublet.district, sublet.city, sublet.address, sublet.description]
         .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return haystack.includes(query);
-    });
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
   }, [searchQuery, sublets]);
 
-  const handleApply = (sublet: SubletListingWithDetails) => {
+  const featured = visibleSublets[0] ?? null;
+  const side = visibleSublets[1] ?? null;
+  const lowerCards = [...visibleSublets.slice(2)].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime()).slice(0, 2);
+  const mySwapLead = myListings[0] ?? null;
+  const swapLead = mySwapLead ?? visibleSublets[2] ?? null;
+  const activePrice = PRICE_RANGES.find((range) => filters.min_price === range.min && filters.max_price === range.max) ?? PRICE_RANGES[0];
+
+  const openApply = useCallback((sublet: SubletListingWithDetails) => {
     setSelectedSublet(sublet);
-    setIsApplyDialogOpen(true);
-  };
-
-  const handleSwapRequest = (sublet: SubletListingWithDetails) => {
+    setApplyOpen(true);
+  }, []);
+  const openSwap = useCallback((sublet: SubletListingWithDetails) => {
     setSelectedSublet(sublet);
-    setIsSwapDialogOpen(true);
-  };
-
-  const handleLoadMore = () => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  };
-
-  const handleResetFilters = useCallback(() => {
-    setFilters(INITIAL_FILTERS);
-    setSearchQuery('');
+    setSwapOpen(true);
   }, []);
-
-  const handleFilterChange = useCallback((nextFilters: SubletFilters) => {
-    setFilters((previous) => ({ ...previous, ...nextFilters }));
+  const updateFilters = useCallback((next: SubletFilters) => setFilters((prev) => ({ ...prev, ...next })), []);
+  const updatePrice = useCallback((label: string) => {
+    const range = PRICE_RANGES.find((item) => item.label === label) ?? PRICE_RANGES[0];
+    setFilters((prev) => ({ ...prev, min_price: range.min, max_price: range.max }));
   }, []);
-
-  const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
-    if (key === 'page' || key === 'pageSize') return false;
-    return value !== undefined && value !== '';
-  }).length;
 
   return (
-    <div
-      lang="vi"
-      className="min-h-screen bg-[var(--hero-bg)] pb-20 md:pb-8"
-    >
-      <div className="sticky top-0 z-30 border-b border-border bg-background/95 px-6 py-4 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <CalendarRange className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="font-display text-xl text-slate-950">Ở ngắn hạn</h1>
-              <p className="hidden text-sm text-muted-foreground sm:block">Chọn chỗ ở theo khu vực, thời gian và giá phù hợp.</p>
-            </div>
+    <div lang="vi" className="min-h-screen bg-background pb-24">
+      <div className="mx-auto max-w-[1520px] px-4 pt-28 pb-16 sm:px-6 lg:px-8">
+        <section className="mb-14 rounded-[2rem] border border-border/70 bg-surface-container-low p-6 shadow-soft md:p-8">
+          <div className="flex flex-wrap gap-8 border-b border-border/50 pb-5">
+            {[
+              ["browse", "Ở ngắn hạn"],
+              ["sublet", "Sublet"],
+              ["swap", "Đổi phòng"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setActiveTab(value as SwapTab)}
+                className={`pb-2 font-display text-lg ${activeTab === value ? "border-b-2 border-primary font-bold text-primary" : "font-semibold text-on-surface-variant hover:text-primary"}`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-          <Button className="hidden rounded-xl md:flex" onClick={() => navigate('/create-sublet')}>
-            <Plus className="mr-2 h-4 w-4" />
-            Đăng chỗ ở ngắn hạn
-          </Button>
-        </div>
-      </div>
 
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <Card className="mb-6 overflow-hidden rounded-[32px] border-border/70 bg-[var(--hero-card-swap)] p-6 shadow-soft-lg">
-          <div className="grid gap-5 lg:grid-cols-[0.98fr_1.02fr] lg:items-start">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary shadow-sm">
-                Ở ngắn hạn
-              </div>
-              <h2 className="mt-5 max-w-[14ch] text-foreground">
-                Chốt nhu cầu ở tạm theo thời gian trước, rồi mới so giá và khu vực.
-              </h2>
-              <p className="mt-4 max-w-[58ch] text-sm leading-7 text-muted-foreground md:text-base">
-                Luồng này dành cho sublet, ở chuyển tiếp và đổi chỗ ở ngắn hạn. Bạn có thể duyệt tin đang mở,
-                xem cơ hội hoán đổi hoặc quản lý listing của chính mình trong cùng một hub.
-              </p>
-
-              <div className="mt-5 flex flex-wrap gap-2">
-                <span className="rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
-                  Theo thời gian ở
-                </span>
-                <span className="rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-semibold text-secondary">
-                  Sublet và hoán đổi
-                </span>
-                <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-warning">
-                  Quản lý listing ngay trong hub
-                </span>
+          <div className="mt-6 grid gap-5 xl:grid-cols-[1.6fr_1fr_1fr_0.9fr] xl:items-end">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="swap-query" className="px-1 text-[11px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Chọn khu vực</label>
+              <div className="flex h-14 items-center rounded-full bg-surface-container-lowest px-5 ring-1 ring-border/70 focus-within:ring-2 focus-within:ring-primary/20">
+                <Search className="mr-3 h-4 w-4 text-outline" />
+                <Input id="swap-query" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Thành phố, Quận..." className="h-auto border-0 bg-transparent px-0 shadow-none focus-visible:ring-0" />
               </div>
             </div>
-
-            <div className="grid gap-4 md:grid-cols-[1.08fr_0.92fr]">
-              <Card className="rounded-[28px] border-border/70 bg-[#102131] p-5 text-white shadow-none">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-100">Nhịp ngắn hạn</p>
-                    <p className="mt-3 max-w-[24ch] text-2xl font-semibold leading-tight text-white">
-                      Search ngắn hạn bắt đầu từ ngày ở, rồi mới siết dần theo giá và nội thất.
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-white/10 p-3 text-sky-100">
-                    <CalendarRange className="h-5 w-5" />
-                  </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="swap-start" className="px-1 text-[11px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Chọn ngày</label>
+              <div className="grid h-14 grid-cols-2 items-center rounded-full bg-surface-container-lowest ring-1 ring-border/70 focus-within:ring-2 focus-within:ring-primary/20">
+                <div className="flex items-center gap-3 border-r border-border/60 px-5">
+                  <CalendarDays className="h-4 w-4 text-outline" />
+                  <input id="swap-start" type="date" value={filters.start_date || ""} onChange={(e) => updateFilters({ start_date: e.target.value })} className="w-full bg-transparent text-sm font-medium text-on-surface outline-none" />
                 </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Tin đang mở</p>
-                    <p className="mt-2 text-sm font-semibold text-white">{filteredSublets.length} kết quả</p>
-                  </div>
-                  <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Bộ lọc</p>
-                    <p className="mt-2 text-sm font-semibold text-white">{activeFilterCount} đang bật</p>
-                  </div>
-                  <div className="rounded-[20px] border border-white/10 bg-white/8 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">Tin của bạn</p>
-                    <p className="mt-2 text-sm font-semibold text-white">{mySublets?.length ?? 0} tin đang quản lý</p>
-                  </div>
+                <div className="px-5">
+                  <input type="date" value={filters.end_date || ""} onChange={(e) => updateFilters({ end_date: e.target.value })} className="w-full bg-transparent text-sm font-medium text-on-surface outline-none" />
                 </div>
-              </Card>
-
-              <div className="grid gap-4">
-                <Card className="rounded-[24px] border-border/70 bg-card/92 p-5 shadow-soft">
-                  <Filter className="h-6 w-6 text-primary" />
-                  <p className="mt-4 text-sm font-semibold text-foreground">Bám đúng constraint</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Dùng thời gian, giá và mức độ furnished để giữ danh sách gọn hơn ngay từ đầu.
-                  </p>
-                </Card>
-                <Card className="rounded-[24px] border-border/70 bg-card/92 p-5 shadow-soft">
-                  <RefreshCw className="h-6 w-6 text-secondary" />
-                  <p className="mt-4 text-sm font-semibold text-foreground">Mở sang hoán đổi khi cần</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Khi đã có chỗ ở, bạn có thể chuyển sang nhánh hoán đổi mà không rời khỏi hệ short-stay.
-                  </p>
-                </Card>
               </div>
             </div>
-          </div>
-        </Card>
-
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-medium text-slate-500">{filteredSublets.length} tin đang mở</p>
-          <div className="flex flex-wrap gap-3">
-            <Button className="rounded-2xl" onClick={() => navigate('/create-sublet')}>
-              Đăng chỗ ở
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-            <Button variant="outline" className="rounded-2xl" onClick={() => navigate('/my-sublets')}>
-              Tin của tôi
-            </Button>
-          </div>
-        </div>
-
-        <Tabs defaultValue="browse" className="mt-6 w-full">
-          <TabsList className="mb-4 grid w-full max-w-xl grid-cols-3 rounded-[24px] border border-border/70 bg-card/90 p-1.5 shadow-soft">
-            <TabsTrigger value="browse" className="rounded-lg">Tìm chỗ ở</TabsTrigger>
-            <TabsTrigger value="matches" className="rounded-lg">Hoán đổi</TabsTrigger>
-            <TabsTrigger value="mylistings" className="rounded-lg">Tin của tôi</TabsTrigger>
-          </TabsList>
-
-          <div className="flex flex-col gap-3 rounded-[24px] border border-border/70 bg-card/90 p-3 shadow-soft lg:flex-row lg:items-center">
-          <div className="flex flex-1 items-center gap-3 px-3">
-            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <Input
-              id="swap-search"
-              aria-label="Tìm chỗ ở ngắn hạn theo tên, khu vực hoặc địa chỉ"
-              placeholder="Tên chỗ ở, khu vực hoặc địa chỉ bạn muốn tìm..."
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className="border-0 bg-transparent px-0 focus-visible:ring-0"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {activeFilterCount > 0 ? <Badge variant="secondary">{activeFilterCount} bộ lọc</Badge> : null}
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters((value) => !value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Escape' && showFilters) {
-                  event.preventDefault();
-                  setShowFilters(false);
-                }
-              }}
-              className={showFilters ? 'bg-primary/10' : ''}
-            >
-              <Filter className="mr-2 h-4 w-4" />
-              Bộ lọc
-            </Button>
-          </div>
-          </div>
-
-          {showFilters ? (
-            <div className="mt-4">
-              <SubletFilter filters={filters} onChange={handleFilterChange} onReset={handleResetFilters} />
-            </div>
-          ) : null}
-
-          <TabsContent value="browse" className="mt-6 space-y-6">
-            {isLoading ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <Card key={index} className="h-80 animate-pulse" />
-                ))}
+            <div className="flex flex-col gap-2">
+              <label htmlFor="swap-price" className="px-1 text-[11px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Ngân sách</label>
+              <div className="h-14 rounded-full bg-surface-container-lowest px-5 ring-1 ring-border/70 focus-within:ring-2 focus-within:ring-primary/20">
+                <select id="swap-price" value={activePrice.label} onChange={(e) => updatePrice(e.target.value)} className="h-full w-full bg-transparent text-sm font-medium text-on-surface outline-none">
+                  {PRICE_RANGES.map((range) => <option key={range.label}>{range.label}</option>)}
+                </select>
               </div>
-            ) : isError ? (
-              <Card className="rounded-[28px] border border-destructive/20 p-8 text-center shadow-soft">
-                <p className="mb-4 text-muted-foreground">Có lỗi khi tải dữ liệu chỗ ở ngắn hạn.</p>
-                <Button onClick={() => refetch()}>Thử lại</Button>
-              </Card>
-            ) : filteredSublets.length === 0 ? (
-              <Card className="rounded-[32px] border border-border/70 bg-[var(--hero-empty-state)] p-8 text-center shadow-soft">
-                <p className="text-muted-foreground">Chưa có chỗ ở phù hợp với tìm kiếm hoặc bộ lọc hiện tại.</p>
-              </Card>
-            ) : (
-              <>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {filteredSublets.map((sublet) => (
-                    <SubletCard key={sublet.id} sublet={sublet} onApply={handleApply} onSwapRequest={handleSwapRequest} />
+            </div>
+            <Button className="h-14 rounded-full font-display text-base font-bold shadow-lg shadow-primary/20" onClick={() => document.getElementById("swap-grid")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+              Tìm kiếm ngay
+            </Button>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-tertiary-container px-3 py-1.5 text-xs font-semibold text-on-tertiary-container">{visibleSublets.length} tin đang mở</span>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button variant="outline" className="rounded-full" onClick={() => setShowFilters((value) => !value)}>Bộ lọc nâng cao</Button>
+              <Button className="rounded-full" onClick={() => navigate(user ? "/create-sublet" : "/login")}><Plus className="mr-2 h-4 w-4" />Đăng chỗ ở</Button>
+            </div>
+          </div>
+          {showFilters ? <div className="mt-5"><SubletFilter filters={filters} onChange={updateFilters} onReset={() => { setFilters(INITIAL_FILTERS); setSearchQuery(""); }} /></div> : null}
+        </section>
+
+        {activeTab === "browse" ? (
+          isLoading ? (
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]"><Card className="h-[420px] animate-pulse rounded-[2rem]" /><div className="grid gap-6"><Card className="h-[200px] animate-pulse rounded-[2rem]" /><Card className="h-[200px] animate-pulse rounded-[2rem]" /></div></div>
+          ) : isError ? (
+            <Card className="rounded-[2rem] p-10 text-center shadow-soft"><p className="mb-5 text-muted-foreground">Có lỗi khi tải dữ liệu ở ngắn hạn.</p><Button onClick={() => refetch()}>Thử lại</Button></Card>
+          ) : featured ? (
+            <>
+              <section className="mb-20 grid grid-cols-12 gap-6" id="swap-grid">
+                <article className="col-span-12 overflow-hidden rounded-[2rem] bg-surface-container-lowest shadow-soft lg:col-span-8">
+                  <div className="flex h-full flex-col md:flex-row">
+                    <div className="relative overflow-hidden md:w-1/2">
+                      <LazyImage src={featured.images?.[0]?.image_url || stitchAssets.swap.featuredRoom} alt={featured.room_title} className="h-full min-h-[280px] w-full object-cover transition-transform duration-700 hover:scale-[1.03]" />
+                      <div className="absolute left-6 top-6 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-tertiary-container px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-on-tertiary-container">{featured.status === "active" ? "Có thể dọn vào" : featured.status}</span>
+                        <span className="rounded-full bg-white/90 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary">{fmtType(featured.room_type)}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-1 flex-col justify-between p-8 md:p-10">
+                      <div>
+                        <div className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Short-stay nổi bật • {[featured.district, featured.city].filter(Boolean).join(", ")}</div>
+                        <h1 className="font-display text-3xl font-extrabold leading-tight text-on-surface md:text-4xl">{featured.room_title}</h1>
+                        <p className="mt-4 line-clamp-4 text-sm leading-7 text-on-surface-variant md:text-base">{featured.description || "Không gian ở ngắn hạn sẵn sàng để bạn chốt theo lịch ở, ngân sách và mức độ furnished."}</p>
+                        <div className="mt-8 flex flex-wrap items-center gap-6">
+                          <div><p className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-outline">Giá thuê</p><p className="font-display text-2xl font-bold text-primary">{formatMonthlyPrice(featured.sublet_price)}</p></div>
+                          <div className="hidden h-10 w-px bg-outline-variant/40 md:block" />
+                          <div><p className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-outline">Diện tích</p><p className="font-display text-2xl font-bold text-on-surface">{featured.area_sqm ? `${featured.area_sqm}m²` : "Đang cập nhật"}</p></div>
+                        </div>
+                      </div>
+                      <div className="mt-8 flex flex-wrap gap-3">
+                        <Button className="rounded-full px-6" onClick={() => navigate(`/sublet/${featured.id}`)}>Xem chi tiết căn hộ</Button>
+                        <Button variant="outline" className="rounded-full px-6" onClick={() => openApply(featured)}>Đăng ký ở</Button>
+                        <Button variant="secondary" className="rounded-full px-6" onClick={() => openSwap(featured)}>Hoán đổi</Button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <div className="col-span-12 flex flex-col gap-6 lg:col-span-4">
+                  <article className="relative overflow-hidden rounded-[2rem] bg-surface-container-lowest p-6 shadow-soft">
+                    <div className="mb-6 overflow-hidden rounded-[1.25rem]"><LazyImage src={side?.images?.[0]?.image_url || stitchAssets.roomDetail.gallery[2]} alt={side?.room_title || "Tin nhượng phòng nổi bật"} className="h-48 w-full object-cover transition-transform duration-500 hover:scale-105" /></div>
+                    <span className="absolute right-8 top-8 rounded-full bg-secondary-container px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-on-secondary-container">Nhượng phòng</span>
+                    <h3 className="font-display text-xl font-bold text-on-surface">{side?.room_title || "Nhượng phòng nhanh trong tháng này"}</h3>
+                    <p className="mt-2 text-sm leading-6 text-on-surface-variant">{side?.description || "Các tin nhượng phòng được gom riêng để bạn chốt nhanh chỗ ở còn hợp đồng ngắn hạn."}</p>
+                    <div className="mt-5 flex items-center justify-between gap-3"><span className="text-lg font-bold text-primary">{side ? formatMonthlyPrice(side.sublet_price) : "Từ 2.8tr/tháng"}</span><span className="text-xs font-semibold text-outline">{side ? `Dọn vào: ${fmtMove(side.start_date)}` : "Ưu tiên tin có thể dọn sớm"}</span></div>
+                  </article>
+                  <article className="rounded-[2rem] bg-primary p-8 text-center text-on-primary shadow-soft">
+                    <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-white/20"><ShieldCheck className="h-8 w-8" /></div>
+                    <h3 className="font-display text-xl font-bold">Giao nhận an toàn &amp; Xác thực 100%</h3>
+                    <p className="mt-3 text-sm leading-6 text-on-primary/85">RommZ cam kết thông tin ở ngắn hạn rõ ràng và flow đặt cọc minh bạch cho từng tin.</p>
+                  </article>
+                </div>
+              </section>
+
+              <section>
+                <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+                  <div><h2 className="font-display text-3xl font-extrabold text-on-surface">Cơ hội dời đến sớm</h2><p className="mt-2 text-on-surface-variant">Các phòng trống sẵn sàng đón chủ mới trong tháng tới.</p></div>
+                  <button type="button" onClick={() => document.getElementById("swap-grid")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:gap-3">Xem tất cả<ArrowRight className="h-4 w-4" /></button>
+                </div>
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <article className="flex h-full flex-col justify-between rounded-[2rem] border-t-4 border-tertiary bg-surface-container-low p-8 shadow-soft">
+                    <div>
+                      <div className="mb-6 flex items-start justify-between gap-3"><span className="rounded-full bg-tertiary-container px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-on-tertiary-container">{mySwapLead ? "Hoán đổi" : "Cách hoạt động"}</span><span className="text-xs font-bold text-tertiary">{mySwapLead ? "Lane đang mở" : "Cần tin của bạn"}</span></div>
+                      <h3 className="font-display text-xl font-bold text-on-surface">{mySwapLead ? `So khớp lịch ở cho ${fmtType(mySwapLead.room_type).toLowerCase()} tại ${[mySwapLead.district, mySwapLead.city].filter(Boolean).join(", ")}` : "Đăng một tin ngắn hạn để bật gợi ý đổi phòng"}</h3>
+                      <p className="mt-4 text-sm leading-7 text-on-surface-variant">{mySwapLead ? `RommZ sẽ dùng listing của bạn để so khớp khu vực, ngày nhận phòng và mức giá với các tin ở ngắn hạn khác. Listing hiện tại đang mở từ ${fmtMove(mySwapLead.start_date)} đến ${fmtMove(mySwapLead.end_date)}.` : swapLead ? `Hiện đã có các tin đang mở ở ${[swapLead.district, swapLead.city].filter(Boolean).join(", ")}. Khi bạn có listing của riêng mình, RommZ mới bắt đầu đề xuất các cặp đổi phòng phù hợp.` : "Lane này dùng cho người đã có tin ngắn hạn của chính mình. Sau khi đăng tin, RommZ sẽ so khớp khu vực, mốc nhận phòng và ngân sách để đề xuất phương án đổi."}</p>
+                    </div>
+                    <div className="mt-8 space-y-5">
+                      {mySwapLead ? (
+                        <>
+                          <div className="grid gap-3 sm:grid-cols-3">
+                            <div className="rounded-[1.1rem] bg-surface-container-lowest p-4">
+                              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-outline">Khu vực</p>
+                              <p className="mt-2 text-sm font-semibold text-on-surface">{[mySwapLead.district, mySwapLead.city].filter(Boolean).join(", ") || "Đang cập nhật"}</p>
+                            </div>
+                            <div className="rounded-[1.1rem] bg-surface-container-lowest p-4">
+                              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-outline">Ngày ở</p>
+                              <p className="mt-2 text-sm font-semibold text-on-surface">{fmtMove(mySwapLead.start_date)}</p>
+                            </div>
+                            <div className="rounded-[1.1rem] bg-surface-container-lowest p-4">
+                              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-outline">Ngân sách</p>
+                              <p className="mt-2 text-sm font-semibold text-on-surface">{formatMonthlyPrice(mySwapLead.sublet_price)}</p>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-3"><Button className="rounded-full" onClick={() => navigate(user ? "/swap-matches" : "/login")}>Xem cơ hội đổi</Button><Button variant="outline" className="rounded-full" onClick={() => navigate(user ? "/my-sublets" : "/login")}>{user ? "Quản lý tin của bạn" : "Đăng nhập để mở lane"}</Button></div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="grid gap-3 sm:grid-cols-3">
+                            {[
+                              "1. Đăng tin ngắn hạn",
+                              "2. RommZ so khớp lịch ở",
+                              "3. Bạn chọn đề xuất phù hợp",
+                            ].map((step) => (
+                              <div key={step} className="rounded-[1.1rem] bg-surface-container-lowest p-4 text-sm font-semibold text-on-surface">
+                                {step}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex flex-wrap gap-3"><Button className="rounded-full" onClick={() => navigate(user ? "/create-sublet" : "/login")}>{user ? "Đăng tin để bắt đầu" : "Đăng nhập để bắt đầu"}</Button><Button variant="outline" className="rounded-full" onClick={() => document.getElementById("swap-grid")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Xem tin đang mở</Button></div>
+                        </>
+                      )}
+                    </div>
+                  </article>
+                  {lowerCards.map((sublet, index) => (
+                    <article key={sublet.id} className="rounded-[2rem] bg-surface-container-lowest p-8 shadow-soft">
+                      <div className="mb-6 flex items-center gap-3">
+                        <div className="h-10 w-10 overflow-hidden rounded-full bg-slate-200"><LazyImage src={sublet.owner_avatar || stitchAssets.swap.moveInAvatars[index % stitchAssets.swap.moveInAvatars.length]} alt={sublet.owner_name} className="h-full w-full object-cover" /></div>
+                        <div><p className="text-sm font-bold text-on-surface">{sublet.owner_name}</p><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">{sublet.owner_verified ? "Host xác thực" : "Chủ phòng"}</p></div>
+                      </div>
+                      <h3 className="font-display text-lg font-bold text-on-surface">{sublet.room_title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-on-surface-variant">{sublet.description || "Tin đã sẵn sàng để bạn so ngày ở, mức giá và mức độ furnished trước khi chốt."}</p>
+                      <div className="mt-6 rounded-[1.25rem] bg-surface-container-low p-4"><p className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-outline">Ngày dời đến</p><p className="font-display text-base font-bold text-on-surface">{fmtMove(sublet.start_date)}</p></div>
+                      <div className="mt-6 flex gap-3"><span className="flex-1 rounded-full bg-tertiary-container py-3 text-center text-xs font-bold text-on-tertiary-container">Verified</span><span className={`flex-1 rounded-full py-3 text-center text-xs font-bold ${index === 0 ? "bg-secondary-container text-on-secondary-container" : "bg-surface-container-highest text-on-surface-variant"}`}>{index === 0 ? "New" : "Phổ biến"}</span></div>
+                    </article>
                   ))}
                 </div>
+                <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visibleSublets.slice(0, 6).map((sublet) => <SubletCard key={sublet.id} sublet={sublet} onApply={openApply} onSwapRequest={openSwap} />)}</div>
+                {hasNextPage ? <div className="mt-8 text-center"><Button variant="outline" className="rounded-full" onClick={() => { if (!isFetchingNextPage) fetchNextPage(); }} disabled={isFetchingNextPage}>{isFetchingNextPage ? "Đang tải..." : "Tải thêm tin"}</Button></div> : null}
+              </section>
+            </>
+          ) : (
+            <Card className="rounded-[2rem] p-12 text-center shadow-soft"><p className="mx-auto max-w-lg text-muted-foreground">Chưa có tin ở ngắn hạn phù hợp với tìm kiếm hoặc bộ lọc hiện tại.</p></Card>
+          )
+        ) : null}
 
-                {hasNextPage ? (
-                  <div className="mt-6 text-center">
-                    <Button variant="outline" onClick={handleLoadMore} disabled={isFetchingNextPage}>
-                      {isFetchingNextPage ? 'Đang tải...' : 'Tải thêm'}
-                    </Button>
-                  </div>
-                ) : null}
-              </>
-            )}
-          </TabsContent>
-
-          <TabsContent value="matches" className="mt-6 space-y-6">
-              <Card className="rounded-[32px] border border-border/70 bg-[var(--hero-empty-state)] p-8 text-center shadow-soft">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <RefreshCw className="h-7 w-7" />
-              </div>
-              <h3 className="mb-2 text-lg font-medium">Hoán đổi khi bạn đã có chỗ ở</h3>
-              <p className="mx-auto mb-6 max-w-md text-muted-foreground">
-                Nếu muốn đổi khu vực hoặc thời gian ở, bạn có thể xem các gợi ý phù hợp tại đây.
-              </p>
-              <Button onClick={() => navigate('/swap-matches')}>
-                Xem gợi ý hoán đổi
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="mylistings" className="mt-6 space-y-6">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-950">Tin của bạn</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Quản lý tin đã đăng và các đơn quan tâm đang chờ phản hồi.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => navigate('/my-sublets')}>
-                  Quản lý
-                </Button>
-                <Button size="sm" onClick={() => navigate('/create-sublet')}>
-                  <Plus className="mr-1 h-4 w-4" />
-                  Đăng mới
-                </Button>
-              </div>
+        {activeTab === "sublet" ? (
+          <section className="space-y-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div><h2 className="font-display text-3xl font-extrabold text-on-surface">Sublet của bạn</h2><p className="mt-2 text-on-surface-variant">{user ? "Quản lý listing đã đăng và giữ nhịp short-stay trong cùng một hub." : "Đăng nhập để tạo listing, nhận đơn quan tâm và quản lý lịch ở ngắn hạn."}</p></div>
+              <div className="flex flex-wrap gap-3"><Button className="rounded-full" onClick={() => navigate(user ? "/create-sublet" : "/login")}><Plus className="mr-2 h-4 w-4" />{user ? "Đăng listing mới" : "Đăng nhập để đăng tin"}</Button><Button variant="outline" className="rounded-full" onClick={() => navigate(user ? "/my-sublets" : "/login")}>Quản lý tin</Button></div>
             </div>
+            {!user ? <Card className="rounded-[2rem] bg-surface-container-low p-10 shadow-soft"><h3 className="font-display text-2xl font-bold text-on-surface">Bạn cần đăng nhập để mở lane Sublet.</h3><p className="mt-3 max-w-2xl text-on-surface-variant">Sau khi đăng nhập, RommZ sẽ giữ toàn bộ flow đăng tin, sửa tin và theo dõi đơn quan tâm ngay trong route này.</p></Card> : mySubletsLoading ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 3 }).map((_, index) => <Card key={index} className="h-[320px] animate-pulse rounded-[2rem]" />)}</div> : myListings.length > 0 ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{myListings.map((sublet) => <SubletCard key={sublet.id} sublet={sublet} />)}</div> : <Card className="rounded-[2rem] border border-dashed border-border/70 p-12 text-center shadow-soft"><p className="mx-auto max-w-lg text-muted-foreground">Bạn chưa có listing nào. Tạo listing đầu tiên để mở flow sublet và nhận đơn quan tâm.</p></Card>}
+          </section>
+        ) : null}
 
-            {isMySubletsLoading ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="aspect-[4/3] w-full animate-pulse rounded-lg bg-muted" />
-                    <div className="mt-4 h-5 w-3/4 animate-pulse rounded bg-muted" />
-                    <div className="mt-2 h-4 w-1/2 animate-pulse rounded bg-muted" />
-                  </Card>
-                ))}
-              </div>
-            ) : !mySublets || mySublets.length === 0 ? (
-              <Card className="rounded-[32px] border-2 border-dashed border-muted bg-transparent p-12 text-center shadow-soft">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/60">
-                  <Plus className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="mb-2 font-medium">Bạn chưa đăng tin nào</h3>
-                <p className="mx-auto mb-6 max-w-sm text-muted-foreground">
-                  Đăng chỗ ở ngắn hạn để bắt đầu nhận đơn quan tâm.
-                </p>
-                <Button onClick={() => navigate('/create-sublet')}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Đăng chỗ ở mới
-                </Button>
-              </Card>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {(mySublets as unknown as SubletListingWithDetails[]).map((sublet) => (
-                  <SubletCard key={sublet.id} sublet={sublet} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+        {activeTab === "swap" ? (
+          <section className="space-y-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div><h2 className="font-display text-3xl font-extrabold text-on-surface">Đổi phòng theo lịch ở</h2><p className="mt-2 text-on-surface-variant">Xem cơ hội đổi chỗ ở khi bạn muốn đổi khu vực hoặc chuyển mốc nhận phòng mà không rời lane short-stay.</p></div>
+              <div className="flex flex-wrap gap-3"><Button className="rounded-full" onClick={() => navigate(user ? "/swap-matches" : "/login")}>Xem gợi ý đổi phòng</Button><Button variant="outline" className="rounded-full" onClick={() => navigate(user ? "/swap-requests" : "/login")}>Yêu cầu của tôi</Button></div>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+              <Card className="rounded-[2rem] bg-surface-container-low p-8 shadow-soft"><div className="flex h-full flex-col justify-between gap-6"><div><div className="mb-4 inline-flex rounded-full bg-tertiary-container px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-on-tertiary-container">Đổi phòng</div><h3 className="font-display text-3xl font-bold text-on-surface">{swapLead ? `Hoán đổi từ ${[swapLead.district, swapLead.city].filter(Boolean).join(", ")} sang nhịp ở khác` : "Bạn cần một listing trước khi bắt đầu đổi phòng"}</h3><p className="mt-4 text-sm leading-7 text-on-surface-variant">{swapLead ? "RommZ sẽ so trùng khu vực, mức giá và thời gian ở giữa listing của bạn với các listing short-stay khác để tạo cơ hội hoán đổi nhanh hơn." : "Khi đã có listing, route này sẽ hiển thị các match phù hợp nhất, yêu cầu chờ phản hồi và tiến trình hoán đổi."}</p></div><div className="flex flex-wrap gap-3"><Button className="rounded-full" onClick={() => navigate(user ? "/swap-matches" : "/login")}>Xem match</Button><Button variant="outline" className="rounded-full" onClick={() => navigate(user ? "/create-sublet" : "/login")}>{user ? "Tạo listing để đổi" : "Đăng nhập để bắt đầu"}</Button></div></div></Card>
+              <Card className="rounded-[2rem] bg-surface-container-lowest p-8 shadow-soft"><div className="mb-4 flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary"><RefreshCw className="h-5 w-5" /></div><div><p className="font-display text-lg font-bold text-on-surface">Điều gì sẽ mở ở phase sau</p><p className="text-sm text-on-surface-variant">Tin nhắn, lịch hẹn và flow đổi nâng cao</p></div></div><ul className="space-y-3 text-sm leading-6 text-on-surface-variant"><li>• Yêu cầu đổi phòng đến / đi</li><li>• Match theo khu vực và ngày nhận phòng</li><li>• Quản lý lịch đổi và follow-up</li></ul></Card>
+            </div>
+          </section>
+        ) : null}
       </div>
 
-      <div className="fixed bottom-20 right-4 z-40 md:hidden">
-        <Button
-          className="h-14 w-14 rounded-full shadow-lg"
-          size="icon"
-          onClick={() => navigate('/create-sublet')}
-          aria-label="Đăng chỗ ở ngắn hạn"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      </div>
-
-      <ApplySubletDialog sublet={selectedSublet} isOpen={isApplyDialogOpen} onClose={() => setIsApplyDialogOpen(false)} />
-      <SwapRequestDialog targetSublet={selectedSublet} isOpen={isSwapDialogOpen} onClose={() => setIsSwapDialogOpen(false)} />
+      <ApplySubletDialog sublet={selectedSublet} isOpen={applyOpen} onClose={() => setApplyOpen(false)} />
+      <SwapRequestDialog targetSublet={selectedSublet} isOpen={swapOpen} onClose={() => setSwapOpen(false)} />
     </div>
   );
 }

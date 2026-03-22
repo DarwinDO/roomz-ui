@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+�import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -38,7 +38,6 @@ import {
   type PreferredSearchArea,
 } from "@/lib/preferredSearchArea";
 import { stitchAssets } from "@/lib/stitchAssets";
-import { searchLocationCatalog } from "@/services/locations";
 import { transformRoomToCardProps } from "@/utils/room";
 import { UPGRADE_SOURCES } from "@roomz/shared/constants/tracking";
 import { getUserInitials } from "@roomz/shared/utils/user";
@@ -47,10 +46,6 @@ import { SettingsTab } from "./profile/components/SettingsTab";
 
 type DetailPanel = "favorites" | "bookings" | "settings" | null;
 type SavedRoomCard = ReturnType<typeof transformRoomToCardProps>;
-
-const ShopMiniMapbox = lazy(() =>
-  import("@/components/maps/ShopMiniMapbox").then((module) => ({ default: module.ShopMiniMapbox })),
-);
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -69,7 +64,6 @@ export default function ProfilePage() {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [detailPanel, setDetailPanel] = useState<DetailPanel>(null);
   const [preferredArea, setPreferredArea] = useState<PreferredSearchArea | null>(null);
-  const [resolvedPreferredArea, setResolvedPreferredArea] = useState<PreferredSearchArea | null>(null);
 
   const savedRooms = useMemo<SavedRoomCard[]>(
     () =>
@@ -108,8 +102,8 @@ export default function ProfilePage() {
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "Thành viên RommZ";
   const displaySubtitle =
     profile?.major && profile?.university
-      ? `${profile.major} • ${profile.university}`
-      : profile?.university || user?.email || "Thiết lập hồ sơ để nhận gợi ý đúng gu hơn.";
+      ? `${profile.major} ⬢ ${profile.university}`
+      : profile?.university || user?.email || "Thiết lập h� sơ �Ồ nhận gợi ý �úng gu hơn.";
   const locationLabel = profile?.university || profile?.major || "";
   const personaLabel =
     profile?.role === "landlord"
@@ -122,73 +116,12 @@ export default function ProfilePage() {
     setPreferredArea(loadPreferredSearchArea(user?.id ?? null));
   }, [user?.id]);
 
-  useEffect(() => {
-    let isCancelled = false;
-
-    if (!preferredArea) {
-      setResolvedPreferredArea(null);
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    const hasCoordinates =
-      typeof preferredArea.latitude === "number" && typeof preferredArea.longitude === "number";
-
-    if (hasCoordinates) {
-      setResolvedPreferredArea(preferredArea);
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    const fallbackQuery = preferredArea.label || preferredArea.district || preferredArea.city || "";
-    setResolvedPreferredArea(preferredArea);
-
-    if (fallbackQuery.trim().length < 2) {
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    void searchLocationCatalog({ query: fallbackQuery, limit: 1 })
-      .then((matches) => {
-        if (isCancelled || matches.length === 0) {
-          return;
-        }
-
-        const [firstMatch] = matches;
-        if (firstMatch.latitude === null || firstMatch.longitude === null) {
-          return;
-        }
-
-        setResolvedPreferredArea({
-          ...preferredArea,
-          latitude: Number(firstMatch.latitude),
-          longitude: Number(firstMatch.longitude),
-          city: preferredArea.city ?? firstMatch.city,
-          district: preferredArea.district ?? firstMatch.district,
-          address: preferredArea.address ?? firstMatch.address,
-          label: preferredArea.label || firstMatch.name,
-        });
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setResolvedPreferredArea(preferredArea);
-        }
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [preferredArea]);
-
   const recentActivities = useMemo(() => {
     const items: Array<{ title: string; time: string; accent: "primary" | "muted" }> = [];
 
     if (upcomingBookings[0]?.room?.title) {
       items.push({
-        title: `Lịch xem phòng "${truncateText(upcomingBookings[0].room.title, 28)}"`,
+        title: `L�9ch xem phòng "${truncateText(upcomingBookings[0].room.title, 28)}"`,
         time: formatRelativeTime(upcomingBookings[0].booking_date),
         accent: "primary",
       });
@@ -204,7 +137,7 @@ export default function ProfilePage() {
 
     if (profile?.updated_at) {
       items.push({
-        title: "Cập nhật thông tin hồ sơ",
+        title: "Cập nhật thông tin h� sơ",
         time: formatRelativeTime(profile.updated_at),
         accent: "muted",
       });
@@ -220,7 +153,7 @@ export default function ProfilePage() {
           [
             preferredArea?.district,
             preferredArea?.city,
-            preferredArea?.radiusKm ? `Bán kính ${preferredArea.radiusKm} km` : null,
+            preferredArea?.radiusKm ? `B?n k?nh ${preferredArea.radiusKm} km` : null,
             preferredArea ? getPreferredSearchAreaSourceLabel(preferredArea.source) : null,
           ].filter(Boolean),
         ),
@@ -230,15 +163,16 @@ export default function ProfilePage() {
 
   const preferredAreaSearchPath = preferredArea?.searchPath || "/search";
   const preferredAreaDescription = preferredArea
-    ? `Đồng bộ từ lần tìm gần nhất ${formatRelativeTime(preferredArea.updatedAt)}. RommZ sẽ mở lại đúng vùng này để bạn tiếp tục so sánh phòng nhanh hơn.`
-    : "Khi bạn khóa khu vực trong trang tìm phòng, RommZ sẽ ghi nhớ và đưa bạn quay lại đúng vùng đó ngay từ hồ sơ.";
+    ? `??ng b? t? l?n t?m g?n nh?t ${formatRelativeTime(preferredArea.updatedAt)}. RommZ s? m? l?i ??ng v?ng n?y ?? b?n ti?p t?c so s?nh ph?ng nhanh h?n.`
+    : "Khi b?n kh?a khu v?c trong trang t?m ph?ng, RommZ s? ghi nh? v? ??a b?n quay l?i ??ng v?ng ?? ngay t? h? s?.";
+
   const handleRemoveFavorite = async (roomId: string) => {
     try {
       await toggleFavorite(roomId);
-      toast.success("Đã xóa khỏi danh sách đã lưu");
+      toast.success("Đã xóa khỏi danh sách �ã lưu");
     } catch (error) {
       console.error("Error removing favorite:", error);
-      toast.error("Không thể cập nhật danh sách đã lưu");
+      toast.error("Không thỒ cập nhật danh sách �ã lưu");
     }
   };
 
@@ -248,7 +182,7 @@ export default function ProfilePage() {
       navigate("/login");
     } catch (error) {
       console.error("Error signing out:", error);
-      toast.error("Không thể đăng xuất");
+      toast.error("Không thỒ �Ēng xuất");
     }
   };
 
@@ -258,7 +192,7 @@ export default function ProfilePage() {
         <div className="mx-auto flex min-h-[70vh] max-w-7xl items-center justify-center px-6 pt-28 pb-16">
           <div className="flex items-center gap-3 rounded-full border border-border/70 bg-card px-5 py-3 shadow-soft">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span className="text-sm text-muted-foreground">Đang tải hồ sơ RommZ...</span>
+            <span className="text-sm text-muted-foreground">Đang tải h� sơ RommZ...</span>
           </div>
         </div>
       </div>
@@ -277,7 +211,7 @@ export default function ProfilePage() {
                   <Avatar className="h-32 w-32 border-4 border-surface-container-lowest shadow-[0_20px_40px_rgba(40,43,81,0.12)]">
                     <AvatarImage
                       src={profile?.avatar_url || undefined}
-                      alt={profile?.full_name || user?.email || "Ảnh đại diện"}
+                      alt={profile?.full_name || user?.email || "Ảnh �ại di�!n"}
                     />
                     <AvatarFallback className="bg-primary/10 font-display text-3xl text-primary">
                       {getUserInitials(profile?.full_name, user?.email)}
@@ -311,17 +245,17 @@ export default function ProfilePage() {
 
                 <div className="mt-8 w-full rounded-[28px] bg-surface-container-low p-6 text-left">
                   <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">
-                    Phong cách sống
+                    Phong cách s�ng
                   </p>
                   <p className="mt-3 text-sm leading-7 text-on-surface">
                     {profile?.bio ||
-                      "Ưu tiên không gian gọn gàng, lịch sinh hoạt rõ ràng và những kết nối ở ghép đủ tin cậy để bắt đầu nhanh hơn."}
+                      "Ưu tiên không gian gọn gàng, l�9ch sinh hoạt rõ ràng và những kết n�i �x ghép �ủ tin cậy �Ồ bắt �ầu nhanh hơn."}
                   </p>
                 </div>
 
                 <div className="mt-6 grid w-full grid-cols-2 gap-4">
                   <ProfileMetric value={`${trustScore}%`} label="Tin cậy" />
-                  <ProfileMetric value={`${matches.length}`} label="Kết nối" />
+                  <ProfileMetric value={`${matches.length}`} label="Kết n�i" />
                 </div>
               </div>
             </Card>
@@ -336,30 +270,29 @@ export default function ProfilePage() {
                 </div>
                 <p className="mt-5 font-display text-[1.65rem] leading-tight text-white">
                   {isPremium
-                    ? "Lớp ưu tiên của bạn đang hoạt động."
-                    : "Mở khóa lớp ưu tiên của RommZ."}
+                    ? "Lá»⬺p � °u tiÒªn cá»§a báº¡n ���ang hoáº¡t ���á»��ng."
+                    : "Má»Ÿ khÒ³a lá»⬺p � °u tiÒªn cá»§a RommZ."}
                 </p>
                 <p className="mt-3 max-w-sm text-sm leading-6 text-white/84">
                   {isPremium
-                    ? "RommZ+ của bạn đang hoạt động. Hồ sơ, contact và quyền lợi deal hiện đã được ưu tiên hiển thị."
-                    : "Mở khóa gợi ý phòng độc quyền, quyền liên hệ nhanh và lớp ưu tiên hiển thị hồ sơ khi bạn sẵn sàng chốt nơi ở."}
+                    ? "RommZ+ của bạn �ang hoạt ��"ng. H� sơ, contact và quyền lợi deal hi�!n �ã �ược ưu tiên hiỒn th�9."
+                    : "M�x khóa gợi ý phòng ��"c quyền, quyền liên h�! nhanh và l�:p ưu tiên hiỒn th�9 h� sơ khi bạn sẵn sàng ch�t nơi �x."}
                 </p>
                 <Button
-                  variant="outline"
                   onClick={() =>
                     isPremium
                       ? navigate("/services?tab=deals")
                       : navigate(`/payment?source=${UPGRADE_SOURCES.PROFILE_BANNER}`)
                   }
-                  className="mt-6 w-full rounded-full border-white/70 bg-none bg-white text-primary shadow-none hover:bg-white/95 hover:text-primary"
+                  className="mt-6 w-full rounded-full border-0 bg-white text-primary hover:bg-white/95"
                 >
-                  {isPremium ? "Xem quyền lợi hiện có" : "Nâng cấp ngay"}
+                  {isPremium ? "Xem quyền lợi hi�!n có" : "Nâng cấp ngay"}
                 </Button>
               </div>
             </Card>
 
             <Card className="rounded-[32px] border border-white/70 bg-surface-container-lowest p-6 shadow-[0_20px_40px_rgba(40,43,81,0.06)]">
-              <h2 className="font-display text-lg text-on-surface">Hoạt động gần đây</h2>
+              <h2 className="font-display text-lg text-on-surface">Hoạt ��"ng gần �ây</h2>
               <div className="mt-6 space-y-6">
                 {recentActivities.length > 0 ? (
                   recentActivities.map((item, index) => (
@@ -373,7 +306,7 @@ export default function ProfilePage() {
                   ))
                 ) : (
                   <p className="text-sm leading-7 text-on-surface-variant">
-                    Hoạt động của bạn sẽ xuất hiện ở đây sau khi lưu phòng, đặt lịch xem, hoặc cập nhật hồ sơ.
+                    Hoạt ��"ng của bạn sẽ xuất hi�!n �x �ây sau khi lưu phòng, �ặt l�9ch xem, hoặc cập nhật h� sơ.
                   </p>
                 )}
               </div>
@@ -384,7 +317,7 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
               <Card className="rounded-[32px] border border-white/70 bg-surface-container-lowest p-8 shadow-[0_20px_40px_rgba(40,43,81,0.06)]">
                 <div className="mb-6 flex items-center justify-between gap-3">
-                  <h2 className="font-display text-lg text-on-surface">Phòng đã lưu</h2>
+                  <h2 className="font-display text-lg text-on-surface">Phòng �ã lưu</h2>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -419,8 +352,8 @@ export default function ProfilePage() {
                   </div>
                 ) : savedRooms.length === 0 ? (
                   <EmptyStateCard
-                    title="Chưa có phòng đã lưu"
-                    description="Lưu những căn phù hợp để quay lại so sánh nhanh hơn khi bạn cần chốt nơi ở."
+                    title="Chưa có phòng �ã lưu"
+                    description="Lưu những cĒn phù hợp �Ồ quay lại so sánh nhanh hơn khi bạn cần ch�t nơi �x."
                     actionLabel="Tìm phòng ngay"
                     onAction={() => navigate("/search")}
                   />
@@ -456,13 +389,13 @@ export default function ProfilePage() {
 
               <Card className="rounded-[32px] border border-white/70 bg-surface-container-lowest p-8 shadow-[0_20px_40px_rgba(40,43,81,0.06)]">
                 <div className="mb-6 flex items-center justify-between gap-3">
-                  <h2 className="font-display text-lg text-on-surface">Lịch xem phòng</h2>
+                  <h2 className="font-display text-lg text-on-surface">L�9ch xem phòng</h2>
                   <button
                     type="button"
                     onClick={() => setDetailPanel("bookings")}
                     className="rounded-full bg-secondary-container px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-on-secondary-container"
                   >
-                    {upcomingBookings.length} sắp tới
+                    {upcomingBookings.length} sắp t�:i
                   </button>
                 </div>
 
@@ -477,8 +410,8 @@ export default function ProfilePage() {
                   </div>
                 ) : upcomingBookings.length === 0 ? (
                   <EmptyStateCard
-                    title="Chưa có lịch xem phòng"
-                    description="Khi bạn đặt lịch xem phòng, các mốc sắp tới sẽ hiện ngay trong bảng điều khiển này."
+                    title="Chưa có l�9ch xem phòng"
+                    description="Khi bạn �ặt l�9ch xem phòng, các m�c sắp t�:i sẽ hi�!n ngay trong bảng �iều khiỒn này."
                     actionLabel="Khám phá phòng"
                     onAction={() => navigate("/search")}
                   />
@@ -490,11 +423,11 @@ export default function ProfilePage() {
                           {formatBookingMeta(booking.booking_date)}
                         </p>
                         <p className="mt-2 text-sm font-bold text-on-surface">
-                          {booking.room?.title || "Lịch xem phòng sắp tới"}
+                          {booking.room?.title || "L�9ch xem phòng sắp t�:i"}
                         </p>
                         <div className="mt-3 flex items-center gap-2 text-[11px] text-on-surface-variant">
                           <Clock3 className="h-3.5 w-3.5" />
-                          <span>{booking.landlord?.full_name || "Chủ nhà đang cập nhật"}</span>
+                          <span>{booking.landlord?.full_name || "Chủ nhà �ang cập nhật"}</span>
                         </div>
                       </div>
                     ))}
@@ -505,9 +438,9 @@ export default function ProfilePage() {
               <Card className="rounded-[32px] border border-white/70 bg-surface-container-lowest p-8 shadow-[0_20px_40px_rgba(40,43,81,0.06)] md:col-span-2">
                 <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="font-display text-lg text-on-surface">Gợi ý người ở cùng</h2>
+                    <h2 className="font-display text-lg text-on-surface">Gợi ý người �x cùng</h2>
                     <p className="mt-1 text-xs text-on-surface-variant">
-                      Dựa trên phong cách sống và khu vực ưu tiên hiện có của bạn.
+                      D?a tr?n phong c?ch s?ng v? khu v?c ?u ti?n hi?n c? c?a b?n.
                     </p>
                   </div>
                   <Button
@@ -516,7 +449,7 @@ export default function ProfilePage() {
                     className="rounded-full border-border/70 bg-surface-container-high px-4"
                     onClick={() => navigate("/roommates")}
                   >
-                    Tùy chỉnh lọc
+                    Tùy ch�0nh lọc
                   </Button>
                 </div>
 
@@ -533,8 +466,8 @@ export default function ProfilePage() {
                 ) : matches.length === 0 ? (
                   <EmptyStateCard
                     title="Chưa có gợi ý tương thích"
-                    description="Hoàn thiện hồ sơ tìm bạn cùng phòng để hệ thống bắt đầu đề xuất những kết nối phù hợp hơn."
-                    actionLabel="Mở hành trình ở ghép"
+                    description="Hoàn thi�!n h� sơ tìm bạn cùng phòng �Ồ h�! th�ng bắt �ầu �ề xuất những kết n�i phù hợp hơn."
+                    actionLabel="M�x hành trình �x ghép"
                     onAction={() => navigate("/roommates")}
                   />
                 ) : (
@@ -559,11 +492,11 @@ export default function ProfilePage() {
                         </div>
                         <p className="mt-4 text-sm font-bold text-on-surface">{match.full_name}</p>
                         <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
-                          {[match.occupation, match.age ? `${match.age}t` : null].filter(Boolean).join(" • ") ||
-                            "Đang hoàn thiện hồ sơ"}
+                          {[match.occupation, match.age ? `${match.age}t` : null].filter(Boolean).join(" ⬢ ") ||
+                            "Đang hoàn thi�!n h� sơ"}
                         </p>
                         <span className="mt-4 text-[11px] font-bold text-primary group-hover:underline">
-                          Mở hành trình ở ghép
+                          M? h?nh tr?nh ? gh?p
                         </span>
                       </button>
                     ))}
@@ -572,7 +505,7 @@ export default function ProfilePage() {
               </Card>
 
               <Card className="rounded-[32px] border border-white/70 bg-surface-container-lowest p-8 shadow-[0_20px_40px_rgba(40,43,81,0.06)]">
-                <h2 className="font-display text-lg text-on-surface">Cài đặt tài khoản</h2>
+                <h2 className="font-display text-lg text-on-surface">C?i ??t t?i kho?n</h2>
                 <div className="mt-6 space-y-2">
                   <SettingsAction
                     icon={<PencilLine className="h-4 w-4" />}
@@ -586,7 +519,7 @@ export default function ProfilePage() {
                   />
                   <SettingsAction
                     icon={<Bell className="h-4 w-4" />}
-                    label="Lịch sử và thông báo"
+                    label="L�9ch sử và thông báo"
                     onClick={() => setDetailPanel("bookings")}
                   />
                 </div>
@@ -603,7 +536,7 @@ export default function ProfilePage() {
                   onClick={handleSignOut}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  Đăng xuất
+                  ĐĒng xuất
                 </Button>
               </Card>
 
@@ -612,7 +545,7 @@ export default function ProfilePage() {
                   <div>
                     <h2 className="font-display text-lg text-on-surface">Vùng tìm kiếm ưu tiên</h2>
                     <p className="mt-1 text-xs text-on-surface-variant">
-                      Các khu vực hệ thống nên ưu tiên khi đề xuất phòng cho bạn.
+                      Các khu vực h�! th�ng nên ưu tiên khi �ề xuất phòng cho bạn.
                     </p>
                   </div>
                   <Button
@@ -621,13 +554,29 @@ export default function ProfilePage() {
                     className="rounded-full px-3 text-xs font-semibold text-primary hover:bg-primary/5 hover:text-primary"
                     onClick={() => navigate(preferredAreaSearchPath)}
                   >
-                    Mở tìm phòng
+                    M�x tìm phòng
                   </Button>
                 </div>
-                <PreferredAreaPreview
-                  preferredArea={resolvedPreferredArea ?? preferredArea}
-                  locationLabel={locationLabel}
-                />
+
+                <div className="relative mt-auto overflow-hidden rounded-[24px] border border-white bg-surface-container-high">
+                  <img
+                    src={stitchAssets.profile.preferredAreaMap}
+                    alt={`Bản �� ưu tiên ${locationLabel || "RommZ"}`}
+                    className="h-40 w-full object-cover grayscale"
+                  />
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,23,57,0.06),rgba(18,23,57,0.18))]" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-lg">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-semibold text-on-surface">
+                        {preferredArea?.label || "Ch?a kh?a khu v?c"}
+                      </span>
+                      <span className="sr-only">
+                        {locationLabel || "Chọn khu vực ưu tiên"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="mt-4 flex items-start gap-2 text-sm leading-6 text-on-surface-variant">
                   <Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -647,7 +596,7 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <p className="mt-4 text-sm leading-7 text-on-surface-variant">
-                    Cập nhật quận, thành phố hoặc trường học trong hồ sơ để kết quả tìm kiếm bám sát hơn.
+                    C?p nh?t qu?n, th?nh ph? ho?c tr??ng h?c trong h? s? ?? k?t qu? t?m ki?m b?m s?t h?n.
                   </p>
                 )}
               </Card>
@@ -658,9 +607,9 @@ export default function ProfilePage() {
       <Dialog open={detailPanel === "favorites"} onOpenChange={(open) => !open && setDetailPanel(null)}>
         <DialogContent className="max-h-[90vh] overflow-hidden border-border/70 bg-background p-0 sm:max-w-[1080px]">
           <DialogHeader className="border-b border-border/70 px-6 py-5">
-            <DialogTitle>Phòng đã lưu</DialogTitle>
+            <DialogTitle>Phòng �ã lưu</DialogTitle>
             <DialogDescription>
-              Toàn bộ danh sách phòng bạn đang giữ lại để so sánh và quay lại sau.
+              To?n b? danh s?ch ph?ng b?n ?ang gi? l?i ?? so s?nh v? quay l?i sau.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[calc(90vh-96px)] overflow-y-auto px-6 py-6">
@@ -679,9 +628,9 @@ export default function ProfilePage() {
               </div>
             ) : savedRooms.length === 0 ? (
               <EmptyStateCard
-                title="Chưa có phòng đã lưu"
-                description="Lưu căn phù hợp trong lúc search để quay lại xử lý nhanh hơn khi bạn cần."
-                actionLabel="Đi tới tìm phòng"
+                title="Chưa có phòng �ã lưu"
+                description="Lưu cĒn phù hợp trong lúc search �Ồ quay lại xử lý nhanh hơn khi bạn cần."
+                actionLabel="Đi t�:i tìm phòng"
                 onAction={() => {
                   setDetailPanel(null);
                   navigate("/search");
@@ -742,8 +691,8 @@ export default function ProfilePage() {
       <Dialog open={detailPanel === "bookings"} onOpenChange={(open) => !open && setDetailPanel(null)}>
         <DialogContent className="max-h-[90vh] overflow-hidden border-border/70 bg-background p-0 sm:max-w-[1120px]">
           <DialogHeader className="border-b border-border/70 px-6 py-5">
-            <DialogTitle>Lịch xem phòng</DialogTitle>
-            <DialogDescription>Quản lý toàn bộ lịch hẹn đang chờ, sắp tới và lịch sử của bạn.</DialogDescription>
+            <DialogTitle>L�9ch xem phòng</DialogTitle>
+            <DialogDescription>Qu?n l? to?n b? l?ch h?n ?ang ch?, s?p t?i v? l?ch s? c?a b?n.</DialogDescription>
           </DialogHeader>
           <div className="max-h-[calc(90vh-96px)] overflow-y-auto px-6 py-6">
             <BookingsTab />
@@ -754,9 +703,9 @@ export default function ProfilePage() {
       <Dialog open={detailPanel === "settings"} onOpenChange={(open) => !open && setDetailPanel(null)}>
         <DialogContent className="max-h-[90vh] overflow-hidden border-border/70 bg-background p-0 sm:max-w-[980px]">
           <DialogHeader className="border-b border-border/70 px-6 py-5">
-            <DialogTitle>Cài đặt tài khoản</DialogTitle>
+            <DialogTitle>C?i ??t t?i kho?n</DialogTitle>
             <DialogDescription>
-              Cập nhật hồ sơ, theo dõi trạng thái xác minh và quản lý gói dịch vụ hiện có.
+              C?p nh?t h? s?, theo d?i tr?ng th?i x?c minh v? qu?n l? g?i d?ch v? hi?n c?.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[calc(90vh-96px)] overflow-y-auto px-6 py-6">
@@ -783,7 +732,7 @@ export default function ProfilePage() {
 
 function truncateText(value: string, limit: number) {
   if (value.length <= limit) return value;
-  return `${value.slice(0, limit - 1)}…`;
+  return `${value.slice(0, limit - 1)}⬦`;
 }
 
 function formatCompactPrice(price: number) {
@@ -795,9 +744,9 @@ function formatCompactPrice(price: number) {
 function formatRelativeTime(dateString: string) {
   const diffMs = Date.now() - new Date(dateString).getTime();
   const diffMinutes = Math.max(1, Math.round(diffMs / 60_000));
-  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+  if (diffMinutes < 60) return `${diffMinutes} phút trư�:c`;
   const diffHours = Math.round(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffHours < 24) return `${diffHours} giờ trư�:c`;
   if (diffHours < 48) return "Hôm qua";
   return new Date(dateString).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
 }
@@ -816,8 +765,8 @@ function formatBookingMeta(dateString: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
-  if (dayDiff === 0) return `Hôm nay - ${timeLabel}`;
-  if (dayDiff === 1) return `Ngày mai - ${timeLabel}`;
+  if (dayDiff === 0) return `H?m nay - ${timeLabel}`;
+  if (dayDiff === 1) return `Ng?y mai - ${timeLabel}`;
   return `${bookingDate.toLocaleDateString("vi-VN", { day: "2-digit", month: "short" })} - ${timeLabel}`;
 }
 
@@ -896,59 +845,6 @@ function VerificationBadge({ label, verified }: { label: string; verified: boole
       {verified ? <ShieldCheck className="mr-1 h-3 w-3" /> : null}
       {verified ? `Đã xác minh ${label}` : `Chưa xác minh ${label}`}
     </Badge>
-  );
-}
-
-function PreferredAreaPreview({
-  preferredArea,
-  locationLabel,
-}: {
-  preferredArea: PreferredSearchArea | null;
-  locationLabel: string;
-}) {
-  const latitude = preferredArea?.latitude ?? null;
-  const longitude = preferredArea?.longitude ?? null;
-  const hasCoordinates = typeof latitude === "number" && typeof longitude === "number";
-
-  if (hasCoordinates) {
-    const area = preferredArea;
-
-    if (!area) {
-      return null;
-    }
-
-    return (
-      <div className="mt-auto overflow-hidden rounded-[24px] border border-white bg-surface-container-high">
-        <Suspense fallback={<div className="h-40 animate-skeleton bg-muted" />}>
-          <ShopMiniMapbox
-            latitude={latitude}
-            longitude={longitude}
-            partnerName={area.label}
-            category={area.city ?? area.district ?? undefined}
-          />
-        </Suspense>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative mt-auto overflow-hidden rounded-[24px] border border-white bg-surface-container-high">
-      <img
-        src={stitchAssets.profile.preferredAreaMap}
-        alt={`Bản đồ ưu tiên ${locationLabel || "RommZ"}`}
-        className="h-40 w-full object-cover grayscale"
-      />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,23,57,0.06),rgba(18,23,57,0.18))]" />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-lg">
-          <MapPin className="h-4 w-4 text-primary" />
-          <span className="text-xs font-semibold text-on-surface">
-            {preferredArea?.label || "Chưa khóa khu vực"}
-          </span>
-          <span className="sr-only">{locationLabel || "Chọn khu vực ưu tiên"}</span>
-        </div>
-      </div>
-    </div>
   );
 }
 

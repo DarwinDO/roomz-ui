@@ -157,7 +157,7 @@ export default function LandlordDashboardPage() {
 
   return (
     <div lang="vi" className="min-h-screen bg-[var(--hero-bg)] pb-24 md:pb-8">
-      <div className="sticky top-0 z-40 border-b border-border bg-background/95 px-6 py-4 backdrop-blur-sm transition-all">
+      <div className="scroll-lock-shell sticky top-0 z-40 border-b border-border bg-background/95 px-6 py-4 backdrop-blur-sm transition-all">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full hover:bg-muted">

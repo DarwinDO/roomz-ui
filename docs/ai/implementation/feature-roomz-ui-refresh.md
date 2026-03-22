@@ -58,6 +58,56 @@ description: Implementation rules and technical boundaries for the RoomZ Stitch-
   - landing budget trigger labels are shortened so the Stitch rail stays readable at desktop widths
   - services deal tags now use higher-contrast Stitch-style media capsules
   - community post detail now provides a lightbox viewer for attached images
+- Ported `/search` manually from the refined Stitch screen:
+  - replaced the old search intro shell with a Stitch-first console and results overview
+  - introduced a selected-listing hero card linked directly to the map selection state
+  - upgraded `MapboxRoomMap` to support controlled selection, price-pill markers, and popup suppression inside split layouts
+  - preserved live RoomZ query, favorite, pagination, and room-detail navigation behavior underneath the new layout
+- Ported `/profile` manually from the generated Stitch profile screen:
+  - replaced the old tab-first profile shell with a Stitch-first two-column dashboard
+  - mapped the live RoomZ auth profile, favorites, bookings, premium entitlements, and roommate matches into the new Atlas layout
+  - preserved detailed account management flows by keeping full favorites, booking management, and settings reachable through dialogs inside the new route
+- Polished the Stitch-first `/profile` pass after live review:
+  - upgraded the premium promo card to clearer `RommZ+` branding with stronger contrast
+  - reduced over-wide tracking on profile micro-labels and metric captions
+  - connected `Vung tim kiem uu tien` to the search journey by persisting the last preferred search area from `/search` and reusing it inside `/profile`
+- Stabilized the protected `/profile` route after the next live review:
+  - repaired the visible text-encoding regression that was causing mojibake across the Stitch-first profile dashboard
+  - disabled Radix dropdown scroll locking in the shared dropdown wrapper so the avatar menu no longer shifts the fixed navbar horizontally
+  - upgraded the preferred-area card to use a live Mapbox mini-map whenever the saved search context has or can recover usable coordinates
+- Ported `/swap` manually from the generated Stitch short-stay screen:
+  - replaced the old short-stay hub shell with a Stitch-first search console and editorial card composition
+  - kept `create-sublet`, `my-sublets`, `swap-matches`, `apply`, and `swap request` reachable through the new layout
+  - added `stitchAssets.swap` to hold fallback imagery for the new route
+- Fixed the first `/search` interaction bug pass after live user review:
+  - added top spacing so the refined search console clears the fixed desktop navbar
+  - changed secondary listing cards to navigate directly to room detail on the first click instead of requiring a promote-then-click flow
+  - made `Xem tren ban do` re-focus the selected listing state and smooth-scroll back to the selected hero card from lower positions in the results list
+  - wired the split-map marker selection to the same selected-listing focus behavior while keeping the full-map mode unchanged
+- Fixed the first `/search` map viewport bug pass after the next live review:
+  - added a controlled `selected-room` viewport mode to `MapboxRoomMap`
+  - the split search mini-map now zooms into the currently selected room instead of fitting every marker across the country
+  - the full search map now also defaults to the selected room's local context instead of opening on an all-Vietnam extent when no location filter is active
+- Restored smooth search-map camera animation after the viewport pass:
+  - stopped recreating the Mapbox instance on every selected-room change
+  - moved the latest `onSelectRoom` callback through a ref so marker clicks keep working without forcing a full map re-init
+  - kept camera motion in the dedicated `easeTo` effect, which restores the smooth zoom/pan feel when users switch focus between rooms
+- Extended the search-map animation fix to location switches with results:
+  - stopped recreating the Mapbox instance when quick area chips or other non-empty location changes replace the result set
+  - split marker updates and radius overlay updates out of the map initialization effect so the canvas stays mounted while the data changes
+  - preserved the single-room map behavior by adding a dedicated camera update effect instead of relying on remounts
+- Stabilized the `/search` catalog-selection flow:
+  - paused free-text room search while internal location-catalog suggestions are active so typing a place name no longer wipes the current map/list before the user chooses a catalog card
+  - added a location-focus transition state so selecting a catalog, Mapbox suggestion, or current location clears the old selected room first and lets the map camera prioritize the new location center
+  - restored visible continuity between the current results, the chosen catalog location, and the new room dataset
+- Standardized user-facing VND form inputs:
+  - added a shared `CurrencyInput` for grouped display like `3.000.000`
+  - applied it to post-room, post-sublet, edit-sublet, and the current quick-post dialogs
+  - kept raw-digit form state underneath and switched submit parsing to a shared `parseCurrencyInput` helper
+- Stabilized user-facing posting dropdowns against layout shift:
+  - added a global stable-scrollbar guard so body scroll locking no longer changes centered form width
+  - migrated the remaining user-facing posting selects to `FormSelectPopover` in `post-room`, `create-sublet`, and `PostListingModal`
+  - recorded the rule that future inline user-facing dropdowns should avoid raw Radix `Select`
 
 ## Performance Rules
 
@@ -67,7 +117,8 @@ description: Implementation rules and technical boundaries for the RoomZ Stitch-
 
 ## Current Boundary
 
-- The six in-scope desktop routes now follow a Stitch-first Living Atlas shell
-- Search, swap, profile, landlord dashboard, Atlas Plus, admin, motion, and 3D are outside the current port boundary
-- The next implementation target is not more web redesign by guesswork; it is generating the next missing Stitch screens before coding them
+- The eight in-scope desktop routes now follow a Stitch-first Living Atlas shell
+- Swap and landlord dashboard remain the generated desktop screens that still need direct-port implementation
+- Atlas Plus, admin, motion, and 3D are outside the current port boundary
+- The next implementation target is not more web redesign by guesswork; it is porting the remaining generated Stitch screens only after user review
 - Before generating new Stitch screens, the current bugfix pass should be visually re-reviewed against the user-reported issues list
