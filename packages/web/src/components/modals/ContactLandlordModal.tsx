@@ -38,6 +38,7 @@ export function ContactLandlordModal({
   isOpen,
   onClose,
   landlord,
+  roomId,
   roomTitle,
 }: ContactLandlordModalProps) {
   const { user, profile } = useAuth();
@@ -67,7 +68,12 @@ export function ContactLandlordModal({
       setLoading(true);
 
       try {
-        const nextConversationId = await getOrCreateConversation(user.id, landlord.id);
+        const nextConversationId = await getOrCreateConversation(
+          user.id,
+          landlord.id,
+          roomId,
+          roomTitle ?? null,
+        );
         setConversationId(nextConversationId);
 
         const existingMessages = await getConversationMessages(nextConversationId);
@@ -81,7 +87,7 @@ export function ContactLandlordModal({
     };
 
     void initConversation();
-  }, [isOpen, landlord?.id, user?.id]);
+  }, [isOpen, landlord?.id, roomId, roomTitle, user?.id]);
 
   useEffect(() => {
     if (!conversationId) {

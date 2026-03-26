@@ -18,7 +18,7 @@ description: Execution plan for the RoomZ Stitch-first desktop port
 - [x] Milestone 6.5: Atlas-heavy groundwork and hero differentiation
 - [x] Milestone 6.9: Port the six in-scope desktop routes directly from Stitch instead of restyling the prior RoomZ UI
 - [ ] Milestone 7: Generate missing Stitch screens before expanding the port scope
-- [ ] Milestone 8: Add motion polish and 3D accents on approved surfaces only
+- [x] Milestone 8: Add motion polish and 3D accents on approved surfaces only
 
 ## Task Breakdown
 
@@ -48,8 +48,8 @@ description: Execution plan for the RoomZ Stitch-first desktop port
 - [x] Generate dedicated Stitch screens for `Search`, `Short-stay / Swap`, `Profile`, and `Landlord Dashboard` before coding them
 - [x] Port `/search` against `TÃ¬m PhÃ²ng - Living Atlas (Refined)`
 - [ ] Map the refined token system to mobile / MD3 surfaces
-- [ ] Add Framer Motion polish where it improves hierarchy
-- [ ] Pilot 3D accents on landing and login only
+- [x] Add Framer Motion polish where it improves hierarchy
+- [x] Pilot 3D accents on landing and login only
 
 ## Risks
 

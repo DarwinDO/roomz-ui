@@ -1,309 +1,460 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { formatDistanceToNow, parseISO } from "date-fns";
+import { vi } from "date-fns/locale";
 import {
-  ArrowLeft,
-  MessageCircle,
-  Search,
-  Loader2,
-  Send,
+  ArrowUpRight,
   Check,
   CheckCheck,
   ChevronLeft,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  Search,
+  Send,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts";
-import { formatDistanceToNow, parseISO } from "date-fns";
-import { vi } from "date-fns/locale";
-import type { Conversation, MessageWithSender } from "@/services/chat";
-
-// TanStack Query hooks
 import { useConversations } from "@/hooks/chat/useConversations";
 import { useMessages } from "@/hooks/chat/useMessages";
 import { useTypingIndicator } from "@/hooks/chat/useTypingIndicator";
+import { createPublicMotion } from "@/lib/motion";
+import { stitchAssets } from "@/lib/stitchAssets";
+import { cn, formatMillions } from "@/lib/utils";
+import type { Conversation, MessageWithSender } from "@/services/chat";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+
+type InboxFilter = "all" | "unread" | "room" | "direct";
+type ConversationContextKind = "room_inquiry" | "direct";
 
 export default function MessagesPage() {
   const navigate = useNavigate();
   const { conversationId: urlConversationId } = useParams();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const shouldReduceMotion = useReducedMotion();
+  const motionTokens = useMemo(() => createPublicMotion(!!shouldReduceMotion), [shouldReduceMotion]);
   const { conversations, isLoading: conversationsLoading, unreadCount } = useConversations();
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+  const [activeFilter, setActiveFilter] = useState<InboxFilter>("all");
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024);
   const hasAutoSelectedRef = useRef(false);
 
-  // Handle resize
   useEffect(() => {
-    const handleResize = () => setIsMobileView(window.innerWidth < 768);
+    const handleResize = () => setIsMobileView(window.innerWidth < 1024);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Auto-select conversation from URL parameter (only once on initial load)
   useEffect(() => {
-    if (conversations.length === 0 || hasAutoSelectedRef.current) return;
+    if (conversations.length === 0 || hasAutoSelectedRef.current) {
+      return;
+    }
 
-    // Priority 1: Handle :conversationId from URL path
     if (urlConversationId) {
-      const found = conversations.find(c => c.id === urlConversationId);
-      if (found) {
-        setSelectedConversation(found);
+      const foundByPath = conversations.find((conversation) => conversation.id === urlConversationId);
+      if (foundByPath) {
+        setSelectedConversationId(foundByPath.id);
         hasAutoSelectedRef.current = true;
         return;
       }
     }
 
-    // Priority 2: Handle ?conversation=<id> - direct conversation ID (legacy)
-    const conversationId = searchParams.get("conversation");
-    if (conversationId) {
-      const found = conversations.find(c => c.id === conversationId);
-      if (found) {
-        setSelectedConversation(found);
+    const legacyConversationId = searchParams.get("conversation");
+    if (legacyConversationId) {
+      const foundByLegacy = conversations.find((conversation) => conversation.id === legacyConversationId);
+      if (foundByLegacy) {
+        setSelectedConversationId(foundByLegacy.id);
         hasAutoSelectedRef.current = true;
         return;
       }
     }
 
-    // Priority 3: Handle ?user=<userId> - find conversation with this user
     const targetUserId = searchParams.get("user");
     if (targetUserId) {
-      const found = conversations.find(c => c.participant.id === targetUserId);
-      if (found) {
-        setSelectedConversation(found);
+      const foundByUser = conversations.find((conversation) => conversation.participant.id === targetUserId);
+      if (foundByUser) {
+        setSelectedConversationId(foundByUser.id);
         hasAutoSelectedRef.current = true;
-      } else {
-        // No existing conversation - user might need to start from roommate feature
-        if (import.meta.env.DEV) {
-          console.log('[MessagesPage] No conversation found with user:', targetUserId);
-        }
+        return;
       }
     }
-  }, [searchParams, conversations, urlConversationId]);
 
-  // Filter conversations
-  const filteredConversations = conversations.filter((conv) =>
-    conv.participant.full_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    setSelectedConversationId(conversations[0].id);
+    hasAutoSelectedRef.current = true;
+  }, [conversations, searchParams, urlConversationId]);
 
-  const handleConversationClick = (conversation: Conversation) => {
-    setSelectedConversation(conversation);
-  };
+  const filteredConversations = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  const handleBack = () => {
-    if (selectedConversation && isMobileView) {
-      setSelectedConversation(null);
-    } else {
-      navigate(-1);
+    return conversations.filter((conversation) => {
+      if (activeFilter === "unread" && conversation.unreadCount === 0) {
+        return false;
+      }
+
+      const contextKind = getConversationContextKind(conversation);
+      if (activeFilter === "room" && contextKind !== "room_inquiry") {
+        return false;
+      }
+      if (activeFilter === "direct" && contextKind !== "direct") {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [conversation.participant.full_name, conversation.roomTitle, conversation.participant.email]
+        .filter(Boolean)
+        .some((value) => value?.toLowerCase().includes(normalizedQuery));
+    });
+  }, [activeFilter, conversations, searchQuery]);
+
+  useEffect(() => {
+    if (filteredConversations.length === 0) {
+      setSelectedConversationId(null);
+      return;
     }
-  };
 
-  // Show conversation list on mobile, or both on desktop
+    if (!selectedConversationId || !filteredConversations.some((conversation) => conversation.id === selectedConversationId)) {
+      setSelectedConversationId(filteredConversations[0].id);
+    }
+  }, [filteredConversations, selectedConversationId]);
+
+  const selectedConversation =
+    filteredConversations.find((conversation) => conversation.id === selectedConversationId) ??
+    conversations.find((conversation) => conversation.id === selectedConversationId) ??
+    null;
+
+  const handleBack = useCallback(() => {
+    if (selectedConversation && isMobileView) {
+      setSelectedConversationId(null);
+      return;
+    }
+
+    navigate(-1);
+  }, [isMobileView, navigate, selectedConversation]);
+
   const showList = !isMobileView || !selectedConversation;
-  const showChat = !isMobileView || selectedConversation;
+  const showChat = !isMobileView || !!selectedConversation;
+  const showContextRail = !isMobileView && !!selectedConversation;
+
+  const filterItems: Array<{ value: InboxFilter; label: string }> = [
+    { value: "all", label: "Tất cả" },
+    { value: "unread", label: "Chưa đọc" },
+    { value: "room", label: "Theo phòng" },
+    { value: "direct", label: "Trực tiếp" },
+  ];
 
   return (
-    <div lang="vi" className="h-screen flex flex-col bg-background overflow-hidden">
-      {/* Header */}
-      <div className="flex-shrink-0 bg-card/95 backdrop-blur-sm border-b border-border z-40 px-4 py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              className="rounded-xl hover:bg-muted">
-              {selectedConversation && isMobileView ? (
-                <ChevronLeft className="w-5 h-5" />
-              ) : (
-                <ArrowLeft className="w-5 h-5" />
-              )}
-            </Button>
-            <div className="ml-3">
-              {selectedConversation && isMobileView ? (
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={selectedConversation.participant.avatar_url || undefined} />
-                    <AvatarFallback>
-                      {selectedConversation.participant.full_name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()
-                        .slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium text-sm">{selectedConversation.participant.full_name}</p>
-                    {selectedConversation.roomTitle && (
-                      <p className="text-xs text-muted-foreground">{selectedConversation.roomTitle}</p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <h3>Tin nhắn</h3>
-                  {unreadCount > 0 && (
-                    <Badge variant="destructive" className="rounded-full">
-                      {unreadCount}
-                    </Badge>
-                  )}
-                </div>
-              )}
+    <motion.section
+      className="px-4 pb-24 pt-20 md:px-8 md:pb-10 md:pt-28"
+      initial="hidden"
+      animate="show"
+      variants={motionTokens.stagger(0.08, 0.02)}
+    >
+      <div className="mx-auto max-w-7xl space-y-6">
+        <motion.div variants={motionTokens.revealScale(18, 0.99)}>
+        <Card className="rounded-[2rem] border-none bg-surface-container-lowest shadow-soft-lg">
+          <CardContent className="flex flex-col gap-6 p-6 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">Messaging console</p>
+              <h1 className="mt-3 font-display text-4xl font-black tracking-[-0.05em] text-on-surface md:text-5xl">
+                Tin nhắn theo đúng ngữ cảnh đang quan tâm
+              </h1>
+              <p className="mt-4 max-w-[58ch] text-sm leading-7 text-on-surface-variant md:text-base">
+                Nếu đang hỏi phòng, bạn sẽ thấy đúng listing đó. Nếu đang nhắn trực tiếp với người dùng khác, RommZ giữ luồng chat gọn để không ép mọi cuộc trò chuyện thành style của chủ trọ.
+              </p>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 max-w-6xl mx-auto w-full overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 h-full">
-          {/* Conversations List */}
-          {showList && (
-            <div className="md:col-span-1 md:border-r border-border h-full overflow-hidden flex flex-col">
-              {/* Search */}
-              <div className="p-4 border-b border-border">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="conversation-search"
-                    aria-label="Tìm kiếm cuộc trò chuyện"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Tìm kiếm cuộc trò chuyện..."
-                    className="pl-10 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              {/* Conversation List */}
-              <div className="flex-1 overflow-y-auto">
-                {conversationsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                ) : filteredConversations.length === 0 ? (
-                  <div className="text-center py-12 px-4 animate-fade-in">
-                    <MessageCircle className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      {searchQuery ? "Không tìm thấy cuộc trò chuyện" : "Chưa có tin nhắn nào"}
-                    </p>
-                    <p className="text-sm text-muted-foreground/70 mt-2">
-                      Bắt đầu trò chuyện khi bạn quan tâm đến một phòng
-                    </p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border">
-                    {filteredConversations.map((conversation) => (
-                      <ConversationItem
-                        key={conversation.id}
-                        conversation={conversation}
-                        isSelected={selectedConversation?.id === conversation.id}
-                        onClick={() => handleConversationClick(conversation)}
-                        currentUserId={user?.id || ""}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <InboxMetric label="Tổng thread" value={`${conversations.length}`} />
+              <InboxMetric label="Chưa đọc" value={`${unreadCount}`} accent="primary" />
+              <InboxMetric
+                label="Theo phòng"
+                value={`${conversations.filter((conversation) => getConversationContextKind(conversation) === "room_inquiry").length}`}
+              />
             </div>
+          </CardContent>
+        </Card>
+        </motion.div>
+
+        <motion.div
+          className={cn(
+            "grid gap-6 xl:items-start",
+            showContextRail ? "xl:grid-cols-[320px_minmax(0,1fr)_320px]" : "xl:grid-cols-[320px_minmax(0,1fr)]",
           )}
+          variants={motionTokens.stagger(0.08, 0.04)}
+        >
+          {showList ? (
+            <ConversationRail
+              conversations={filteredConversations}
+              isLoading={conversationsLoading}
+              activeFilter={activeFilter}
+              filterItems={filterItems}
+              onFilterChange={setActiveFilter}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              selectedConversationId={selectedConversationId}
+              onSelectConversation={(conversationId) => setSelectedConversationId(conversationId)}
+              motionTokens={motionTokens}
+            />
+          ) : null}
 
-          {/* Chat Panel */}
-          {showChat && (
-            <div className="md:col-span-2 h-full flex flex-col overflow-hidden">
-              {selectedConversation ? (
-                <ChatPanel
-                  conversation={selectedConversation}
-                  currentUserId={user?.id || ""}
-                />
-              ) : (
-                <div className="hidden md:flex flex-1 items-center justify-center bg-muted/50">
-                  <div className="text-center">
-                    <MessageCircle className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-                    <p className="text-muted-foreground">Chọn một cuộc trò chuyện để bắt đầu</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+          {showChat ? (
+            <AnimatePresence mode="wait">
+              <ChatWorkspace
+                key={selectedConversation?.id ?? "empty"}
+                conversation={selectedConversation}
+                currentUserId={user?.id || ""}
+                isHostView={profile?.role === "landlord"}
+                onBack={handleBack}
+                onOpenRoom={(roomId) => navigate(`/room/${roomId}`)}
+                motionTokens={motionTokens}
+              />
+            </AnimatePresence>
+          ) : null}
+
+          {showContextRail && selectedConversation ? (
+            <AnimatePresence mode="wait">
+              <ContextRail
+                key={`context-${selectedConversation.id}`}
+                conversation={selectedConversation}
+                onOpenRoom={(roomId) => navigate(`/room/${roomId}`)}
+                motionTokens={motionTokens}
+              />
+            </AnimatePresence>
+          ) : null}
+        </motion.div>
       </div>
-    </div>
+    </motion.section>
   );
 }
 
-// Conversation Item Component
-interface ConversationItemProps {
+function ConversationRail({
+  conversations,
+  isLoading,
+  activeFilter,
+  filterItems,
+  onFilterChange,
+  searchQuery,
+  onSearchChange,
+  selectedConversationId,
+  onSelectConversation,
+  motionTokens,
+}: {
+  conversations: Conversation[];
+  isLoading: boolean;
+  activeFilter: InboxFilter;
+  filterItems: Array<{ value: InboxFilter; label: string }>;
+  onFilterChange: (value: InboxFilter) => void;
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+  selectedConversationId: string | null;
+  onSelectConversation: (conversationId: string) => void;
+  motionTokens: ReturnType<typeof createPublicMotion>;
+}) {
+  return (
+    <motion.div variants={motionTokens.reveal(18)}>
+    <Card className="rounded-[2rem] border-none bg-surface-container-lowest shadow-soft-lg xl:sticky xl:top-28">
+      <CardHeader className="pb-4">
+        <CardTitle className="font-display text-2xl font-extrabold tracking-[-0.03em]">Hộp thư</CardTitle>
+        <CardDescription className="mt-2 text-sm leading-6">
+          Chọn theo unread, theo phòng hoặc direct thread để vào đúng ngữ cảnh nhanh hơn.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
+          <Input
+            value={searchQuery}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Tìm người, phòng hoặc email..."
+            className="h-11 rounded-full border-none bg-surface-container pl-11 shadow-none"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {filterItems.map((item) => (
+            <Button
+              key={item.value}
+              type="button"
+              variant={activeFilter === item.value ? "default" : "outline"}
+              className={cn(
+                "rounded-full px-4",
+                activeFilter === item.value
+                  ? "bg-primary text-white hover:bg-primary/95"
+                  : "border-border bg-surface hover:bg-surface-container",
+              )}
+              onClick={() => onFilterChange(item.value)}
+            >
+              {item.label}
+            </Button>
+          ))}
+        </div>
+
+        <div className="max-h-[30rem] space-y-3 overflow-y-auto pr-1 xl:max-h-[calc(100svh-22rem)]">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : conversations.length === 0 ? (
+            <EmptyInboxState
+              title="Chưa có cuộc trò chuyện nào"
+              body="Khi bạn nhắn với chủ trọ hoặc người dùng khác, thread sẽ hiện ở đây theo đúng ngữ cảnh."
+            />
+          ) : (
+            conversations.map((conversation) => (
+              <ConversationCard
+                key={conversation.id}
+                conversation={conversation}
+                isSelected={conversation.id === selectedConversationId}
+                onClick={() => onSelectConversation(conversation.id)}
+                motionTokens={motionTokens}
+              />
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+    </motion.div>
+  );
+}
+
+function ConversationCard({
+  conversation,
+  isSelected,
+  onClick,
+  motionTokens,
+}: {
   conversation: Conversation;
   isSelected: boolean;
   onClick: () => void;
-  currentUserId: string;
-}
-
-function ConversationItem({ conversation, isSelected, onClick, currentUserId }: ConversationItemProps) {
-  const { participant, lastMessage, unreadCount, roomTitle } = conversation;
-  const initials = participant.full_name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
-  const timeAgo = lastMessage?.created_at
-    ? formatDistanceToNow(parseISO(lastMessage.created_at), { addSuffix: true, locale: vi })
-    : "";
-
-  const isFromMe = lastMessage?.sender_id === currentUserId;
+  motionTokens: ReturnType<typeof createPublicMotion>;
+}) {
+  const initials = getParticipantInitials(conversation.participant.full_name);
+  const contextMeta = getConversationContextMeta(conversation);
+  const timeAgo = conversation.lastMessage?.created_at
+    ? formatDistanceToNow(parseISO(conversation.lastMessage.created_at), { addSuffix: true, locale: vi })
+    : "Vừa xong";
 
   return (
-    <button
+    <motion.button
+      type="button"
       onClick={onClick}
-      className={`w-full p-4 flex items-start gap-3 text-left transition-colors hover:bg-muted ${isSelected ? "bg-primary/5 border-l-4 border-primary" : ""
-        }`}>
-      <div className="relative">
-        <Avatar className="w-12 h-12">
-          <AvatarImage src={participant.avatar_url || undefined} />
-          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20">
-            {initials}
-          </AvatarFallback>
+      className={cn(
+        "w-full rounded-[1.5rem] border border-transparent p-4 text-left transition-colors",
+        isSelected ? "bg-primary/8 ring-1 ring-primary/15" : "bg-surface hover:bg-surface-container",
+      )}
+      variants={motionTokens.revealScale(12, 0.995)}
+      whileHover={motionTokens.hoverSoft}
+      whileTap={motionTokens.tap}
+    >
+      <div className="flex items-start gap-3">
+        <Avatar className="h-12 w-12 border border-border/70">
+          <AvatarImage src={conversation.participant.avatar_url || undefined} />
+          <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
         </Avatar>
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-white text-xs rounded-full flex items-center justify-center">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <p className={`font-medium truncate ${unreadCount > 0 ? "text-foreground" : ""}`}>
-            {participant.full_name}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-on-surface">{conversation.participant.full_name}</p>
+              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-on-surface-variant">{timeAgo}</p>
+            </div>
+            {conversation.unreadCount > 0 ? (
+              <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">
+                {conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Badge className={cn("rounded-full", contextMeta.badgeClassName)}>{contextMeta.label}</Badge>
+            {conversation.roomTitle ? (
+              <span className="truncate text-xs font-medium text-primary">{conversation.roomTitle}</span>
+            ) : null}
+          </div>
+
+          <p className="mt-3 truncate text-sm text-on-surface-variant">
+            {conversation.lastMessage?.content || "Chưa có tin nhắn mới."}
           </p>
-          <span className="text-xs text-muted-foreground shrink-0">{timeAgo}</span>
         </div>
-        {roomTitle && (
-          <p className="text-xs text-primary truncate">{roomTitle}</p>
-        )}
-        <p
-          className={`text-sm truncate mt-0.5 ${unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"
-            }`}
-        >
-          {isFromMe && <span className="text-muted-foreground">Bạn: </span>}
-          {lastMessage?.content}
-        </p>
       </div>
-    </button>
+    </motion.button>
   );
 }
 
-// Chat Panel Component
-interface ChatPanelProps {
-  conversation: Conversation;
+function ChatWorkspace({
+  conversation,
+  currentUserId,
+  isHostView,
+  onBack,
+  onOpenRoom,
+  motionTokens,
+}: {
+  conversation: Conversation | null;
   currentUserId: string;
+  isHostView: boolean;
+  onBack: () => void;
+  onOpenRoom: (roomId: string) => void;
+  motionTokens: ReturnType<typeof createPublicMotion>;
+}) {
+  const [draftMessage, setDraftMessage] = useState("");
+
+  if (!conversation) {
+    return (
+      <motion.div initial="hidden" animate="show" exit="hidden" variants={motionTokens.revealScale(18, 0.99)}>
+      <Card className="rounded-[2rem] border-none bg-surface-container-lowest shadow-soft-lg">
+        <CardContent className="flex min-h-[calc(100svh-20rem)] items-center justify-center p-8">
+          <EmptyInboxState
+            title="Chọn một cuộc trò chuyện"
+            body="RommZ sẽ hiện phần chat chính ở đây sau khi bạn chọn một thread từ hộp thư bên trái."
+          />
+        </CardContent>
+      </Card>
+      </motion.div>
+    );
+  }
+
+  return (
+    <ChatPanel
+      conversation={conversation}
+      currentUserId={currentUserId}
+      draftMessage={draftMessage}
+      onDraftChange={setDraftMessage}
+      isHostView={isHostView}
+      onBack={onBack}
+      onOpenRoom={onOpenRoom}
+      motionTokens={motionTokens}
+    />
+  );
 }
 
-function ChatPanel({ conversation, currentUserId }: ChatPanelProps) {
+function ChatPanel({
+  conversation,
+  currentUserId,
+  draftMessage,
+  onDraftChange,
+  isHostView,
+  onBack,
+  onOpenRoom,
+  motionTokens,
+}: {
+  conversation: Conversation;
+  currentUserId: string;
+  draftMessage: string;
+  onDraftChange: (value: string) => void;
+  isHostView: boolean;
+  onBack: () => void;
+  onOpenRoom: (roomId: string) => void;
+  motionTokens: ReturnType<typeof createPublicMotion>;
+}) {
   const {
     messages,
     isLoading,
@@ -311,164 +462,411 @@ function ChatPanel({ conversation, currentUserId }: ChatPanelProps) {
     markAsRead,
     isSending,
   } = useMessages(conversation.id);
-  const [newMessage, setNewMessage] = useState("");
   const { typingUsers } = useTypingIndicator(conversation.id);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const contextMeta = getConversationContextMeta(conversation);
+  const quickReplies = useMemo(() => getQuickReplies(conversation, isHostView), [conversation, isHostView]);
+  const [isQuickRepliesOpen, setIsQuickRepliesOpen] = useState(false);
+  const lastMessageId = messages[messages.length - 1]?.id;
 
-  // Auto scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [conversation.id, lastMessageId]);
 
-  // Mark as read when opening conversation
-  const hasMarkedAsReadRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    if (conversation.unreadCount > 0 && !hasMarkedAsReadRef.current.has(conversation.id)) {
-      hasMarkedAsReadRef.current.add(conversation.id);
-      markAsRead();
+    if (conversation.unreadCount > 0) {
+      void markAsRead();
     }
   }, [conversation.id, conversation.unreadCount, markAsRead]);
 
-  const handleSend = async () => {
-    if (!newMessage.trim() || isSending) return;
+  const handleSend = useCallback(async () => {
+    if (!draftMessage.trim() || isSending) {
+      return;
+    }
 
-    const content = newMessage.trim();
-    setNewMessage("");
+    const content = draftMessage.trim();
+    onDraftChange("");
 
     try {
       await sendMessage(content);
     } catch (error) {
       console.error("Failed to send message:", error);
-      setNewMessage(content); // Restore on error
+      onDraftChange(content);
+    }
+  }, [draftMessage, isSending, onDraftChange, sendMessage]);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void handleSend();
     }
   };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const isOtherTyping = typingUsers.length > 0;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Chat Header (desktop only) */}
-      <div className="hidden md:flex flex-shrink-0 items-center gap-3 p-4 border-b border-border bg-card">
-        <Avatar className="w-10 h-10">
-          <AvatarImage src={conversation.participant.avatar_url || undefined} />
-          <AvatarFallback>
-            {conversation.participant.full_name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")
-              .toUpperCase()
-              .slice(0, 2)}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <p className="font-medium">{conversation.participant.full_name}</p>
-          {conversation.roomTitle && (
-            <p className="text-sm text-muted-foreground">{conversation.roomTitle}</p>
-          )}
+    <motion.div initial="hidden" animate="show" exit="hidden" variants={motionTokens.revealScale(18, 0.99)}>
+    <Card className="overflow-hidden rounded-[2rem] border-none bg-surface-container-lowest shadow-soft-lg">
+      <CardHeader className="border-b border-border/70 pb-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Button type="button" variant="ghost" size="icon" className="rounded-full lg:hidden" onClick={onBack}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <Avatar className="h-12 w-12 border border-border/70">
+              <AvatarImage src={conversation.participant.avatar_url || undefined} />
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {getParticipantInitials(conversation.participant.full_name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="font-display text-2xl font-extrabold tracking-[-0.03em] text-on-surface">
+                  {conversation.participant.full_name}
+                </CardTitle>
+                <Badge className={cn("rounded-full", contextMeta.badgeClassName)}>{contextMeta.label}</Badge>
+              </div>
+              <p className="mt-2 max-w-[48ch] text-sm leading-6 text-on-surface-variant">
+                {contextMeta.description}
+              </p>
+              {conversation.room ? (
+                <button
+                  type="button"
+                  className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary transition-opacity hover:opacity-80"
+                  onClick={() => onOpenRoom(conversation.room!.id)}
+                >
+                  {conversation.room.title}
+                  <ArrowUpRight className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+          </div>
+          <div className="rounded-full bg-surface px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
+            {typingUsers.length > 0 ? "Đang nhập..." : "Đồng bộ hội thoại"}
+          </div>
         </div>
-      </div>
+      </CardHeader>
 
-      {/* Messages */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-muted/30">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="text-center py-12 animate-fade-in">
-            <MessageCircle className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground">Bắt đầu cuộc trò chuyện</p>
-          </div>
-        ) : (
-          <>
-            {messages.map((message) => (
+      <CardContent className="flex flex-col p-0">
+        <div className="min-h-[22rem] max-h-[calc(100svh-26rem)] space-y-4 overflow-y-auto bg-surface-container/35 px-6 py-6 xl:min-h-[28rem]">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : messages.length === 0 ? (
+            <EmptyInboxState
+              title="Bắt đầu cuộc trò chuyện"
+              body="Thread này đã sẵn ngữ cảnh. Bạn có thể nhắn trực tiếp mà không sợ bị lẫn với một cuộc trao đổi khác."
+            />
+          ) : (
+            messages.map((message) => (
               <MessageBubble
                 key={message.id}
                 message={message}
                 isFromMe={message.sender_id === currentUserId}
               />
-            ))}
-            {isOtherTyping && (
-              <div className="flex justify-start">
-                <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-4 py-2">
-                  <span className="text-sm text-muted-foreground">Đang nhập...</span>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+            ))
+          )}
 
-      {/* Input - Fixed at bottom */}
-      <div className="flex-shrink-0 p-4 border-t border-border bg-card safe-area-pb">
-        <div className="flex items-center gap-3">
-          <Input
-            id="message-composer"
-            aria-label="Nhập tin nhắn"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Nhập tin nhắn..."
-            className="flex-1 rounded-xl"
-            disabled={isSending}
-          />
-          <Button
-            onClick={handleSend}
-            disabled={!newMessage.trim() || isSending}
-            size="icon"
-            className="rounded-xl shrink-0 bg-primary hover:bg-primary/90">
-            {isSending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
+          {typingUsers.length > 0 ? (
+            <div className="flex justify-start">
+              <div className="rounded-[1.25rem] rounded-bl-md bg-surface px-4 py-3 text-sm text-on-surface-variant shadow-sm">
+                Đối phương đang nhập...
+              </div>
+            </div>
+          ) : null}
+
+          <div ref={messagesEndRef} />
         </div>
-      </div>
-    </div>
+
+        <div className="shrink-0 border-t border-border/70 bg-white/90 px-6 py-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-on-surface">Soạn phản hồi</p>
+            <Popover open={isQuickRepliesOpen} onOpenChange={setIsQuickRepliesOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-9 rounded-full px-3 text-xs font-semibold text-on-surface-variant"
+                >
+                  {isQuickRepliesOpen ? "Ẩn gợi ý trả lời" : "Hiện gợi ý trả lời"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                side="top"
+                className="w-[min(22rem,calc(100vw-3rem))] rounded-[1.5rem] border-border/70 p-3"
+              >
+                <div className="mb-2">
+                  <p className="text-sm font-semibold text-on-surface">Gợi ý trả lời nhanh</p>
+                  <p className="mt-1 text-xs leading-5 text-on-surface-variant">
+                    Chọn một mẫu để điền nhanh vào ô soạn tin mà không làm xê dịch layout.
+                  </p>
+                </div>
+                <div className="flex max-h-52 flex-wrap gap-2 overflow-y-auto pr-1">
+                  {quickReplies.map((reply) => (
+                    <button
+                      key={reply}
+                      type="button"
+                      className="rounded-full bg-surface px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:bg-primary/8 hover:text-on-surface"
+                      onClick={() => {
+                        onDraftChange(reply);
+                        setIsQuickRepliesOpen(false);
+                      }}
+                    >
+                      {reply}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="flex flex-col gap-3 md:flex-row md:items-end">
+            <Textarea
+              value={draftMessage}
+              onChange={(event) => onDraftChange(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Nhắn trực tiếp ngay trong thread này..."
+              className="min-h-[108px] rounded-[1.5rem] border-none bg-surface shadow-none"
+              disabled={isSending}
+            />
+            <Button
+              type="button"
+              className="h-12 rounded-full px-6"
+              disabled={!draftMessage.trim() || isSending}
+              onClick={() => void handleSend()}
+            >
+              {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              Gửi tin
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+    </motion.div>
   );
 }
 
-// Message Bubble Component
-interface MessageBubbleProps {
-  message: MessageWithSender;
-  isFromMe: boolean;
+function ContextRail({
+  conversation,
+  onOpenRoom,
+  motionTokens,
+}: {
+  conversation: Conversation;
+  onOpenRoom: (roomId: string) => void;
+  motionTokens: ReturnType<typeof createPublicMotion>;
+}) {
+  const contextMeta = getConversationContextMeta(conversation);
+
+  return (
+    <motion.div
+      className="space-y-6 xl:sticky xl:top-28"
+      variants={motionTokens.reveal(18)}
+      initial="hidden"
+      animate="show"
+      exit="hidden"
+    >
+      <Card className="rounded-[2rem] border-none bg-surface-container-lowest shadow-soft-lg">
+        <CardHeader className="pb-4">
+          <CardTitle className="font-display text-xl font-extrabold tracking-[-0.03em]">Ngữ cảnh cuộc trò chuyện</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {conversation.room ? (
+            <>
+              <div className="overflow-hidden rounded-[1.5rem] bg-surface">
+                <img
+                  src={conversation.room.imageUrl || stitchAssets.roomDetail.gallery[0]}
+                  alt={conversation.room.title}
+                  className="h-44 w-full object-cover"
+                />
+              </div>
+              <div className="rounded-[1.5rem] bg-surface p-4">
+                <p className="font-semibold text-on-surface">{conversation.room.title}</p>
+                <div className="mt-3 flex items-start gap-2 text-sm leading-6 text-on-surface-variant">
+                  <MapPin className="mt-1 h-4 w-4 shrink-0" />
+                  <span>{conversation.room.address || "Listing này đang được hỏi trực tiếp trong thread."}</span>
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <span className="text-sm text-on-surface-variant">Giá tham chiếu</span>
+                  <span className="font-semibold text-primary">
+                    {conversation.room.pricePerMonth ? `${formatMillions(conversation.room.pricePerMonth)}/tháng` : "Chưa cập nhật"}
+                  </span>
+                </div>
+                <Button type="button" className="mt-5 w-full rounded-full" onClick={() => onOpenRoom(conversation.room!.id)}>
+                  Mở chi tiết phòng
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-[1.5rem] bg-surface p-5">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12 border border-border/70">
+                  <AvatarImage src={conversation.participant.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {getParticipantInitials(conversation.participant.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="font-semibold text-on-surface">{conversation.participant.full_name}</p>
+                  <p className="mt-1 text-sm text-on-surface-variant [overflow-wrap:anywhere] break-all">
+                    {conversation.participant.email || "Trao đổi trong hệ sinh thái RommZ"}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-5 rounded-[1.25rem] bg-surface-container p-4 text-sm leading-6 text-on-surface-variant">
+                Đây là thread trực tiếp không gắn với một listing cụ thể. Luồng này phù hợp cho trao đổi hồ sơ, kết nối ở ghép hoặc nhắn trực tiếp giữa hai người dùng.
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-[2rem] border-none bg-surface-container-lowest shadow-soft-lg">
+        <CardHeader className="pb-4">
+          <CardTitle className="font-display text-xl font-extrabold tracking-[-0.03em]">Mẹo phản hồi</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[
+            contextMeta.kind === "room_inquiry"
+              ? "Nếu đang chốt lịch xem phòng, giữ mọi trao đổi về chính listing này trong cùng thread."
+              : "Nếu đây là trao đổi trực tiếp, hãy chốt rõ mục tiêu trò chuyện để tránh nhầm context.",
+            "Trả lời ngắn gọn trước, gửi ảnh hoặc thông tin sâu sau khi hai bên đã thống nhất hướng nói chuyện.",
+            "Khi thread đã rõ ràng, bạn có thể dùng nó như nguồn sự thật duy nhất thay vì tách ra nhiều cuộc chat nhỏ.",
+          ].map((tip) => (
+            <div key={tip} className="rounded-[1.25rem] bg-surface p-4 text-sm leading-6 text-on-surface-variant">
+              {tip}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
 }
 
-function MessageBubble({ message, isFromMe }: MessageBubbleProps) {
+function MessageBubble({
+  message,
+  isFromMe,
+}: {
+  message: MessageWithSender;
+  isFromMe: boolean;
+}) {
   const timeAgo = message.created_at
     ? formatDistanceToNow(parseISO(message.created_at), { addSuffix: true, locale: vi })
     : "";
 
   return (
-    <div className={`flex ${isFromMe ? "justify-end" : "justify-start"}`}>
+    <div className={cn("flex", isFromMe ? "justify-end" : "justify-start")}>
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-2 ${isFromMe
-          ? "bg-primary text-primary-foreground rounded-br-sm"
-          : "bg-card border border-border rounded-bl-sm"
-          }`}>
-        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        className={cn(
+          "max-w-[82%] rounded-[1.5rem] px-4 py-3 shadow-sm [overflow-wrap:anywhere]",
+          isFromMe
+            ? "rounded-br-md bg-primary text-white"
+            : "rounded-bl-md bg-white text-on-surface",
+        )}
+      >
+        <p className="whitespace-pre-wrap break-words text-sm leading-7">{message.content}</p>
         <div
-          className={`flex items-center gap-1 mt-1 text-xs ${isFromMe ? "text-primary-foreground/70 justify-end" : "text-muted-foreground"
-            }`}>
-          <span>{timeAgo}</span>
-          {isFromMe && (
-            message.is_read ? (
-              <CheckCheck className="w-3.5 h-3.5" />
-            ) : (
-              <Check className="w-3.5 h-3.5" />
-            )
+          className={cn(
+            "mt-2 flex items-center gap-1 text-xs",
+            isFromMe ? "justify-end text-white/75" : "text-on-surface-variant",
           )}
+        >
+          <span>{timeAgo}</span>
+          {isFromMe ? message.is_read ? <CheckCheck className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" /> : null}
         </div>
       </div>
     </div>
   );
+}
+
+function InboxMetric({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: "primary";
+}) {
+  return (
+    <div className="rounded-[1.5rem] bg-surface px-4 py-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">{label}</p>
+      <p className={cn("mt-3 font-display text-3xl font-black tracking-[-0.04em] text-on-surface", accent === "primary" && "text-primary")}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function EmptyInboxState({
+  title,
+  body,
+}: {
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="text-center">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface text-primary">
+        <MessageCircle className="h-6 w-6" />
+      </div>
+      <p className="font-semibold text-on-surface">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-on-surface-variant">{body}</p>
+    </div>
+  );
+}
+
+function getConversationContextKind(conversation: Conversation): ConversationContextKind {
+  return conversation.roomId || conversation.roomTitle || conversation.room ? "room_inquiry" : "direct";
+}
+
+function getConversationContextMeta(conversation: Conversation) {
+  const kind = getConversationContextKind(conversation);
+
+  if (kind === "room_inquiry") {
+    return {
+      kind,
+      label: "Hỏi phòng",
+      badgeClassName: "bg-primary/10 text-primary hover:bg-primary/10",
+      description:
+        "Thread này đang gắn với một listing cụ thể, nên mọi phản hồi sẽ giữ đúng bối cảnh của căn phòng đang được hỏi.",
+    };
+  }
+
+  return {
+    kind,
+    label: "Trực tiếp",
+    badgeClassName: "bg-secondary-container text-on-secondary-container hover:bg-secondary-container",
+    description:
+      "Đây là cuộc trò chuyện trực tiếp giữa hai người dùng, phù hợp cho trao đổi hồ sơ, ở ghép hoặc kết nối ngoài luồng hỏi phòng.",
+  };
+}
+
+function getParticipantInitials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function getQuickReplies(conversation: Conversation, isHostView: boolean) {
+  if (conversation.room) {
+    return isHostView
+      ? [
+          "Phòng này vẫn còn trống, bạn muốn chốt lịch xem vào khung nào?",
+          "Mình sẽ gửi thêm ảnh và thông tin chi tiết của listing này ngay trong thread này.",
+          "Nếu cần đổi lịch xem phòng, cứ nhắn lại tại đây để mình cập nhật.",
+        ]
+      : [
+          "Mình muốn hỏi thêm về phòng này trước khi chốt lịch xem.",
+          "Phòng này còn trống không ạ? Mình muốn đặt lịch xem trong tuần này.",
+          "Nếu được, bạn gửi giúp mình thêm ảnh và chi tiết hợp đồng của phòng này nhé.",
+        ];
+  }
+
+  return [
+    "Chào bạn, mình muốn trao đổi thêm một chút trong thread này.",
+    "Mình đã xem hồ sơ của bạn và muốn hỏi thêm vài chi tiết.",
+    "Nếu tiện, mình muốn chốt tiếp bước tiếp theo ngay tại đây.",
+  ];
 }

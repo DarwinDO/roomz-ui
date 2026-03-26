@@ -24,8 +24,12 @@ export const sendMessage = (
 export const markMessagesAsRead = (conversationId: string, userId: string) =>
   messagesService.markMessagesAsRead(supabase, conversationId, userId);
 
-export const getOrCreateConversation = (userId: string, otherUserId: string) =>
-  messagesService.getOrCreateConversation(supabase, userId, otherUserId);
+export const getOrCreateConversation = (
+  userId: string,
+  otherUserId: string,
+  roomId?: string | null,
+  roomTitleSnapshot?: string | null,
+) => messagesService.getOrCreateConversation(supabase, userId, otherUserId, roomId, roomTitleSnapshot);
 
 // Re-export types
 export type { Message, MessageWithUsers, Conversation } from '@roomz/shared/services/messages';

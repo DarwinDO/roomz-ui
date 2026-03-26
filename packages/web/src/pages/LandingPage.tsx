@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -21,9 +22,17 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PROVINCES } from "@/data/vietnam-locations";
+import { createPublicMotion } from "@/lib/motion";
 import { stitchAssets } from "@/lib/stitchAssets";
+import { useThreePilotEnabled } from "@/lib/threePilot";
 import { StitchFooter } from "@/components/common/StitchFooter";
 import { cn } from "@/components/ui/utils";
+
+const LandingHeroPilot3D = lazy(() =>
+  import("@/components/3d/HeroAccentPilot").then((module) => ({
+    default: module.LandingHeroPilot3D,
+  })),
+);
 
 const landingLocations = PROVINCES.map((province) => province.name);
 const defaultLandingLocation =
@@ -113,6 +122,15 @@ const serviceCards = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
+  const canRenderThreePilot = useThreePilotEnabled({
+    enabled: !shouldReduceMotion,
+    minWidth: 1180,
+  });
+  const motionTokens = useMemo(
+    () => createPublicMotion(!!shouldReduceMotion),
+    [shouldReduceMotion],
+  );
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [isBudgetOpen, setIsBudgetOpen] = useState(false);
   const [isRoomTypeOpen, setIsRoomTypeOpen] = useState(false);
@@ -138,9 +156,15 @@ export default function LandingPage() {
         className="pt-24"
         aria-label="Noi dung chinh trang chu, skip link duoc cung cap boi AppShell"
       >
-        <section className="mx-auto max-w-7xl overflow-hidden px-6 pb-24 pt-12 md:px-8">
+        <motion.section
+          className="mx-auto max-w-7xl overflow-hidden px-6 pb-24 pt-12 md:px-8"
+          initial="hidden"
+          whileInView="show"
+          viewport={motionTokens.viewport}
+          variants={motionTokens.stagger(0.1, 0.06)}
+        >
           <div className="grid items-center gap-12 xl:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)] xl:gap-16">
-            <div className="z-10">
+            <motion.div className="z-10" variants={motionTokens.reveal(24)}>
               <span className="mb-6 inline-block rounded-full bg-secondary-container px-4 py-1.5 text-xs font-bold uppercase tracking-[0.24em] text-secondary-container-foreground">
                 Premium co-living
               </span>
@@ -153,7 +177,10 @@ export default function LandingPage() {
                 đúng gu.
               </p>
 
-              <div className="stitch-editorial-shadow flex flex-col gap-4 rounded-[32px] bg-white p-4 lg:flex-row lg:items-center">
+              <motion.div
+                className="stitch-editorial-shadow flex flex-col gap-4 rounded-[32px] bg-white p-4 lg:flex-row lg:items-center"
+                variants={motionTokens.revealScale(24)}
+              >
                 <div className="grid flex-1 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(176px,1.58fr)_minmax(124px,0.78fr)_minmax(152px,0.88fr)] lg:gap-0">
                   <div className="min-w-0 px-4 lg:min-w-[176px] xl:border-r xl:border-surface-container">
                     <span className="block whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
@@ -323,29 +350,41 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <button
+                <motion.button
                   type="button"
                   onClick={handleSearch}
                   className="stitch-primary-gradient flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-[32px] px-8 font-display text-sm font-bold text-white shadow-lg shadow-primary/20 transition-transform hover:scale-[1.01] lg:min-w-[196px] lg:w-auto"
+                  whileHover={motionTokens.hoverSoft}
+                  whileTap={motionTokens.tap}
                 >
                   <Search className="h-4 w-4" />
                   Tìm kiếm
-                </button>
-              </div>
-            </div>
+                </motion.button>
+              </motion.div>
+            </motion.div>
 
-            <div className="relative mx-auto w-full max-w-2xl xl:max-w-none">
+            <motion.div
+              className="relative mx-auto w-full max-w-2xl xl:max-w-none"
+              variants={motionTokens.revealScale(28)}
+            >
               <div className="absolute -right-10 -top-10 h-64 w-64 rounded-full bg-primary-container/20 blur-3xl" />
               <div className="absolute -bottom-10 -left-10 h-64 w-64 rounded-full bg-tertiary-container/20 blur-3xl" />
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <img
+              {canRenderThreePilot ? (
+                <div aria-hidden className="h-[640px]" />
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                <motion.div className="space-y-4" variants={motionTokens.stagger(0.08, 0.08)}>
+                  <motion.img
                     src={stitchAssets.landing.heroLeftTall}
                     alt="Phòng trọ hiện đại nhiều ánh sáng"
                     className="mt-12 h-80 w-full rounded-[32px] object-cover shadow-lg"
+                    variants={motionTokens.revealScale(24)}
                   />
-                  <div className="stitch-editorial-shadow flex items-center gap-4 rounded-[28px] border border-surface-container bg-white p-6">
+                  <motion.div
+                    className="stitch-editorial-shadow flex items-center gap-4 rounded-[28px] border border-surface-container bg-white p-6"
+                    variants={motionTokens.reveal(18)}
+                  >
                     <div className="flex -space-x-3 overflow-hidden">
                       {stitchAssets.landing.friendAvatars.map((avatar) => (
                         <img
@@ -363,29 +402,49 @@ export default function LandingPage() {
                       <p className="font-bold text-foreground">12+ bạn mới</p>
                       <p className="text-muted-foreground">Đang tìm phòng tại Quận 1</p>
                     </div>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
 
-                <div className="space-y-4">
-                  <img
+                <motion.div className="space-y-4" variants={motionTokens.stagger(0.08, 0.12)}>
+                  <motion.img
                     src={stitchAssets.landing.heroRightTall}
                     alt="Không gian sống chung sáng sủa"
                     className="h-96 w-full rounded-[32px] object-cover shadow-lg"
+                    variants={motionTokens.revealScale(28)}
                   />
-                  <img
+                  <motion.img
                     src={stitchAssets.landing.heroRightBottom}
                     alt="Ngoại thất khu nhà hiện đại"
                     className="h-48 w-full rounded-[32px] object-cover shadow-lg"
+                    variants={motionTokens.revealScale(18)}
                   />
+                </motion.div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
+              )}
 
-        <section className="bg-surface-container-low py-24">
+              {canRenderThreePilot ? (
+                <div className="absolute inset-0">
+                  <Suspense fallback={null}>
+                    <LandingHeroPilot3D friendAvatars={stitchAssets.landing.friendAvatars} />
+                  </Suspense>
+                </div>
+              ) : null}
+            </motion.div>
+          </div>
+        </motion.section>
+
+        <motion.section
+          className="bg-surface-container-low py-24"
+          initial="hidden"
+          whileInView="show"
+          viewport={motionTokens.viewport}
+          variants={motionTokens.stagger(0.08, 0.05)}
+        >
           <div className="mx-auto max-w-7xl px-6 md:px-8">
-            <div className="mb-16 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+            <motion.div
+              className="mb-16 flex flex-col gap-8 md:flex-row md:items-end md:justify-between"
+              variants={motionTokens.reveal(22)}
+            >
               <div className="max-w-xl">
                 <h2 className="mb-6">Dịch vụ tại RommZ</h2>
                 <p className="text-lg text-muted-foreground">
@@ -393,26 +452,32 @@ export default function LandingPage() {
                   những lối vào rõ ràng.
                 </p>
               </div>
-              <button
+              <motion.button
                 type="button"
                 onClick={() => navigate("/services")}
                 className="group flex items-center gap-2 font-display text-sm font-bold text-primary transition-all hover:gap-4"
+                whileTap={motionTokens.tap}
               >
                 Xem tất cả dịch vụ
                 <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
 
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            <motion.div
+              className="grid gap-8 md:grid-cols-2 lg:grid-cols-4"
+              variants={motionTokens.stagger(0.08, 0.08)}
+            >
               {serviceCards.map((card) => {
                 const Icon = card.icon;
 
                 return (
-                  <button
+                  <motion.button
                     key={card.title}
                     type="button"
                     onClick={() => navigate(card.path)}
                     className="group rounded-[28px] bg-white p-8 text-left transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-primary/10"
+                    variants={motionTokens.revealScale(20)}
+                    whileTap={motionTokens.tap}
                   >
                     <div
                       className={`mb-8 flex h-16 w-16 items-center justify-center rounded-[22px] ${card.accent} transition-transform group-hover:scale-110`}
@@ -424,26 +489,37 @@ export default function LandingPage() {
                       {card.description}
                     </p>
                     <div className={`h-1 w-10 rounded-full ${card.line}`} />
-                  </button>
+                  </motion.button>
                 );
               })}
-            </div>
+            </motion.div>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="mx-auto max-w-7xl px-6 py-24 md:px-8">
-          <div className="mb-20 text-center">
+        <motion.section
+          className="mx-auto max-w-7xl px-6 py-24 md:px-8"
+          initial="hidden"
+          whileInView="show"
+          viewport={motionTokens.viewport}
+          variants={motionTokens.stagger(0.08, 0.05)}
+        >
+          <motion.div className="mb-20 text-center" variants={motionTokens.reveal(22)}>
             <h2 className="mb-4">Cộng đồng RommZ</h2>
             <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
               Nơi những câu chuyện về chia sẻ, chuyển phòng và kết nối bắt đầu.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid h-[800px] grid-cols-1 gap-6 md:h-[600px] md:grid-cols-4 md:grid-rows-2">
-            <button
+          <motion.div
+            className="grid h-[800px] grid-cols-1 gap-6 md:h-[600px] md:grid-cols-4 md:grid-rows-2"
+            variants={motionTokens.stagger(0.08, 0.08)}
+          >
+            <motion.button
               type="button"
               onClick={() => navigate("/community")}
               className="group relative overflow-hidden rounded-[32px] md:col-span-2 md:row-span-2"
+              variants={motionTokens.revealScale(24)}
+              whileTap={motionTokens.tap}
             >
               <img
                 src={stitchAssets.landing.communityHero}
@@ -469,12 +545,14 @@ export default function LandingPage() {
                   <span className="text-xs font-medium text-white">Bởi Minh Anh • 2 ngày trước</span>
                 </div>
               </div>
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
               type="button"
               onClick={() => navigate("/community")}
               className="rounded-[32px] border border-transparent bg-surface-container p-8 text-left transition-all hover:border-primary/20 md:col-span-2"
+              variants={motionTokens.reveal(18)}
+              whileTap={motionTokens.tap}
             >
               <div className="mb-6 flex items-start justify-between">
                 <div className="flex items-center gap-2 font-display text-sm font-bold text-primary">
@@ -503,31 +581,42 @@ export default function LandingPage() {
                   42 phản hồi • 156 lượt xem
                 </span>
               </div>
-            </button>
+            </motion.button>
 
-            <div className="flex flex-col items-center justify-center rounded-[32px] bg-primary-container p-8 text-center">
+            <motion.div
+              className="flex flex-col items-center justify-center rounded-[32px] bg-primary-container p-8 text-center"
+              variants={motionTokens.revealScale(16)}
+            >
               <span className="font-display text-4xl font-black text-primary-container-foreground">
                 50k+
               </span>
               <span className="mt-2 text-sm font-bold uppercase tracking-[0.22em] text-primary-container-foreground/80">
                 Thành viên
               </span>
-            </div>
+            </motion.div>
 
-            <button
+            <motion.button
               type="button"
               onClick={() => navigate("/community")}
               className="group flex cursor-pointer flex-col items-center justify-center rounded-[32px] bg-secondary-container p-8 text-center"
+              variants={motionTokens.revealScale(16)}
+              whileTap={motionTokens.tap}
             >
               <Sparkles className="mb-4 h-10 w-10 text-secondary-container-foreground transition-transform group-hover:rotate-12" />
               <span className="text-sm font-bold uppercase tracking-[0.22em] text-secondary-container-foreground">
                 Tham gia ngay
               </span>
-            </button>
-          </div>
-        </section>
+            </motion.button>
+          </motion.div>
+        </motion.section>
 
-        <section className="relative z-20 mx-auto mb-[-80px] max-w-7xl px-6 md:px-8">
+        <motion.section
+          className="relative z-20 mx-auto mb-[-80px] max-w-7xl px-6 md:px-8"
+          initial="hidden"
+          whileInView="show"
+          viewport={motionTokens.viewport}
+          variants={motionTokens.revealScale(22)}
+        >
           <div className="stitch-primary-gradient relative overflow-hidden rounded-[32px] p-12 md:p-16">
             <div className="absolute -right-40 -top-40 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
             <div className="relative z-10 flex flex-col gap-12 md:flex-row md:items-center md:justify-between">
@@ -547,18 +636,20 @@ export default function LandingPage() {
                     placeholder="Email của bạn"
                     className="w-full border-none bg-transparent px-4 text-white outline-none placeholder:text-white/50 sm:w-64"
                   />
-                  <button
+                  <motion.button
                     type="button"
                     onClick={() => navigate("/login")}
                     className="rounded-[24px] bg-white px-8 py-3 font-display text-sm font-bold text-primary transition-colors hover:bg-surface-container-lowest"
+                    whileHover={motionTokens.hoverSoft}
+                    whileTap={motionTokens.tap}
                   >
                     Đăng ký
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
       </main>
 
       <StitchFooter />

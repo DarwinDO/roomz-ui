@@ -301,13 +301,13 @@ export const router = createBrowserRouter([
         path: 'host/bookings/:id',
         element: (
           <LandlordRoute>
-            <Navigate to="/host?tab=bookings" replace />
+            <Navigate to="/host?tab=appointments" replace />
           </LandlordRoute>
         ),
       },
       {
         path: 'landlord/bookings/:id',
-        element: <Navigate to="/host?tab=bookings" replace />,
+        element: <Navigate to="/host?tab=appointments" replace />,
       },
       {
         path: 'bookings/:id',

@@ -3,7 +3,7 @@
  * React hooks for conversations and messages using controlled polling
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts';
 import { getConversations, type Conversation } from '@/services/messages';
 import { getMessages, sendMessage as sendMessageApi } from '@/services/chat';
@@ -37,28 +37,41 @@ export function useConversations(): UseConversationsReturn {
   const [error, setError] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const isReady = !authLoading && !!user?.id && !!session?.access_token;
+  const hasLoadedRef = useRef(false);
 
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(async (options?: { background?: boolean }) => {
     if (!isReady) {
       setConversations([]);
       setUnreadCount(0);
       setLoading(false);
+      hasLoadedRef.current = false;
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    const background = options?.background ?? false;
+    const shouldShowLoading = !background && !hasLoadedRef.current;
+
+    if (shouldShowLoading) {
+      setLoading(true);
+    }
+
+    if (!background) {
+      setError(null);
+    }
 
     try {
       const convos = await getConversations(user.id);
       setConversations(convos);
       setUnreadCount(convos.reduce((total, conversation) => total + conversation.unreadCount, 0));
+      hasLoadedRef.current = true;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch conversations';
       setError(errorMessage);
       console.error('[useConversations] Fetch error:', err);
     } finally {
-      setLoading(false);
+      if (shouldShowLoading) {
+        setLoading(false);
+      }
     }
   }, [isReady, user?.id]);
 
@@ -76,7 +89,7 @@ export function useConversations(): UseConversationsReturn {
     }
 
     const intervalId = window.setInterval(() => {
-      void fetchConversations();
+      void fetchConversations({ background: true });
     }, 30000);
 
     return () => {
@@ -102,17 +115,28 @@ export function useConversationMessages(
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<UseMessagesReturn['connectionStatus']>('disconnected');
   const isReady = !authLoading && !!user?.id && !!session?.access_token;
+  const hasLoadedRef = useRef(false);
 
-  const fetchMessages = useCallback(async () => {
+  const fetchMessages = useCallback(async (options?: { background?: boolean }) => {
     if (!conversationId || !isReady) {
       setMessages([]);
       setLoading(false);
       setConnectionStatus('disconnected');
+      hasLoadedRef.current = false;
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    const background = options?.background ?? false;
+    const shouldShowLoading = !background && !hasLoadedRef.current;
+
+    if (shouldShowLoading) {
+      setLoading(true);
+    }
+
+    if (!background) {
+      setError(null);
+    }
+
     setConnectionStatus('connected');
 
     try {
@@ -121,13 +145,16 @@ export function useConversationMessages(
         ...msg,
         sender: msg.sender as MessageWithSender['sender'],
       })));
+      hasLoadedRef.current = true;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch messages';
       setError(errorMessage);
       setConnectionStatus('error');
       console.error('[useConversationMessages] Fetch error:', err);
     } finally {
-      setLoading(false);
+      if (shouldShowLoading) {
+        setLoading(false);
+      }
     }
   }, [conversationId, isReady]);
 
@@ -146,7 +173,7 @@ export function useConversationMessages(
     }
 
     const intervalId = window.setInterval(() => {
-      void fetchMessages();
+      void fetchMessages({ background: true });
     }, 8000);
 
     return () => {

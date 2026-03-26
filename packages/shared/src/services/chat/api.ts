@@ -38,6 +38,57 @@ export interface Conversation {
     unreadCount: number;
     createdAt?: string;
     updatedAt?: string;
+    roomId?: string;
+    roomTitle?: string;
+    room?: {
+        id: string;
+        title: string;
+        address?: string | null;
+        pricePerMonth?: number | null;
+        imageUrl?: string | null;
+    };
+}
+
+type ConversationRecord = {
+    id: string;
+    created_at: string | null;
+    updated_at: string | null;
+    room_id: string | null;
+    room_title_snapshot: string | null;
+    room?: {
+        id: string;
+        title: string | null;
+        address?: string | null;
+        price_per_month?: number | null;
+        room_images?: Array<{ image_url: string | null; display_order?: number | null }>;
+    } | null;
+    conversation_participants?: Array<{
+        user_id: string;
+        user: UserInfo | null;
+    }>;
+};
+
+function mapRoomContext(conversation: ConversationRecord) {
+    const room = conversation.room ?? null;
+    const roomTitle = room?.title || conversation.room_title_snapshot || undefined;
+    const roomImageUrl = room?.room_images
+        ?.slice()
+        .sort((left, right) => Number(left.display_order ?? 0) - Number(right.display_order ?? 0))[0]
+        ?.image_url || null;
+
+    return {
+        roomId: conversation.room_id || undefined,
+        roomTitle,
+        room: room && roomTitle
+            ? {
+                id: room.id,
+                title: roomTitle,
+                address: room.address || null,
+                pricePerMonth: room.price_per_month ?? null,
+                imageUrl: roomImageUrl,
+            }
+            : undefined,
+    };
 }
 
 // ============================================
@@ -70,6 +121,15 @@ export async function getConversations(
       id,
       created_at,
       updated_at,
+      room_id,
+      room_title_snapshot,
+      room:rooms(
+        id,
+        title,
+        address,
+        price_per_month,
+        room_images(image_url, display_order)
+      ),
       conversation_participants!inner (
         user_id,
         user:users (id, full_name, avatar_url, email)
@@ -100,7 +160,7 @@ export async function getConversations(
     // Step 5: Build conversation objects
     const conversations: Conversation[] = [];
 
-    for (const conv of conversationsData || []) {
+    for (const conv of (conversationsData || []) as unknown as ConversationRecord[]) {
         // Find other participant (not current user)
         const participants = (conv.conversation_participants || []) as unknown as Array<{
             user_id: string;
@@ -125,6 +185,7 @@ export async function getConversations(
             unreadCount: unreadCounts[conv.id] || 0,
             createdAt: conv.created_at || '',
             updatedAt: conv.updated_at || '',
+            ...mapRoomContext(conv),
         });
     }
 
@@ -242,10 +303,14 @@ export async function markMessagesAsRead(
 export async function getOrCreateConversation(
     supabase: SupabaseClient,
     userId: string,
-    otherUserId: string
+    otherUserId: string,
+    roomId?: string | null,
+    roomTitleSnapshot?: string | null,
 ): Promise<string> {
     // Try RPC first (atomic operation)
     const { data, error } = await supabase.rpc('get_or_create_conversation', {
+        room_id: roomId ?? null,
+        room_title_snapshot: roomTitleSnapshot ?? null,
         user1_id: userId,
         user2_id: otherUserId,
     });
@@ -264,8 +329,16 @@ export async function getOrCreateConversation(
 export async function startConversation(
     supabase: SupabaseClient,
     otherUserId: string,
-    currentUserId: string
+    currentUserId: string,
+    roomId?: string | null,
+    roomTitleSnapshot?: string | null,
 ): Promise<{ id: string }> {
-    const conversationId = await getOrCreateConversation(supabase, currentUserId, otherUserId);
+    const conversationId = await getOrCreateConversation(
+        supabase,
+        currentUserId,
+        otherUserId,
+        roomId,
+        roomTitleSnapshot,
+    );
     return { id: conversationId };
 }

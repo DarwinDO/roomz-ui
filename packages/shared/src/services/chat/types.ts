@@ -27,6 +27,14 @@ export interface UserInfo {
     email?: string;
 }
 
+export interface ConversationRoomContext {
+    id: string;
+    title: string;
+    address?: string | null;
+    pricePerMonth?: number | null;
+    imageUrl?: string | null;
+}
+
 export interface Conversation {
     id: string;
     participant: UserInfo;
@@ -36,6 +44,7 @@ export interface Conversation {
     updatedAt?: string;
     roomId?: string;
     roomTitle?: string;
+    room?: ConversationRoomContext;
 }
 
 export interface QuickReply {

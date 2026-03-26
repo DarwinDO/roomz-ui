@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -18,6 +19,7 @@ import { BookMovingModal } from "@/components/modals/BookMovingModal";
 import { CleaningScheduleModal } from "@/components/modals/CleaningScheduleModal";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
 import { StitchFooter } from "@/components/common/StitchFooter";
+import { createPublicMotion } from "@/lib/motion";
 import { stitchAssets } from "@/lib/stitchAssets";
 import { UPGRADE_SOURCES } from "@roomz/shared/constants/tracking";
 import type { DealWithPartner } from "@/services/deals";
@@ -120,6 +122,11 @@ function categoryDisplayLabel(category?: string | null) {
 
 export default function ServicesHubPage() {
   const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
+  const motionTokens = useMemo(
+    () => createPublicMotion(!!shouldReduceMotion),
+    [shouldReduceMotion],
+  );
   const { data: partners = [] } = usePartners();
   const { data: deals = [] } = useDeals();
   const { isPremium } = usePremiumLimits();
@@ -181,9 +188,15 @@ export default function ServicesHubPage() {
         className="min-h-screen pb-24 pt-20 md:pb-0"
         aria-label="Noi dung chinh dich vu, skip link duoc cung cap boi AppShell"
       >
-        <section className="relative mx-auto max-w-7xl overflow-hidden px-6 py-12 md:py-20">
+        <motion.section
+          className="relative mx-auto max-w-7xl overflow-hidden px-6 py-12 md:py-20"
+          initial="hidden"
+          whileInView="show"
+          viewport={motionTokens.viewport}
+          variants={motionTokens.stagger(0.08, 0.06)}
+        >
           <div className="relative z-10 grid items-center gap-12 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-            <div className="space-y-8">
+            <motion.div className="space-y-8" variants={motionTokens.reveal(22)}>
               <span className="inline-block rounded-full bg-primary-container/20 px-4 py-2 font-display text-sm font-bold text-primary">
                 Dành riêng cho cư dân RommZ
               </span>
@@ -195,7 +208,7 @@ export default function ServicesHubPage() {
                 nằm trong cùng một hành trình, đúng như spec Stitch của RommZ.
               </p>
               <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
-                <button
+                <motion.button
                   type="button"
                   onClick={() => document.getElementById("family-services")?.scrollIntoView({ behavior: "smooth" })}
                   onKeyDown={(event) => {
@@ -204,20 +217,27 @@ export default function ServicesHubPage() {
                     }
                   }}
                   className="stitch-primary-gradient rounded-full px-8 py-4 font-display text-sm font-bold text-white stitch-editorial-shadow transition-transform hover:scale-105"
+                  whileHover={motionTokens.hoverSoft}
+                  whileTap={motionTokens.tap}
                 >
                   Khám phá ngay
-                </button>
-                <button
+                </motion.button>
+                <motion.button
                   type="button"
                   onClick={revealDeals}
                   className="rounded-full bg-surface-container-highest px-8 py-4 font-display text-sm font-bold text-primary-container-foreground transition-transform hover:scale-105"
+                  whileHover={motionTokens.hoverSoft}
+                  whileTap={motionTokens.tap}
                 >
                   Xem voucher
-                </button>
+                </motion.button>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="relative mx-auto w-full max-w-2xl xl:max-w-none">
+            <motion.div
+              className="relative mx-auto w-full max-w-2xl xl:max-w-none"
+              variants={motionTokens.revealScale(24)}
+            >
               <div className="absolute -right-10 -top-10 h-64 w-64 rounded-full bg-secondary-container/30 blur-3xl" />
               <div className="absolute -bottom-10 -left-10 h-48 w-48 rounded-full bg-tertiary-container/30 blur-2xl" />
               <img
@@ -225,7 +245,10 @@ export default function ServicesHubPage() {
                 alt="Không gian dịch vụ và cộng đồng của RommZ"
                 className="stitch-editorial-shadow h-[420px] w-full rounded-[32px] object-cover xl:h-[500px]"
               />
-              <div className="stitch-editorial-shadow absolute bottom-4 right-4 max-w-[220px] rounded-[28px] border border-white/20 bg-white/80 p-6 backdrop-blur-xl xl:-bottom-6 xl:right-6 xl:max-w-[240px]">
+              <motion.div
+                className="stitch-editorial-shadow absolute bottom-4 right-4 max-w-[220px] rounded-[28px] border border-white/20 bg-white/80 p-6 backdrop-blur-xl xl:-bottom-6 xl:right-6 xl:max-w-[240px]"
+                variants={motionTokens.reveal(18, 0.08)}
+              >
                 <div className="mb-2 flex items-center gap-3">
                   <HeartHandshake className="h-5 w-5 text-secondary" />
                   <span className="font-display text-sm font-bold text-foreground">98% hài lòng</span>
@@ -233,31 +256,43 @@ export default function ServicesHubPage() {
                 <p className="text-xs leading-6 text-muted-foreground">
                   Hơn 5000+ cư dân đã dùng dịch vụ và voucher quanh nơi ở trong tháng qua.
                 </p>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           </div>
-        </section>
+        </motion.section>
 
-        <section id="family-services" className="bg-surface-container-low py-16 md:py-24">
+        <motion.section
+          id="family-services"
+          className="bg-surface-container-low py-16 md:py-24"
+          initial="hidden"
+          whileInView="show"
+          viewport={motionTokens.viewport}
+          variants={motionTokens.stagger(0.08, 0.05)}
+        >
           <div className="mx-auto max-w-7xl px-6">
-            <div className="mb-12">
+            <motion.div className="mb-12" variants={motionTokens.reveal(20)}>
               <h2 className="mb-4 text-3xl">Dịch vụ gia đình</h2>
               <p className="font-body text-muted-foreground">
                 Mọi nhu cầu xoay quanh việc vào ở, chuyển phòng và chăm phòng được gom lại
                 trong một cụm rõ ràng.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            <motion.div
+              className="grid gap-8 md:grid-cols-2 lg:grid-cols-4"
+              variants={motionTokens.stagger(0.08, 0.08)}
+            >
               {familyServices.map((service) => {
                 const Icon = service.icon;
 
                 return (
-                  <button
+                  <motion.button
                     key={service.id}
                     type="button"
                     onClick={() => handleServiceClick(service.id)}
                     className="group flex rounded-[28px] bg-white p-8 text-left transition-all hover:-translate-y-2 stitch-editorial-shadow"
+                    variants={motionTokens.revealScale(20)}
+                    whileTap={motionTokens.tap}
                   >
                     <div className="flex h-full flex-col">
                       <div
@@ -277,15 +312,25 @@ export default function ServicesHubPage() {
                         </span>
                       </div>
                     </div>
-                  </button>
+                  </motion.button>
                 );
               })}
-            </div>
+            </motion.div>
           </div>
-        </section>
+        </motion.section>
 
-        <section id="hot-deals" className="mx-auto max-w-7xl px-6 py-16 md:py-24">
-          <div className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <motion.section
+          id="hot-deals"
+          className="mx-auto max-w-7xl px-6 py-16 md:py-24"
+          initial="hidden"
+          whileInView="show"
+          viewport={motionTokens.viewport}
+          variants={motionTokens.stagger(0.08, 0.05)}
+        >
+          <motion.div
+            className="mb-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
+            variants={motionTokens.reveal(20)}
+          >
             <div>
               <h2 className="mb-4 text-3xl">Ưu đãi đối tác</h2>
               <p className="font-body text-muted-foreground">
@@ -293,7 +338,7 @@ export default function ServicesHubPage() {
                 thật của RommZ.
               </p>
             </div>
-            <button
+            <motion.button
               type="button"
               onClick={() => {
                 if (showAllDeals) {
@@ -305,20 +350,26 @@ export default function ServicesHubPage() {
                 revealDeals();
               }}
               className="flex items-center gap-2 font-display text-sm font-bold text-primary hover:underline"
+              whileTap={motionTokens.tap}
             >
               {showAllDeals ? "Thu gọn ưu đãi" : "Xem toàn bộ ưu đãi"}
               <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <motion.div
+            className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
+            variants={motionTokens.stagger(0.08, 0.08)}
+          >
             {mappedDeals.length > 0
               ? visibleDeals.map((deal) => (
-                  <button
+                  <motion.button
                     key={deal.id}
                     type="button"
                     onClick={() => openDeal(deal)}
                     className="overflow-hidden rounded-[28px] bg-white text-left stitch-editorial-shadow"
+                    variants={motionTokens.revealScale(18)}
+                    whileTap={motionTokens.tap}
                   >
                     <div className="relative h-40">
                       <img src={deal.image} alt={deal.partner.name} className="h-full w-full object-cover" />
@@ -346,10 +397,14 @@ export default function ServicesHubPage() {
                         </span>
                       </div>
                     </div>
-                  </button>
+                  </motion.button>
                 ))
               : visiblePartners.map((partner, index) => (
-                  <div key={partner.id} className="overflow-hidden rounded-[28px] bg-white stitch-editorial-shadow">
+                  <motion.div
+                    key={partner.id}
+                    className="overflow-hidden rounded-[28px] bg-white stitch-editorial-shadow"
+                    variants={motionTokens.revealScale(18)}
+                  >
                     <div className="relative h-40">
                       <img
                         src={partner.image_url || stitchAssets.services.dealImages[index]}
@@ -363,9 +418,9 @@ export default function ServicesHubPage() {
                         {partner.specialization || "Đối tác địa phương của RommZ"}
                       </p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
-          </div>
+          </motion.div>
 
           {showAllDeals && mappedDeals.length > 0 && partners.length > 0 ? (
             <div className="mt-14">
@@ -381,9 +436,16 @@ export default function ServicesHubPage() {
                 </span>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <motion.div
+                className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
+                variants={motionTokens.stagger(0.08, 0.06)}
+              >
                 {visiblePartners.map((partner, index) => (
-                  <div key={`expanded-${partner.id}`} className="overflow-hidden rounded-[28px] bg-white stitch-editorial-shadow">
+                  <motion.div
+                    key={`expanded-${partner.id}`}
+                    className="overflow-hidden rounded-[28px] bg-white stitch-editorial-shadow"
+                    variants={motionTokens.revealScale(16)}
+                  >
                     <div className="relative h-40">
                       <img
                         src={partner.image_url || stitchAssets.services.dealImages[index % stitchAssets.services.dealImages.length]}
@@ -397,19 +459,32 @@ export default function ServicesHubPage() {
                         {partner.specialization || "Đối tác địa phương của RommZ"}
                       </p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             </div>
           ) : null}
-        </section>
+        </motion.section>
 
-        <section className="bg-surface py-16 md:py-24">
+        <motion.section
+          className="bg-surface py-16 md:py-24"
+          initial="hidden"
+          whileInView="show"
+          viewport={motionTokens.viewport}
+          variants={motionTokens.stagger(0.08, 0.05)}
+        >
           <div className="mx-auto max-w-7xl px-6">
             <h2 className="mb-16 text-center text-3xl">Tiếng nói cư dân</h2>
-            <div className="grid gap-12 md:grid-cols-3">
+            <motion.div
+              className="grid gap-12 md:grid-cols-3"
+              variants={motionTokens.stagger(0.08, 0.08)}
+            >
               {reviews.map((review, index) => (
-                <div key={review.name} className="relative pt-12">
+                <motion.div
+                  key={review.name}
+                  className="relative pt-12"
+                  variants={motionTokens.revealScale(18)}
+                >
                   <div className="stitch-editorial-shadow absolute left-1/2 top-0 h-20 w-20 -translate-x-1/2 overflow-hidden rounded-full border-4 border-white">
                     <img
                       src={stitchAssets.services.reviewAvatars[index]}
@@ -429,11 +504,11 @@ export default function ServicesHubPage() {
                     <h5 className="font-display text-base font-bold text-foreground">{review.name}</h5>
                     <span className="text-xs text-muted-foreground">{review.role}</span>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
-        </section>
+        </motion.section>
       </main>
 
       <StitchFooter variant="dark" />

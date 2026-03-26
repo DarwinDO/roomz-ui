@@ -1,6 +1,13 @@
 import { Suspense } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LogIn, LogOut, MessageCircle, User as UserIcon } from "lucide-react";
+import {
+  HousePlus,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  MessageCircle,
+  User as UserIcon,
+} from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { BottomNav } from "@/components/common/BottomNav";
 import { Chatbot } from "@/components/common/Chatbot";
@@ -33,6 +40,10 @@ export default function AppShell() {
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
   const { unreadCount } = useUnreadConversationCount();
+  const isLandlord = profile?.role === "landlord";
+  const desktopNavItems = isLandlord
+    ? [...NAV_ITEMS, { path: "/host", label: "Chủ nhà" }]
+    : NAV_ITEMS;
 
   const isActive = (path: string) =>
     path === "/" ? location.pathname === path : location.pathname.startsWith(path);
@@ -75,7 +86,7 @@ export default function AppShell() {
           </Link>
 
           <nav className="flex items-center gap-8 font-display text-sm font-semibold tracking-tight">
-            {NAV_ITEMS.map((item) => (
+            {desktopNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -141,6 +152,17 @@ export default function AppShell() {
                       <MessageCircle className="mr-2 h-4 w-4" />
                       Tin nhắn
                     </DropdownMenuItem>
+                    {isLandlord ? (
+                      <DropdownMenuItem onSelect={() => navigate("/host")}>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Bảng điều khiển chủ nhà
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onSelect={() => navigate("/become-host")}>
+                        <HousePlus className="mr-2 h-4 w-4" />
+                        Trở thành chủ nhà
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onSelect={handleSignOut} className="text-red-600">
                       <LogOut className="mr-2 h-4 w-4" />

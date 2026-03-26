@@ -24,11 +24,19 @@ export const sendMessage = (
 export const markMessagesAsRead = (conversationId: string, userId: string) =>
     chatApi.markMessagesAsRead(supabase, conversationId, userId);
 
-export const getOrCreateConversation = (userId: string, otherUserId: string) =>
-    chatApi.getOrCreateConversation(supabase, userId, otherUserId);
+export const getOrCreateConversation = (
+    userId: string,
+    otherUserId: string,
+    roomId?: string | null,
+    roomTitleSnapshot?: string | null,
+) => chatApi.getOrCreateConversation(supabase, userId, otherUserId, roomId, roomTitleSnapshot);
 
-export const startConversation = (otherUserId: string, currentUserId: string) =>
-    chatApi.startConversation(supabase, otherUserId, currentUserId);
+export const startConversation = (
+    otherUserId: string,
+    currentUserId: string,
+    roomId?: string | null,
+    roomTitleSnapshot?: string | null,
+) => chatApi.startConversation(supabase, otherUserId, currentUserId, roomId, roomTitleSnapshot);
 
 // Re-export types
 export type { Message, MessageWithSender, Conversation, UserInfo } from '@roomz/shared/services/chat';

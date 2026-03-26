@@ -15,7 +15,7 @@ description: Implementation rules and technical boundaries for the RoomZ Stitch-
 
 ## Core Rules
 
-- Use Stitch as the direct visual source of truth for the six in-scope desktop routes
+- Use Stitch as the direct visual source of truth for the current in-scope desktop routes
 - Port production UI manually into React; do not ship generated HTML
 - Keep RoomZ auth, routing, data flow, modal flow, and Supabase behavior intact
 - Do not introduce mobile-only decisions, motion polish, or 3D into this phase
@@ -36,7 +36,7 @@ description: Implementation rules and technical boundaries for the RoomZ Stitch-
 - Added `stitchAssets.ts` and `StitchFooter.tsx` to support the Stitch-first desktop port
 - Ported `/`, `/login`, `/services`, `/community`, `/roommates`, and `/room/:id` manually from Stitch screens
 - Kept RoomZ auth, routing, modal flows, room data, and Supabase-backed behavior intact while remapping them into Stitch-first layouts
-- Completed desktop parity screenshots with Playwright for the six in-scope routes
+- Completed desktop parity screenshots with Playwright for the original six public routes before expanding the scope
 - Cleared the scripted accessibility and SEO regressions introduced during the port
 - Added direct Stitch typography aliases and color token aliases so headline/body roles resolve correctly in production code
 - Rebalanced landing, login, services, and room detail for the `1024-1440` desktop band after the first user review surfaced overflow and cramped composition
@@ -108,8 +108,105 @@ description: Implementation rules and technical boundaries for the RoomZ Stitch-
   - added a global stable-scrollbar guard so body scroll locking no longer changes centered form width
   - migrated the remaining user-facing posting selects to `FormSelectPopover` in `post-room`, `create-sublet`, and `PostListingModal`
   - recorded the rule that future inline user-facing dropdowns should avoid raw Radix `Select`
+- Ported `/host` manually from the generated Stitch landlord dashboard screen:
+  - replaced the old host-only dashboard shell with a Stitch-first landlord console
+  - kept live RoomZ data for listings, bookings, messages, and income estimates inside the new host layout
+  - preserved the booking confirm / reject / complete dialog flow while remapping it into the new request queue card and appointments tab
+  - normalized legacy landlord query params (`my-rooms`, `pending`, `confirmed`, `history`, `bookings`) into the new dashboard tabs
+  - updated legacy booking redirects to land on `/host?tab=appointments`
+- Exposed the host flow from the shared shell:
+  - landlord accounts now see `Chủ nhà` directly in the desktop navbar
+  - the avatar menu now links to `/host` for landlords and `/become-host` for non-landlords
+  - the mobile quick-access sheet mirrors the same branching so the host path is no longer hidden
+- Generated the deeper host tab screens in Stitch for review before code porting:
+  - `Tin Đăng Chủ Nhà - Living Atlas`
+  - `Lịch Hẹn Chủ Nhà - Living Atlas`
+  - `Tin Nhắn Chủ Nhà - Living Atlas`
+  - `Thu Nhập Chủ Nhà - Living Atlas`
+- Generated the pre-host onboarding screen in Stitch:
+  - `Đăng Ký Làm Host - Living Atlas`
+- Locked an implementation boundary for future host tab ports:
+  - keep the shared host top navbar + horizontal tab bar from the existing `/host` shell
+  - do not port a left sidebar from host concepts even if a generated Stitch variant introduces one
+
+- Ported `/become-host` manually from the generated Stitch host-registration screen:
+  - replaced the old host-application shell with the reviewed Stitch-first conversion layout
+  - preserved the live pending / rejected / approved redirect flow from the existing host-application service
+  - added local draft save and restore so non-landlord users can continue the form on the same device
+- Ported the reviewed host sub-screen concepts into the existing `/host` shell instead of spinning up separate routes:
+  - `Tin đăng` now adds a listings insight strip with portfolio mix and spotlight cards above the live listing groups
+  - `Lịch hẹn` now adds a Stitch-first appointments strip with a next-up queue and lightweight monthly calendar
+  - `Tin nhắn` now adds a triage lane plus a selected-conversation focus card while preserving the full `/messages` route
+  - `Thu nhập` now adds revenue-health cards above the estimated live-listing income table
+  - the `/host` hero copy now swaps eyebrow, title, and description per active tab
 
 ## Performance Rules
+
+- Host parity pass 2 completed:
+  - `/host?tab=listings` now follows the reviewed Stitch grammar more directly with a greeting hero, stat tiles, searchable listing lane, and side quality / market cards
+  - `/host?tab=appointments` now follows the reviewed Stitch grammar more directly with four appointment stats, a request lane, and a calendar + agenda side rail
+  - `/host?tab=messages` now uses a three-panel host console with thread list, live conversation preview, and a room-context side card
+- Messaging identity is now room-aware instead of participant-pair-only:
+  - `conversations` now store `room_id` and `room_title_snapshot`
+  - `get_or_create_conversation` now reopens or creates a thread by `(host, renter, room)` context
+  - room detail contact flows now pass `roomId` and `roomTitle`
+  - host appointment actions can open the correct room-context conversation directly from `/host`
+- Applied the room-context chat migration to the live Supabase project:
+  - `supabase/migrations/20260322_add_room_context_to_conversations.sql` is now reflected in project `vevnoxlgwisdottaifdn`
+  - new host/renter conversations preserve room identity even when the same renter contacts the same host about multiple listings
+- Tightened the host Stitch parity pass again after review feedback:
+  - `Tin đăng` now leans on a greeting hero, stat cards, and a searchable spotlight lane instead of the earlier generic dashboard grouping
+  - `Lịch hẹn` now uses the reviewed `stats + request lane + calendar rail` grammar instead of the earlier looser booking layout
+  - `Tin nhắn` now previews the active thread and room context together so hosts can see what listing the renter is asking about before opening the full inbox
+- Upgraded the host interaction layer after the first live review:
+  - the `/host?tab=appointments` calendar now supports month navigation and day selection instead of staying as a static visual block
+  - the selected day now drives the agenda card so hosts can inspect a specific date instead of only reading a generic next-up list
+  - `/host?tab=messages` now supports inline sending inside the host console instead of forcing every reply back through the full `/messages` route
+  - the host quick-reply chips now fill the inline composer instead of acting as navigation-only shortcuts
+- Stabilized host messaging refresh behavior:
+  - background polling for conversations and preview messages no longer flips the strip back into a visible loading state every cycle
+  - the host inbox preview should now feel steady during passive refresh instead of flashing or jittering
+- Rebuilt the shared `/messages` route into a multi-context inbox:
+  - the inbox rail now supports search plus filters for unread, room-linked, and direct threads
+  - the main chat panel now keeps the active conversation, quick replies, and inline composer together in one Stitch-first workspace
+  - the context rail now changes by thread type so room inquiries show listing context while direct conversations stay lightweight
+  - the shared inbox now matches the room-context host logic without forcing renter-to-renter conversations into a landlord-style shell
+- Relaxed the host appointments calendar rail after follow-up review feedback:
+  - widened the right rail so the month view no longer feels squeezed into a decorative side strip
+  - added a selected-day summary above the calendar so the current focus is readable without scanning the entire grid first
+- Fixed the remaining messaging overflow bugs after the first shared-inbox rollout:
+  - `/host?tab=messages` now renders the full thread instead of slicing to the latest 6 messages
+  - the host preview panel now keeps its own scrollable message history while preserving the inline composer
+  - `/messages` now constrains the desktop chat workspace height so long conversations scroll inside the panel rather than stretching the entire page
+  - message bubbles now wrap more defensively for long content
+- Normalized the messaging layout again after a live visual review:
+  - `/messages` no longer uses the earlier overly rigid full-height shell that made the inbox feel strange on desktop
+  - the shared inbox now uses a more natural center-panel height with lighter sticky side rails
+  - the landlord `Tin nhắn` strip now behaves like a bounded quick console instead of a large stretched blank panel
+- Added a comfort toggle for quick replies in both messaging surfaces:
+  - `/messages` now hides quick-reply chips by default and lets the user reveal them only when needed
+  - `/host?tab=messages` now follows the same rule so the visible thread keeps more room for reading
+  - quick replies still fill the composer instantly once the user chooses to reveal them
+  - the quick-reply tray now opens as a popover instead of expanding inline, so opening suggestions no longer changes the overall page height
+- Applied a follow-up messaging stability pass:
+  - long participant emails in the shared inbox now wrap with `overflow-wrap:anywhere` instead of bleeding out of the context rail
+  - the landlord inline inbox no longer auto-scrolls on every polling refresh because the scroll sync now keys off the last visible message id instead of every array refresh
+- Started the Framer Motion layer for public-facing desktop routes:
+  - added shared motion presets in `packages/web/src/lib/motion.ts`
+  - `/`, `/login`, `/services`, and `/community` now use reduced-motion-safe reveal, stagger, and hover/tap feedback
+  - the motion layer stays transform/opacity-only and does not animate layout dimensions
+  - product-surface motion for `/search`, `/messages`, and `/host` was deferred in the first pass
+- Extended the same Framer Motion system into key product surfaces:
+  - `/search` now animates selected-room swaps and the map / insight support panels so focus changes feel intentional
+  - `/messages` now animates rail, chat, and context focus changes instead of snapping between conversation states
+  - `/host` now animates top-shell tab changes and tab-content swaps while preserving the existing host navigation model
+  - the product motion pass still avoids layout-dimension animation and remains reduced-motion-safe
+- Implemented the landing/login 3D accent pilot:
+  - installed and wired `three`, `@react-three/fiber`, and `@react-three/drei` into the web workspace
+  - added a shared `HeroAccentPilot` scene with a housing-cluster variant for `/` and a sanctuary-room variant for `/login`
+  - gated the pilot behind WebGL, desktop-width, hardware-hint, and reduced-motion checks via `useThreePilotEnabled`
+  - kept the original Stitch hero imagery as the explicit fallback when the pilot is not allowed to mount
+  - limited the pilot to lazy-loaded entry routes only so the rest of the desktop product stays 2D
 
 - Keep desktop parity work 2D-only in this phase
 - Preserve route stability and existing code-splitting behavior
@@ -117,8 +214,11 @@ description: Implementation rules and technical boundaries for the RoomZ Stitch-
 
 ## Current Boundary
 
-- The eight in-scope desktop routes now follow a Stitch-first Living Atlas shell
-- Swap and landlord dashboard remain the generated desktop screens that still need direct-port implementation
-- Atlas Plus, admin, motion, and 3D are outside the current port boundary
-- The next implementation target is not more web redesign by guesswork; it is porting the remaining generated Stitch screens only after user review
-- Before generating new Stitch screens, the current bugfix pass should be visually re-reviewed against the user-reported issues list
+- The eleven in-scope desktop routes now follow a Stitch-first Living Atlas shell
+- Generated desktop screens for landing, login, services, community, roommates, room detail, search, profile, swap, and host are now ported in repo
+- The generated host-registration screen is also now ported in repo at `/become-host`
+- Host sub-tabs remain inside the canonical `/host` shell with the existing top navbar + horizontal tab bar; Stitch sidebars are treated as concept-only drift and are not portable
+- Atlas Plus, admin, and mobile mapping remain outside the current port boundary
+- Motion is now inside scope for the public shell and key product surfaces: landing, login, services, community, search, messages, and host
+- 3D is now inside scope only for the landing/login pilot; all other routes remain intentionally 2D
+- The next implementation target is to review the landing/login 3D pilot and then decide between desktop freeze, mobile mapping, or a focused optimization pass on the pilot chunk

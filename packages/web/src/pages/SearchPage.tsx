@@ -50,7 +50,7 @@ import {
   Heart,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import type { RoomWithDetails, SortOption } from "@/services/rooms";
 import {
@@ -76,6 +76,7 @@ import {
   getSelectedLocationLabel,
   parseSearchLocationState,
 } from "./searchPage.utils";
+import { createPublicMotion } from "@/lib/motion";
 
 function getLocationIcon(type: LocationCatalogEntry["location_type"]) {
   switch (type) {
@@ -195,6 +196,8 @@ export default function SearchPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const shouldReduceMotion = useReducedMotion();
+  const motionTokens = useMemo(() => createPublicMotion(!!shouldReduceMotion), [shouldReduceMotion]);
   const lastTrackedSearchFingerprint = useRef<string | null>(null);
   const isHydratingFromUrlRef = useRef(true);
   const selectedListingRef = useRef<HTMLDivElement | null>(null);
@@ -1484,14 +1487,29 @@ export default function SearchPage() {
           ) : null}
 
           {!isLoading && !error && rooms.length > 0 && viewMode === "list" ? (
-            <div className={`mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.45fr)_360px] ${isPlaceholderData ? "opacity-60 transition-opacity" : ""}`}>
+            <motion.div
+              className={`mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.45fr)_360px] ${isPlaceholderData ? "opacity-60 transition-opacity" : ""}`}
+              initial="hidden"
+              animate="show"
+              variants={motionTokens.stagger(0.08, 0.02)}
+            >
               <div className="space-y-6">
-                {selectedRoom ? (
-                  <div ref={selectedListingRef}>
-                    <button
+                <AnimatePresence mode="wait">
+                  {selectedRoom ? (
+                    <motion.div
+                      key={selectedRoom.id}
+                      ref={selectedListingRef}
+                      initial="hidden"
+                      animate="show"
+                      exit="hidden"
+                      variants={motionTokens.revealScale(18, 0.985)}
+                    >
+                    <motion.button
                       type="button"
                       onClick={() => onRoomClick(selectedRoom.id)}
-                      className="group w-full overflow-hidden rounded-[32px] border-2 border-primary/30 bg-white p-3 text-left shadow-[0_24px_60px_rgba(0,80,212,0.12)] transition-transform hover:-translate-y-0.5"
+                      className="group w-full overflow-hidden rounded-[32px] border-2 border-primary/30 bg-white p-3 text-left shadow-[0_24px_60px_rgba(0,80,212,0.12)]"
+                      whileHover={motionTokens.hoverLift}
+                      whileTap={motionTokens.tap}
                     >
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
                       <div className="relative overflow-hidden rounded-[28px] lg:w-[41%] lg:min-w-[280px]">
@@ -1579,13 +1597,14 @@ export default function SearchPage() {
                         </div>
                       </div>
                     </div>
-                    </button>
-                  </div>
-                ) : null}
+                    </motion.button>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
 
-                <div className="space-y-5">
+                <motion.div className="space-y-5" variants={motionTokens.stagger(0.06, 0.02)}>
                   {secondaryRooms.map((room) => (
-                    <article
+                    <motion.article
                       key={room.id}
                       role="button"
                       tabIndex={0}
@@ -1597,7 +1616,9 @@ export default function SearchPage() {
                           onRoomClick(room.id);
                         }
                       }}
-                      className="group cursor-pointer overflow-hidden rounded-[28px] bg-surface-container-lowest p-2 shadow-[0_20px_40px_rgba(40,43,81,0.06)] transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                      className="group cursor-pointer overflow-hidden rounded-[28px] bg-surface-container-lowest p-2 shadow-[0_20px_40px_rgba(40,43,81,0.06)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                      variants={motionTokens.revealScale(14, 0.99)}
+                      whileHover={motionTokens.hoverLift}
                     >
                       <div className="flex flex-col md:flex-row">
                         <div className="relative overflow-hidden rounded-[24px] md:w-[31%]">
@@ -1697,9 +1718,9 @@ export default function SearchPage() {
                           </div>
                         </div>
                       </div>
-                    </article>
+                    </motion.article>
                   ))}
-                </div>
+                </motion.div>
 
                 {hasNextPage ? (
                   <div className="flex justify-center pt-2">
@@ -1720,8 +1741,11 @@ export default function SearchPage() {
                 ) : null}
               </div>
 
-              <div className="space-y-6">
-                <div className="rounded-[32px] bg-surface-container-lowest p-4 shadow-[0_20px_40px_rgba(40,43,81,0.06)]">
+              <motion.div className="space-y-6" variants={motionTokens.stagger(0.08, 0.06)}>
+                <motion.div
+                  className="rounded-[32px] bg-surface-container-lowest p-4 shadow-[0_20px_40px_rgba(40,43,81,0.06)]"
+                  variants={motionTokens.revealScale(18, 0.985)}
+                >
                   <div className="mb-4 flex items-center justify-between">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
                       Xem trên bản đồ
@@ -1748,10 +1772,18 @@ export default function SearchPage() {
                     viewportMode="selected-room"
                     selectedZoom={13.4}
                   />
-                </div>
+                </motion.div>
 
-                {selectedRoom ? (
-                  <div className="rounded-[32px] bg-surface-container-lowest p-6 shadow-[0_20px_40px_rgba(40,43,81,0.06)]">
+                <AnimatePresence mode="wait">
+                  {selectedRoom ? (
+                    <motion.div
+                      key={`insight-${selectedRoom.id}`}
+                      className="rounded-[32px] bg-surface-container-lowest p-6 shadow-[0_20px_40px_rgba(40,43,81,0.06)]"
+                      initial="hidden"
+                      animate="show"
+                      exit="hidden"
+                      variants={motionTokens.reveal(16, 0.04)}
+                    >
                     <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
                       <Sparkles className="h-4 w-4 text-secondary" />
                       Neighborhood Insight
@@ -1777,14 +1809,20 @@ export default function SearchPage() {
                         ? `Căn này hiện ở khoảng ${selectedRoom.distance_km.toFixed(1)} km so với điểm tìm kiếm đã khóa.`
                         : "Đây là một trong những lựa chọn nổi bật nhất trong vùng bạn đang xem trên bản đồ."}
                     </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </motion.div>
+            </motion.div>
           ) : null}
 
           {!isLoading && !error && rooms.length > 0 && viewMode === "map" ? (
-            <div className="mt-8 overflow-hidden rounded-[32px] bg-surface-container-lowest p-4 shadow-[0_20px_40px_rgba(40,43,81,0.06)]">
+            <motion.div
+              className="mt-8 overflow-hidden rounded-[32px] bg-surface-container-lowest p-4 shadow-[0_20px_40px_rgba(40,43,81,0.06)]"
+              initial="hidden"
+              animate="show"
+              variants={motionTokens.revealScale(18, 0.985)}
+            >
               <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
@@ -1807,7 +1845,7 @@ export default function SearchPage() {
                 viewportMode="selected-room"
                 selectedZoom={12.2}
               />
-            </div>
+            </motion.div>
           ) : null}
         </div>
       </section>

@@ -1,4 +1,4 @@
----
+﻿---
 phase: testing
 feature: roomz-ui-refresh
 title: RoomZ UI Refresh - Testing Strategy
@@ -9,7 +9,7 @@ description: Validation plan and current audit status for the RoomZ Stitch-first
 
 ## Coverage Goals
 
-- Validate the six Stitch-first desktop routes against the current router and live RoomZ logic
+- Validate the Stitch-first desktop routes against the current router and live RoomZ logic
 - Validate `/services` canonical routing and legacy redirects
 - Keep accessibility and SEO fully passing during the port
 - Use Playwright desktop screenshots as the main parity gate for this phase
@@ -31,7 +31,7 @@ description: Validation plan and current audit status for the RoomZ Stitch-first
 - `python .agents/skills/frontend-design/scripts/accessibility_checker.py packages/web`
 - `python .agents/skills/seo-fundamentals/scripts/seo_checker.py packages/web`
 
-## Latest Results (2026-03-21)
+## Latest Results (2026-03-22)
 
 - `npx ai-devkit@latest lint`: pass
 - `npm run lint --workspace=@roomz/web`: pass with 3 pre-existing hook warnings
@@ -50,8 +50,70 @@ description: Validation plan and current audit status for the RoomZ Stitch-first
 - `npm run lint --workspace=@roomz/web` after the posting-dropdown scroll-lock pass: pass with the same 3 pre-existing hook warnings
 - `npm run build --workspace=@roomz/web` after the posting-dropdown scroll-lock pass: pass
 - `npx ai-devkit@latest lint` after the posting-dropdown scroll-lock pass: pass
+- `npm run lint --workspace=@roomz/web` after the `/host` Stitch port: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the `/host` Stitch port: pass
+- `npx ai-devkit@latest lint` after the `/host` Stitch port: pass
+- `npm run lint --workspace=@roomz/web` after the host-entry navigation pass: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the host-entry navigation pass: pass
+- `npx ai-devkit@latest lint` after the host-entry navigation pass: pass
+- `npm run lint --workspace=@roomz/web` after the `/become-host` Stitch port: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the `/become-host` Stitch port: pass
+- `npx ai-devkit@latest lint` after the `/become-host` Stitch port: pass
+- `npm run lint --workspace=@roomz/web` after the `/host` sub-screen port pass: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the `/host` sub-screen port pass: pass
+- `npx ai-devkit@latest lint` after the `/host` sub-screen port pass: pass
 - CLI Playwright smoke screenshot for `/swap`: captured at `.tmp-swap-preview.png`
 - Authenticated visual parity review for `/profile` is still pending; anonymous automation redirects away from the account route
+- Authenticated visual parity review for `/host` is also pending; anonymous automation cannot pass the landlord guard
+- Manual authenticated review is still required to confirm:
+  - landlord accounts now see `Chủ nhà` in the desktop navbar
+  - landlord avatar menus link to `/host`
+  - non-landlord avatar menus link to `/become-host`
+- Authenticated visual parity review for `/become-host` is also pending; anonymous automation cannot validate the protected non-landlord flow
+- Manual authenticated review should also confirm that non-landlord accounts can open `/become-host`, save a draft, and submit the reviewed Stitch-first form without layout or auth regressions
+- Manual authenticated review is now required for the deeper host tabs after repo porting:
+  - `Tin đăng`
+  - `Lịch hẹn`
+  - `Tin nhắn`
+  - `Thu nhập`
+- Manual authenticated review must now also verify the room-context chat behavior:
+  - contacting a host from `/room/:id` should create or reopen a conversation tied to that room
+  - repeating contact on the same room should reopen the same conversation instead of creating a duplicate
+  - `/host?tab=messages` should show the linked room title, image, and price context for the active thread
+  - `Nhắn khách` from `/host?tab=appointments` should route into the matching room-context conversation
+- Manual authenticated review must now also verify the host interaction pass:
+  - `/host?tab=appointments` calendar should support previous / next month switching and day-specific focus
+  - clicking a booking time chip should focus the matching day in the calendar rail
+  - `/host?tab=messages` should allow sending a reply inline without leaving `/host`
+  - host inbox preview should stay visually stable during idle polling instead of flashing back to a loading placeholder
+- Manual review is now also required for the redesigned shared inbox:
+  - `/messages` should feel correct for both room-linked host/renter threads and direct user-to-user conversations
+  - room-linked conversations should show the correct room title, price, image, and room-detail CTA
+  - direct conversations should not show irrelevant landlord-only inquiry framing
+  - mobile list/chat switching should still let the user move cleanly between the thread rail and the active conversation
+- Manual landlord review should re-check the widened appointments rail:
+  - `/host?tab=appointments` should still switch months and select days correctly
+  - the selected-day summary and wider calendar rail should feel less cramped than the previous version
+- Manual review should also verify the messaging overflow fixes:
+  - `/host?tab=messages` should let the landlord scroll back to older messages inside the preview panel
+  - `/messages` should keep the message list scrollable inside the chat card instead of extending the whole page
+  - long message content should wrap without blowing out the chat layout
+- Manual review should also verify the messaging layout normalization:
+  - `/messages` should feel visually natural, not like three rigid full-height columns fighting each other
+  - `/host?tab=messages` should show visible thread history in the center panel without the earlier empty-block feel
+- Manual review should verify the new quick-reply toggle on both messaging surfaces:
+  - `/messages` should hide quick-reply chips by default and reveal them only after an explicit toggle
+  - `/host?tab=messages` should do the same without pushing the active thread out of view
+  - expanding and collapsing suggestions should not reset the current scroll position in the message viewport
+  - opening the suggestions tray should not stretch the route or shift neighboring panels
+- Manual review should verify the latest messaging stability fixes:
+  - `/messages` should wrap very long participant emails inside the context rail instead of overflowing horizontally
+  - `/host?tab=messages` should not snap back to the bottom of the thread during passive refresh when no new last message was added
+- Stitch review is also pending for:
+  - `Đăng Ký Làm Host - Living Atlas`
+- Future host-tab parity review must compare against the repo host shell pattern first:
+  - top navbar + horizontal tab bar stay canonical
+  - any left sidebar shown in a host concept should be treated as non-portable concept drift unless re-approved
 - Playwright local preview review: complete for `/search` with marker-to-card selection flow
 - Playwright scripted search interaction re-check: pass
   - confirmed the refined search console now starts below the fixed desktop navbar (`inputTop: 177`, `headerBottom: 73`)
@@ -73,13 +135,39 @@ description: Validation plan and current audit status for the RoomZ Stitch-first
 - Playwright desktop stabilization pass: complete for `/`, `/login`, `/services`, and `/room/5b0888d3-6a90-4d5c-a4da-68873b8280fe` at `1024`, `1280`, and `1440`
 - Playwright computed headline font: `Plus Jakarta Sans` on `/`, `/login`, `/services`, and `/room/:id`
 - Playwright document overflow check: no document-level horizontal overflow on `/`, `/login`, `/services`, and `/room/:id`
-- Stitch source review: complete for the six in-scope screens in project `17849223603191498901`
+- Stitch source review: complete for the original six public screens in project `17849223603191498901`, then expanded with generated screens for search, swap, profile, and host
 - Playwright preview re-check: `/`, `/services`, `/community`, and `/login` all render the new parity fixes without document-level overflow
 - Playwright preview re-check: `Xem toan bo uu dai` on `/services` now expands the catalog and toggles to `Thu gon uu dai`
 - Playwright preview re-check: the featured community card now renders a near-full media block instead of the earlier clipped strip
 - Playwright preview re-check: `/` now exposes the full province list through a searchable landing combobox while keeping the trigger label compact
 - Playwright preview re-check: `/services` now renders stronger deal category tags over card imagery
 - Playwright preview re-check: `/community` post detail now opens a larger lightbox viewer from image thumbnails
+- `npm run lint --workspace=@roomz/web` after the host room-context pass: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the host room-context pass: pass
+- `npx ai-devkit@latest lint` after the host room-context pass: pass
+- `npm run lint --workspace=@roomz/web` after the host interaction pass: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the host interaction pass: pass
+- `npm run lint --workspace=@roomz/web` after the shared inbox redesign + appointments layout pass: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the shared inbox redesign + appointments layout pass: pass
+- `npx ai-devkit@latest lint` before and after the shared inbox redesign + appointments layout pass: pass
+- `npm run lint --workspace=@roomz/web` after the messaging scroll containment fix: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the messaging scroll containment fix: pass
+- `npm run lint --workspace=@roomz/web` after the messaging layout normalization pass: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the messaging layout normalization pass: pass
+- `npm run lint --workspace=@roomz/web` after the public motion foundation pass: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the public motion foundation pass: pass
+- `npx ai-devkit@latest lint` after the public motion foundation pass: pass
+- `npm run lint --workspace=@roomz/web` after the product motion pass: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the product motion pass: pass
+- `npm run lint --workspace=@roomz/web` after the landing/login 3D pilot: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the landing/login 3D pilot: pass
+- `npx ai-devkit@latest lint` after the landing/login 3D pilot: pass
+- Playwright landing pilot review on local preview after the camera fix: pass
+  - the 3D housing-cluster hero is visible in the landing visual slot instead of collapsing into a pale blank panel
+  - the desktop search/filter rail remains readable in front of the new scene
+- Playwright login pilot review on local preview after the camera fix: pass with framing caveat
+  - the login route now mounts the lazy 3D pilot as a visible room vignette instead of the earlier pale blank panel
+  - the scene remains readable and decorative, but a live browser review should still confirm the final comfort level of the current top-down framing
 - UX audit: fail, 70 issues
 - Accessibility checker: pass, 0 issues
 - SEO checker: pass, 0 issues
@@ -96,8 +184,15 @@ description: Validation plan and current audit status for the RoomZ Stitch-first
 
 ## Acceptance
 
-- The eight in-scope desktop routes should feel like direct Stitch siblings rather than a restyled RoomZ shell
+- The ten in-scope desktop routes should feel like direct Stitch siblings rather than a restyled RoomZ shell
 - Shared tokens and primitives do not break RoomZ routing, auth, or modal behavior
+- Host messaging should now be reviewable per room context instead of per participant pair only
+- Public motion should enhance hierarchy on `/`, `/login`, `/services`, and `/community` without introducing layout shift or requiring motion to understand the page
+- Product motion should clarify state changes on `/search`, `/messages`, and `/host` without stretching the page, causing layout shift, or making navigation ambiguous
+- Landing/login 3D should remain decorative only:
+  - CTA, copy, search, and auth form readability must stay intact
+  - reduced-motion or unsupported devices must still get the static Stitch hero without broken spacing
 - Accessibility and SEO remain passing
 - Mobile is intentionally excluded from the current acceptance target
 - Remaining UX and performance debt is documented and not hidden
+

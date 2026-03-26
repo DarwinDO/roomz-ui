@@ -339,16 +339,22 @@ export type Database = {
                 Row: {
                     created_at: string | null
                     id: string
+                    room_id: string | null
+                    room_title_snapshot: string | null
                     updated_at: string | null
                 }
                 Insert: {
                     created_at?: string | null
                     id?: string
+                    room_id?: string | null
+                    room_title_snapshot?: string | null
                     updated_at?: string | null
                 }
                 Update: {
                     created_at?: string | null
                     id?: string
+                    room_id?: string | null
+                    room_title_snapshot?: string | null
                     updated_at?: string | null
                 }
                 Relationships: []
@@ -2195,7 +2201,12 @@ export type Database = {
             }
             get_admin_stats: { Args: never; Returns: Json }
             get_or_create_conversation: {
-                Args: { user1_id: string; user2_id: string }
+                Args: {
+                    room_id?: string | null
+                    room_title_snapshot?: string | null
+                    user1_id: string
+                    user2_id: string
+                }
                 Returns: string
             }
             get_potential_matches: {

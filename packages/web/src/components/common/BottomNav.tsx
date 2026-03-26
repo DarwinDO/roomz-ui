@@ -1,11 +1,26 @@
 ﻿import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Search, MessageCircle, User, Plus, Users, RefreshCw, Settings, BriefcaseBusiness } from 'lucide-react';
+import {
+  Home,
+  Search,
+  MessageCircle,
+  User,
+  Plus,
+  Users,
+  RefreshCw,
+  Settings,
+  BriefcaseBusiness,
+  LayoutDashboard,
+  HousePlus,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts';
 
 export function BottomNav() {
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
+  const { profile } = useAuth();
+  const isLandlord = profile?.role === 'landlord';
 
   if (location.pathname === '/messages') {
     return null;
@@ -26,6 +41,9 @@ export function BottomNav() {
     { id: 'services', label: 'Dịch vụ & Ưu đãi', icon: BriefcaseBusiness, color: 'bg-amber-50', path: '/services' },
     { id: 'community', label: 'Cộng đồng', icon: Users, color: 'bg-indigo-50', path: '/community' },
     { id: 'swap', label: 'Ở ngắn hạn', icon: RefreshCw, color: 'bg-green-50', path: '/swap' },
+    isLandlord
+      ? { id: 'host', label: 'Chủ nhà', icon: LayoutDashboard, color: 'bg-slate-100', path: '/host' }
+      : { id: 'become-host', label: 'Trở thành chủ nhà', icon: HousePlus, color: 'bg-sky-50', path: '/become-host' },
     { id: 'settings', label: 'Cài đặt', icon: Settings, color: 'bg-gray-50', path: '/settings' },
   ];
 

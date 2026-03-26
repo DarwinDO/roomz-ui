@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, ArrowRight, Mail, ShieldCheck, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -6,8 +7,16 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Separator } from "@/components/ui/separator";
 import { GoogleIcon } from "@/components/icons";
 import { useAuth } from "@/contexts/AuthContext";
+import { createPublicMotion } from "@/lib/motion";
 import { supabase } from "@/lib/supabase";
 import { stitchAssets } from "@/lib/stitchAssets";
+import { useThreePilotEnabled } from "@/lib/threePilot";
+
+const LoginHeroPilot3D = lazy(() =>
+  import("@/components/3d/HeroAccentPilot").then((module) => ({
+    default: module.LoginHeroPilot3D,
+  })),
+);
 
 const REMEMBER_ME_KEY = "rommz_remembered_email";
 const PUBLIC_AUTH_REDIRECT_KEY = "rommz_public_auth_redirect";
@@ -23,6 +32,15 @@ function getPublicRedirectPath(savedPath?: string) {
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const shouldReduceMotion = useReducedMotion();
+  const canRenderThreePilot = useThreePilotEnabled({
+    enabled: !shouldReduceMotion,
+    minWidth: 1100,
+  });
+  const motionTokens = useMemo(
+    () => createPublicMotion(!!shouldReduceMotion),
+    [shouldReduceMotion],
+  );
   const { sendEmailOtp, signInWithGoogle, verifyEmailOtp } = useAuth();
 
   const savedPath = (location.state as { from?: { pathname?: string } })?.from?.pathname;
@@ -165,7 +183,12 @@ export default function LoginPage() {
         id="login-main"
         className="stitch-editorial-shadow grid min-h-[870px] w-full max-w-7xl overflow-hidden rounded-[32px] bg-surface-container-lowest lg:grid-cols-[minmax(420px,0.92fr)_minmax(0,1.08fr)]"
       >
-        <section className="relative hidden flex-col justify-between overflow-hidden bg-surface-container-low p-12 lg:flex xl:p-16">
+        <motion.section
+          className="relative hidden flex-col justify-between overflow-hidden bg-surface-container-low p-12 lg:flex xl:p-16"
+          initial="hidden"
+          animate="show"
+          variants={motionTokens.revealScale(20)}
+        >
           <div className="absolute -right-[10%] top-[-10%] h-96 w-96 rounded-full bg-primary-container/20 blur-3xl" />
           <div className="absolute -bottom-[5%] left-[-5%] h-80 w-80 rounded-full bg-tertiary-container/30 blur-3xl" />
 
@@ -178,17 +201,35 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="relative z-10 max-w-[34rem] space-y-8">
+          <motion.div
+            className="relative z-10 max-w-[34rem] space-y-8"
+            variants={motionTokens.stagger(0.08, 0.08)}
+          >
             <div className="relative">
-              <div className="stitch-editorial-shadow aspect-[4/5] max-w-[28rem] overflow-hidden rounded-[32px] xl:max-w-[30rem]">
+              <motion.div
+                className="stitch-editorial-shadow aspect-[4/5] max-w-[28rem] overflow-hidden rounded-[32px] xl:max-w-[30rem]"
+                variants={motionTokens.revealScale(18)}
+              >
+                {!canRenderThreePilot ? (
                 <img
                   src={stitchAssets.login.heroRoom}
                   alt="Không gian sống hiện đại của RommZ"
                   className="h-full w-full object-cover transition-transform duration-1000 hover:scale-100"
                 />
-              </div>
+                ) : null}
+              </motion.div>
+              {canRenderThreePilot ? (
+                <div className="absolute inset-0">
+                  <Suspense fallback={null}>
+                    <LoginHeroPilot3D />
+                  </Suspense>
+                </div>
+              ) : null}
 
-              <div className="stitch-editorial-shadow absolute -bottom-8 -right-4 max-w-[13.5rem] rounded-[24px] border border-white/40 bg-white/76 p-5 backdrop-blur-xl xl:-bottom-10 xl:-right-8 xl:max-w-[14rem] xl:p-6">
+              <motion.div
+                className="stitch-editorial-shadow absolute -bottom-8 -right-4 max-w-[13.5rem] rounded-[24px] border border-white/40 bg-white/76 p-5 backdrop-blur-xl xl:-bottom-10 xl:-right-8 xl:max-w-[14rem] xl:p-6"
+                variants={motionTokens.reveal(16, 0.08)}
+              >
                 <Sparkles className="mb-4 h-6 w-6 text-primary" />
                 <h3 className="text-lg leading-8">
                   Bắt đầu lại từ một nơi ở bạn thực sự muốn quay về.
@@ -196,17 +237,25 @@ export default function LoginPage() {
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">
                   Tìm phòng, ghép bạn ở và quay lại đúng hành trình bạn đang theo dõi.
                 </p>
-              </div>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
 
           <p className="relative z-10 text-sm text-muted-foreground">
             © 2026 RommZ. All rights reserved.
           </p>
-        </section>
+        </motion.section>
 
-        <section className="flex flex-col justify-center bg-surface-container-lowest px-8 py-12 lg:px-14 xl:px-24">
-          <div className="mx-auto w-full max-w-md">
+        <motion.section
+          className="flex flex-col justify-center bg-surface-container-lowest px-8 py-12 lg:px-14 xl:px-24"
+          initial="hidden"
+          animate="show"
+          variants={motionTokens.reveal(24, 0.05)}
+        >
+          <motion.div
+            className="mx-auto w-full max-w-md"
+            variants={motionTokens.stagger(0.08, 0.04)}
+          >
             <div className="mb-12">
               <h2 className="mb-4 text-4xl">
                 {authStep === "email" ? "Chào mừng quay lại" : "Xác thực email của bạn"}
@@ -219,7 +268,7 @@ export default function LoginPage() {
             </div>
 
             <div className="mb-10 grid grid-cols-2 gap-4">
-              <button
+              <motion.button
                 type="button"
                 onClick={handleGoogleLogin}
                 onKeyDown={(event) => {
@@ -229,19 +278,23 @@ export default function LoginPage() {
                 }}
                 disabled={isGoogleLoading}
                 className="flex items-center justify-center gap-3 rounded-full bg-surface-container px-4 py-3 transition-colors hover:bg-surface-container-high"
+                whileHover={motionTokens.hoverSoft}
+                whileTap={motionTokens.tap}
               >
                 <GoogleIcon className="h-5 w-5" />
                 <span className="font-label text-sm font-semibold text-foreground">Google</span>
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="button"
                 onClick={sendOtp}
                 disabled={isSendingOtp || email.trim().length === 0}
                 className="flex items-center justify-center gap-3 rounded-full bg-surface-container px-4 py-3 transition-colors hover:bg-surface-container-high"
+                whileHover={motionTokens.hoverSoft}
+                whileTap={motionTokens.tap}
               >
                 <Mail className="h-5 w-5 text-primary" />
                 <span className="font-label text-sm font-semibold text-foreground">OTP email</span>
-              </button>
+              </motion.button>
             </div>
 
             <div className="relative mb-10 flex items-center justify-center">
@@ -307,13 +360,15 @@ export default function LoginPage() {
                   Giữ email này trên thiết bị
                 </label>
 
-                <button
+                <motion.button
                   type="submit"
                   disabled={isSendingOtp || email.trim().length === 0}
                   className="stitch-primary-gradient mt-4 w-full rounded-full px-6 py-5 font-display text-base font-bold text-white shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:opacity-60"
+                  whileHover={motionTokens.hoverSoft}
+                  whileTap={motionTokens.tap}
                 >
                   {isSendingOtp ? "Đang gửi mã..." : "Nhận mã OTP để đăng nhập"}
-                </button>
+                </motion.button>
               </form>
             ) : (
               <form onSubmit={handleVerifyOtp} className="space-y-6">
@@ -383,13 +438,15 @@ export default function LoginPage() {
                   </button>
                 </div>
 
-                <button
+                <motion.button
                   type="submit"
                   disabled={isVerifyingOtp || otpCode.length !== OTP_LENGTH}
                   className="stitch-primary-gradient w-full rounded-full px-6 py-5 font-display text-base font-bold text-white shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:opacity-60"
+                  whileHover={motionTokens.hoverSoft}
+                  whileTap={motionTokens.tap}
                 >
                   {isVerifyingOtp ? "Đang xác thực..." : "Đăng nhập vào RommZ"}
-                </button>
+                </motion.button>
               </form>
             )}
 
@@ -414,18 +471,23 @@ export default function LoginPage() {
               Lần đầu dùng RommZ? Chỉ cần xác thực bằng OTP hoặc Google, hồ sơ sẽ được tạo sau
               khi bạn đăng nhập thành công.
             </p>
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
       </main>
 
-      <button
+      <motion.button
         type="button"
         onClick={() => navigate("/support-services")}
         className="stitch-editorial-shadow fixed bottom-8 right-8 flex h-14 w-14 items-center justify-center rounded-full bg-white text-primary transition-transform hover:scale-110"
+        initial="hidden"
+        animate="show"
+        variants={motionTokens.revealScale(16, 0.98, 0.2)}
+        whileHover={motionTokens.hoverSoft}
+        whileTap={motionTokens.tap}
         aria-label="Cần trợ giúp"
       >
         <ArrowRight className="h-5 w-5" />
-      </button>
+      </motion.button>
     </div>
   );
 }

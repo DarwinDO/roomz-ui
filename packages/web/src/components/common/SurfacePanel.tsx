@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
+import { createElement, type ComponentPropsWithoutRef, type ElementType, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const toneClasses = {
@@ -38,19 +38,20 @@ export function SurfacePanel<T extends ElementType = "div">({
   children,
   ...props
 }: SurfacePanelProps<T>) {
-  const Component = as ?? "div";
+  const Component = (as ?? "div") as ElementType;
+  const componentProps = props as ComponentPropsWithoutRef<ElementType>;
 
-  return (
-    <Component
-      className={cn(
+  return createElement(
+    Component,
+    {
+      className: cn(
         "rounded-[32px]",
         toneClasses[tone],
         paddingClasses[padding],
         className,
-      )}
-      {...props}
-    >
-      {children}
-    </Component>
+      ),
+      ...componentProps,
+    },
+    children,
   );
 }

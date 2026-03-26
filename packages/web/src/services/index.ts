@@ -36,7 +36,12 @@ export const getConversationMessages = (conversationId: string) => messagesShare
 export const getUnreadCount = (userId: string) => messagesShared.getUnreadCount(supabase, userId);
 export const sendMessage = (conversationId: string, senderId: string, content: string) => messagesShared.sendMessage(supabase, conversationId, senderId, content);
 export const markMessagesAsRead = (conversationId: string, userId: string) => messagesShared.markMessagesAsRead(supabase, conversationId, userId);
-export const getOrCreateConversation = (userId: string, otherUserId: string) => messagesShared.getOrCreateConversation(supabase, userId, otherUserId);
+export const getOrCreateConversation = (
+  userId: string,
+  otherUserId: string,
+  roomId?: string | null,
+  roomTitleSnapshot?: string | null,
+) => messagesShared.getOrCreateConversation(supabase, userId, otherUserId, roomId, roomTitleSnapshot);
 export type { Message, MessageWithUsers, Conversation } from '@roomz/shared/services/messages';
 
 // Community service

@@ -47,6 +47,50 @@ export interface Conversation {
     unreadCount: number;
     roomId?: string;
     roomTitle?: string;
+    room?: {
+        id: string;
+        title: string;
+        address?: string | null;
+        pricePerMonth?: number | null;
+        imageUrl?: string | null;
+    };
+}
+
+type ConversationMeta = {
+    id: string;
+    room_id: string | null;
+    room_title_snapshot: string | null;
+    room?: {
+        id: string;
+        title: string | null;
+        address?: string | null;
+        price_per_month?: number | null;
+        room_images?: Array<{ image_url: string | null; display_order?: number | null }>;
+    } | null;
+};
+
+function mapRoomContext(conversation?: ConversationMeta | null) {
+    const room = conversation?.room ?? null;
+    const roomTitle = room?.title || conversation?.room_title_snapshot || undefined;
+    const roomImageUrl =
+        room?.room_images
+            ?.slice()
+            .sort((left, right) => Number(left.display_order ?? 0) - Number(right.display_order ?? 0))[0]
+            ?.image_url || null;
+
+    return {
+        roomId: conversation?.room_id || undefined,
+        roomTitle,
+        room: room && roomTitle
+            ? {
+                id: room.id,
+                title: roomTitle,
+                address: room.address || null,
+                pricePerMonth: room.price_per_month ?? null,
+                imageUrl: roomImageUrl,
+            }
+            : undefined,
+    };
 }
 
 // ============================================
@@ -60,21 +104,41 @@ export async function getConversations(
     supabase: SupabaseClient,
     userId: string
 ): Promise<Conversation[]> {
-    // Get all conversations where user is a participant
     const { data: participantData, error: participantError } = await supabase
         .from('conversation_participants')
         .select(`
       conversation_id,
-      conversation:conversations(id, created_at, updated_at)
+      conversation:conversations(
+        id,
+        created_at,
+        updated_at,
+        room_id,
+        room_title_snapshot,
+        room:rooms(
+          id,
+          title,
+          address,
+          price_per_month,
+          room_images(image_url, display_order)
+        )
+      )
     `)
         .eq('user_id', userId);
 
     if (participantError) throw participantError;
     if (!participantData || participantData.length === 0) return [];
 
-    const conversationIds = participantData.map(p => p.conversation_id);
+    const typedConversationMeta = participantData as unknown as Array<{
+        conversation_id: string;
+        conversation: ConversationMeta | null;
+    }>;
+    const conversationIds = typedConversationMeta.map((participant) => participant.conversation_id);
+    const conversationMeta = new Map(
+        typedConversationMeta
+            .filter((entry) => entry.conversation)
+            .map((entry) => [entry.conversation_id, entry.conversation!]),
+    );
 
-    // Get other participants for each conversation
     const { data: allParticipants, error: allParticipantsError } = await supabase
         .from('conversation_participants')
         .select(`
@@ -86,62 +150,67 @@ export async function getConversations(
 
     if (allParticipantsError) throw allParticipantsError;
 
-    // Get latest message and unread count for each conversation
+    const typedParticipants = allParticipants as unknown as Array<{
+        conversation_id: string;
+        user: {
+            id: string;
+            full_name: string;
+            avatar_url: string | null;
+            email?: string;
+        };
+    }>;
+
     const conversations: Conversation[] = [];
 
-    for (const convId of conversationIds) {
-        // Get latest message (use maybeSingle to avoid 406 error when no messages)
+    for (const conversationId of conversationIds) {
         const { data: lastMessageData } = await supabase
             .from('messages')
             .select('*')
-            .eq('conversation_id', convId)
+            .eq('conversation_id', conversationId)
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
 
-        // Get unread count
         const { count: unreadCount } = await supabase
             .from('messages')
             .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', convId)
+            .eq('conversation_id', conversationId)
             .neq('sender_id', userId)
             .eq('is_read', false);
 
-        // Find the other participant
-        const typedParticipants = allParticipants as unknown as Array<{ conversation_id: string; user: { id: string; full_name: string; avatar_url: string | null; email?: string } }>;
-        const otherParticipant = typedParticipants?.find(p => p.conversation_id === convId);
-        const participant = otherParticipant?.user;
-
-        // Include conversations even without messages (e.g., newly accepted roommate requests)
-        if (participant) {
-            conversations.push({
-                id: convId,
-                participant: {
-                    id: participant.id,
-                    full_name: participant.full_name || 'Unknown',
-                    avatar_url: participant.avatar_url,
-                    email: participant.email || undefined,
-                },
-                // Provide empty placeholder if no messages yet
-                lastMessage: lastMessageData || {
-                    id: '',
-                    conversation_id: convId,
-                    sender_id: '',
-                    content: 'Bắt đầu cuộc trò chuyện...',
-                    created_at: new Date().toISOString(),
-                    updated_at: null,
-                    is_read: true,
-                },
-                unreadCount: unreadCount || 0,
-            });
+        const participant = typedParticipants.find((entry) => entry.conversation_id === conversationId)?.user;
+        if (!participant) {
+            continue;
         }
+
+        const roomContext = mapRoomContext(conversationMeta.get(conversationId));
+
+        conversations.push({
+            id: conversationId,
+            participant: {
+                id: participant.id,
+                full_name: participant.full_name || 'Unknown',
+                avatar_url: participant.avatar_url,
+                email: participant.email || undefined,
+            },
+            lastMessage: lastMessageData || {
+                id: '',
+                conversation_id: conversationId,
+                sender_id: '',
+                content: 'Bắt đầu cuộc trò chuyện...',
+                created_at: new Date().toISOString(),
+                updated_at: null,
+                is_read: true,
+            },
+            unreadCount: unreadCount || 0,
+            ...roomContext,
+        });
     }
 
-    // Sort by latest message
-    conversations.sort((a, b) => {
-        const dateA = a.lastMessage.created_at ? new Date(a.lastMessage.created_at).getTime() : 0;
-        const dateB = b.lastMessage.created_at ? new Date(b.lastMessage.created_at).getTime() : 0;
-        return dateB - dateA;
+    conversations.sort((left, right) => {
+        const leftDate = left.lastMessage.created_at ? new Date(left.lastMessage.created_at).getTime() : 0;
+        const rightDate = right.lastMessage.created_at ? new Date(right.lastMessage.created_at).getTime() : 0;
+        return rightDate - leftDate;
     });
 
     return conversations;
@@ -174,7 +243,6 @@ export async function getUnreadCount(
     supabase: SupabaseClient,
     userId: string
 ): Promise<number> {
-    // Get user's conversations
     const { data: participantData } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
@@ -182,9 +250,8 @@ export async function getUnreadCount(
 
     if (!participantData || participantData.length === 0) return 0;
 
-    const conversationIds = participantData.map(p => p.conversation_id);
+    const conversationIds = participantData.map((participant) => participant.conversation_id);
 
-    // Count unread messages in those conversations (not sent by user)
     const { count } = await supabase
         .from('messages')
         .select('*', { count: 'exact', head: true })
@@ -244,12 +311,14 @@ export async function markMessagesAsRead(
 export async function getOrCreateConversation(
     supabase: SupabaseClient,
     userId: string,
-    otherUserId: string
+    otherUserId: string,
+    roomId?: string | null,
+    roomTitleSnapshot?: string | null,
 ): Promise<string> {
-    // Use RPC function which runs with SECURITY DEFINER
-    // This handles finding existing conversation or creating new one atomically
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase.rpc as any)('get_or_create_conversation', {
+        room_id: roomId ?? null,
+        room_title_snapshot: roomTitleSnapshot ?? null,
         user1_id: userId,
         user2_id: otherUserId,
     });

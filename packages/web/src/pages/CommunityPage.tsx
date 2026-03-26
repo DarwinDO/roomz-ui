@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Search, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreatePostModal } from "@/components/modals/CreatePostModal";
 import { PostDetailModal } from "@/components/modals/PostDetailModal";
 import { usePosts, useTopPosts, useToggleLike, useDeletePost } from "@/hooks/useCommunity";
+import { createPublicMotion } from "@/lib/motion";
 import { stitchAssets } from "@/lib/stitchAssets";
 import { StitchFooter } from "@/components/common/StitchFooter";
 import type { Post } from "./community/types";
@@ -79,6 +81,11 @@ function getFeaturedMedia(post: PostRow, fallbackImage: string) {
 }
 
 export default function CommunityPage() {
+  const shouldReduceMotion = useReducedMotion();
+  const motionTokens = useMemo(
+    () => createPublicMotion(!!shouldReduceMotion),
+    [shouldReduceMotion],
+  );
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [editPost, setEditPost] = useState<Post | null>(null);
@@ -124,7 +131,13 @@ export default function CommunityPage() {
         className="mx-auto max-w-7xl px-6 py-8 pt-24 md:py-12"
         aria-label="Noi dung chinh cong dong, skip link duoc cung cap boi AppShell"
       >
-        <section className="relative mb-16 overflow-hidden rounded-[32px] shadow-2xl">
+        <motion.section
+          className="relative mb-16 overflow-hidden rounded-[32px] shadow-2xl"
+          initial="hidden"
+          whileInView="show"
+          viewport={motionTokens.viewport}
+          variants={motionTokens.revealScale(22)}
+        >
           <div className="stitch-primary-gradient relative z-10 flex flex-col items-center p-12 text-center md:p-20">
             <h1 className="mb-6 text-white">Cộng đồng RommZ</h1>
             <p className="mb-10 max-w-2xl text-lg font-medium text-blue-50/90 md:text-xl">
@@ -144,7 +157,7 @@ export default function CommunityPage() {
                   className="w-full rounded-full border-none bg-white px-12 py-4 text-lg text-foreground shadow-lg outline-none ring-0"
                 />
               </div>
-              <button
+              <motion.button
                 type="button"
                 onClick={() => setIsCreatePostOpen(true)}
                 onKeyDown={(event) => {
@@ -153,31 +166,50 @@ export default function CommunityPage() {
                   }
                 }}
                 className="flex items-center justify-center gap-2 rounded-full bg-surface-container-lowest px-8 py-4 font-display text-sm font-bold text-primary shadow-lg transition-transform hover:scale-[1.02]"
+                whileHover={motionTokens.hoverSoft}
+                whileTap={motionTokens.tap}
               >
                 Tạo bài viết
-              </button>
+              </motion.button>
             </div>
           </div>
           <div className="absolute -left-[5%] bottom-[-10%] h-96 w-96 rounded-full bg-primary-container/20 blur-3xl" />
           <div className="absolute -right-[5%] top-[-10%] h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-        </section>
+        </motion.section>
 
-        <section className="mb-16">
-          <div className="flex flex-wrap justify-center gap-4">
+        <motion.section
+          className="mb-16"
+          initial="hidden"
+          whileInView="show"
+          viewport={motionTokens.viewport}
+          variants={motionTokens.stagger(0.06, 0.04)}
+        >
+          <motion.div
+            className="flex flex-wrap justify-center gap-4"
+            variants={motionTokens.stagger(0.05, 0.03)}
+          >
             {topicChips.map((chip) => (
-              <button
+              <motion.button
                 key={chip}
                 type="button"
                 className="group flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-foreground shadow-sm transition-all hover:bg-primary-container/10 hover:shadow-md"
+                variants={motionTokens.revealScale(12)}
+                whileTap={motionTokens.tap}
               >
                 <span className="text-primary">•</span>
                 {chip}
-              </button>
+              </motion.button>
             ))}
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
-        <div className="grid gap-12 lg:grid-cols-12">
+        <motion.div
+          className="grid gap-12 lg:grid-cols-12"
+          initial="hidden"
+          whileInView="show"
+          viewport={motionTokens.viewport}
+          variants={motionTokens.stagger(0.08, 0.06)}
+        >
           <div className="space-y-16 lg:col-span-8">
             <section>
               <div className="mb-8 flex items-end justify-between">
@@ -196,9 +228,9 @@ export default function CommunityPage() {
                 </div>
               </div>
 
-              <div className="space-y-6">
+              <motion.div className="space-y-6" variants={motionTokens.stagger(0.08, 0.06)}>
                 {featuredPosts.map((post, index) => (
-                  <article
+                  <motion.article
                     key={post.id}
                     role="button"
                     tabIndex={0}
@@ -210,6 +242,7 @@ export default function CommunityPage() {
                       }
                     }}
                     className="group w-full rounded-[28px] bg-surface-container-lowest p-8 text-left shadow-[0_10px_40px_rgba(40,43,81,0.04)] transition-all hover:shadow-[0_20px_60px_rgba(40,43,81,0.08)]"
+                    variants={motionTokens.revealScale(18)}
                   >
                     {(() => {
                       const media = getFeaturedMedia(
@@ -301,7 +334,7 @@ export default function CommunityPage() {
                       </span>
                       <span className="ml-auto">Mở chi tiết</span>
                     </div>
-                  </article>
+                  </motion.article>
                 ))}
 
                 {!isLoading && featuredPosts.length === 0 ? (
@@ -309,7 +342,7 @@ export default function CommunityPage() {
                     Chưa có bài viết phù hợp với bộ lọc hiện tại.
                   </div>
                 ) : null}
-              </div>
+              </motion.div>
             </section>
 
             <section>
@@ -320,13 +353,18 @@ export default function CommunityPage() {
                 </p>
               </div>
 
-              <div className="grid gap-8 md:grid-cols-2">
+              <motion.div
+                className="grid gap-8 md:grid-cols-2"
+                variants={motionTokens.stagger(0.08, 0.06)}
+              >
                 {storyPosts.map((post, index) => (
-                  <button
+                  <motion.button
                     key={post.id}
                     type="button"
                     onClick={() => setSelectedPost(transformToPost(post))}
                     className="group overflow-hidden rounded-[28px] bg-white text-left shadow-sm transition-all hover:shadow-xl"
+                    variants={motionTokens.revealScale(18)}
+                    whileTap={motionTokens.tap}
                   >
                     <div className="relative h-64 overflow-hidden">
                       <img
@@ -350,14 +388,17 @@ export default function CommunityPage() {
                         Đọc tiếp
                       </span>
                     </div>
-                  </button>
+                  </motion.button>
                 ))}
-              </div>
+              </motion.div>
             </section>
           </div>
 
-          <aside className="space-y-12 lg:col-span-4">
-            <section className="rounded-[28px] bg-surface-container-low p-8">
+          <motion.aside className="space-y-12 lg:col-span-4" variants={motionTokens.stagger(0.08, 0.08)}>
+            <motion.section
+              className="rounded-[28px] bg-surface-container-low p-8"
+              variants={motionTokens.revealScale(18)}
+            >
               <h3 className="mb-6 flex items-center gap-2 text-2xl">
                 <span className="text-primary">◦</span>
                 Sự kiện sắp tới
@@ -390,9 +431,12 @@ export default function CommunityPage() {
                   </div>
                 ))}
               </div>
-            </section>
+            </motion.section>
 
-            <section className="rounded-[28px] border border-surface-container bg-white p-8 shadow-[0_10px_40px_rgba(40,43,81,0.04)]">
+            <motion.section
+              className="rounded-[28px] border border-surface-container bg-white p-8 shadow-[0_10px_40px_rgba(40,43,81,0.04)]"
+              variants={motionTokens.revealScale(18)}
+            >
               <h3 className="mb-6 flex items-center gap-2 text-2xl">
                 <Star className="h-5 w-5 text-secondary" />
                 Thành viên tích cực
@@ -421,26 +465,31 @@ export default function CommunityPage() {
               <Button variant="outline" className="mt-8 w-full rounded-full">
                 Gia nhập đội ngũ
               </Button>
-            </section>
+            </motion.section>
 
-            <div className="stitch-primary-gradient relative overflow-hidden rounded-[28px] p-8 text-white">
+            <motion.div
+              className="stitch-primary-gradient relative overflow-hidden rounded-[28px] p-8 text-white"
+              variants={motionTokens.revealScale(18)}
+            >
               <div className="relative z-10">
                 <h4 className="text-xl text-white">Bạn có mẹo hay?</h4>
                 <p className="mt-2 text-sm text-white/80">
                   Chia sẻ kinh nghiệm của bạn để giúp cộng đồng và nhận huy hiệu đóng góp.
                 </p>
-                <button
+                <motion.button
                   type="button"
                   onClick={() => setIsCreatePostOpen(true)}
                   className="mt-6 rounded-full bg-white px-6 py-2 text-sm font-bold text-primary shadow-md"
+                  whileHover={motionTokens.hoverSoft}
+                  whileTap={motionTokens.tap}
                 >
                   Bắt đầu ngay
-                </button>
+                </motion.button>
               </div>
               <span className="absolute -bottom-4 -right-4 text-8xl opacity-20">💡</span>
-            </div>
-          </aside>
-        </div>
+            </motion.div>
+          </motion.aside>
+        </motion.div>
       </main>
 
       <StitchFooter />
