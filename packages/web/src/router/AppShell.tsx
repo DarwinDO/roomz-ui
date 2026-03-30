@@ -1,21 +1,20 @@
 import { Suspense } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
+  BadgeCheck,
   HousePlus,
   LayoutDashboard,
   LogIn,
   LogOut,
   MessageCircle,
+  Sparkles,
   User as UserIcon,
 } from "lucide-react";
-import { Toaster } from "@/components/ui/sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { BottomNav } from "@/components/common/BottomNav";
 import { Chatbot } from "@/components/common/Chatbot";
 import { NotificationBell } from "@/components/common/NotificationBell";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useUnreadConversationCount } from "@/hooks/chat/useUnreadConversationCount";
-import { useAuth } from "@/contexts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +23,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
+import { useAuth } from "@/contexts";
+import { useUnreadConversationCount } from "@/hooks/chat/useUnreadConversationCount";
+import { usePremiumLimits } from "@/hooks/usePremiumLimits";
 
 const NAV_ITEMS = [
   { path: "/", label: "Trang chủ" },
@@ -40,10 +43,14 @@ export default function AppShell() {
   const navigate = useNavigate();
   const { user, profile, loading, signOut } = useAuth();
   const { unreadCount } = useUnreadConversationCount();
+  const { isPremium, loading: premiumLoading } = usePremiumLimits();
   const isLandlord = profile?.role === "landlord";
+
   const desktopNavItems = isLandlord
     ? [...NAV_ITEMS, { path: "/host", label: "Chủ nhà" }]
     : NAV_ITEMS;
+
+  const premiumLabel = isPremium ? "RommZ+ đang bật" : "RommZ+";
 
   const isActive = (path: string) =>
     path === "/" ? location.pathname === path : location.pathname.startsWith(path);
@@ -52,7 +59,7 @@ export default function AppShell() {
     if (profile?.full_name) {
       return profile.full_name
         .split(" ")
-        .map((part: string) => part[0])
+        .map((part) => part[0])
         .join("")
         .toUpperCase()
         .slice(0, 2);
@@ -76,8 +83,8 @@ export default function AppShell() {
         Bỏ qua đến nội dung chính
       </a>
 
-      <header className="scroll-lock-shell fixed top-0 z-50 hidden w-full border-b border-white/20 bg-white/70 backdrop-blur-xl shadow-sm md:block">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-8 py-4">
+      <header className="scroll-lock-shell fixed top-0 z-50 hidden w-full border-b border-white/20 bg-white/70 shadow-sm backdrop-blur-xl md:block">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-8 py-4">
           <Link
             to="/"
             className="font-display text-2xl font-black tracking-tighter text-slate-900 transition-opacity hover:opacity-80"
@@ -103,9 +110,35 @@ export default function AppShell() {
 
           <div className="flex items-center gap-3">
             {loading ? (
-              <div className="h-10 w-24 animate-skeleton rounded-full bg-muted" />
+              <div className="h-10 w-40 animate-skeleton rounded-full bg-muted" />
             ) : user ? (
               <>
+                <Link to="/payment" className="hidden xl:block">
+                  <Button
+                    variant={isPremium ? "outline" : "default"}
+                    className={
+                      isPremium
+                        ? "rounded-full border-primary/18 bg-white/92 px-4 text-primary shadow-soft"
+                        : "rounded-full bg-[image:var(--cta-primary)] px-4 text-white shadow-[0_18px_40px_rgba(0,80,212,0.18)]"
+                    }
+                  >
+                    {premiumLoading ? (
+                      <div className="h-4 w-16 animate-skeleton rounded-full bg-white/20" />
+                    ) : (
+                      <>
+                        {isPremium ? (
+                          <BadgeCheck className="h-4 w-4" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                        <span className="font-display text-sm font-semibold tracking-tight">
+                          {premiumLabel}
+                        </span>
+                      </>
+                    )}
+                  </Button>
+                </Link>
+
                 <Link to="/messages">
                   <Button variant="ghost" size="icon" className="relative rounded-full">
                     <MessageCircle className="h-5 w-5" />
@@ -119,7 +152,9 @@ export default function AppShell() {
                     ) : null}
                   </Button>
                 </Link>
+
                 <NotificationBell />
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -134,7 +169,8 @@ export default function AppShell() {
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+
+                  <DropdownMenuContent align="end" className="w-64">
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col gap-1">
                         <p className="text-sm font-medium leading-none">
@@ -143,15 +179,28 @@ export default function AppShell() {
                         <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
                       </div>
                     </DropdownMenuLabel>
+
                     <DropdownMenuSeparator />
+
                     <DropdownMenuItem onSelect={() => navigate("/profile")}>
                       <UserIcon className="mr-2 h-4 w-4" />
                       Hồ sơ
                     </DropdownMenuItem>
+
                     <DropdownMenuItem onSelect={() => navigate("/messages")}>
                       <MessageCircle className="mr-2 h-4 w-4" />
                       Tin nhắn
                     </DropdownMenuItem>
+
+                    <DropdownMenuItem onSelect={() => navigate("/payment")}>
+                      {isPremium ? (
+                        <BadgeCheck className="mr-2 h-4 w-4" />
+                      ) : (
+                        <Sparkles className="mr-2 h-4 w-4" />
+                      )}
+                      {isPremium ? "RommZ+ đang hoạt động" : "RommZ+"}
+                    </DropdownMenuItem>
+
                     {isLandlord ? (
                       <DropdownMenuItem onSelect={() => navigate("/host")}>
                         <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -163,7 +212,9 @@ export default function AppShell() {
                         Trở thành chủ nhà
                       </DropdownMenuItem>
                     )}
+
                     <DropdownMenuSeparator />
+
                     <DropdownMenuItem onSelect={handleSignOut} className="text-red-600">
                       <LogOut className="mr-2 h-4 w-4" />
                       Đăng xuất
@@ -194,10 +245,26 @@ export default function AppShell() {
           <Link to="/" className="font-display text-xl font-black tracking-tighter text-slate-900">
             RommZ
           </Link>
+
           {loading ? (
             <div className="h-9 w-9 animate-skeleton rounded-full bg-muted" />
           ) : user ? (
             <div className="flex items-center gap-1">
+              <Link to="/payment">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative h-9 w-9 rounded-full"
+                  aria-label="Mở RommZ+"
+                >
+                  {isPremium ? (
+                    <BadgeCheck className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  )}
+                </Button>
+              </Link>
+
               <Link to="/messages">
                 <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
                   <MessageCircle className="h-5 w-5" />
@@ -211,6 +278,7 @@ export default function AppShell() {
                   ) : null}
                 </Button>
               </Link>
+
               <NotificationBell />
             </div>
           ) : (

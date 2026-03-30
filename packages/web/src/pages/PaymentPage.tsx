@@ -1,38 +1,80 @@
-/**
- * Payment Page
- * RommZ+ subscription plans and checkout with SePay QR
- */
-
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, CheckCircle, CreditCard, Crown, Flame, Loader2, Shield, Star } from 'lucide-react';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts';
-import { QRPaymentModal } from '@/components/modals/QRPaymentModal';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  PLANS,
+  ArrowLeft,
+  BadgeCheck,
+  Check,
+  Flame,
+  Loader2,
+  Sparkles,
+  WalletCards,
+} from "lucide-react";
+import { toast } from "sonner";
+import { QRPaymentModal } from "@/components/modals/QRPaymentModal";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { useAuth } from "@/contexts";
+import { stitchAssets } from "@/lib/stitchAssets";
+import { cn, formatCurrency } from "@/lib/utils";
+import {
   createSePayCheckoutSession,
   getPromoStatus,
-  getRommZPlusPlan,
   getUserSubscription,
+  PRICING,
   type BillingCycle,
   type PromoStatus,
   type Subscription,
   type SubscriptionPlan,
-} from '@/services/payments';
+} from "@/services/payments";
+import {
+  PREMIUM_ENTITLEMENT_MATRIX,
+  PREMIUM_PUBLIC_BENEFITS,
+} from "@roomz/shared/constants/premium-offer";
+
+const LIVE_ROWS = PREMIUM_ENTITLEMENT_MATRIX.filter((row) => row.status === "live");
+
+const FAQ_ITEMS = [
+  {
+    question: "RommZ+ đang mở khóa gì ngay lúc này?",
+    answer:
+      "Tập trung vào các quyền lợi đã chạy thật như xem số điện thoại host nhiều hơn, lưu yêu thích không giới hạn, roommate không giới hạn và deal Premium của Local Passport.",
+  },
+  {
+    question: "Nếu đã là thành viên RommZ+ thì sao?",
+    answer:
+      "Trang này vẫn luôn xem được để bạn đối chiếu quyền lợi, mức giá hiện hành và trạng thái gói đang dùng. Nó không biến mất khi tài khoản đã active.",
+  },
+  {
+    question: "Thanh toán diễn ra như thế nào?",
+    answer:
+      "RommZ dùng SePay QR. Sau khi quét và xác nhận thành công, gói sẽ kích hoạt ngay trên tài khoản hiện tại của bạn.",
+  },
+] as const;
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "Không giới hạn";
+  try {
+    return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(new Date(value));
+  } catch {
+    return "Không giới hạn";
+  }
+}
 
 export default function PaymentPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [promoStatus, setPromoStatus] = useState<PromoStatus | null>(null);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [loading, setLoading] = useState(true);
   const [processingPlan, setProcessingPlan] = useState<SubscriptionPlan | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
-  const [promoStatus, setPromoStatus] = useState<PromoStatus | null>(null);
+  const [recentlyActivated, setRecentlyActivated] = useState(false);
   const [qrModalData, setQrModalData] = useState<{
     orderCode: string;
     qrCodeUrl: string;
@@ -43,57 +85,42 @@ export default function PaymentPage() {
     requestPromo: boolean;
   } | null>(null);
 
-  const rommzPlusPlan = getRommZPlusPlan();
-
   useEffect(() => {
-    async function fetchPromoStatus() {
+    async function hydrate() {
       try {
-        const status = await getPromoStatus();
-        setPromoStatus(status);
-      } catch (error) {
-        console.error('Failed to fetch promo status:', error);
-      }
-    }
-
-    void fetchPromoStatus();
-  }, []);
-
-  useEffect(() => {
-    async function fetchSubscription() {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const nextSubscription = await getUserSubscription(user.id);
+        const [nextPromoStatus, nextSubscription] = await Promise.all([
+          getPromoStatus(),
+          user ? getUserSubscription(user.id) : Promise.resolve(null),
+        ]);
+        setPromoStatus(nextPromoStatus);
         setSubscription(nextSubscription);
       } catch (error) {
-        console.error('Failed to fetch subscription:', error);
+        console.error("Failed to hydrate payment page:", error);
       } finally {
         setLoading(false);
       }
     }
 
-    void fetchSubscription();
+    void hydrate();
   }, [user]);
+
+  const activeSubscription = subscription?.plan === "rommz_plus" && subscription.status === "active";
+  const remainingSlots = Math.max(0, (promoStatus?.totalSlots ?? 0) - (promoStatus?.claimedSlots ?? 0));
+  const showPromo = remainingSlots > 0 && !activeSubscription;
+  const currentBasePrice =
+    billingCycle === "monthly" ? PRICING.ROMMZ_PLUS_MONTHLY : PRICING.ROMMZ_PLUS_QUARTERLY;
+  const currentPromoPrice = PRICING.getPromoPrice(currentBasePrice);
+  const quarterlySavings = PRICING.ROMMZ_PLUS_MONTHLY * 3 - PRICING.ROMMZ_PLUS_QUARTERLY;
+  const liveBenefitCards = useMemo(() => LIVE_ROWS.slice(0, 4), []);
 
   const createCheckout = async (
     plan: SubscriptionPlan,
     selectedBillingCycle: BillingCycle,
     requestPromo: boolean,
   ) => {
-    if (!user) {
-      throw new Error('Not authenticated');
-    }
+    if (!user) throw new Error("Not authenticated");
 
-    const result = await createSePayCheckoutSession(
-      user.id,
-      plan,
-      selectedBillingCycle,
-      requestPromo,
-    );
-
+    const result = await createSePayCheckoutSession(user.id, plan, selectedBillingCycle, requestPromo);
     setQrModalData({
       orderCode: result.orderCode,
       qrCodeUrl: result.qrCodeUrl,
@@ -105,24 +132,24 @@ export default function PaymentPage() {
     });
   };
 
-  const handleSubscribe = async (plan: SubscriptionPlan) => {
+  const handleSubscribe = async () => {
     if (!user) {
-      toast.error('Vui lòng đăng nhập để đăng ký');
-      navigate('/login');
+      toast.error("Vui lòng đăng nhập để mở gói RommZ+.");
+      navigate("/login");
       return;
     }
 
-    if (plan === 'free') {
-      toast.info('Bạn đang sử dụng gói miễn phí');
+    if (activeSubscription) {
+      toast.info("Gói RommZ+ của bạn đang hoạt động.");
       return;
     }
 
-    setProcessingPlan(plan);
+    setProcessingPlan("rommz_plus");
     try {
-      await createCheckout(plan, billingCycle, remainingSlots > 0);
+      await createCheckout("rommz_plus", billingCycle, showPromo);
     } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error('Không thể tạo phiên thanh toán. Vui lòng thử lại.');
+      console.error("Checkout error:", error);
+      toast.error("Không thể tạo phiên thanh toán. Vui lòng thử lại.");
     } finally {
       setProcessingPlan(null);
     }
@@ -130,319 +157,242 @@ export default function PaymentPage() {
 
   const handlePaymentSuccess = () => {
     setQrModalData(null);
-    setShowSuccess(true);
-    toast.success('Thanh toán thành công. Chào mừng bạn đến với RommZ+.');
-
+    setRecentlyActivated(true);
+    toast.success("Thanh toán thành công. RommZ+ đã được kích hoạt.");
     if (user) {
       void getUserSubscription(user.id).then(setSubscription);
     }
   };
 
   const handleRegenerateCheckout = async () => {
-    if (!qrModalData) return;
-
-    if (!user) {
-      toast.error('Vui lòng đăng nhập lại để tiếp tục thanh toán.');
-      navigate('/login');
-      return;
-    }
-
-    await createCheckout(
-      qrModalData.plan,
-      qrModalData.billingCycle,
-      qrModalData.requestPromo,
-    );
+    if (!qrModalData || !user) return;
+    await createCheckout(qrModalData.plan, qrModalData.billingCycle, qrModalData.requestPromo);
   };
-
-  const getPlanIcon = (planId: SubscriptionPlan) => {
-    switch (planId) {
-      case 'free':
-        return Star;
-      case 'rommz_plus':
-        return Crown;
-      default:
-        return Star;
-    }
-  };
-
-  const getCurrentPrice = () => {
-    if (!rommzPlusPlan) return 49_000;
-    return billingCycle === 'monthly'
-      ? rommzPlusPlan.price
-      : (rommzPlusPlan.quarterlyPrice || 119_000);
-  };
-
-  const getSavings = () => {
-    if (!rommzPlusPlan) return 0;
-    const monthlyTotal = rommzPlusPlan.price * 3;
-    const quarterlyPrice = rommzPlusPlan.quarterlyPrice || 119_000;
-    return monthlyTotal - quarterlyPrice;
-  };
-
-  const remainingSlots = promoStatus
-    ? (promoStatus.totalSlots ?? 0) - (promoStatus.claimedSlots ?? 0)
-    : 0;
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (showSuccess) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 via-white to-secondary/10 px-4">
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="pb-6 pt-8">
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle className="h-10 w-10 text-green-600" />
-            </div>
-            <h2 className="mb-2 text-2xl font-bold">Chào mừng đến với RommZ+</h2>
-            <p className="mb-6 text-gray-600">
-              Tài khoản của bạn đã được nâng cấp thành công. Bạn có thể quay lại tìm phòng, mở khóa roommate và dùng deal premium ngay bây giờ.
-            </p>
-            <div className="space-y-3">
-              <Button onClick={() => navigate('/profile')} className="w-full">
-                Xem hồ sơ của tôi
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/search')} className="w-full">
-                Tìm phòng ngay
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/5 pb-24 md:pb-8">
-      <div className="scroll-lock-shell sticky top-0 z-40 border-b border-border bg-white/80 px-4 py-3 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                navigate(-1);
-              }
-            }}
-            className="rounded-full"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="ml-3">
-            <h1 className="text-lg font-semibold">Nâng cấp tài khoản</h1>
-            <p className="text-sm text-gray-500">Chọn gói phù hợp với nhu cầu tìm phòng và roommate của bạn</p>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background pb-24 md:pb-12">
+      <div className="mx-auto max-w-6xl px-4 py-8 md:px-8 md:py-12">
+        <Button variant="ghost" className="mb-6 rounded-full pl-0 text-on-surface" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4" />
+          Quay lại
+        </Button>
 
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        <div className="mb-8 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
-            <Crown className="h-4 w-4" />
-            Nâng cấp ngay hôm nay
-          </div>
-          <h2 className="mb-4 text-3xl font-bold md:text-4xl">
-            Mở khóa các quyền lợi cốt lõi với RommZ+
-          </h2>
-          <p className="mx-auto max-w-2xl text-gray-600">
-            RommZ+ tập trung vào những gì đang chạy thật: roommate không giới hạn, contact mạnh hơn, favorites không giới hạn và deal Premium của Local Passport.
-          </p>
-        </div>
+        <section className="overflow-hidden rounded-[40px] border border-primary/10 bg-[linear-gradient(180deg,#ffffff_0%,#f5f7ff_100%)] px-6 py-8 shadow-soft-lg md:px-10 md:py-10">
+          <div className="grid gap-8 lg:grid-cols-[1fr_420px] lg:items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/8 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                Hội viên RommZ+
+              </div>
+              <h1 className="mt-5 max-w-[11ch] font-display text-4xl font-black tracking-[-0.06em] text-on-surface md:text-6xl">
+                Nâng tầm trải nghiệm cùng RommZ+
+              </h1>
+              <p className="mt-4 max-w-[56ch] text-base leading-8 text-on-surface-variant">
+                Mở lớp ưu tiên cho hành trình tìm chỗ ở: liên hệ nhanh hơn, xem sâu hơn và giữ những deal tốt nhất trong
+                một bề mặt gọn hơn.
+              </p>
 
-        {remainingSlots > 0 && (
-          <div className="mb-6 flex justify-center">
-            <div className="flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 px-6 py-3 text-white shadow-lg">
-              <Flame className="h-5 w-5" />
-              <span className="font-medium">
-                Chỉ còn <strong>{remainingSlots}</strong> slot giá 24.500đ
-              </span>
+              <div className="mt-6 flex flex-wrap gap-3">
+                {(recentlyActivated || activeSubscription) ? (
+                  <Badge className="rounded-full bg-emerald-50 px-4 py-2 text-emerald-700 hover:bg-emerald-50">
+                    <BadgeCheck className="h-3.5 w-3.5" />
+                    {recentlyActivated
+                      ? "RommZ+ vừa kích hoạt"
+                      : `RommZ+ hoạt động tới ${formatDate(subscription?.currentPeriodEnd)}`}
+                  </Badge>
+                ) : null}
+                {showPromo ? (
+                  <Badge className="rounded-full bg-[linear-gradient(90deg,#f97316_0%,#f59e0b_100%)] px-4 py-2 text-white">
+                    <Flame className="h-3.5 w-3.5" />
+                    Còn {remainingSlots} slot ưu đãi
+                  </Badge>
+                ) : null}
+              </div>
             </div>
-          </div>
-        )}
 
-        <div className="mb-8 flex justify-center">
-          <div className="flex rounded-full bg-gray-100 p-1">
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`rounded-full px-6 py-2 text-sm font-medium transition-all ${
-                billingCycle === 'monthly'
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Tháng {rommzPlusPlan?.price?.toLocaleString('vi-VN')}đ
-            </button>
-            <button
-              onClick={() => setBillingCycle('quarterly')}
-              className={`flex items-center gap-1 rounded-full px-6 py-2 text-sm font-medium transition-all ${
-                billingCycle === 'quarterly'
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Quý {(rommzPlusPlan?.quarterlyPrice || 119_000).toLocaleString('vi-VN')}đ
-              <Badge variant="secondary" className="bg-green-100 text-xs text-green-700">
-                Tiết kiệm 19%
-              </Badge>
-            </button>
-          </div>
-        </div>
-
-        {subscription && (
-          <div className="mb-6 flex justify-center">
-            <Badge className="border-green-300 bg-green-100 px-4 py-2 text-green-700">
-              <Shield className="mr-2 h-4 w-4" />
-              Đang sử dụng: {PLANS.find((plan) => plan.id === subscription.plan)?.name}
-            </Badge>
-          </div>
-        )}
-
-        <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
-          {PLANS.map((plan) => {
-            const Icon = getPlanIcon(plan.id);
-            const isCurrentPlan = subscription?.plan === plan.id;
-            const isProcessing = processingPlan === plan.id;
-
-            return (
-              <Card
-                key={plan.id}
-                className={`relative overflow-hidden transition-all hover:shadow-lg ${
-                  plan.recommended ? 'scale-105 border-2 border-primary shadow-lg md:scale-110' : ''
-                }`}
-              >
-                {plan.recommended && (
-                  <div className="absolute left-0 right-0 top-0 bg-primary py-1 text-center text-sm font-medium text-white">
-                    Phổ biến nhất
-                  </div>
+            <div className="relative mx-auto w-full max-w-[420px]">
+              <div className="overflow-hidden rounded-[32px] border border-primary/10 bg-white shadow-soft">
+                <img
+                  src={stitchAssets.roomDetail.gallery[0]}
+                  alt="Không gian phòng premium của RommZ+"
+                  className="h-[280px] w-full object-cover"
+                />
+              </div>
+              <div className="absolute bottom-5 left-5 rounded-[22px] border border-white/70 bg-white/92 px-4 py-3 shadow-soft backdrop-blur">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Gói hiện tại</p>
+                <p className="mt-1 text-xl font-bold tracking-[-0.03em] text-on-surface">
+                  {showPromo ? formatCurrency(currentPromoPrice) : formatCurrency(currentBasePrice)}
+                </p>
+                {showPromo ? (
+                  <p className="mt-1 text-sm text-muted-foreground line-through">{formatCurrency(currentBasePrice)}</p>
+                ) : (
+                  <p className="mt-1 text-sm text-muted-foreground">Giá chính thức</p>
                 )}
-                <CardHeader className={plan.recommended ? 'pt-10' : ''}>
-                  <div className="mb-2 flex items-center gap-3">
-                    <div
-                      className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-                        plan.recommended ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl">{plan.name}</CardTitle>
-                      <CardDescription className={plan.recommended && billingCycle === 'quarterly' ? 'font-medium text-green-600' : ''}>
-                        {plan.recommended ? (
-                          <>
-                            {billingCycle === 'monthly'
-                              ? `${getCurrentPrice().toLocaleString('vi-VN')}đ/tháng`
-                              : `${Math.floor((rommzPlusPlan?.quarterlyPrice || 119_000) / 3).toLocaleString('vi-VN')}đ/tháng`}
-                            {billingCycle === 'quarterly' && (
-                              <span className="ml-1 text-xs font-normal text-gray-500">
-                                ({rommzPlusPlan?.quarterlyPrice?.toLocaleString('vi-VN')}đ/quý)
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          plan.priceDisplay
-                        )}
-                      </CardDescription>
-                      {plan.recommended && billingCycle === 'quarterly' && (
-                        <span className="text-xs font-medium text-green-600">
-                          Tiết kiệm {getSavings().toLocaleString('vi-VN')}đ
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 text-sm">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+              </div>
 
-                  <Button
-                    onClick={() => handleSubscribe(plan.id)}
-                    disabled={isCurrentPlan || isProcessing}
-                    className={`w-full rounded-full ${plan.recommended ? 'bg-primary hover:bg-primary/90' : ''}`}
-                    variant={plan.recommended ? 'default' : 'outline'}
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Đang xử lý...
-                      </>
-                    ) : isCurrentPlan ? (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Gói hiện tại
-                      </>
-                    ) : plan.id === 'free' ? (
-                      'Miễn phí'
-                    ) : (
-                      <>
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Nâng cấp ngay
-                      </>
-                    )}
+              {(recentlyActivated || activeSubscription) ? (
+                <div className="mt-4 flex flex-wrap justify-end gap-3">
+                  <Button variant="outline" className="rounded-full" onClick={() => navigate("/profile")}>
+                    Xem hồ sơ
                   </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-
-        <div className="mt-12 text-center">
-          <p className="mb-4 text-sm text-gray-500">Thanh toán an toàn</p>
-          <div className="flex items-center justify-center gap-6 opacity-60">
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              <span className="text-sm font-medium">SSL Encrypted</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              <span className="text-sm font-medium">Secure</span>
+                  <Button className="rounded-full" onClick={() => navigate("/services?tab=deals")}>
+                    Mở deal premium
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </div>
-          <p className="mt-4 text-xs text-gray-400">
-            Hủy bất cứ lúc nào. Không cam kết dài hạn.
-          </p>
-        </div>
+        </section>
 
-        <div className="mx-auto mt-16 max-w-2xl">
-          <h2 className="mb-8 text-center text-2xl font-bold">Câu hỏi thường gặp</h2>
-          <div className="space-y-4">
-            {[
-              {
-                q: 'Tôi có thể hủy đăng ký bất cứ lúc nào không?',
-                a: 'Có. Bạn có thể hủy bất cứ lúc nào và quyền lợi RommZ+ sẽ tiếp tục cho đến hết chu kỳ đã thanh toán.',
-              },
-              {
-                q: 'Có trial miễn phí không?',
-                a: 'Hiện tại chưa có trial miễn phí. Bạn vẫn có thể bắt đầu theo tháng và theo dõi mức dùng thực tế của các quyền lợi premium.',
-              },
-              {
-                q: 'Thanh toán có an toàn không?',
-                a: 'Mọi giao dịch đều đi qua luồng thanh toán bảo mật. RommZ không lưu thông tin thẻ ngân hàng của bạn.',
-              },
-            ].map((faq) => (
-              <Card key={faq.q}>
-                <CardContent className="pt-4">
-                  <h3 className="mb-2 font-medium">{faq.q}</h3>
-                  <p className="text-sm text-gray-600">{faq.a}</p>
-                </CardContent>
-              </Card>
+        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {liveBenefitCards.map((benefit) => (
+            <div key={benefit.id} className="rounded-[28px] border border-primary/10 bg-white px-5 py-5 shadow-soft">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+                {benefit.kind === "hard_entitlement" ? "Live entitlement" : "Tín hiệu mạnh"}
+              </p>
+              <p className="mt-3 text-lg font-semibold tracking-[-0.03em] text-on-surface">{benefit.title}</p>
+              <p className="mt-2 text-sm leading-7 text-on-surface-variant">{benefit.premiumValue}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="mt-10 flex justify-center">
+          <div className="w-full max-w-[430px] rounded-[32px] border border-primary/12 bg-white px-6 py-7 shadow-soft-lg">
+            <div className="grid grid-cols-2 gap-2 rounded-[22px] bg-surface-container-low p-2">
+              {(["monthly", "quarterly"] as const).map((cycle) => (
+                <button
+                  key={cycle}
+                  type="button"
+                  onClick={() => setBillingCycle(cycle)}
+                  className={cn(
+                    "rounded-[18px] px-4 py-3 text-left transition-all",
+                    billingCycle === cycle ? "bg-white shadow-soft" : "text-muted-foreground hover:bg-white/70",
+                  )}
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em]">
+                    {cycle === "monthly" ? "Theo tháng" : "Theo quý"}
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-on-surface">
+                    {formatCurrency(cycle === "monthly" ? PRICING.ROMMZ_PLUS_MONTHLY : PRICING.ROMMZ_PLUS_QUARTERLY)}
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 text-center">
+              {showPromo ? (
+                <p className="text-sm text-muted-foreground line-through">{formatCurrency(currentBasePrice)}</p>
+              ) : null}
+              <h2 className="mt-2 font-display text-5xl font-black tracking-[-0.06em] text-on-surface">
+                {formatCurrency(showPromo ? currentPromoPrice : currentBasePrice)}
+              </h2>
+              <p className="mt-2 text-sm text-on-surface-variant">
+                {billingCycle === "monthly"
+                  ? "Thanh toán theo tháng, linh hoạt đổi nhịp dùng."
+                  : `Theo quý, đang tiết kiệm ${formatCurrency(quarterlySavings)} so với trả lẻ từng tháng.`}
+              </p>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              {PREMIUM_PUBLIC_BENEFITS.map((benefit) => (
+                <div key={benefit.id} className="flex items-start gap-3 rounded-[20px] bg-surface-container-low px-4 py-3">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span className="text-sm leading-6 text-on-surface">{benefit.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 space-y-3">
+              <Button
+                onClick={() => void handleSubscribe()}
+                disabled={activeSubscription || processingPlan === "rommz_plus"}
+                className="w-full rounded-full py-6 text-base"
+              >
+                {processingPlan === "rommz_plus" ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <WalletCards className="mr-2 h-4 w-4" />
+                )}
+                {activeSubscription
+                  ? "Bạn đang dùng gói này"
+                  : `Thanh toán ${formatCurrency(showPromo ? currentPromoPrice : currentBasePrice)}`}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full rounded-full"
+                onClick={() => navigate(activeSubscription ? "/profile" : "/search")}
+              >
+                {activeSubscription ? "Quay về hồ sơ" : "Tìm phòng trước khi nâng cấp"}
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-12 overflow-hidden rounded-[32px] border border-primary/10 bg-white shadow-soft">
+          <div className="border-b border-border/70 px-6 py-5 md:px-8">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">So sánh entitlement</p>
+            <h3 className="mt-2 font-display text-3xl font-black tracking-[-0.05em] text-on-surface">
+              Bạn sẽ mở khóa gì ngay lúc này
+            </h3>
+            <p className="mt-2 max-w-[70ch] text-sm leading-7 text-on-surface-variant">
+              Các hàng dưới đây chỉ hiển thị những quyền lợi live trong repo hiện tại, để trang bán gói không overpromise.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-left">
+              <thead className="bg-surface-container-low">
+                <tr className="text-sm text-on-surface-variant">
+                  <th className="px-6 py-4 font-semibold md:px-8">Quyền lợi</th>
+                  <th className="px-6 py-4 font-semibold">Miễn phí</th>
+                  <th className="px-6 py-4 font-semibold">RommZ+</th>
+                </tr>
+              </thead>
+              <tbody>
+                {LIVE_ROWS.map((row) => (
+                  <tr key={row.id} className="border-t border-border/70 align-top">
+                    <td className="px-6 py-4 md:px-8">
+                      <p className="font-semibold text-on-surface">{row.title}</p>
+                      <p className="mt-1 text-sm leading-6 text-on-surface-variant">{row.notes}</p>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-on-surface-variant">{row.freeValue}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-on-surface">{row.premiumValue}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mx-auto mt-12 max-w-3xl rounded-[32px] border border-primary/10 bg-white px-6 py-6 shadow-soft md:px-8">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Câu hỏi thường gặp</p>
+          <h3 className="mt-2 font-display text-3xl font-black tracking-[-0.05em] text-on-surface">
+            Chốt gói trải nghiệm
+          </h3>
+          <Accordion type="single" collapsible className="mt-6">
+            {FAQ_ITEMS.map((item) => (
+              <AccordionItem key={item.question} value={item.question}>
+                <AccordionTrigger className="text-base font-semibold text-on-surface hover:no-underline">
+                  {item.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-sm leading-7 text-on-surface-variant">
+                  {item.answer}
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
-        </div>
+          </Accordion>
+        </section>
       </div>
 
-      {qrModalData && (
+      {qrModalData ? (
         <QRPaymentModal
           isOpen
           onClose={() => setQrModalData(null)}
@@ -454,7 +404,7 @@ export default function PaymentPage() {
           onPaymentSuccess={handlePaymentSuccess}
           onRegenerate={handleRegenerateCheckout}
         />
-      )}
+      ) : null}
     </div>
   );
 }

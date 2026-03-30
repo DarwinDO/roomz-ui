@@ -133,6 +133,20 @@ description: Implementation rules and technical boundaries for the RoomZ Stitch-
   - replaced the old host-application shell with the reviewed Stitch-first conversion layout
   - preserved the live pending / rejected / approved redirect flow from the existing host-application service
   - added local draft save and restore so non-landlord users can continue the form on the same device
+- Ported `/romi` manually from the reviewed Stitch AI-assistant screen:
+  - replaced the older floating-chat expectation with a protected full-page assistant workspace
+  - preserved live Supabase-backed session history, message loading, sending, and deletion flows
+  - added room-context recovery so actionable Romi replies can show the linked room card in the side rail
+  - kept the lightweight floating launcher as an entry point instead of rendering the full chat surface inline on every route
+- Ported `/payment` manually from the reviewed Stitch RommZ+ purchase screen:
+  - replaced the earlier utilitarian payment shell with a Stitch-first pricing and entitlement comparison page
+  - changed the displayed RommZ+ monthly price from `49.000đ` to `39.000đ` and the quarterly price to `99.000đ`
+  - kept the purchase page visible even when the current user already has an active RommZ+ subscription
+  - preserved the live SePay QR checkout flow, promo-slot logic, and subscription-state refresh
+- Updated active-premium upsell entry points after the payment-page port:
+  - `/profile` premium cards now link back to `/payment` so active members can still review their plan
+  - roommate-limit upsell copy now reflects the new `39.000đ/tháng` baseline
+  - staging demo seed data now mirrors the new RommZ+ pricing
 - Ported the reviewed host sub-screen concepts into the existing `/host` shell instead of spinning up separate routes:
   - `Tin đăng` now adds a listings insight strip with portfolio mix and spotlight cards above the live listing groups
   - `Lịch hẹn` now adds a Stitch-first appointments strip with a next-up queue and lightweight monthly calendar
@@ -201,12 +215,13 @@ description: Implementation rules and technical boundaries for the RoomZ Stitch-
   - `/messages` now animates rail, chat, and context focus changes instead of snapping between conversation states
   - `/host` now animates top-shell tab changes and tab-content swaps while preserving the existing host navigation model
   - the product motion pass still avoids layout-dimension animation and remains reduced-motion-safe
-- Implemented the landing/login 3D accent pilot:
-  - installed and wired `three`, `@react-three/fiber`, and `@react-three/drei` into the web workspace
-  - added a shared `HeroAccentPilot` scene with a housing-cluster variant for `/` and a sanctuary-room variant for `/login`
-  - gated the pilot behind WebGL, desktop-width, hardware-hint, and reduced-motion checks via `useThreePilotEnabled`
-  - kept the original Stitch hero imagery as the explicit fallback when the pilot is not allowed to mount
-  - limited the pilot to lazy-loaded entry routes only so the rest of the desktop product stays 2D
+- Pivoted the landing/login hero direction from runtime 3D to a Draftly-like layered illustration approach:
+  - removed `three`, `@react-three/fiber`, and `@react-three/drei` from the web workspace
+  - deleted the old runtime pilot files `HeroAccentPilot.tsx` and `threePilot.ts`
+  - added `HeroIllustrationPilot.tsx` as the shared landing/login hero system
+  - `/` now uses a layered housing-cluster illustration with soft Framer Motion parallax
+  - `/login` now uses the same pre-rendered approach for the sanctuary-side hero instead of a live WebGL scene
+  - reduced-motion safety is still respected, but the entry heroes no longer depend on WebGL gating or a heavy lazy scene chunk
 
 - Keep desktop parity work 2D-only in this phase
 - Preserve route stability and existing code-splitting behavior
@@ -220,5 +235,36 @@ description: Implementation rules and technical boundaries for the RoomZ Stitch-
 - Host sub-tabs remain inside the canonical `/host` shell with the existing top navbar + horizontal tab bar; Stitch sidebars are treated as concept-only drift and are not portable
 - Atlas Plus, admin, and mobile mapping remain outside the current port boundary
 - Motion is now inside scope for the public shell and key product surfaces: landing, login, services, community, search, messages, and host
-- 3D is now inside scope only for the landing/login pilot; all other routes remain intentionally 2D
-- The next implementation target is to review the landing/login 3D pilot and then decide between desktop freeze, mobile mapping, or a focused optimization pass on the pilot chunk
+- Entry hero experimentation is now inside scope only as a layered illustration system on landing/login; all other routes remain intentionally 2D
+- Stitch-first utility surfaces are now also inside scope for:
+  - `/romi`
+  - `/payment`
+- The next implementation target is to review `/romi` and `/payment` live, then decide whether to continue with another utility surface, mobile mapping, or a broader desktop review freeze
+- Tightened the first utility-surface port after review feedback:
+  - `/romi` now uses a cleaner Stitch-like 3-column assistant composition instead of the earlier dashboard-like shell
+  - `/payment` now leans on a premium sales-surface composition instead of a denser settings-style pricing page
+  - the live chat, room-context resolution, QR checkout flow, and always-visible active-subscription state were preserved during the parity pass
+- Added a second utility-surface pass focused on discoverability and runtime quality:
+  - `AppShell` now exposes a top-right RommZ+ utility pill on desktop instead of relying on contextual upsells only
+  - avatar navigation and mobile quick access now both retain a direct route into `/payment`
+  - the floating Romi launcher still exists, but `/romi` is now the canonical full workspace instead of an oversized chatbot panel
+- Rebuilt `/romi` into a chat-first assistant workspace:
+  - a lighter left rail for session search and history
+  - a primary center chat panel with a sticky composer and intent shortcuts
+  - an optional right context rail that only matters when room, deal, or service context exists
+  - embedded action cards inside the conversation instead of relying on plain text CTA lines
+- Upgraded Romi transport and orchestration:
+  - the shared AI client now supports `sendAIChatMessageStream`
+  - AI message metadata now carries intent, context, tool-call, source, and action details
+  - the Supabase edge function now emits structured streaming events instead of blocking until a full answer is ready
+  - session titles and previews now update optimistically without refetching the entire session and message history after every turn
+- Applied a utility-surface bugfix pass after the first live review of `/payment` and `/romi`:
+  - removed the redundant explanatory purchase-page badge so the RommZ+ hero no longer carries unnecessary top-level noise
+  - filtered meaningless assistant payloads like `...` out of stored Romi history when they carry no useful metadata
+  - replaced empty streamed assistant finals with a real fallback sentence so the chat panel no longer shows dot-only bubbles
+- Rebuilt `/romi` again as `ROMI v3` after the earlier stream-first pass:
+  - `/romi` is now public instead of protected behind auth
+  - signed-out users now enter a limited guest concierge flow instead of losing the launcher entirely
+  - the page now uses a reducer-driven workspace model with explicit journey, clarification, handoff, and source state
+  - the AI runtime now mixes curated knowledge retrieval for product guidance with the existing live tool path for rooms, deals, services, and locations
+  - chat sessions now persist only for signed-in users under `experience_version = romi_v3`, while guest history stays local to the current browser session

@@ -33,7 +33,7 @@ test.describe('createSePayCheckoutSession', () => {
       ({
         data: {
           order_code: 'ROMMZ123',
-          amount: 119000,
+          amount: 99000,
           expires_at: '2026-03-10T11:20:00.000Z',
           promo_applied: true,
         },
@@ -44,12 +44,12 @@ test.describe('createSePayCheckoutSession', () => {
 
     expect(result).toMatchObject({
       orderCode: 'ROMMZ123',
-      amount: 119000,
+      amount: 99000,
       expiresAt: '2026-03-10T11:20:00.000Z',
       promoApplied: true,
     });
     expect(result.qrCodeUrl).toContain('des=ROMMZ123');
-    expect(result.qrCodeUrl).toContain('amount=119000');
+    expect(result.qrCodeUrl).toContain('amount=99000');
   });
 
   test('maps missing checkout RPC deployment to a clear error', async () => {

@@ -2,7 +2,7 @@
 phase: monitoring
 title: Project Status Snapshot
 description: Living project memory for RoomZ product scope, architecture, roadmap, and current implementation state
-updated: 2026-03-23
+updated: 2026-03-30
 ---
 
 # RommZ Project Status
@@ -16,7 +16,65 @@ updated: 2026-03-23
 - **Primary mobile stack:** Expo / React Native with NativeWind
 - **Current design direction:** `Stitch-first` Living Atlas direct port for eleven desktop routes
 - **Motion direction:** Framer Motion only; shared motion foundation plus public and product polish are now active on `/`, `/login`, `/services`, `/community`, `/search`, `/messages`, and `/host`
-- **3D direction:** `three.js + @react-three/fiber + @react-three/drei`, accent-only; the landing/login pilot is now active behind runtime gating and lazy loading
+- **Hero accent direction:** Draftly-like layered illustration hero on landing/login; no runtime WebGL is active now
+
+## Latest Update (2026-03-27)
+
+- RommZ+ discoverability is now global instead of contextual-only:
+  - desktop navbar now includes a top-right `RommZ+` utility pill
+  - avatar menu keeps a premium entry as a secondary access point
+  - mobile quick access now also exposes the premium route instead of hiding it behind upsell-only flows
+- `/payment` remains the canonical premium route and stays visible even when the current user already has an active RommZ+ subscription
+- `/romi` has now been rebuilt again as `ROMI v3`, not just the earlier stream-first workspace:
+  - `/romi` is public and supports both `guest` and signed-in `user` flows
+  - the left rail now branches between guest onboarding and signed-in session history
+  - the center rail is reducer-driven and handles streamed chat updates without page-level churn
+  - the right rail now focuses on journey summary, clarification prompts, handoff, grounded sources, and next-step actions
+- Romi runtime is now stream-first, journey-aware, and partially modularized:
+  - shared request/stream contracts now carry `viewerMode`, `entryPoint`, `pageContext`, and `journeyState`
+  - the edge function now emits `journey_update`, `clarification_request`, and `handoff` in addition to the earlier stream events
+  - guest chats do not persist to DB; signed-in sessions now persist under `experience_version = romi_v3`
+- Knowledge-only RAG is now introduced for product knowledge:
+  - curated RommZ docs live in shared constants and seed into `romi_knowledge_documents` and `romi_knowledge_chunks`
+  - pgvector-backed retrieval is available through `match_romi_knowledge_chunks(...)`
+  - onboarding, pricing, policy, verification, roommate, short-stay, and service explanations can now be grounded by curated knowledge sources
+  - live room, deal, service, and location answers still stay tool-first instead of being delegated to RAG
+- ROMI v3 backend rollout has now been pushed to the live Supabase project:
+  - migration `romi_v3_knowledge_rag` is applied on `vevnoxlgwisdottaifdn`
+  - `ai-chatbot` edge function is redeployed with the new guest/journey/RAG runtime
+  - a direct guest smoke request to the live endpoint now returns a real reply instead of failing on provider fallback
+- Romi desktop workspace now contains long threads inside the chat panel:
+  - session rail, center chat panel, and context rail each scroll internally on desktop
+  - long Romi conversations should no longer stretch the entire `/romi` route downward
+- Follow-up utility-surface cleanup is now applied:
+  - `/payment` no longer carries the redundant explanatory premium badge in the hero chip row
+  - `/romi` now filters meaningless assistant content like `...` from stored history and replaces empty streamed assistant finals with a real fallback sentence instead of rendering dot-only bubbles
+  - `/romi` session cards no longer render a nested `button` inside another `button`; the session row now uses a keyboard-accessible `div role="button"` wrapper so React hydration warnings do not fire
+- Latest validation:
+  - `npm run typecheck --workspace=@roomz/shared`: pass
+  - `npm run lint --workspace=@roomz/web`: pass with the same 3 pre-existing hook warnings
+  - `npm run test:unit --workspace=@roomz/web -- --grep "ROMI|romi workspace reducer"`: pass
+  - `npm run build --workspace=@roomz/web`: pass
+
+## Latest Update (2026-03-30)
+
+- Fixed a ROMI session-hydration regression on `/romi`:
+  - the initial session list fetch no longer overwrites a freshly selected session via a stale `selectedSessionId` closure
+  - the chat viewport no longer swaps the active thread out for loading skeletons when `messagesLoading` flips on while messages are already present
+- Applied a follow-up chat-first UX pass on `/romi`:
+  - the large intro hero now acts as an empty state and disappears after the first user turn
+  - the right-side `Journey / Knowledge đã dùng` rail is no longer shown in the default renter-facing flow
+  - clarification and handoff now sit inline near the composer instead of living in a separate side panel
+  - the session-history rail now stays hidden until a signed-in user has meaningful history to manage
+- User-facing impact:
+  - after the first message creates or selects a thread, the user should keep seeing their live conversation instead of a blank skeleton state
+  - background hydration can still happen, but it should no longer visually erase the current thread
+  - first-turn `/romi` should now feel like a focused chat surface instead of an internal workspace with multiple explanatory panels
+- Validation:
+  - `npm run lint --workspace=@roomz/web`: pass with the same 3 pre-existing hook warnings
+  - `npm run test:unit --workspace=@roomz/web -- --grep "ROMI|romi workspace reducer"`: pass
+  - `npm run test:e2e --workspace=@roomz/web -- romi.spec.ts`: pass
+  - `npm run build --workspace=@roomz/web`: pass
 
 ## Product Surface
 
@@ -46,12 +104,17 @@ updated: 2026-03-23
 
 - Web router uses React Router in `packages/web/src/router/router.tsx`
 - App shell lives in `packages/web/src/router/AppShell.tsx`
+- Desktop app shell now includes a dedicated RommZ+ utility pill as a first-class premium entry point
 - Global tokens and typography live in `packages/web/src/index.css`
 - UI primitives live in `packages/web/src/components/ui`
 - Shared Stitch asset registry lives in `packages/web/src/lib/stitchAssets.ts`
 - Shared Stitch-first footer lives in `packages/web/src/components/common/StitchFooter.tsx`
-- Shared 3D accent pilot scenes live in `packages/web/src/components/3d/HeroAccentPilot.tsx`
-- Shared 3D runtime gating lives in `packages/web/src/lib/threePilot.ts`
+- Shared Draftly-like hero layers now live in `packages/web/src/components/common/HeroIllustrationPilot.tsx`
+- Shared Romi stream contract now lives in `packages/shared/src/services/ai-chatbot/types.ts`
+- Shared Romi stream client now lives in `packages/shared/src/services/ai-chatbot/api.ts`
+- Shared Romi intake helpers now live in `packages/shared/src/services/ai-chatbot/intake.ts`
+- Shared Romi journey-state helpers now live in `packages/shared/src/services/ai-chatbot/journey.ts`
+- Curated Romi knowledge seeds now live in `packages/shared/src/constants/romiKnowledge.ts`
 - Stitch typography aliases now resolve globally via `font-display`, `font-headline`, `font-body`, and `font-label`
 - Fixed and sticky top shells now use the shared `scroll-lock-shell` utility so Radix `Select` overlays do not shift the navbar when `react-remove-scroll` locks the body
 - Global web layout now reserves a stable scrollbar gutter and clears Radix body compensation while scroll-locked, so centered forms no longer jump horizontally when a dropdown opens
@@ -68,6 +131,17 @@ updated: 2026-03-23
   - `/local-passport` -> `/services?tab=deals`
   - `/partners` -> `/services?tab=deals`
 - Stitch project `17849223603191498901` is the active visual source of truth for the desktop port phase
+- `/romi` now uses a stream-first assistant runtime backed by `supabase/functions/ai-chatbot/index.ts`
+- Romi knowledge retrieval helpers now live in:
+  - `supabase/functions/ai-chatbot/knowledge.ts`
+  - `supabase/functions/ai-chatbot/fallback-policy.ts`
+  - `supabase/functions/ai-chatbot/response-composer.ts`
+- Supabase knowledge schema now extends beyond chat sessions:
+  - `ai_chat_sessions.experience_version`
+  - `ai_chat_sessions.journey_state`
+  - `romi_knowledge_documents`
+  - `romi_knowledge_chunks`
+  - `public.match_romi_knowledge_chunks(...)`
 - Stitch-first desktop routes now ported in repo:
   - `/` <- `Trang Chủ - Living Atlas`
   - `/login` <- `Đăng Nhập - Living Atlas`
@@ -115,16 +189,19 @@ updated: 2026-03-23
 - Public motion foundation is now active:
   - shared Framer Motion presets live in `packages/web/src/lib/motion.ts`
   - landing, login, services, and community now use reduced-motion-safe reveal, stagger, and hover feedback
+- `/community` main feed cards no longer stay invisible at `opacity: 0` after the public-motion pass:
+  - the left feed column now keeps a stable motion context
+  - the async-fed featured cards and story cards now animate themselves on mount, so slower community responses do not leave invisible but still-clickable cards in the main feed
 - Product motion pass is now active:
   - `/search` now animates selected-room focus and supporting side panels instead of swapping them abruptly
   - `/messages` now animates conversation focus and context panels without changing layout height
   - `/host` now animates tab changes and console-surface transitions while preserving the existing top-nav shell
   - mobile mapping remains deferred
-- Landing/login 3D pilot is now active:
-  - `@roomz/web` now depends on `three`, `@react-three/fiber`, and `@react-three/drei`
-  - `/` now lazy-loads an isometric housing-cluster scene as the right-hero visual accent
-  - `/login` now lazy-loads a room-vignette scene inside the left editorial panel
-  - both scenes are disabled for coarse pointers, reduced-data users, narrow viewports, and devices below the CPU/memory thresholds in `threePilot.ts`
+- Landing/login hero pilot has been pivoted away from runtime 3D:
+  - removed `three`, `@react-three/fiber`, and `@react-three/drei` from `@roomz/web`
+  - `/` now uses a layered pre-rendered hero composition with soft parallax instead of a live WebGL scene
+  - `/login` now uses the same pre-rendered approach for the sanctuary-side visual
+  - reduced-motion safety still applies, but there is no longer a WebGL gate or heavy lazy hero chunk
 - Desktop parity is the acceptance target for the current phase; mobile is intentionally deferred
 - The global web shell exposes a skip link target via `#main-content`
 - `docs/ai/` is initialized and validates with `npx ai-devkit@latest lint`
@@ -462,15 +539,39 @@ updated: 2026-03-23
 - Confirmed via Playwright runtime inspection that opening the landing `Ngan sach` and `Loai phong` menus keeps `body` at `overflow: visible`, `margin-right: 0px`, and `clientWidth: 1425`, eliminating the earlier scrollbar-induced header shift
 - `/roommates` still redirects to `/login` in an unauthenticated session, so this turn's visual check for the roommate filter relied on code review plus lint/build validation rather than a live screenshot
 
+## Latest Validation Notes (2026-03-26)
+
+- Re-ran `npx ai-devkit@latest lint`: pass
+- Re-ran `npm run lint --workspace=@roomz/web`: pass with the same 3 pre-existing hook warnings
+- Re-ran `npm run build --workspace=@roomz/web`: pass
+- The new `HeroIllustrationPilot` entry chunk now builds at roughly `9.4 kB` instead of the earlier heavy lazy WebGL pilot
+- Restored accented Vietnamese copy inside the new landing/login layered hero and fixed the landing newsletter `aria-label`
+- Manual live review is now required specifically for the new layered heroes on `/` and `/login`
+- Current workspace rerun of `npm run build --workspace=@roomz/web` during the community feed fix: fail due unrelated in-progress TypeScript errors in `src/components/common/HeroIllustrationPilot.tsx` and `src/pages/LandingPage.tsx`
+- Ran `npm run test:e2e --workspace=@roomz/web -- community.spec.ts`: pass
+- Confirmed via Playwright local preview and a delayed mocked community response that `/community` now renders the fetched featured-feed cards visibly instead of leaving the left column blank while the right sidebar still shows
+
+## Latest Validation Notes (2026-03-27)
+
+- Re-ran `npx ai-devkit@latest lint`: pass
+- Re-ran `npm run lint --workspace=@roomz/web`: pass with the same 3 pre-existing hook warnings
+- Re-ran `npm run build --workspace=@roomz/web`: pass
+- Ported `/romi` into the repo as a protected full-page assistant workspace based on the reviewed Stitch concept
+- Ported `/payment` into the repo as a Stitch-first RommZ+ pricing page based on the reviewed Stitch concept
+- Updated the RommZ+ displayed monthly price from `49.000đ` to `39.000đ` and the quarterly price to `99.000đ`
+- Kept `/payment` visible for active premium users instead of hiding the purchase page after activation
+- Applied `supabase/migrations/20260327153000_update_rommz_plus_pricing_to_39k.sql` live to project `vevnoxlgwisdottaifdn`
+- Verified the live `public.create_checkout_order` function now includes `39000` monthly pricing and `99000` quarterly pricing
+
 ## Main Debt
 
 ### UX / design debt
 
 - Mobile mapping has not started
-- Landing/login 3D pilot now needs a live subjective review:
-  - `/` should feel more memorable without making the hero harder to read
+- Landing/login layered hero pivot now needs a live subjective review:
+  - `/` should feel more cinematic and memorable without making the hero harder to read
   - `/login` should keep the auth form as the primary focus even when the sanctuary accent is visible
-  - unsupported and reduced-motion devices still need a manual fallback sanity check on real hardware
+  - reduced-motion still needs a manual comfort sanity check on real hardware
 - `/profile` still needs a live authenticated visual review against the Stitch concept before it can be considered parity-complete
 - `/host` now needs the same authenticated visual review because automation cannot pass the landlord guard
 - `/host` tab parity still needs a landlord-side visual review focused on `Tin đăng`, `Lịch hẹn`, and `Tin nhắn` after the latest Stitch-tightening pass
@@ -491,11 +592,19 @@ updated: 2026-03-23
   - long participant emails should wrap cleanly inside the context rail
   - the landlord preview thread should stay at the user's current scroll position during passive refresh unless a new last message arrives
 - The static UX audit remains noisy and still reports 70 issues across the broader web package
+- `/romi` still needs a live product review for:
+  - session search, delete, and new-chat behavior
+  - guest onboarding, login handoff timing, and signed-in session continuity
+  - room-context recovery when Romi suggests opening a linked room
+  - overall readability of the three-panel assistant layout on real data
+- `/payment` still needs a live product review for:
+  - pricing consistency between the hero card, billing toggle, and QR checkout modal
+  - active-premium behavior where the purchase page remains visible but non-destructive
+  - final copy polish and Vietnamese diacritic sanity check on the new Stitch-first page
 
 ### Technical / structural debt
 
 - Large Vite chunks still exist, especially around `mapbox-gl` and admin bundles
-- The lazy `HeroAccentPilot` chunk is still heavy at roughly `900 kB` minified, so the pilot remains intentionally limited to capable desktop devices only
 - Several legacy surfaces outside the Stitch-first scope still need future polish
 - Legacy participant-pair conversations remain in the database without room context; only newly opened or reopened host/renter threads now receive `(host, renter, room)` identity
 - Existing hook warnings remain in:
@@ -531,29 +640,47 @@ updated: 2026-03-23
 - Signature visual / hero differentiation pass
 - Atlas-heavy design system groundwork
 - Stitch-first desktop port for `/`, `/login`, `/services`, `/community`, `/roommates`, `/room/:id`
-- **Status:** in progress; `/`, `/login`, `/services`, `/community`, `/roommates`, `/room/:id`, `/search`, `/profile`, `/swap`, `/host`, and `/become-host` are now complete, with host sub-tabs tightened toward Stitch and room-context messaging active, while authenticated parity review and mobile mapping still remain pending
+- Additional Stitch-only concept generation is now complete for pending surfaces:
+  - `Trợ Lý AI RommZ - Living Atlas`
+    - `projects/17849223603191498901/screens/e14f5d04d8414570bc093fb69cadee64`
+  - `Hội Viên RommZ+ - Nâng Tầm Trải Nghiệm`
+    - `projects/17849223603191498901/screens/31a73273380244268e5dad5ed8b78b50`
+  - `Hỗ trợ trực tuyến - Living Atlas`
+    - `projects/17849223603191498901/screens/257d8435d9574a81a93f58b9ba47a10f`
+    - generated as an early chatbot draft, but should not be treated as the preferred review source because it skewed too generic-support / Living-Atlas-branded
+- **Status:** in progress; `/`, `/login`, `/services`, `/community`, `/roommates`, `/room/:id`, `/search`, `/profile`, `/swap`, `/host`, `/become-host`, `/romi`, and `/payment` are now complete in repo, with RommZ+ discoverability and Romi v2 runtime now added, and authenticated parity review / mobile mapping still remaining
+- **Status:** in progress; `/`, `/login`, `/services`, `/community`, `/roommates`, `/room/:id`, `/search`, `/profile`, `/swap`, `/host`, `/become-host`, `/romi`, and `/payment` are now complete in repo, with RommZ+ discoverability and `ROMI v3` guest + knowledge-only-RAG rebuild now added, and live Supabase migration review / authenticated parity review / mobile mapping still remaining
 
 ### Phase 4: Motion + 3D accent
 
 - Add Framer Motion polish only after the Stitch-first desktop shell is approved
 - Public-motion foundation is complete for `/`, `/login`, `/services`, and `/community`
 - Product-motion pass is complete for `/search`, `/messages`, and `/host`
-- Landing/login 3D accent pilot is now complete in repo:
-  - lazy-loaded `three.js + @react-three/fiber + @react-three/drei`
-  - gated by WebGL support, desktop width, memory/core hints, and reduced-motion preference
-  - static Stitch hero imagery remains the fallback when the pilot is not allowed to mount
-- Enforce reduced-motion and low-end fallback behavior
+- Landing/login entry-hero pivot is now complete in repo:
+  - runtime Three/R3F scene files have been removed
+  - landing/login now use a Draftly-like layered illustration system with soft motion
+  - the entry hero no longer depends on WebGL support or a large lazy 3D chunk
+- Enforce reduced-motion-safe hero behavior
 - **Status:** in progress
 
 ## Immediate Next Step
 
-- Review the landing/login 3D accent pilot end-to-end:
-  - `/` should show the housing-cluster hero clearly on capable desktop devices
-  - `/login` should show the sanctuary-room accent clearly without overpowering the auth column
-  - unsupported or reduced-motion devices should fall back to the static Stitch hero cleanly
-- If the 3D pilot review passes, decide whether the next phase is:
-  - desktop review freeze before mobile mapping
-  - or a focused optimization pass on the 3D lazy chunk size
+- Review the completed RommZ+ discoverability and ROMI v3 pass live in the repo:
+  - `/payment`
+  - `/romi`
+- Confirm that:
+  - the desktop navbar utility pill is now the clearest global way to reach RommZ+
+  - the mobile quick-access path to `/payment` is discoverable enough
+  - guest `/romi` provides useful onboarding before login
+  - signed-in `/romi` feels like a concierge workspace rather than a support console
+  - streamed Romi turns show progress early enough without flashing or resetting the workspace
+  - clarification and handoff only appear when genuinely needed
+  - room/deal/service context only appears when it is actually useful
+- After review, decide whether to:
+  - polish Romi / RommZ+ further
+  - validate the new Supabase migration and retrieval RPC live
+  - freeze the current desktop scope
+  - or move into mobile mapping / the next utility surface
 
 ## Update Rules
 

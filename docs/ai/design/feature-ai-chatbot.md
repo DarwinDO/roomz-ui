@@ -2,274 +2,237 @@
 phase: design
 feature: ai-chatbot
 title: AI Chatbot - System Design & Architecture
-description: Technical architecture for Gemini-powered AI chatbot with DB persistence and Edge Function backend
+description: ROMI v3 architecture for guest access, signed-in persistence, streaming workspace, and knowledge-only RAG
 ---
 
-# AI Chatbot — System Design & Architecture
+# AI Chatbot - System Design & Architecture
 
 ## Architecture Overview
 
 ```mermaid
 graph TD
-    subgraph Client["Client (Web + Mobile)"]
-        WebUI["Web Chatbot UI<br/>(Upgrade Chatbot.tsx)"]
-        MobileUI["Mobile Chatbot UI<br/>(Bottom Sheet)"]
-        SharedHook["Shared Hook<br/>useAIChatbot()"]
+    subgraph Client["Web Client"]
+        Launcher["Global launcher"]
+        RomiPage["/romi workspace"]
+        Reducer["Workspace stream reducer"]
     end
 
     subgraph Supabase["Supabase Backend"]
-        EdgeFn["Edge Function<br/>ai-chatbot"]
+        EdgeFn["Edge Function ai-chatbot"]
         DB[(PostgreSQL)]
-        Auth["Auth (JWT)"]
+        RPC["match_romi_knowledge_chunks RPC"]
+        Auth["Supabase Auth"]
     end
 
-    subgraph Google["Google AI"]
-        Gemini["Gemini 2.0 Flash API"]
+    subgraph Knowledge["Curated Knowledge Layer"]
+        Docs["romi_knowledge_documents"]
+        Chunks["romi_knowledge_chunks + embeddings"]
     end
 
-    WebUI --> SharedHook
-    MobileUI --> SharedHook
-    SharedHook -->|"POST + JWT"| EdgeFn
-    SharedHook -->|"Read history"| DB
-    EdgeFn -->|"Verify JWT"| Auth
-    EdgeFn -->|"Read/Write"| DB
-    EdgeFn -->|"Generate + Function Calling"| Gemini
-    Gemini -->|"Tool calls"| EdgeFn
-    EdgeFn -->|"Query rooms, bookings"| DB
+    subgraph Models["Model Providers"]
+        LLM["Chat model"]
+        Embed["Embedding model"]
+    end
+
+    Launcher --> RomiPage
+    RomiPage --> Reducer
+    Reducer -->|"stream request"| EdgeFn
+    EdgeFn -->|"optional JWT"| Auth
+    EdgeFn --> DB
+    EdgeFn --> RPC
+    RPC --> Chunks
+    Docs --> Chunks
+    EdgeFn --> LLM
+    EdgeFn --> Embed
 ```
 
-**Key Components:**
+## Product Shape
 
-| Component | Responsibility | Technology |
-|-----------|---------------|------------|
-| **AI Chatbot Edge Function** | Xử lý message, gọi Gemini, function calling, lưu DB | Deno (Supabase Edge Function) |
-| **Shared Hook** | State management, API calls, optimistic UI | React hook (`useAIChatbot`) trong `@roomz/shared` |
-| **Web UI** | Chatbot drawer/modal trên web | React + Tailwind (upgrade `Chatbot.tsx`) |
-| **Mobile UI** | Chatbot bottom sheet trên mobile | React Native + NativeWind |
-| **DB Tables** | Lưu chatbot conversations + messages | PostgreSQL (Supabase) |
+- `/romi` is the primary ROMI workspace.
+- The floating launcher is only a fast entry point into `/romi`.
+- Signed-out users operate in `guest` mode:
+  - no DB persistence
+  - public/product queries only
+  - login handoff when the flow becomes personalized or gated
+- Signed-in users operate in `user` mode:
+  - session persistence
+  - journey-state carry-over
+  - deep room/deal/service guidance
 
-## Data Models
+## Runtime Modules
 
-### Bảng mới: `ai_chat_sessions`
+The public edge function remains `supabase/functions/ai-chatbot/index.ts`, but ROMI v3 now delegates core concerns into separate modules.
 
-> Tách riêng khỏi user-to-user chat để tránh conflict logic.
+| Module | Responsibility |
+|---|---|
+| `packages/shared/src/services/ai-chatbot/intake.ts` | Infer intent, extract journey data, determine clarification needs |
+| `packages/shared/src/services/ai-chatbot/journey.ts` | Merge and summarize user journey state |
+| `supabase/functions/ai-chatbot/knowledge.ts` | Knowledge corpus seeding, retrieval, lexical fallback, source formatting |
+| `supabase/functions/ai-chatbot/fallback-policy.ts` | Clarification and guest handoff policy |
+| `supabase/functions/ai-chatbot/response-composer.ts` | ROMI system prompt and knowledge-only fallback replies |
+
+The tool-routing and live inventory composition logic still lives in the edge entrypoint and remains a future cleanup target.
+
+## Shared Contracts
+
+### `AIChatRequest`
+
+```ts
+interface AIChatRequest {
+  message: string;
+  sessionId?: string | null;
+  viewerMode?: "guest" | "user";
+  entryPoint?: "launcher" | "romi_page" | "contextual_handoff";
+  pageContext?: {
+    route: string;
+    roomId?: string;
+    surface?: string;
+  };
+  journeyState?: Partial<RomiJourneyState>;
+  history?: AIChatHistoryEntry[];
+}
+```
+
+### `AIChatStreamEvent`
+
+ROMI v3 keeps the stream-first model and adds structured experience events:
+
+- `journey_update`
+- `clarification_request`
+- `handoff`
+
+These sit alongside existing streaming events such as `start`, `status`, `token`, `tool_result`, `final`, and `error`.
+
+## Data Model
+
+### Existing tables extended
 
 ```sql
-CREATE TABLE ai_chat_sessions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    title TEXT, -- Auto-generated from first message
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+alter table public.ai_chat_sessions
+  add column experience_version text not null default 'romi_v3',
+  add column journey_state jsonb not null default '{}'::jsonb;
+```
+
+### New tables
+
+```sql
+create table public.romi_knowledge_documents (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  title text not null,
+  section text not null,
+  audience text not null,
+  summary text,
+  metadata jsonb not null default '{}'::jsonb
 );
 
-CREATE INDEX idx_ai_chat_sessions_user ON ai_chat_sessions(user_id);
-```
-
-### Bảng mới: `ai_chat_messages`
-
-```sql
-CREATE TABLE ai_chat_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES ai_chat_sessions(id) ON DELETE CASCADE,
-    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
-    content TEXT NOT NULL,
-    metadata JSONB DEFAULT '{}', -- function call results, sources, etc.
-    created_at TIMESTAMPTZ DEFAULT now()
+create table public.romi_knowledge_chunks (
+  id uuid primary key default gen_random_uuid(),
+  document_id uuid not null references public.romi_knowledge_documents(id) on delete cascade,
+  chunk_id text not null unique,
+  chunk_index integer not null,
+  section text not null,
+  audience text not null,
+  content text not null,
+  embedding extensions.vector(768),
+  metadata jsonb not null default '{}'::jsonb
 );
-
-CREATE INDEX idx_ai_chat_messages_session ON ai_chat_messages(session_id);
-CREATE INDEX idx_ai_chat_messages_created ON ai_chat_messages(session_id, created_at);
 ```
 
-### RLS Policies
+### Retrieval
 
-```sql
--- Users can only access their own sessions
-ALTER TABLE ai_chat_sessions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view own sessions" ON ai_chat_sessions
-    FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can create own sessions" ON ai_chat_sessions
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can delete own sessions" ON ai_chat_sessions
-    FOR DELETE USING (auth.uid() = user_id);
+- Embeddings are stored in `romi_knowledge_chunks.embedding`.
+- Retrieval happens through `public.match_romi_knowledge_chunks(...)`.
+- If embeddings are unavailable, ROMI falls back to lexical scoring over the curated corpus.
 
--- Users can only access messages in their sessions
-ALTER TABLE ai_chat_messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view own messages" ON ai_chat_messages
-    FOR SELECT USING (
-        EXISTS (SELECT 1 FROM ai_chat_sessions WHERE id = session_id AND user_id = auth.uid())
-    );
-CREATE POLICY "Users can insert own messages" ON ai_chat_messages
-    FOR INSERT WITH CHECK (
-        EXISTS (SELECT 1 FROM ai_chat_sessions WHERE id = session_id AND user_id = auth.uid())
-    );
-```
+## Journey-State Model
 
-### Data Flow
+`journey_state` captures the assistant's working understanding instead of forcing the model to reconstruct it every turn.
+
+Representative fields:
+
+- `stage`
+- `intent`
+- `summary`
+- `city`
+- `district`
+- `areaHint`
+- `budgetMin`
+- `budgetMax`
+- `roomType`
+- `urgency`
+- `productTopic`
+- `serviceCategory`
+- `missingFields`
+- `groundedBy`
+
+## Interaction Flow
 
 ```mermaid
 sequenceDiagram
-    participant U as User (Web/Mobile)
-    participant EF as Edge Function
-    participant DB as PostgreSQL
-    participant AI as Gemini API
+    participant U as User
+    participant W as /romi
+    participant EF as ai-chatbot
+    participant K as Knowledge retrieval
+    participant T as Live tools / DB
+    participant M as Model
 
-    U->>EF: POST /ai-chatbot { message, sessionId? }
-    EF->>EF: Verify JWT
-    
-    alt New Session
-        EF->>DB: INSERT ai_chat_sessions
+    U->>W: Send message
+    W->>EF: AIChatRequest
+    EF->>EF: Resolve viewer mode + intake analysis
+    EF-->>W: start / status / journey_update
+
+    alt Clarification required
+        EF-->>W: clarification_request
+        EF-->>W: final clarification reply
+    else Product knowledge needed
+        EF->>K: retrieve knowledge
+        K-->>EF: top sources
+        EF-->>W: status(retrieval)
     end
-    
-    EF->>DB: INSERT user message into ai_chat_messages
-    EF->>DB: SELECT recent messages (context window)
-    EF->>AI: Generate (system prompt + history + user msg)
-    
-    alt Function Calling
-        AI->>EF: Tool call (search_rooms, get_pricing, etc.)
-        EF->>DB: Query rooms/data
-        EF->>AI: Tool result
-        AI->>EF: Final response
+
+    alt Live data intent
+        EF->>T: room/deal/service tools
+        T-->>EF: grounded data
     end
-    
-    EF->>DB: INSERT assistant message
-    EF->>U: Response { message, sessionId }
+
+    EF->>M: prompt + journey state + knowledge + tool outputs
+    M-->>EF: streamed answer
+    EF-->>W: token / tool_result / final / handoff
 ```
 
-## API Design
+## Web UI Design
 
-### Edge Function: `ai-chatbot`
+`packages/web/src/pages/RomiPage.tsx` now follows a reducer-driven workspace layout:
 
-**Endpoint:** `POST /functions/v1/ai-chatbot`
+- left rail:
+  - signed-in session history
+  - guest-mode explanation and login CTA
+- center surface:
+  - intake hero
+  - message thread
+  - sticky composer
+- right rail:
+  - journey summary
+  - clarification prompt
+  - handoff card
+  - knowledge sources
+  - next-step actions
 
-**Headers:**
-```
-Authorization: Bearer <JWT>
-Content-Type: application/json
-```
+The reducer prevents token-by-token updates from forcing a full page-level reset.
 
-**Request Body:**
-```typescript
-interface AIChatRequest {
-    message: string;           // User's message
-    sessionId?: string;        // Existing session (null = new)
-}
-```
-
-**Response:**
-```typescript
-interface AIChatResponse {
-    message: string;           // AI response text
-    sessionId: string;         // Session ID (new or existing)
-    metadata?: {
-        functionCalls?: Array<{
-            name: string;
-            result: unknown;
-        }>;
-        sources?: string[];    // Referenced data sources
-    };
-}
-```
-
-**Error Response:**
-```typescript
-interface AIChatError {
-    error: string;
-    code: 'RATE_LIMITED' | 'GEMINI_ERROR' | 'AUTH_ERROR' | 'INVALID_INPUT';
-}
-```
-
-### Gemini Function Declarations
-
-```typescript
-const tools = [
-    {
-        name: 'search_rooms',
-        description: 'Tìm phòng theo tiêu chí (khu vực, giá, loại phòng)',
-        parameters: {
-            type: 'object',
-            properties: {
-                city: { type: 'string', description: 'Thành phố (e.g., "Hồ Chí Minh")' },
-                district: { type: 'string', description: 'Quận/Huyện' },
-                maxPrice: { type: 'number', description: 'Giá tối đa (VND/tháng)' },
-                minPrice: { type: 'number', description: 'Giá tối thiểu (VND/tháng)' },
-                roomType: { type: 'string', enum: ['single', 'shared', 'studio', 'apartment'] },
-            }
-        }
-    },
-    {
-        name: 'get_room_details',
-        description: 'Lấy thông tin chi tiết của một phòng cụ thể',
-        parameters: {
-            type: 'object',
-            properties: {
-                roomId: { type: 'string', description: 'ID của phòng' }
-            },
-            required: ['roomId']
-        }
-    },
-    {
-        name: 'get_app_info',
-        description: 'Lấy thông tin về tính năng RommZ (xác thực, RommZ+, SwapRoom, etc.)',
-        parameters: {
-            type: 'object',
-            properties: {
-                topic: { type: 'string', enum: ['verification', 'rommz_plus', 'swap_room', 'services', 'perks', 'general'] }
-            },
-            required: ['topic']
-        }
-    }
-];
-```
-
-## Component Breakdown
-
-### Shared (`@roomz/shared`)
-
-| File | Purpose |
-|------|---------|
-| `services/ai-chatbot/api.ts` | API calls to Edge Function |
-| `services/ai-chatbot/types.ts` | TypeScript interfaces |
-
-### Web
-
-| File | Purpose |
-|------|---------|
-| `components/common/Chatbot.tsx` | **UPGRADE** existing chatbot with AI |
-| `hooks/useAIChatbot.ts` | Web-specific hook wrapping shared API |
-
-### Mobile
-
-| File | Purpose |
-|------|---------|
-| `components/AIChatbot.tsx` | Chatbot bottom sheet component |
-| `components/AIChatMessage.tsx` | Message bubble (AI vs User) |
-| `hooks/useAIChatbot.ts` | Mobile-specific hook wrapping shared API |
-
-### Edge Function
-
-| File | Purpose |
-|------|---------|
-| `supabase/functions/ai-chatbot/index.ts` | Main handler |
-
-## Design Decisions
+## Key Design Decisions
 
 | Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Tách bảng AI chat | Bảng riêng (`ai_chat_sessions`, `ai_chat_messages`) | Tránh conflict với user-to-user chat, schema khác (role field, metadata) |
-| Non-streaming (MVP) | Request-response | Đơn giản hơn, streaming thêm sau nếu cần |
-| Context window | 20 messages gần nhất | Cân bằng giữa context quality và token cost |
-| System prompt | Hardcoded trong Edge Function | Dễ update, không cần DB |
-| Rate limiting | Ở Edge Function level | 10 requests/phút per user |
+|---|---|---|
+| Persistence | Signed-in only | Guest discovery should stay lightweight and accessible |
+| RAG scope | Knowledge-only | Policies and pricing benefit from curation; live inventory must stay tool-first |
+| Session compatibility | Versioned via `experience_version` | Avoids messy migration of old ROMI sessions |
+| Retrieval seeding | Lazy first-request upsert | Fastest path to get curated knowledge into production flow |
+| UI state | Reducer-based stream workspace | Better control over partial events, handoff, and clarification |
 
-## Non-Functional Requirements
+## Known Tradeoffs
 
-| Requirement | Target |
-|-------------|--------|
-| Response time | < 3s (FAQ), < 5s (DB queries) |
-| Availability | 99.9% (phụ thuộc Supabase + Gemini) |
-| Security | JWT auth required, API key server-side only |
-| Rate limit | 10 req/min per user |
-| Context | 20 messages recent history |
-| Data retention | Indefinite (user can delete sessions) |
+- Guest rate limiting is currently in-memory, so it is not durable across isolates.
+- Knowledge seeding on request adds some startup cost to the first hit in a cold environment.
+- The edge function still contains legacy monolithic areas around tool orchestration that should be modularized later.

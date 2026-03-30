@@ -1,4 +1,5 @@
-﻿export const ROMI_NAME = 'ROMI';
+export const ROMI_NAME = 'ROMI';
+export const ROMI_EXPERIENCE_VERSION = 'romi_v3';
 
 const ROMI_PHONE_VIEWS_PER_DAY = 100;
 
@@ -9,6 +10,18 @@ export const ROMI_SUGGESTED_QUESTIONS = [
   'Tìm phòng ở Quận 7 dưới 3 triệu',
   'Tìm dịch vụ chuyển nhà ở Hà Nội',
   'Có deal cafe nào ở TP.HCM?',
+] as const;
+
+export const ROMI_DISCOVERY_PROMPTS = [
+  'Tôi mới dùng RommZ, nên bắt đầu từ đâu?',
+  'Tôi cần tìm phòng gần trường nhưng chưa rõ ngân sách.',
+  'Giải thích giúp tôi RommZ+ và Local Passport khác nhau thế nào.',
+] as const;
+
+export const ROMI_GUEST_SUGGESTED_QUESTIONS = [
+  'RommZ là gì và dùng để làm gì?',
+  'Tôi nên bắt đầu tìm phòng từ đâu?',
+  'Có những quyền lợi nào nếu nâng cấp RommZ+?',
 ] as const;
 
 export const ROMI_APP_INFO_TOPICS = [
@@ -26,7 +39,7 @@ export type RomiAppInfoTopic = (typeof ROMI_APP_INFO_TOPICS)[number];
 export const ROMI_APP_INFO: Record<RomiAppInfoTopic, string> = {
   verification:
     'Xác thực tài khoản RommZ gồm xác thực email và xác thực giấy tờ tùy thân. Tài khoản đã xác thực sẽ tăng độ tin cậy khi tương tác trên nền tảng.',
-  rommz_plus: `RommZ+ là gói premium 49.000đ/tháng:\n- Xem SĐT host tới ${ROMI_PHONE_VIEWS_PER_DAY} lượt/ngày\n- Lưu phòng yêu thích không giới hạn\n- Xem hồ sơ và gửi lời chào roommate không giới hạn\n- Mở khóa deal Premium của Local Passport\n- Hiển thị badge RommZ+ trên hồ sơ`,
+  rommz_plus: `RommZ+ là gói premium 39.000đ/tháng:\n- Xem SĐT host tới ${ROMI_PHONE_VIEWS_PER_DAY} lượt/ngày\n- Lưu phòng yêu thích không giới hạn\n- Xem hồ sơ và gửi lời chào roommate không giới hạn\n- Mở khóa deal Premium của Local Passport\n- Hiển thị badge RommZ+ trên hồ sơ`,
   swap_room:
     'Ở ngắn hạn hỗ trợ cho thuê lại ngắn hạn hoặc hoán đổi chỗ ở trong các tình huống như thực tập, chuyển chỗ ở tạm thời hoặc đi học ngắn hạn.',
   services:

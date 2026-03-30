@@ -1,22 +1,15 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AlertCircle, ArrowRight, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowRight, Mail, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Separator } from "@/components/ui/separator";
 import { GoogleIcon } from "@/components/icons";
 import { useAuth } from "@/contexts/AuthContext";
+import { LoginHeroIllustration } from "@/components/common/HeroIllustrationPilot";
 import { createPublicMotion } from "@/lib/motion";
 import { supabase } from "@/lib/supabase";
-import { stitchAssets } from "@/lib/stitchAssets";
-import { useThreePilotEnabled } from "@/lib/threePilot";
-
-const LoginHeroPilot3D = lazy(() =>
-  import("@/components/3d/HeroAccentPilot").then((module) => ({
-    default: module.LoginHeroPilot3D,
-  })),
-);
 
 const REMEMBER_ME_KEY = "rommz_remembered_email";
 const PUBLIC_AUTH_REDIRECT_KEY = "rommz_public_auth_redirect";
@@ -33,10 +26,6 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const shouldReduceMotion = useReducedMotion();
-  const canRenderThreePilot = useThreePilotEnabled({
-    enabled: !shouldReduceMotion,
-    minWidth: 1100,
-  });
   const motionTokens = useMemo(
     () => createPublicMotion(!!shouldReduceMotion),
     [shouldReduceMotion],
@@ -210,33 +199,7 @@ export default function LoginPage() {
                 className="stitch-editorial-shadow aspect-[4/5] max-w-[28rem] overflow-hidden rounded-[32px] xl:max-w-[30rem]"
                 variants={motionTokens.revealScale(18)}
               >
-                {!canRenderThreePilot ? (
-                <img
-                  src={stitchAssets.login.heroRoom}
-                  alt="Không gian sống hiện đại của RommZ"
-                  className="h-full w-full object-cover transition-transform duration-1000 hover:scale-100"
-                />
-                ) : null}
-              </motion.div>
-              {canRenderThreePilot ? (
-                <div className="absolute inset-0">
-                  <Suspense fallback={null}>
-                    <LoginHeroPilot3D />
-                  </Suspense>
-                </div>
-              ) : null}
-
-              <motion.div
-                className="stitch-editorial-shadow absolute -bottom-8 -right-4 max-w-[13.5rem] rounded-[24px] border border-white/40 bg-white/76 p-5 backdrop-blur-xl xl:-bottom-10 xl:-right-8 xl:max-w-[14rem] xl:p-6"
-                variants={motionTokens.reveal(16, 0.08)}
-              >
-                <Sparkles className="mb-4 h-6 w-6 text-primary" />
-                <h3 className="text-lg leading-8">
-                  Bắt đầu lại từ một nơi ở bạn thực sự muốn quay về.
-                </h3>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                  Tìm phòng, ghép bạn ở và quay lại đúng hành trình bạn đang theo dõi.
-                </p>
+                <LoginHeroIllustration />
               </motion.div>
             </div>
           </motion.div>

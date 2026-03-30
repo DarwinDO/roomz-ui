@@ -1,13 +1,13 @@
+import { Crown, Heart, MapPin, Phone, Sparkles, Users } from "lucide-react";
+import { useNavigate } from "react-router";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { getRommZPlusPlan } from "@/services/payments";
 import {
   PREMIUM_PUBLIC_BENEFITS,
   type PremiumPublicBenefit,
 } from "@roomz/shared/constants/premium-offer";
-import { Crown, Heart, MapPin, Phone, Sparkles, Users } from "lucide-react";
-import { useNavigate } from "react-router";
 
 interface UpgradeBannerProps {
   onUpgrade?: () => void;
@@ -25,7 +25,15 @@ const BENEFIT_ICONS: Record<PremiumPublicBenefit["id"], typeof Phone> = {
 export function UpgradeBanner({ onUpgrade, isPremium }: UpgradeBannerProps) {
   const navigate = useNavigate();
   const rommzPlusPlan = getRommZPlusPlan();
-  const priceDisplay = rommzPlusPlan?.priceDisplay || "49.000đ/tháng";
+  const priceDisplay = rommzPlusPlan?.priceDisplay || "39.000đ/tháng";
+
+  const handleOpenPayment = () => {
+    if (onUpgrade) {
+      onUpgrade();
+      return;
+    }
+    navigate("/payment");
+  };
 
   if (isPremium) {
     return (
@@ -42,27 +50,27 @@ export function UpgradeBanner({ onUpgrade, isPremium }: UpgradeBannerProps) {
                 </p>
                 <h3 className="mt-1 text-lg text-amber-950">RommZ+ đang hoạt động</h3>
                 <p className="text-sm text-amber-800">
-                  Bạn đang ở chế độ ưu tiên cho contact, roommate access và ưu đãi premium.
+                  Bạn vẫn có thể mở trang gói để đối chiếu quyền lợi, giá và trạng thái hiện tại.
                 </p>
               </div>
             </div>
-            <Badge className="rounded-full border-amber-200 bg-amber-100 text-amber-800">
-              Active
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge className="rounded-full border-amber-200 bg-amber-100 text-amber-800">
+                Active
+              </Badge>
+              <Button
+                variant="outline"
+                className="rounded-full border-amber-300 bg-white text-amber-950"
+                onClick={() => navigate("/payment")}
+              >
+                Xem gói của bạn
+              </Button>
+            </div>
           </div>
         </Card>
       </div>
     );
   }
-
-  const handleUpgrade = () => {
-    if (onUpgrade) {
-      onUpgrade();
-      return;
-    }
-
-    navigate("/payment");
-  };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
@@ -78,7 +86,7 @@ export function UpgradeBanner({ onUpgrade, isPremium }: UpgradeBannerProps) {
               </p>
               <h3 className="mt-2 text-2xl text-foreground">Mở thêm quyền lợi trong RommZ+</h3>
               <p className="mt-2 max-w-[60ch] text-sm leading-7 text-muted-foreground">
-                Gói premium dành cho lúc bạn bắt đầu cần xem sâu hơn, liên hệ nhanh hơn và dùng thêm
+                Gói premium dành cho lúc bạn cần xem sâu hơn, liên hệ nhanh hơn và dùng thêm
                 các lớp đặc quyền quanh quá trình tìm và chốt nơi ở.
               </p>
             </div>
@@ -110,7 +118,7 @@ export function UpgradeBanner({ onUpgrade, isPremium }: UpgradeBannerProps) {
                 <p className="mt-1 text-xl font-semibold text-foreground">{priceDisplay}</p>
               </div>
               <Button
-                onClick={handleUpgrade}
+                onClick={handleOpenPayment}
                 className="rounded-full bg-[linear-gradient(90deg,#f59e0b_0%,#f97316_100%)] text-white hover:opacity-95"
               >
                 <Sparkles className="mr-2 h-4 w-4" />

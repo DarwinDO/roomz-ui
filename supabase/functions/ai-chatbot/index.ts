@@ -7,13 +7,29 @@
  * Response: { message: string, sessionId: string, metadata?: object }
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { gateway, generateText, jsonSchema, stepCountIs, tool } from 'https://esm.sh/ai@5.0.56?target=deno';
+import { gateway, generateText, jsonSchema, stepCountIs, streamText, tool } from 'https://esm.sh/ai@5.0.56?target=deno';
 import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@2.0.40?target=deno';
 import {
+    ROMI_EXPERIENCE_VERSION,
     ROMI_APP_INFO_TOPICS,
     getRomiAppInfo,
     type RomiAppInfoTopic,
 } from '../../../packages/shared/src/constants/romi.ts';
+import { analyzeRomiIntake } from '../../../packages/shared/src/services/ai-chatbot/intake.ts';
+import { finalizeJourneyState, mergeJourneyState } from '../../../packages/shared/src/services/ai-chatbot/journey.ts';
+import type {
+    AIChatHistoryEntry,
+    RomiJourneyState,
+    RomiViewerMode,
+} from '../../../packages/shared/src/services/ai-chatbot/types.ts';
+import { buildClarificationReply, buildGuestHandoff } from './fallback-policy.ts';
+import {
+    buildKnowledgeContext,
+    ensureKnowledgeCorpus,
+    inferKnowledgeSection,
+    retrieveKnowledgeSources,
+} from './knowledge.ts';
+import { buildKnowledgeOnlyReply, buildRomiSystemPrompt } from './response-composer.ts';
 
 const AI_GATEWAY_API_KEY = Deno.env.get('AI_GATEWAY_API_KEY');
 const AI_GATEWAY_MODEL = Deno.env.get('AI_GATEWAY_MODEL') || 'google/gemini-2.0-flash-lite';
@@ -73,27 +89,6 @@ function getCorsHeaders(req: Request) {
         Vary: 'Origin',
     };
 }
-
-const SYSTEM_PROMPT = `Bạn là ROMI, trợ lý của RommZ - nền tảng tìm phòng trọ và sống tiện hơn dành cho sinh viên Việt Nam.
-
-Về RommZ:
-- Kết nối sinh viên với phòng trọ đã xác thực
-- Hỗ trợ tìm bạn cùng phòng dựa trên độ phù hợp
-- Có RommZ+ cho các quyền lợi nâng cao
-- Có Local Passport với ưu đãi và deal theo khu vực
-- Có dịch vụ đối tác như chuyển nhà, dọn dẹp và thiết lập phòng
-
-Quy tắc:
-1. Trả lời bằng tiếng Việt, trừ khi người dùng chủ động dùng tiếng Anh
-2. Ngắn gọn, rõ ràng, thân thiện; không văn vẻ
-3. Khi người dùng hỏi tìm phòng, dùng tool search_rooms
-4. Khi người dùng hỏi tìm dịch vụ đối tác, dùng tool search_partners
-5. Khi người dùng hỏi ưu đãi hoặc deal Local Passport, dùng tool search_deals
-6. Khi người dùng hỏi trường, ga, bến xe, landmark hoặc địa điểm nổi bật, dùng tool search_locations
-7. Khi người dùng hỏi chi tiết phòng cụ thể, dùng tool get_room_details
-8. Khi người dùng hỏi về tính năng hoặc quyền lợi của app, dùng tool get_app_info
-9. Không bịa thông tin; nếu không chắc thì nói rõ là chưa có dữ liệu
-10. Không thực hiện hành động thay người dùng như đặt phòng hay thanh toán; chỉ hướng dẫn bước tiếp theo`;
 
 const TOOLS = {
     search_rooms: {
@@ -183,6 +178,7 @@ const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 type AdminClient = ReturnType<typeof createClient>;
+const guestRateLimitWindow = new Map<string, number[]>();
 
 type SearchRoomsRpcRow = {
     id: string;
@@ -267,11 +263,31 @@ type RomiAction = {
         | 'open_support_services'
         | 'open_verification'
         | 'open_roommates'
-        | 'open_swap';
+        | 'open_swap'
+        | 'open_login';
     label: string;
     href: string;
     description?: string;
 };
+
+type SessionRow = {
+    id: string;
+    user_id: string;
+    title: string | null;
+    created_at: string;
+    updated_at: string;
+    experience_version: string;
+    journey_state: RomiJourneyState | null;
+};
+
+type ToolCallSummary = {
+    name: string;
+    status: 'planned' | 'running' | 'completed' | 'failed';
+    input?: unknown;
+    result?: unknown;
+};
+
+type StreamEmitter = (event: Record<string, unknown>) => void;
 
 function normalizeText(input: string): string {
     return input
@@ -322,8 +338,14 @@ function isRecoverableProviderError(error: unknown): boolean {
     const message = err.message || '';
     const responseBody = err.responseBody || '';
 
+    if (['AI_LoadAPIKeyError', 'LoadAPIKeyError', 'AI_NoSuchModelError', 'NoSuchModelError'].includes(err.name || '')) {
+        return true;
+    }
+
     if (!['AI_APICallError', 'APICallError'].includes(err.name || '')) {
-        return false;
+        return /missing api key|api key is missing|api key not valid|no such model|model not found|provider_not_configured/i.test(
+            `${message} ${responseBody}`,
+        );
     }
 
     if (statusCode === 429) {
@@ -333,7 +355,7 @@ function isRecoverableProviderError(error: unknown): boolean {
     return statusCode === 400
         || statusCode === 401
         || statusCode === 403
-        || /API_KEY_INVALID|API key not valid|INVALID_ARGUMENT|Bad Request/i.test(`${message} ${responseBody}`);
+        || /API_KEY_INVALID|API key not valid|INVALID_ARGUMENT|Bad Request|missing api key|no such model|model not found/i.test(`${message} ${responseBody}`);
 }
 
 function clampLimit(input: unknown, fallback = 5, max = 8): number {
@@ -854,6 +876,27 @@ async function checkRateLimit(
     }
 
     return (count || 0) < RATE_LIMIT;
+}
+
+function getGuestRateKey(req: Request) {
+    const forwardedFor = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+    const userAgent = req.headers.get('user-agent') || 'unknown';
+    return `${forwardedFor || 'guest'}:${userAgent.slice(0, 48)}`;
+}
+
+function checkGuestRateLimit(key: string) {
+    const now = Date.now();
+    const windowStart = now - RATE_WINDOW_MS;
+    const recentHits = (guestRateLimitWindow.get(key) || []).filter((timestamp) => timestamp >= windowStart);
+
+    if (recentHits.length >= RATE_LIMIT) {
+        guestRateLimitWindow.set(key, recentHits);
+        return false;
+    }
+
+    recentHits.push(now);
+    guestRateLimitWindow.set(key, recentHits);
+    return true;
 }
 
 function formatSearchRoomsReply(result: unknown): string {
@@ -1555,6 +1598,216 @@ function buildErrorDebugDetails(error: unknown) {
     };
 }
 
+function getSessionPreview(content: string | null | undefined) {
+    if (!content) return null;
+    const normalized = content.replace(/\s+/g, ' ').trim();
+    if (!normalized) return null;
+    return normalized.length > 110 ? `${normalized.slice(0, 107)}...` : normalized;
+}
+
+function inferIntent(
+    message: string,
+    selectedToolNames: ToolName[],
+    functionCallResults: Array<{ name: ToolName; result: unknown }> = []
+) {
+    const normalized = normalizeText(message);
+    const appInfoTopic = functionCallResults.find(call => call.name === 'get_app_info')?.result as
+        | { topic?: string }
+        | undefined;
+
+    if (selectedToolNames.includes('get_room_details')) return 'room_detail';
+    if (selectedToolNames.includes('search_rooms')) return 'room_search';
+    if (selectedToolNames.includes('search_deals')) return 'deals';
+    if (selectedToolNames.includes('search_partners')) return 'services';
+    if (selectedToolNames.includes('search_locations')) return 'room_search';
+
+    if (appInfoTopic?.topic === 'rommz_plus') return 'premium';
+    if (appInfoTopic?.topic === 'services' || appInfoTopic?.topic === 'perks') return 'services';
+    if (appInfoTopic?.topic === 'roommate_matching') return 'roommates';
+    if (appInfoTopic?.topic === 'swap_room') return 'swap';
+
+    if (/(roommate|ban cung phong|o ghep)/.test(normalized)) return 'roommates';
+    if (/(swap|ngan han|doi phong|nhuong phong)/.test(normalized)) return 'swap';
+    if (/(premium|rommz\+)/.test(normalized)) return 'premium';
+    if (/(service|dich vu|doi tac|uu dai|deal)/.test(normalized)) return 'services';
+
+    return 'general';
+}
+
+function inferContext(functionCallResults: Array<{ name: ToolName; result: unknown }>) {
+    for (const call of functionCallResults) {
+        const payload = (typeof call.result === 'object' && call.result !== null ? call.result : {}) as Record<string, unknown>;
+
+        if (call.name === 'get_room_details' && typeof payload.id === 'string') {
+            return { contextType: 'room', contextId: payload.id };
+        }
+
+        if (call.name === 'search_rooms') {
+            const firstRoom = Array.isArray(payload.rooms) ? payload.rooms[0] as Record<string, unknown> : null;
+            if (typeof firstRoom?.id === 'string') {
+                return { contextType: 'room', contextId: firstRoom.id };
+            }
+        }
+
+        if (call.name === 'search_deals') {
+            const firstDeal = Array.isArray(payload.deals) ? payload.deals[0] as Record<string, unknown> : null;
+            if (typeof firstDeal?.id === 'string') {
+                return { contextType: 'deal', contextId: firstDeal.id };
+            }
+
+            if (payload.hasLockedPremiumDeals) {
+                return { contextType: 'premium', contextId: 'rommz_plus' };
+            }
+        }
+
+        if (call.name === 'search_partners') {
+            const firstPartner = Array.isArray(payload.partners) ? payload.partners[0] as Record<string, unknown> : null;
+            if (typeof firstPartner?.id === 'string') {
+                return { contextType: 'service', contextId: firstPartner.id };
+            }
+        }
+
+        if (call.name === 'get_app_info' && typeof payload.topic === 'string') {
+            if (payload.topic === 'rommz_plus') {
+                return { contextType: 'premium', contextId: 'rommz_plus' };
+            }
+            if (payload.topic === 'swap_room') {
+                return { contextType: 'swap', contextId: 'swap_room' };
+            }
+            if (payload.topic === 'roommate_matching') {
+                return { contextType: 'roommate', contextId: 'roommate_matching' };
+            }
+            if (payload.topic === 'services' || payload.topic === 'perks') {
+                return { contextType: 'service', contextId: payload.topic };
+            }
+        }
+    }
+
+    return { contextType: 'general', contextId: null };
+}
+
+function buildSources(functionCallResults: Array<{ name: ToolName; result: unknown }>) {
+    const sources = new Set<string>();
+
+    for (const call of functionCallResults) {
+        const payload = (typeof call.result === 'object' && call.result !== null ? call.result : {}) as Record<string, unknown>;
+
+        if (call.name === 'search_rooms' || call.name === 'get_room_details') {
+            sources.add('Nguồn phòng đang mở');
+        }
+        if (call.name === 'search_deals') {
+            sources.add('Local Passport');
+        }
+        if (call.name === 'search_partners') {
+            sources.add('Đối tác RommZ');
+        }
+        if (call.name === 'search_locations') {
+            sources.add('Location catalog');
+        }
+        if (call.name === 'get_app_info') {
+            sources.add('RommZ product knowledge');
+        }
+
+        const searchContext = (payload.searchContext ?? {}) as Record<string, unknown>;
+        const locationLabel = [searchContext.district, searchContext.city]
+            .filter(Boolean)
+            .map(String)
+            .join(', ');
+        if (locationLabel) {
+            sources.add(locationLabel);
+        }
+    }
+
+    return [...sources].slice(0, 3);
+}
+
+function buildToolCallSummaries(functionCallResults: Array<{ name: ToolName; result: unknown }>) {
+    return functionCallResults.map((call) => ({
+        name: call.name,
+        status: 'completed' as const,
+        result: call.result,
+    }));
+}
+
+function buildSessionPayload(
+    session: SessionRow,
+    preview: string | null,
+    previewRole: 'user' | 'assistant' | 'system' | null,
+    lastMessageAt: string,
+    intent: string,
+    contextType: string,
+) {
+    return {
+        ...session,
+        updated_at: lastMessageAt,
+        preview,
+        previewRole,
+        lastMessageAt,
+        intent,
+        contextType,
+        experienceVersion: session.experience_version,
+        journeyState: session.journey_state || {},
+    };
+}
+
+function emitChunkedText(emit: StreamEmitter, text: string) {
+    const words = text.split(/(\s+)/).filter(Boolean);
+    let chunk = '';
+
+    for (const word of words) {
+        if ((chunk + word).length > 42 && chunk.trim()) {
+            emit({ type: 'token', text: chunk });
+            chunk = word;
+            continue;
+        }
+
+        chunk += word;
+    }
+
+    if (chunk.trim()) {
+        emit({ type: 'token', text: chunk });
+    }
+}
+
+function createStreamResponse(
+    corsHeaders: Record<string, string>,
+    handler: (emit: StreamEmitter) => Promise<void>,
+) {
+    const encoder = new TextEncoder();
+
+    return new Response(
+        new ReadableStream({
+            async start(controller) {
+                const emit: StreamEmitter = (event) => {
+                    controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+                };
+
+                try {
+                    await handler(emit);
+                } catch (error) {
+                    const err = error as { code?: string; message?: string; details?: string | null };
+                    emit({
+                        type: 'error',
+                        code: err.code || 'GEMINI_ERROR',
+                        message: err.message || 'ROMI chưa thể hoàn tất yêu cầu này.',
+                        details: err.details || null,
+                    });
+                } finally {
+                    controller.close();
+                }
+            },
+        }),
+        {
+            headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/x-ndjson; charset=utf-8',
+                'Cache-Control': 'no-cache, no-transform',
+                'X-Accel-Buffering': 'no',
+            },
+        },
+    );
+}
+
 Deno.serve(async (req) => {
     const corsHeaders = getCorsHeaders(req);
     let telemetryUserId: string | null = null;
@@ -1565,39 +1818,27 @@ Deno.serve(async (req) => {
     }
 
     try {
-        // Verify JWT
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader) {
-            return new Response(
-                JSON.stringify({ error: 'Thiếu thông tin xác thực.', code: 'AUTH_ERROR' }),
-                { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-        }
+        const requestBody = await req.json();
+        const {
+            message,
+            sessionId,
+            stream: requestStream,
+            viewerMode: requestedViewerMode,
+            entryPoint = 'romi_page',
+            pageContext,
+            journeyState: requestedJourneyState,
+            history: clientHistory,
+        } = requestBody as {
+            message?: string;
+            sessionId?: string | null;
+            stream?: boolean;
+            viewerMode?: RomiViewerMode;
+            entryPoint?: string;
+            pageContext?: Record<string, unknown>;
+            journeyState?: Partial<RomiJourneyState>;
+            history?: AIChatHistoryEntry[];
+        };
 
-        const userClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!, {
-            global: { headers: { Authorization: authHeader } },
-        });
-        const { data: { user }, error: authError } = await userClient.auth.getUser();
-        if (authError || !user) {
-            return new Response(
-                JSON.stringify({ error: 'Token đăng nhập không hợp lệ.', code: 'AUTH_ERROR' }),
-                { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-        }
-        telemetryUserId = user.id;
-
-        const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-        // Rate limit
-        if (!(await checkRateLimit(user.id, adminClient))) {
-            return new Response(
-                JSON.stringify({ error: 'Bạn đang gửi quá nhiều tin nhắn. Vui lòng đợi 1 phút.', code: 'RATE_LIMITED' }),
-                { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-        }
-
-        // Parse request
-        const { message, sessionId } = await req.json();
         if (!message || typeof message !== 'string' || message.trim().length === 0) {
             return new Response(
                 JSON.stringify({ error: 'Tin nhắn là bắt buộc.', code: 'INVALID_INPUT' }),
@@ -1621,12 +1862,59 @@ Deno.serve(async (req) => {
             }
         }
 
-        // Get or create session, always enforce ownership when client passes sessionId
-        let currentSessionId = sessionId;
-        if (currentSessionId) {
+        const authHeader = req.headers.get('Authorization');
+        const requestedMode = requestedViewerMode || (authHeader ? 'user' : 'guest');
+        let user: { id: string } | null = null;
+
+        if (authHeader) {
+            const userClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!, {
+                global: { headers: { Authorization: authHeader } },
+            });
+            const { data: { user: authUser }, error: authError } = await userClient.auth.getUser();
+            if (!authError && authUser) {
+                user = { id: authUser.id };
+            } else if (requestedMode !== 'guest') {
+                return new Response(
+                    JSON.stringify({ error: 'Token đăng nhập không hợp lệ.', code: 'AUTH_ERROR' }),
+                    { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
+        }
+
+        if (requestedMode === 'user' && !user) {
+            return new Response(
+                JSON.stringify({ error: 'Thiếu thông tin xác thực.', code: 'AUTH_ERROR' }),
+                { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+        }
+        telemetryUserId = user?.id || null;
+        const effectiveViewerMode: RomiViewerMode = user ? requestedMode : 'guest';
+
+        const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const trimmedMessage = message.trim();
+        const guestRateKey = getGuestRateKey(req);
+
+        if (effectiveViewerMode === 'user' && user) {
+            if (!(await checkRateLimit(user.id, adminClient))) {
+                return new Response(
+                    JSON.stringify({ error: 'Bạn đang gửi quá nhiều tin nhắn. Vui lòng đợi 1 phút.', code: 'RATE_LIMITED' }),
+                    { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
+        } else if (!checkGuestRateLimit(guestRateKey)) {
+            return new Response(
+                JSON.stringify({ error: 'Bạn đang gửi quá nhiều tin nhắn. Vui lòng đợi 1 phút.', code: 'RATE_LIMITED' }),
+                { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+        }
+
+        let currentSessionId = effectiveViewerMode === 'user' ? sessionId || null : null;
+        let sessionRecord: SessionRow | null = null;
+
+        if (currentSessionId && user) {
             const { data: existingSession, error: existingSessionError } = await adminClient
                 .from('ai_chat_sessions')
-                .select('id')
+                .select('id, user_id, title, created_at, updated_at, experience_version, journey_state')
                 .eq('id', currentSessionId)
                 .eq('user_id', user.id)
                 .maybeSingle();
@@ -1638,43 +1926,127 @@ Deno.serve(async (req) => {
                     { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
+
+            sessionRecord = existingSession as SessionRow;
+            if (sessionRecord.experience_version !== ROMI_EXPERIENCE_VERSION) {
+                return new Response(
+                    JSON.stringify({ error: 'Phiên chat này thuộc trải nghiệm cũ và không còn dùng cho ROMI mới.', code: 'INVALID_SESSION' }),
+                    { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+                );
+            }
         }
 
-        if (!currentSessionId) {
+        const baseJourneyState = mergeJourneyState(
+            sessionRecord?.journey_state || {},
+            requestedJourneyState || {},
+        );
+        const intakeAnalysis = analyzeRomiIntake(trimmedMessage, baseJourneyState, effectiveViewerMode);
+        let currentJourneyState = finalizeJourneyState(intakeAnalysis.journeyState, effectiveViewerMode);
+        const clarification = intakeAnalysis.clarification;
+        const handoff = buildGuestHandoff(effectiveViewerMode, intakeAnalysis.intent, currentJourneyState);
+        const effectiveHistory = Array.isArray(clientHistory) ? clientHistory.slice(-12) : [];
+
+        if (!currentSessionId && user && effectiveViewerMode === 'user') {
             const { data: newSession, error: sessionError } = await adminClient
                 .from('ai_chat_sessions')
-                .insert({ user_id: user.id, title: message.substring(0, 100) })
-                .select('id')
+                .insert({
+                    user_id: user.id,
+                    title: trimmedMessage.substring(0, 100),
+                    experience_version: ROMI_EXPERIENCE_VERSION,
+                    journey_state: currentJourneyState,
+                })
+                .select('id, user_id, title, created_at, updated_at, experience_version, journey_state')
                 .single();
 
             if (sessionError) throw sessionError;
-            currentSessionId = newSession.id;
+            sessionRecord = newSession as SessionRow;
+            currentSessionId = sessionRecord.id;
         }
+
         telemetrySessionId = currentSessionId;
 
-        // Save user message
-        await adminClient.from('ai_chat_messages').insert({
-            session_id: currentSessionId,
-            role: 'user',
-            content: message.trim(),
-        });
+        const userMessageTimestamp = new Date().toISOString();
 
-        // Get history for context
-        const { data: history } = await adminClient
-            .from('ai_chat_messages')
-            .select('role, content, metadata')
-            .eq('session_id', currentSessionId)
-            .order('created_at', { ascending: true })
-            .limit(20);
+        let historyRows: HistoryMessage[] = [];
+
+        if (effectiveViewerMode === 'user' && currentSessionId) {
+            await adminClient.from('ai_chat_messages').insert({
+                session_id: currentSessionId,
+                role: 'user',
+                content: trimmedMessage,
+                metadata: {
+                    intent: intakeAnalysis.intent,
+                    journeyState: currentJourneyState,
+                    viewerMode: effectiveViewerMode,
+                    source: 'romi_v3',
+                },
+            });
+
+            await adminClient
+                .from('ai_chat_sessions')
+                .update({
+                    updated_at: userMessageTimestamp,
+                    journey_state: currentJourneyState,
+                })
+                .eq('id', currentSessionId);
+
+            sessionRecord = {
+                ...(sessionRecord as SessionRow),
+                updated_at: userMessageTimestamp,
+                journey_state: currentJourneyState,
+            };
+
+            const { data: history } = await adminClient
+                .from('ai_chat_messages')
+                .select('role, content, metadata')
+                .eq('session_id', currentSessionId)
+                .order('created_at', { ascending: true })
+                .limit(20);
+
+            historyRows = (history || []) as HistoryMessage[];
+        } else {
+            historyRows = [
+                ...effectiveHistory.map((entry) => ({
+                    role: entry.role,
+                    content: entry.content,
+                    metadata: entry.metadata || {},
+                })),
+                {
+                    role: 'user',
+                    content: trimmedMessage,
+                    metadata: {
+                        intent: intakeAnalysis.intent,
+                        journeyState: currentJourneyState,
+                        viewerMode: effectiveViewerMode,
+                        source: 'romi_v3_guest',
+                    },
+                },
+            ];
+        }
+
+        await ensureKnowledgeCorpus(adminClient);
+        const knowledgeSources = await retrieveKnowledgeSources(
+            adminClient,
+            trimmedMessage,
+            effectiveViewerMode,
+            inferKnowledgeSection(intakeAnalysis.requestedTopics),
+        );
+        if (knowledgeSources.length > 0) {
+            currentJourneyState = mergeJourneyState(currentJourneyState, {
+                groundedBy: knowledgeSources.map((source) => source.documentTitle),
+            });
+        }
+        const knowledgeContext = buildKnowledgeContext(knowledgeSources);
 
         // Build model request via Vercel AI SDK
-        const messages = (history || []).map(msg => ({
+        const messages = historyRows.map(msg => ({
             role: (msg.role === 'assistant' ? 'assistant' : 'user') as 'assistant' | 'user',
             content: String(msg.content || ''),
         }));
 
-        const selectedTools = getToolsForMessage(message, (history || []) as HistoryMessage[]);
+        const selectedTools = getToolsForMessage(message, historyRows);
         const selectedToolNames = selectedTools.map(t => t.name) as ToolName[];
+        const shouldPauseForClarification = Boolean(clarification);
         const forceFunctionNames = selectedToolNames.filter(
             (name): name is ToolName =>
                 name === 'search_rooms' ||
@@ -1683,31 +2055,469 @@ Deno.serve(async (req) => {
                 name === 'search_locations' ||
                 name === 'get_room_details'
         );
-        const activeToolNames = forceFunctionNames.length > 0 ? forceFunctionNames : selectedToolNames;
-        const toolset = createToolset(activeToolNames, adminClient, user.id);
+        const activeToolNames = shouldPauseForClarification
+            ? []
+            : forceFunctionNames.length > 0
+                ? forceFunctionNames
+                : selectedToolNames;
+        const toolset = createToolset(activeToolNames, adminClient, user?.id || guestRateKey);
         const hasTools = Object.keys(toolset).length > 0;
+        const baseIntent = intakeAnalysis.intent;
+        const languageModel = getLanguageModel();
 
-        await trackRomiAnalyticsEvent(
-            adminClient,
-            user.id,
-            currentSessionId,
-            'romi_message_sent',
-            {
-                message_length: message.trim().length,
-                selected_tools: selectedToolNames,
-                active_tools: activeToolNames,
-                is_new_session: !sessionId,
-            }
-        );
+        if (telemetryUserId) {
+            await trackRomiAnalyticsEvent(
+                adminClient,
+                telemetryUserId,
+                currentSessionId,
+                'romi_message_sent',
+                {
+                    message_length: trimmedMessage.length,
+                    viewer_mode: effectiveViewerMode,
+                    entry_point: entryPoint,
+                    page_context: pageContext || null,
+                    selected_tools: selectedToolNames,
+                    active_tools: activeToolNames,
+                    is_new_session: !sessionId,
+                    stream: requestStream === true,
+                    knowledge_source_count: knowledgeSources.length,
+                }
+            );
+        }
 
         let responseText = '';
         let finishReason = 'rule_based';
         let geminiCallCount = 0;
         let usage: unknown = null;
         let responseSource = 'rule_based';
-        let functionCallResults: Array<{ name: string; result: unknown }> = [];
+        let functionCallResults: Array<{ name: ToolName; result: unknown }> = [];
         let romiActions: RomiAction[] = [];
-        const languageModel = getLanguageModel();
+
+        if (requestStream === true) {
+            return createStreamResponse(corsHeaders, async (emit) => {
+                const initialSession = sessionRecord
+                    ? buildSessionPayload(
+                        sessionRecord,
+                        getSessionPreview(trimmedMessage),
+                        'user',
+                        userMessageTimestamp,
+                        baseIntent,
+                        'general',
+                    )
+                    : null;
+
+                emit({
+                    type: 'start',
+                    sessionId: currentSessionId,
+                    session: initialSession,
+                });
+                emit({
+                    type: 'status',
+                    stage: 'intake',
+                    message: shouldPauseForClarification
+                        ? 'ROMI đang chốt phần còn thiếu trước khi dùng dữ liệu thật.'
+                        : selectedToolNames.length
+                            ? 'ROMI đang phân loại ý định và chọn đúng miền dữ liệu.'
+                            : 'ROMI đang chốt ý định để giữ đúng flow tìm chỗ ở.',
+                    intent: baseIntent,
+                    contextType: 'general',
+                    tools: activeToolNames,
+                });
+                emit({
+                    type: 'journey_update',
+                    journeyState: currentJourneyState,
+                    message: currentJourneyState.summary || undefined,
+                });
+                if (knowledgeSources.length > 0) {
+                    emit({
+                        type: 'status',
+                        stage: 'retrieval',
+                        message: 'ROMI đang kéo knowledge context liên quan để giữ câu trả lời bám sản phẩm.',
+                        intent: baseIntent,
+                        contextType: 'general',
+                    });
+                }
+
+                let streamResponseText = '';
+                let streamFinishReason = 'stream';
+                let streamGeminiCallCount = 0;
+                let streamUsage: unknown = null;
+                let streamResponseSource = 'stream_model';
+                const streamedToolCalls = new Map<string, ToolCallSummary>();
+                let streamedToolResults: Array<{ name: ToolName; result: unknown }> = [];
+                let forcedStreamActions: RomiAction[] = [];
+
+                const finalizeStream = async () => {
+                    const streamActions = forcedStreamActions.length > 0
+                        ? forcedStreamActions
+                        : buildRomiActions(streamedToolResults);
+                    const streamToolCalls = [
+                        ...streamedToolCalls.values(),
+                        ...buildToolCallSummaries(streamedToolResults).filter((summary) => !streamedToolCalls.has(summary.name)),
+                    ];
+                    const { contextType, contextId } = inferContext(streamedToolResults);
+                    const streamIntent = inferIntent(trimmedMessage, selectedToolNames, streamedToolResults);
+                    const streamSources = buildSources(streamedToolResults);
+                    const finalJourneyState = finalizeJourneyState(
+                        mergeJourneyState(currentJourneyState, {
+                            lastIntent: streamIntent,
+                            stage: handoff ? 'handoff' : streamedToolResults.length > 0 ? 'recommend' : currentJourneyState.stage,
+                            groundedBy: [
+                                ...(currentJourneyState.groundedBy || []),
+                                ...knowledgeSources.map((source) => source.documentTitle),
+                                ...streamSources,
+                            ],
+                        }),
+                        effectiveViewerMode,
+                    );
+                    const responseMetadata: Record<string, unknown> = {
+                        source: streamResponseSource,
+                        geminiCallCount: streamGeminiCallCount || 1,
+                        finishReason: streamFinishReason,
+                        usage: streamUsage,
+                        intent: streamIntent,
+                        contextType,
+                        contextId,
+                        toolCalls: streamToolCalls,
+                        journeyState: finalJourneyState,
+                        knowledgeSources,
+                        viewerMode: effectiveViewerMode,
+                    };
+
+                    if (streamedToolResults.length > 0) {
+                        responseMetadata.functionCalls = streamedToolResults;
+                    }
+
+                    if (streamActions.length > 0) {
+                        responseMetadata.actions = streamActions;
+                    }
+
+                    if (streamSources.length > 0) {
+                        responseMetadata.sources = streamSources;
+                    }
+
+                    if (clarification) {
+                        responseMetadata.clarification = clarification;
+                    }
+
+                    if (handoff) {
+                        responseMetadata.handoff = handoff;
+                    }
+
+                    if (streamedToolResults.length > 0 && telemetryUserId) {
+                        await Promise.all(streamedToolResults.map((call) =>
+                            trackRomiAnalyticsEvent(
+                                adminClient,
+                                telemetryUserId,
+                                currentSessionId,
+                                'romi_tool_called',
+                                summarizeToolOutput(call.name, call.result),
+                            )
+                        ));
+                    }
+
+                    const assistantCreatedAt = new Date().toISOString();
+                    let messageId = `guest-${Date.now()}`;
+                    let finalSession = initialSession;
+
+                    if (effectiveViewerMode === 'user' && currentSessionId) {
+                        const { data: insertedAssistant, error: insertAssistantError } = await adminClient
+                            .from('ai_chat_messages')
+                            .insert({
+                                session_id: currentSessionId,
+                                role: 'assistant',
+                                content: streamResponseText,
+                                metadata: responseMetadata,
+                            })
+                            .select('id')
+                            .single();
+
+                        if (insertAssistantError) throw insertAssistantError;
+                        messageId = insertedAssistant.id;
+
+                        await adminClient
+                            .from('ai_chat_sessions')
+                            .update({
+                                updated_at: assistantCreatedAt,
+                                journey_state: finalJourneyState,
+                            })
+                            .eq('id', currentSessionId);
+
+                        finalSession = buildSessionPayload(
+                            {
+                                ...(sessionRecord as SessionRow),
+                                updated_at: assistantCreatedAt,
+                                journey_state: finalJourneyState,
+                            },
+                            getSessionPreview(streamResponseText),
+                            'assistant',
+                            assistantCreatedAt,
+                            streamIntent,
+                            contextType,
+                        );
+                    }
+
+                    if (telemetryUserId) {
+                        await trackRomiAnalyticsEvent(
+                            adminClient,
+                            telemetryUserId,
+                            currentSessionId,
+                            'romi_response_received',
+                            {
+                                response_length: streamResponseText.length,
+                                tool_count: streamedToolResults.length,
+                                tool_names: streamedToolResults.map((call) => call.name),
+                                finish_reason: streamFinishReason,
+                                gemini_call_count: streamGeminiCallCount || 1,
+                                source: streamResponseSource,
+                                intent: streamIntent,
+                                context_type: contextType,
+                                knowledge_source_count: knowledgeSources.length,
+                            }
+                        );
+                    }
+
+                    emit({
+                        type: 'final',
+                        sessionId: currentSessionId,
+                        messageId,
+                        message: streamResponseText,
+                        metadata: responseMetadata,
+                        session: finalSession,
+                    });
+                };
+
+                try {
+                    if (!hasTools && isGreetingMessage(normalizeText(message))) {
+                        streamResponseText = buildGreetingReply();
+                        streamResponseSource = 'rule_based_greeting';
+                        streamFinishReason = 'rule_based';
+                        forcedStreamActions = [
+                            { type: 'open_search', label: 'Tìm phòng', href: '/search' },
+                            { type: 'open_roommates', label: 'Tìm bạn cùng phòng', href: '/roommates' },
+                        ];
+                        emit({
+                            type: 'status',
+                            stage: 'synthesis',
+                            message: 'ROMI đang mở luồng hội thoại và giữ điểm bắt đầu thật gọn.',
+                            intent: baseIntent,
+                            contextType: 'general',
+                        });
+                        emitChunkedText(emit, streamResponseText);
+                        await finalizeStream();
+                        return;
+                    }
+
+                    if (clarification) {
+                        streamResponseText = buildClarificationReply(clarification);
+                        streamResponseSource = 'clarification';
+                        streamFinishReason = 'clarification_requested';
+                        emit({
+                            type: 'clarification_request',
+                            clarification,
+                            journeyState: currentJourneyState,
+                        });
+                        emit({
+                            type: 'status',
+                            stage: 'handoff',
+                            message: 'ROMI đang dừng ở bước làm rõ để tránh trả lời sai miền dữ liệu.',
+                            intent: baseIntent,
+                            contextType: 'general',
+                        });
+                        emitChunkedText(emit, streamResponseText);
+                        await finalizeStream();
+                        return;
+                    }
+
+                    if (!languageModel) {
+                        const fallback = buildRateLimitedFallback(selectedToolNames);
+                        streamResponseText = knowledgeSources.length > 0
+                            ? buildKnowledgeOnlyReply(knowledgeSources, currentJourneyState)
+                            : fallback.message;
+                        streamFinishReason = 'provider_not_configured';
+                        streamResponseSource = knowledgeSources.length > 0
+                            ? 'knowledge_only_fallback'
+                            : 'provider_not_configured_fallback';
+                        forcedStreamActions = handoff
+                            ? [{ type: 'open_login', label: handoff.label, href: handoff.href, description: handoff.reason }]
+                            : fallback.actions;
+                        emit({
+                            type: 'status',
+                            stage: 'synthesis',
+                            message: 'ROMI chưa có model runtime, đang chuyển sang lối trả lời an toàn hơn.',
+                            intent: baseIntent,
+                            contextType: 'general',
+                        });
+                        if (handoff) {
+                            emit({ type: 'handoff', handoff, journeyState: currentJourneyState });
+                        }
+                        emitChunkedText(emit, streamResponseText);
+                        await finalizeStream();
+                        return;
+                    }
+
+                    emit({
+                        type: 'status',
+                        stage: activeToolNames.length > 0 ? 'tool_execution' : 'synthesis',
+                        message: activeToolNames.length > 0
+                            ? 'ROMI đang gọi đúng dữ liệu để trả lời trong ngữ cảnh tìm chỗ ở.'
+                            : 'ROMI đang tổng hợp câu trả lời trực tiếp cho câu hỏi của bạn.',
+                        intent: baseIntent,
+                        contextType: 'general',
+                        tools: activeToolNames,
+                    });
+                    const streamResult = streamText({
+                        model: languageModel,
+                        system: buildRomiSystemPrompt({
+                            viewerMode: effectiveViewerMode,
+                            entryPoint,
+                            intakeIntent: baseIntent,
+                            journeyState: currentJourneyState,
+                            knowledgeContext,
+                        }),
+                        messages,
+                        temperature: 0.7,
+                        maxOutputTokens: 1024,
+                        topP: 0.95,
+                        ...(hasTools
+                            ? {
+                                tools: toolset,
+                                toolChoice: getToolChoice(forceFunctionNames),
+                                stopWhen: stepCountIs(1),
+                            }
+                            : {}),
+                    });
+
+                    for await (const part of streamResult.fullStream as AsyncIterable<any>) {
+                        switch (part.type) {
+                            case 'text-delta':
+                                if (part.textDelta) {
+                                    streamResponseText += part.textDelta;
+                                    emit({ type: 'token', text: part.textDelta });
+                                }
+                                break;
+                            case 'tool-call':
+                            case 'tool-input-end': {
+                                const toolSummary: ToolCallSummary = {
+                                    name: part.toolName,
+                                    status: 'running',
+                                    input: part.input ?? part.args ?? undefined,
+                                };
+                                streamedToolCalls.set(part.toolName, toolSummary);
+                                emit({ type: 'tool_call', tool: toolSummary });
+                                break;
+                            }
+                            case 'tool-result': {
+                                const toolSummary: ToolCallSummary = {
+                                    name: part.toolName,
+                                    status: 'completed',
+                                    input: part.input ?? undefined,
+                                    result: part.output,
+                                };
+                                streamedToolCalls.set(part.toolName, toolSummary);
+                                streamedToolResults.push({
+                                    name: part.toolName,
+                                    result: part.output,
+                                });
+                                emit({
+                                    type: 'tool_result',
+                                    tool: toolSummary,
+                                    actions: buildRomiActionsFromToolResult(part.toolName, part.output),
+                                    sources: buildSources([{ name: part.toolName, result: part.output }]),
+                                });
+                                break;
+                            }
+                            case 'finish-step':
+                                streamGeminiCallCount += 1;
+                                break;
+                            case 'finish':
+                                streamFinishReason = String(part.finishReason || streamFinishReason);
+                                streamUsage = part.usage ?? part.totalUsage ?? streamUsage;
+                                break;
+                            case 'error':
+                                throw new Error(part.errorText || 'ROMI stream error');
+                            default:
+                                break;
+                        }
+                    }
+
+                    if (!streamResponseText.trim() && streamedToolResults.length > 0) {
+                        streamResponseText = streamedToolResults
+                            .map((call, index) => {
+                                const formatted = formatToolResultReply(call.name, call.result);
+                                if (streamedToolResults.length === 1) return formatted;
+                                return `Kết quả ${index + 1} (${call.name}):\n${formatted}`;
+                            })
+                            .join('\n\n');
+                        emit({
+                            type: 'status',
+                            stage: 'synthesis',
+                            message: 'ROMI đã có dữ liệu và đang ghép lại thành câu trả lời gọn hơn.',
+                            intent: baseIntent,
+                            contextType: 'general',
+                        });
+                        emitChunkedText(emit, streamResponseText);
+                    }
+
+                    if (!streamResponseText.trim()) {
+                        streamResponseText = 'Xin lỗi, ROMI chưa thể xử lý yêu cầu này lúc này. Bạn thử lại giúp mình nhé.';
+                        emitChunkedText(emit, streamResponseText);
+                    }
+
+                    if (handoff) {
+                        emit({ type: 'handoff', handoff, journeyState: currentJourneyState });
+                    }
+
+                    await finalizeStream();
+                } catch (modelError) {
+                    if (!isRateLimitError(modelError) && !isRecoverableProviderError(modelError)) {
+                        if (telemetryUserId) {
+                            await trackRomiAnalyticsEvent(
+                                adminClient,
+                                telemetryUserId,
+                                currentSessionId,
+                                'romi_error',
+                                EXPOSE_INTERNAL_ERRORS
+                                    ? buildErrorDebugDetails(modelError)
+                                    : {
+                                        code: 'STREAM_RUNTIME',
+                                        message: (modelError as Error)?.message || null,
+                                    }
+                            );
+                        }
+                        throw modelError;
+                    }
+
+                    const fallback = buildRateLimitedFallback(selectedToolNames);
+                    streamResponseText = knowledgeSources.length > 0
+                        ? buildKnowledgeOnlyReply(knowledgeSources, currentJourneyState)
+                        : fallback.message;
+                    streamFinishReason = isRateLimitError(modelError)
+                        ? 'provider_rate_limited'
+                        : 'provider_unavailable';
+                    streamResponseSource = knowledgeSources.length > 0
+                        ? 'knowledge_only_fallback'
+                        : isRateLimitError(modelError)
+                            ? 'provider_rate_limited_fallback'
+                            : 'provider_unavailable_fallback';
+                    forcedStreamActions = handoff
+                        ? [{ type: 'open_login', label: handoff.label, href: handoff.href, description: handoff.reason }]
+                        : fallback.actions;
+                    emit({
+                        type: 'status',
+                        stage: 'synthesis',
+                        message: 'ROMI đang chuyển sang chế độ trả lời nhanh để tránh đứng khựng quá lâu.',
+                        intent: baseIntent,
+                        contextType: 'general',
+                    });
+                    if (handoff) {
+                        emit({ type: 'handoff', handoff, journeyState: currentJourneyState });
+                    }
+                    emitChunkedText(emit, streamResponseText);
+                    await finalizeStream();
+                }
+            });
+        }
 
         if (!hasTools && isGreetingMessage(normalizeText(message))) {
             responseText = buildGreetingReply();
@@ -1716,17 +2526,33 @@ Deno.serve(async (req) => {
                 { type: 'open_roommates', label: 'Tìm bạn cùng phòng', href: '/roommates' },
             ];
             responseSource = 'rule_based_greeting';
+        } else if (clarification) {
+            responseText = buildClarificationReply(clarification);
+            finishReason = 'clarification_requested';
+            responseSource = 'clarification';
         } else if (!languageModel) {
             const fallback = buildRateLimitedFallback(selectedToolNames);
-            responseText = fallback.message;
-            romiActions = fallback.actions;
+            responseText = knowledgeSources.length > 0
+                ? buildKnowledgeOnlyReply(knowledgeSources, currentJourneyState)
+                : fallback.message;
+            romiActions = handoff
+                ? [{ type: 'open_login', label: handoff.label, href: handoff.href, description: handoff.reason }]
+                : fallback.actions;
             finishReason = 'provider_not_configured';
-            responseSource = 'provider_not_configured_fallback';
+            responseSource = knowledgeSources.length > 0
+                ? 'knowledge_only_fallback'
+                : 'provider_not_configured_fallback';
         } else {
             try {
                 const aiResult = await generateTextWithRetry({
                     model: languageModel,
-                    system: SYSTEM_PROMPT,
+                    system: buildRomiSystemPrompt({
+                        viewerMode: effectiveViewerMode,
+                        entryPoint,
+                        intakeIntent: baseIntent,
+                        journeyState: currentJourneyState,
+                        knowledgeContext,
+                    }),
                     messages,
                     temperature: 0.7,
                     maxOutputTokens: 1024,
@@ -1742,7 +2568,7 @@ Deno.serve(async (req) => {
 
                 responseText = aiResult.text?.trim() || '';
                 functionCallResults = (aiResult.toolResults || []).map(result => ({
-                    name: result.toolName,
+                    name: result.toolName as ToolName,
                     result: result.output,
                 }));
 
@@ -1764,34 +2590,56 @@ Deno.serve(async (req) => {
                 geminiCallCount = aiResult.steps?.length || 1;
                 usage = aiResult.usage;
                 responseSource = 'model';
-                romiActions = buildRomiActions(
-                    functionCallResults
-                        .filter((call): call is { name: ToolName; result: unknown } =>
-                            typeof call.name === 'string' &&
-                            (call.name in TOOLS)
-                        )
-                );
+                romiActions = buildRomiActions(functionCallResults);
             } catch (modelError) {
                 if (!isRateLimitError(modelError) && !isRecoverableProviderError(modelError)) {
                     throw modelError;
                 }
                 const fallback = buildRateLimitedFallback(selectedToolNames);
-                responseText = fallback.message;
-                romiActions = fallback.actions;
+                responseText = knowledgeSources.length > 0
+                    ? buildKnowledgeOnlyReply(knowledgeSources, currentJourneyState)
+                    : fallback.message;
+                romiActions = handoff
+                    ? [{ type: 'open_login', label: handoff.label, href: handoff.href, description: handoff.reason }]
+                    : fallback.actions;
                 finishReason = isRateLimitError(modelError)
                     ? 'provider_rate_limited'
                     : 'provider_unavailable';
-                responseSource = isRateLimitError(modelError)
-                    ? 'provider_rate_limited_fallback'
-                    : 'provider_unavailable_fallback';
+                responseSource = knowledgeSources.length > 0
+                    ? 'knowledge_only_fallback'
+                    : isRateLimitError(modelError)
+                        ? 'provider_rate_limited_fallback'
+                        : 'provider_unavailable_fallback';
             }
         }
 
+        const { contextType, contextId } = inferContext(functionCallResults);
+        const intent = inferIntent(trimmedMessage, selectedToolNames, functionCallResults);
+        const sources = buildSources(functionCallResults);
+        const finalJourneyState = finalizeJourneyState(
+            mergeJourneyState(currentJourneyState, {
+                lastIntent: intent,
+                stage: handoff ? 'handoff' : clarification ? 'clarify' : functionCallResults.length > 0 ? 'recommend' : currentJourneyState.stage,
+                groundedBy: [
+                    ...(currentJourneyState.groundedBy || []),
+                    ...knowledgeSources.map((source) => source.documentTitle),
+                    ...sources,
+                ],
+            }),
+            effectiveViewerMode,
+        );
         const responseMetadata: Record<string, unknown> = {
             source: responseSource,
             geminiCallCount,
             finishReason,
             usage,
+            intent,
+            contextType,
+            contextId,
+            toolCalls: buildToolCallSummaries(functionCallResults),
+            journeyState: finalJourneyState,
+            knowledgeSources,
+            viewerMode: effectiveViewerMode,
         };
 
         if (functionCallResults.length > 0) {
@@ -1802,11 +2650,23 @@ Deno.serve(async (req) => {
             responseMetadata.actions = romiActions;
         }
 
-        if (functionCallResults.length > 0) {
+        if (sources.length > 0) {
+            responseMetadata.sources = sources;
+        }
+
+        if (clarification) {
+            responseMetadata.clarification = clarification;
+        }
+
+        if (handoff) {
+            responseMetadata.handoff = handoff;
+        }
+
+        if (functionCallResults.length > 0 && telemetryUserId) {
             await Promise.all(functionCallResults.map((call) =>
                 trackRomiAnalyticsEvent(
                     adminClient,
-                    user.id,
+                    telemetryUserId,
                     currentSessionId,
                     'romi_tool_called',
                     summarizeToolOutput(call.name, call.result),
@@ -1814,40 +2674,86 @@ Deno.serve(async (req) => {
             ));
         }
 
-        // Save assistant response
-        await adminClient.from('ai_chat_messages').insert({
-            session_id: currentSessionId,
-            role: 'assistant',
-            content: responseText,
-            metadata: responseMetadata,
-        });
+        const assistantCreatedAt = new Date().toISOString();
+        let messageId = `guest-${Date.now()}`;
+        let responseSession = sessionRecord
+            ? buildSessionPayload(
+                {
+                    ...sessionRecord,
+                    journey_state: finalJourneyState,
+                },
+                getSessionPreview(responseText),
+                'assistant',
+                assistantCreatedAt,
+                intent,
+                contextType,
+            )
+            : null;
 
-        // Update session timestamp
-        await adminClient
-            .from('ai_chat_sessions')
-            .update({ updated_at: new Date().toISOString() })
-            .eq('id', currentSessionId);
+        if (effectiveViewerMode === 'user' && currentSessionId) {
+            const { data: insertedAssistant, error: insertAssistantError } = await adminClient
+                .from('ai_chat_messages')
+                .insert({
+                    session_id: currentSessionId,
+                    role: 'assistant',
+                    content: responseText,
+                    metadata: responseMetadata,
+                })
+                .select('id')
+                .single();
 
-        await trackRomiAnalyticsEvent(
-            adminClient,
-            user.id,
-            currentSessionId,
-            'romi_response_received',
-            {
-                response_length: responseText.length,
-                tool_count: functionCallResults.length,
-                tool_names: functionCallResults.map((call) => call.name),
-                finish_reason: finishReason,
-                gemini_call_count: geminiCallCount,
-                source: responseSource,
-            }
-        );
+            if (insertAssistantError) throw insertAssistantError;
+            messageId = insertedAssistant.id;
+
+            await adminClient
+                .from('ai_chat_sessions')
+                .update({
+                    updated_at: assistantCreatedAt,
+                    journey_state: finalJourneyState,
+                })
+                .eq('id', currentSessionId);
+
+            responseSession = buildSessionPayload(
+                {
+                    ...(sessionRecord as SessionRow),
+                    updated_at: assistantCreatedAt,
+                    journey_state: finalJourneyState,
+                },
+                getSessionPreview(responseText),
+                'assistant',
+                assistantCreatedAt,
+                intent,
+                contextType,
+            );
+        }
+
+        if (telemetryUserId) {
+            await trackRomiAnalyticsEvent(
+                adminClient,
+                telemetryUserId,
+                currentSessionId,
+                'romi_response_received',
+                {
+                    response_length: responseText.length,
+                    tool_count: functionCallResults.length,
+                    tool_names: functionCallResults.map((call) => call.name),
+                    finish_reason: finishReason,
+                    gemini_call_count: geminiCallCount,
+                    source: responseSource,
+                    intent,
+                    context_type: contextType,
+                    knowledge_source_count: knowledgeSources.length,
+                }
+            );
+        }
 
         return new Response(
             JSON.stringify({
                 message: responseText,
                 sessionId: currentSessionId,
                 metadata: responseMetadata,
+                session: responseSession,
+                messageId,
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );

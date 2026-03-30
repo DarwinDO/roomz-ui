@@ -95,7 +95,7 @@ VALUES (
   now() + interval '180 days',
   false,
   'seed',
-  49000,
+  39000,
   'seed',
   now() - interval '15 days',
   now()
@@ -127,7 +127,7 @@ SELECT
   now() + interval '45 days',
   false,
   'seed',
-  49000,
+  39000,
   'seed',
   now() - interval '10 days',
   now()

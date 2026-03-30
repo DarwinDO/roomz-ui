@@ -2,105 +2,112 @@
 phase: requirements
 feature: ai-chatbot
 title: AI Chatbot - Requirements & Problem Understanding
-description: AI-powered chatbot using Gemini Flash for customer support and data-integrated assistance
+description: ROMI v3 concierge requirements for public discovery, signed-in workspace, and knowledge-only RAG
 ---
 
-# AI Chatbot — Requirements & Problem Understanding
+# AI Chatbot - Requirements & Problem Understanding
 
 ## Problem Statement
 
-**What problem are we solving?**
+- The earlier ROMI flow mixed support, search orchestration, and UI state into one oversized web surface and one monolithic edge function.
+- The old runtime had no retrieval layer for curated product knowledge, so onboarding, pricing, policy, and entitlement answers depended on static constants or prompt memory.
+- Signed-out users could not meaningfully access ROMI, which made discovery and early trust-building weaker than the product needed.
+- `/romi` needed to feel like a real concierge workspace instead of a dressed-up support drawer.
 
-- RommZ hiện có chatbot web (`Chatbot.tsx`) dùng **hardcoded keyword matching** — không thông minh, cố định, không thể xử lý câu hỏi ngoài kịch bản
-- User cần hỗ trợ nhanh 24/7 về: tìm phòng, booking, thanh toán, tính năng app
-- Mobile app **chưa có chatbot** — chỉ có user-to-user chat
-- Không có khả năng truy vấn dữ liệu thực (phòng available, giá, khu vực...)
+## Users Affected
 
-**Who is affected?**
+- Signed-out visitors who need to understand what RommZ is, where to start, and whether the product fits their needs.
+- Signed-in room seekers who need guided clarification before room, deal, or service suggestions become useful.
+- Support and growth flows that depend on accurate pricing, policy, and onboarding answers.
 
-- Tất cả user RommZ (sinh viên tìm phòng, chủ trọ đăng tin)
-- Team support (giảm tải hỗ trợ thủ công)
+## Primary Goals
 
-## Goals & Objectives
+1. Rebuild ROMI into a web-first concierge that supports both `guest` and signed-in `user` journeys.
+2. Add knowledge-only RAG for curated RommZ information:
+   - onboarding
+   - pricing
+   - policies
+   - feature eligibility
+   - verification
+   - premium / services / roommate / short-stay explanations
+3. Keep live room, deal, service, and location discovery tool-first so answers remain current.
+4. Persist new-version sessions only for signed-in users while allowing guests to use ROMI without DB persistence.
+5. Make `/romi` readable as a guided workspace with clearer intake, context summary, and next actions.
 
-**Primary Goals:**
+## Non-Goals
 
-1. Thay thế chatbot hardcoded bằng **AI chatbot sử dụng Gemini 2.0 Flash**
-2. Hỗ trợ **customer support** (FAQ, hướng dẫn app, troubleshooting)
-3. **Tích hợp dữ liệu app** qua function calling (tìm phòng, tra giá, gợi ý phòng)
-4. Triển khai trên **cả Web + Mobile** (shared logic)
-5. Lưu lịch sử chat vào **database** (persistent, sync cross-platform)
+- Mobile chatbot parity in this phase.
+- Replacing live room inventory with RAG.
+- Automatic booking, payment, or destructive account actions by the assistant.
+- Migrating old ROMI session history into the new experience version.
 
-**Secondary Goals:**
+## User Stories
 
-- Phân tích câu hỏi thường gặp để cải thiện sản phẩm
-- Hỗ trợ song ngữ (Tiếng Việt + English)
-- Streaming response (từng token) cho UX tốt hơn
+- As a guest, I want to ask where to start on RommZ so I can understand the platform before logging in.
+- As a guest, I want ROMI to explain pricing, verification, and premium benefits from trustworthy product knowledge.
+- As a signed-in user, I want ROMI to clarify my room needs before jumping into search results.
+- As a signed-in user, I want ROMI to combine live room/deal/service data with grounded policy or product explanations when needed.
+- As a signed-in user, I want my new ROMI workspace to remember my journey context across turns.
 
-**Non-goals (out of scope):**
+## UX Requirements
 
-- AI tự động đặt phòng/thanh toán (chỉ gợi ý, không thực hiện action)
-- Tích hợp voice (chỉ text)
-- Fine-tuning model riêng
-- Multi-modal (ảnh, video)
+- `/romi` must support two explicit states:
+  - `discover / intake`
+  - `concierge workspace`
+- Guests must be allowed to use ROMI for public discovery without authentication.
+- Guest flows must hand off to login only when the next step requires personalization, persistence, or gated access.
+- The UI must expose:
+  - what ROMI understood
+  - what information sources it used
+  - why a recommendation matches
+  - what action the user should take next
 
-## User Stories & Use Cases
+## Runtime Requirements
 
-**Core Stories:**
+- `AIChatRequest` must carry:
+  - `viewerMode`
+  - `entryPoint`
+  - `pageContext`
+  - partial `journeyState`
+- `AIChatStreamEvent` must support:
+  - `journey_update`
+  - `clarification_request`
+  - `handoff`
+- `ai_chat_sessions` must store:
+  - `experience_version`
+  - `journey_state`
+- Guest conversations must not create DB sessions or DB messages.
+- Signed-in conversations must persist only under the new experience version.
 
-1. **Hỗ trợ khách hàng:**
-   - As a student, I want to ask the chatbot how to verify my account so that I can start listing rooms
-   - As a user, I want to ask about RommZ+ features so that I can decide whether to upgrade
-   - As a landlord, I want to ask how to post a room listing so that I can attract tenants
+## Knowledge Requirements
 
-2. **Tích hợp dữ liệu:**
-   - As a student, I want to ask "phòng nào ở Quận 7 dưới 3 triệu?" so that I can find affordable rooms
-   - As a user, I want to ask "phòng nào còn trống gần ĐH FPT?" so that I can find nearby rooms
-   - As a user, I want to ask about SwapRoom availability for a specific time period
-
-3. **Cross-platform:**
-   - As a user, I want my chatbot conversation history synced between web and mobile
-   - As a mobile user, I want the chatbot accessible from the app bottom sheet
-
-**Edge Cases:**
-
-- User hỏi ngoài phạm vi app → Bot trả lời lịch sự, gợi ý tìm hiểu nơi khác
-- User spam liên tục → Rate limiting ở Edge Function
-- User gửi nội dung không phù hợp → Content filter
-- API Gemini lỗi/chậm → Fallback response + retry
+- RAG corpus must be curated, not open-ended.
+- The first corpus must include:
+  - onboarding guidance
+  - RommZ+ pricing and entitlements
+  - verification
+  - services and deals
+  - roommate matching
+  - short-stay / sublet / swap guidance
+- Retrieval must return source metadata so the UI can expose grounded sources.
 
 ## Success Criteria
 
-1. ✅ Chatbot trả lời chính xác >80% câu hỏi FAQ về RommZ
-2. ✅ Function calling hoạt động: tìm phòng theo tiêu chí trả kết quả đúng
-3. ✅ Response time < 3s cho câu hỏi thường, < 5s cho queries cần DB
-4. ✅ Lịch sử chat persist & sync giữa web ↔ mobile
-5. ✅ Web chatbot UI hoạt động (upgrade từ component hiện có)
-6. ✅ Mobile chatbot UI hoạt động (bottom sheet / dedicated screen)
-7. ✅ No TypeScript errors (`npx tsc --noEmit`)
-8. ✅ Edge Function deploy thành công
+- ROMI answers public product questions with curated knowledge instead of vague generic responses.
+- Guest users can access ROMI from the web and receive meaningful onboarding value before login.
+- Signed-in users receive clearer intake, clarification, and action-oriented recommendations.
+- `/romi` no longer depends on a single page-level state blob for streaming updates.
+- Shared request/stream contracts support the new workspace without breaking current web build quality.
 
 ## Constraints & Assumptions
 
-**Technical Constraints:**
+- Scope is `packages/web`, `packages/shared`, `supabase/functions/ai-chatbot`, and the supporting Supabase migration only.
+- Supabase/Postgres remains the storage layer for sessions and embeddings.
+- Embeddings use the AI Gateway model configured server-side.
+- Mobile remains on the older contract until a later phase.
 
-- Supabase Edge Functions dùng Deno runtime
-- Gemini API key lưu trong Supabase secrets (không expose client-side)
-- Monorepo structure: shared logic trong `@roomz/shared`
-- Mobile: Expo SDK 55 + React Native 0.83.2 + NativeWind v4
-- Web: React + Vite + Tailwind CSS
+## Open Items
 
-**Assumptions:**
-
-- Google Gemini API available và free tier đủ cho development
-- DB schema chat hiện có (conversations, messages, conversation_participants) có thể mở rộng
-- User đã authenticated khi dùng chatbot (có JWT token)
-
-## Questions & Open Items
-
-- [ ] ~AI Engine~ → **Đã chọn: Gemini 2.0 Flash**
-- [ ] ~Platform~ → **Đã chọn: Web + Mobile**
-- [ ] ~Persistence~ → **Đã chọn: DB + Edge Function**
-- [ ] Cần tạo bảng riêng cho AI chat hay dùng chung bảng messages/conversations?
-- [ ] Rate limit cụ thể: bao nhiêu request/phút cho mỗi user?
-- [ ] Có cần admin dashboard để xem thống kê chatbot không?
+- Apply the new migration in the target Supabase environment and verify pgvector availability there.
+- Add broader runtime validation for the edge function outside the current web-focused unit/build checks.
+- Decide whether lazy knowledge seeding on first request remains acceptable or should move to an explicit seed job.

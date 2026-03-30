@@ -347,13 +347,11 @@ export default function ProfilePage() {
                 <Button
                   variant="outline"
                   onClick={() =>
-                    isPremium
-                      ? navigate("/services?tab=deals")
-                      : navigate(`/payment?source=${UPGRADE_SOURCES.PROFILE_BANNER}`)
+                    navigate(`/payment?source=${UPGRADE_SOURCES.PROFILE_BANNER}`)
                   }
                   className="mt-6 w-full rounded-full border-white/70 bg-none bg-white text-primary shadow-none hover:bg-white/95 hover:text-primary"
                 >
-                  {isPremium ? "Xem quyền lợi hiện có" : "Nâng cấp ngay"}
+                  {isPremium ? "Xem gói của bạn" : "Nâng cấp ngay"}
                 </Button>
               </div>
             </Card>

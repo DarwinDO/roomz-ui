@@ -1,8 +1,8 @@
 import { PREMIUM_PUBLIC_BENEFIT_LABELS } from '@roomz/shared/constants/premium-offer';
 
 export const PRICING = {
-  ROMMZ_PLUS_MONTHLY: 49_000,
-  ROMMZ_PLUS_QUARTERLY: 119_000,
+  ROMMZ_PLUS_MONTHLY: 39_000,
+  ROMMZ_PLUS_QUARTERLY: 99_000,
   PROMO_DISCOUNT: 0.5,
   getPromoPrice: (basePrice: number): number => Math.round(basePrice * (1 - PRICING.PROMO_DISCOUNT)),
   getPrice: (billingCycle: 'monthly' | 'quarterly'): number =>

@@ -31,11 +31,26 @@ description: Validation plan and current audit status for the RoomZ Stitch-first
 - `python .agents/skills/frontend-design/scripts/accessibility_checker.py packages/web`
 - `python .agents/skills/seo-fundamentals/scripts/seo_checker.py packages/web`
 
-## Latest Results (2026-03-22)
+## Latest Results (2026-03-27)
 
 - `npx ai-devkit@latest lint`: pass
 - `npm run lint --workspace=@roomz/web`: pass with 3 pre-existing hook warnings
 - `npm run build --workspace=@roomz/web`: pass
+- `npx ai-devkit@latest lint` after the RommZ+ discoverability + Romi v2 pass: pass
+- `npm run lint --workspace=@roomz/web` after the RommZ+ discoverability + Romi v2 pass: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the RommZ+ discoverability + Romi v2 pass: pass
+- `npm run typecheck --workspace=@roomz/shared` after the ROMI v3 rebuild: pass
+- `npm run lint --workspace=@roomz/web` after the ROMI v3 rebuild: pass with the same 3 pre-existing hook warnings
+- `npm run test:unit --workspace=@roomz/web -- --grep "ROMI|romi workspace reducer"` after the ROMI v3 rebuild: pass
+- `npm run build --workspace=@roomz/web` after the ROMI v3 rebuild: pass
+- `npm run lint --workspace=@roomz/web` after the Romi desktop scroll-containment fix: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the Romi desktop scroll-containment fix: pass
+- `npx ai-devkit@latest lint` after the `/payment` hero-noise cleanup + Romi empty-bubble fix: pass
+- `npm run lint --workspace=@roomz/web` after the `/payment` hero-noise cleanup + Romi empty-bubble fix: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the `/payment` hero-noise cleanup + Romi empty-bubble fix: pass
+- `npm run lint --workspace=@roomz/web` after the Romi nested-button hydration fix: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the Romi nested-button hydration fix: pass
+- `npm run test:unit --workspace=@roomz/web -- src/services/payments.test.ts src/services/romi.test.ts`: blocked locally because `packages/web/src/lib/supabase.ts` requires `supabaseUrl` at import time and the current shell session did not expose the Supabase env vars
 - `npm run lint --workspace=@roomz/web` after the `/profile` Stitch port: pass with the same 3 pre-existing hook warnings
 - `npm run build --workspace=@roomz/web` after the `/profile` Stitch port: pass
 - `npm run lint --workspace=@roomz/web` after the `/profile` preferred-area and promo-card polish pass: pass with the same 3 pre-existing hook warnings
@@ -159,15 +174,38 @@ description: Validation plan and current audit status for the RoomZ Stitch-first
 - `npx ai-devkit@latest lint` after the public motion foundation pass: pass
 - `npm run lint --workspace=@roomz/web` after the product motion pass: pass with the same 3 pre-existing hook warnings
 - `npm run build --workspace=@roomz/web` after the product motion pass: pass
-- `npm run lint --workspace=@roomz/web` after the landing/login 3D pilot: pass with the same 3 pre-existing hook warnings
-- `npm run build --workspace=@roomz/web` after the landing/login 3D pilot: pass
-- `npx ai-devkit@latest lint` after the landing/login 3D pilot: pass
-- Playwright landing pilot review on local preview after the camera fix: pass
-  - the 3D housing-cluster hero is visible in the landing visual slot instead of collapsing into a pale blank panel
-  - the desktop search/filter rail remains readable in front of the new scene
-- Playwright login pilot review on local preview after the camera fix: pass with framing caveat
-  - the login route now mounts the lazy 3D pilot as a visible room vignette instead of the earlier pale blank panel
-  - the scene remains readable and decorative, but a live browser review should still confirm the final comfort level of the current top-down framing
+- `npm run lint --workspace=@roomz/web` after the Draftly-like hero pivot: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the Draftly-like hero pivot: pass
+- `npx ai-devkit@latest lint` after the Draftly-like hero pivot: pass
+- `npm run lint --workspace=@roomz/web` after the `/romi` + `/payment` Stitch port: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the `/romi` + `/payment` Stitch port: pass
+- `npx ai-devkit@latest lint` after the `/romi` + `/payment` Stitch port: pass
+- `npm run lint --workspace=@roomz/web` after the `/romi` + `/payment` parity-tightening pass: pass with the same 3 pre-existing hook warnings
+- `npm run build --workspace=@roomz/web` after the `/romi` + `/payment` parity-tightening pass: pass
+- `npx ai-devkit@latest lint` after the `/romi` + `/payment` parity-tightening pass: pass
+- Live Supabase pricing migration check after the `/payment` port: pass
+  - `public.create_checkout_order` now contains `39000` monthly pricing
+  - `public.create_checkout_order` now contains `99000` quarterly pricing
+- Manual review is now required for the layered entry-hero pivot:
+  - `/` should feel more cinematic and polished than the old runtime low-poly scene
+  - `/login` should keep the editorial card readable while the layered sanctuary hero sits behind it
+  - the new hero should not create layout shift or dependency on WebGL support
+- Manual review is now also required for the new Stitch-first utility surfaces:
+  - `/romi` should keep session history, message sending, and room-context suggestions readable in the new full-page assistant layout
+  - `/payment` should show the new `39.000đ/tháng` price, preserve the QR checkout flow, and remain visible even when the current user already has an active RommZ+ subscription
+- Manual review is now required for the RommZ+ discoverability pass:
+  - desktop navbar should always show the RommZ+ utility pill
+  - avatar menu should still expose the premium route as a secondary entry
+  - mobile quick access should provide a clear path into `/payment`
+- Manual review is now required for the ROMI v3 runtime pass:
+  - guest `/romi` should answer onboarding and product questions before login
+  - login handoff should appear only when personalization or persistence is actually needed
+  - sending a message should show `status` feedback almost immediately
+  - long streamed answers should not reset the workspace or refetch the full session rail
+  - clarification prompts should appear in the right rail when budget or area is still missing
+  - room-context threads should reveal context in the right rail while general threads should keep that rail minimal or hidden
+  - very long Romi threads should scroll inside the center panel instead of stretching the whole route
+  - previously broken assistant rows that only contained `...` should no longer appear in old or newly streamed Romi threads
 - UX audit: fail, 70 issues
 - Accessibility checker: pass, 0 issues
 - SEO checker: pass, 0 issues
@@ -189,9 +227,10 @@ description: Validation plan and current audit status for the RoomZ Stitch-first
 - Host messaging should now be reviewable per room context instead of per participant pair only
 - Public motion should enhance hierarchy on `/`, `/login`, `/services`, and `/community` without introducing layout shift or requiring motion to understand the page
 - Product motion should clarify state changes on `/search`, `/messages`, and `/host` without stretching the page, causing layout shift, or making navigation ambiguous
-- Landing/login 3D should remain decorative only:
+- Landing/login hero treatment should remain decorative only:
   - CTA, copy, search, and auth form readability must stay intact
-  - reduced-motion or unsupported devices must still get the static Stitch hero without broken spacing
+  - reduced-motion should keep the hero calm and readable without layout shift
+  - the entry routes should no longer depend on runtime WebGL support
 - Accessibility and SEO remain passing
 - Mobile is intentionally excluded from the current acceptance target
 - Remaining UX and performance debt is documented and not hidden

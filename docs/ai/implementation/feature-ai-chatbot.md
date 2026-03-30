@@ -2,58 +2,178 @@
 phase: implementation
 feature: ai-chatbot
 title: AI Chatbot - Implementation Guide
-description: Technical implementation notes for AI chatbot feature
+description: ROMI v3 implementation notes for shared contracts, web workspace, and knowledge-only RAG
 ---
 
-# AI Chatbot — Implementation Guide
+# AI Chatbot - Implementation Guide
 
-> This document will be filled during Phase 4 (Execute Plan).
+## Scope Implemented On 2026-03-27
 
-## Development Setup
+- `packages/shared`
+- `packages/web`
+- `supabase/functions/ai-chatbot`
+- `supabase/migrations`
+- `docs/ai/*`
 
-- Gemini API key required: Get from [Google AI Studio](https://aistudio.google.com/)
-- Set in Supabase: `supabase secrets set GEMINI_API_KEY=<key>`
-- Edge Function dev: `supabase functions serve ai-chatbot --env-file .env`
+Mobile was intentionally left unchanged in this phase.
 
-## Code Structure
+## External Skills Applied
 
-```
-packages/shared/src/services/ai-chatbot/    # Shared API + types
-packages/web/src/hooks/useAIChatbot.ts       # Web hook
-packages/web/src/components/common/Chatbot.tsx  # Web UI (upgrade)
-packages/mobile/src/hooks/useAIChatbot.ts    # Mobile hook
-packages/mobile/components/AIChatbot.tsx     # Mobile UI
-packages/mobile/components/AIChatMessage.tsx # Mobile message bubble
-supabase/functions/ai-chatbot/index.ts       # Edge Function
-supabase/migrations/*_ai_chatbot.sql         # DB migration
-```
+- `inferen-sh/skills@ai-rag-pipeline`
+- `wshobson/agents@rag-implementation`
+- `wshobson/agents@prompt-engineering-patterns`
+- `vercel-labs/vercel-plugin@ai-sdk`
+- `ancoleman/ai-design-components@building-ai-chat`
 
-## Implementation Notes
+Local repo skills applied during implementation:
 
-- Edge Function `supabase/functions/ai-chatbot/index.ts` migrated from manual Gemini REST calls to Vercel AI SDK (`ai` + `@ai-sdk/google`) for unified tool-calling orchestration.
-- Intent-gated tool injection is preserved via `getToolsForMessage(...)`; tools are only attached when message/context indicates room search, room detail lookup, or app info lookup.
-- Forced tool path for room-search and room-detail intents is preserved with `toolChoice` and bounded with `stopWhen: stepCountIs(1)` to avoid multi-step loops.
-- Tool outputs are converted to deterministic text through local formatters (`formatSearchRoomsReply`, `formatRoomDetailsReply`) to reduce hallucinated room data.
-- Retry-on-429 behavior is retained via `generateTextWithRetry(...)` exponential backoff wrapper.
-- Existing reliability/security improvements were kept: DB-backed rate limit, strict session ownership check, CORS allowlist, and optional internal error detail exposure via `EXPOSE_INTERNAL_ERRORS`.
+- `ai-sdk`
+- `frontend-design`
+- `react-best-practices`
+- `api-patterns`
+- `testing-patterns`
+- `systematic-debugging`
 
-## Integration Points
+## Shared Layer Changes
 
-- Edge Function → Gemini API (REST)
-- Edge Function → Supabase DB (server-side client)
-- Client → Edge Function (via Supabase client `functions.invoke`)
-- Shared types consumed by both Web and Mobile
+### Contracts
 
-## Error Handling
+Updated `packages/shared/src/services/ai-chatbot/types.ts` to add:
 
-- Gemini API errors → Fallback message + log
-- Rate limiting → 429 response with retry-after
-- Auth errors → 401 redirect to login
-- Network errors → Client-side retry with exponential backoff
+- `viewerMode`
+- `entryPoint`
+- `pageContext`
+- `journeyState`
+- `history`
+- knowledge source metadata
+- clarification metadata
+- handoff metadata
+- new stream events for journey updates, clarifications, and handoff
 
-## Security Notes
+### Helpers
 
-- Gemini API key: server-side only (Edge Function env)
-- JWT verification on every request
-- RLS policies on AI chat tables
-- Input sanitization before sending to Gemini
+Added:
+
+- `packages/shared/src/services/ai-chatbot/intake.ts`
+- `packages/shared/src/services/ai-chatbot/journey.ts`
+
+These shared helpers now centralize:
+
+- Vietnamese intake extraction
+- room-search clarification rules
+- product-topic detection
+- journey summary generation
+- state merge logic
+
+### Shared API client
+
+Updated `packages/shared/src/services/ai-chatbot/api.ts` so the web client can:
+
+- send guest requests without requiring a JWT
+- send signed-in requests with JWT
+- pass guest history locally
+- stream from the edge function with the extended contract
+- filter sessions by `ROMI_EXPERIENCE_VERSION`
+
+## Knowledge Layer
+
+### Curated corpus
+
+Added `packages/shared/src/constants/romiKnowledge.ts` as the first curated knowledge source of truth.
+
+Current sections include:
+
+- onboarding
+- RommZ+ pricing
+- verification
+- services and deals
+- roommate matching
+- short-stay / swap
+
+### Database
+
+Added migration:
+
+- `supabase/migrations/20260327160000_romi_v3_knowledge_rag.sql`
+
+This migration:
+
+- extends `ai_chat_sessions` with `experience_version` and `journey_state`
+- backfills existing sessions to `romi_legacy`
+- creates `romi_knowledge_documents`
+- creates `romi_knowledge_chunks`
+- adds pgvector indexing
+- adds `match_romi_knowledge_chunks(...)`
+
+### Edge retrieval
+
+Added:
+
+- `supabase/functions/ai-chatbot/knowledge.ts`
+
+Key behavior:
+
+- lazily upserts curated docs and chunks
+- lazily embeds missing chunks through the AI Gateway embedding model
+- uses vector retrieval when embeddings exist
+- falls back to lexical ranking when embeddings or retrieval are unavailable
+
+## Edge Function Changes
+
+The public entrypoint remains:
+
+- `supabase/functions/ai-chatbot/index.ts`
+
+Key runtime changes:
+
+- guest mode is now supported
+- signed-in mode remains persistent
+- old sessions are rejected if they do not match `romi_v3`
+- guest rate limiting is handled separately from authenticated rate limiting
+- clarification can short-circuit tool execution
+- knowledge sources can be injected before or alongside live tools
+- final message metadata now carries journey, knowledge, clarification, and handoff state
+
+Added supporting modules:
+
+- `supabase/functions/ai-chatbot/fallback-policy.ts`
+- `supabase/functions/ai-chatbot/response-composer.ts`
+
+## Web Workspace Changes
+
+### Route and launcher
+
+- `/romi` is now public in `packages/web/src/router/router.tsx`
+- `packages/web/src/components/common/Chatbot.tsx` now routes guests into `/romi` instead of hiding the launcher entirely
+
+### New reducer-driven ROMI page
+
+Added:
+
+- `packages/web/src/pages/romi/reducer.ts`
+- `packages/web/src/pages/RomiPage.tsx`
+
+The new workspace introduces:
+
+- guest rail
+- signed-in session rail
+- reducer-driven streamed message updates
+- context rail for journey summary, clarification, handoff, and sources
+- action cards inside the thread instead of plain CTA text
+
+## Validation Completed
+
+- `npm run typecheck --workspace=@roomz/shared`
+- `npm run lint --workspace=@roomz/web`
+- `npm run test:unit --workspace=@roomz/web -- --grep "ROMI|romi workspace reducer"`
+- `npm run build --workspace=@roomz/web`
+- live Supabase migration applied on `vevnoxlgwisdottaifdn`
+- live `ai-chatbot` function deployed on `vevnoxlgwisdottaifdn`
+- direct guest smoke request against the live function returned a real ROMI reply with guest metadata and onboarding knowledge sources
+
+## Known Gaps
+
+- No direct Deno/edge-function test suite was added in this task.
+- Guest rate limiting is still in-memory.
+- Knowledge seeding currently happens on first request rather than through a dedicated seed job.
+- Browser-side Vietnamese unicode prompts still need a real `/romi` UI verification pass after the live rollout.

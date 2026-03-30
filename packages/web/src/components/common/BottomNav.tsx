@@ -1,72 +1,125 @@
-﻿import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
-  Home,
-  Search,
-  MessageCircle,
-  User,
-  Plus,
-  Users,
-  RefreshCw,
-  Settings,
+  BadgeCheck,
   BriefcaseBusiness,
-  LayoutDashboard,
+  Home,
   HousePlus,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts';
+  LayoutDashboard,
+  MessageCircle,
+  Plus,
+  RefreshCw,
+  Search,
+  Settings,
+  Sparkles,
+  User,
+  Users,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts";
+import { usePremiumLimits } from "@/hooks/usePremiumLimits";
 
 export function BottomNav() {
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
   const { profile } = useAuth();
-  const isLandlord = profile?.role === 'landlord';
+  const { isPremium } = usePremiumLimits();
+  const isLandlord = profile?.role === "landlord";
 
-  if (location.pathname === '/messages') {
+  if (location.pathname.startsWith("/messages") || location.pathname.startsWith("/romi")) {
     return null;
   }
 
   const mainNavItems = [
-    { id: 'home', label: 'Trang chủ', icon: Home, path: '/' },
-    { id: 'search', label: 'Tìm kiếm', icon: Search, path: '/search' },
+    { id: "home", label: "Trang chủ", icon: Home, path: "/" },
+    { id: "search", label: "Tìm kiếm", icon: Search, path: "/search" },
   ];
 
   const rightNavItems = [
-    { id: 'messages', label: 'Tin nhắn', icon: MessageCircle, path: '/messages' },
-    { id: 'profile', label: 'Hồ sơ', icon: User, path: '/profile' },
+    { id: "messages", label: "Tin nhắn", icon: MessageCircle, path: "/messages" },
+    { id: "profile", label: "Hồ sơ", icon: User, path: "/profile" },
   ];
 
   const expandedMenuItems = [
-    { id: 'roommates', label: 'Tìm bạn cùng phòng', icon: Users, color: 'bg-blue-50', path: '/roommates' },
-    { id: 'services', label: 'Dịch vụ & Ưu đãi', icon: BriefcaseBusiness, color: 'bg-amber-50', path: '/services' },
-    { id: 'community', label: 'Cộng đồng', icon: Users, color: 'bg-indigo-50', path: '/community' },
-    { id: 'swap', label: 'Ở ngắn hạn', icon: RefreshCw, color: 'bg-green-50', path: '/swap' },
+    {
+      id: "premium",
+      label: isPremium ? "RommZ+ đang bật" : "RommZ+",
+      icon: isPremium ? BadgeCheck : Sparkles,
+      color: "bg-gradient-to-br from-blue-50 to-indigo-50",
+      path: "/payment",
+    },
+    {
+      id: "roommates",
+      label: "Tìm bạn cùng phòng",
+      icon: Users,
+      color: "bg-blue-50",
+      path: "/roommates",
+    },
+    {
+      id: "services",
+      label: "Dịch vụ & ưu đãi",
+      icon: BriefcaseBusiness,
+      color: "bg-amber-50",
+      path: "/services",
+    },
+    {
+      id: "community",
+      label: "Cộng đồng",
+      icon: Users,
+      color: "bg-indigo-50",
+      path: "/community",
+    },
+    {
+      id: "swap",
+      label: "Ở ngắn hạn",
+      icon: RefreshCw,
+      color: "bg-green-50",
+      path: "/swap",
+    },
     isLandlord
-      ? { id: 'host', label: 'Chủ nhà', icon: LayoutDashboard, color: 'bg-slate-100', path: '/host' }
-      : { id: 'become-host', label: 'Trở thành chủ nhà', icon: HousePlus, color: 'bg-sky-50', path: '/become-host' },
-    { id: 'settings', label: 'Cài đặt', icon: Settings, color: 'bg-gray-50', path: '/settings' },
+      ? {
+          id: "host",
+          label: "Chủ nhà",
+          icon: LayoutDashboard,
+          color: "bg-slate-100",
+          path: "/host",
+        }
+      : {
+          id: "become-host",
+          label: "Trở thành chủ nhà",
+          icon: HousePlus,
+          color: "bg-sky-50",
+          path: "/become-host",
+        },
+    {
+      id: "settings",
+      label: "Cài đặt",
+      icon: Settings,
+      color: "bg-gray-50",
+      path: "/settings",
+    },
   ];
 
   const isActive = (path: string) => {
-    if (path === '/' && location.pathname === '/') return true;
-    if (path !== '/' && location.pathname.startsWith(path)) return true;
+    if (path === "/" && location.pathname === "/") return true;
+    if (path !== "/" && location.pathname.startsWith(path)) return true;
     return false;
   };
 
   return (
     <>
-      {isExpanded && (
+      {isExpanded ? (
         <div
           className="fixed inset-0 z-40 bg-black/40 md:hidden"
-          style={{ animation: 'fadeIn 300ms ease-out' }}
+          style={{ animation: "fadeIn 300ms ease-out" }}
           onClick={() => setIsExpanded(false)}
         />
-      )}
+      ) : null}
 
-      {isExpanded && (
+      {isExpanded ? (
         <div
           className="fixed bottom-0 left-0 right-0 z-50 overflow-hidden rounded-t-3xl bg-card shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:hidden"
-          style={{ height: '65vh', maxHeight: '600px', animation: 'slideUp 300ms ease-out' }}
+          style={{ height: "65vh", maxHeight: "600px", animation: "slideUp 300ms ease-out" }}
         >
           <div className="flex h-full flex-col p-5">
             <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-muted-foreground/30" />
@@ -77,17 +130,26 @@ export function BottomNav() {
                 {expandedMenuItems.map((item) => {
                   const Icon = item.icon;
                   const active = isActive(item.path);
+
                   return (
                     <Link
                       key={item.id}
                       to={item.path}
                       onClick={() => setIsExpanded(false)}
-                      className={`flex flex-col items-center gap-2.5 rounded-2xl p-3 transition-all active:scale-95 ${active ? 'bg-primary/10' : 'hover:bg-muted'}`}
+                      className={`flex flex-col items-center gap-2.5 rounded-2xl p-3 transition-all active:scale-95 ${
+                        active ? "bg-primary/10" : "hover:bg-muted"
+                      }`}
                     >
-                      <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${active ? 'bg-primary' : item.color}`}>
-                        <Icon className={`h-6 w-6 ${active ? 'text-white' : 'text-primary'}`} />
+                      <div
+                        className={`flex h-14 w-14 items-center justify-center rounded-2xl ${
+                          active ? "bg-primary" : item.color
+                        }`}
+                      >
+                        <Icon className={`h-6 w-6 ${active ? "text-white" : "text-primary"}`} />
                       </div>
-                      <span className={`text-center text-sm ${active ? 'font-medium text-primary' : ''}`}>{item.label}</span>
+                      <span className={`text-center text-sm ${active ? "font-medium text-primary" : ""}`}>
+                        {item.label}
+                      </span>
                     </Link>
                   );
                 })}
@@ -103,19 +165,24 @@ export function BottomNav() {
             </Button>
           </div>
         </div>
-      )}
+      ) : null}
 
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-card shadow-[0_-2px_6px_rgba(0,0,0,0.05)] md:hidden">
         <div className="flex items-center justify-around px-4 py-3">
           {mainNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
+
             return (
-              <Link key={item.id} to={item.path} className="flex min-w-[48px] flex-col items-center gap-1 transition-all active:scale-95">
-                <Icon className={`h-6 w-6 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+              <Link
+                key={item.id}
+                to={item.path}
+                className="flex min-w-[48px] flex-col items-center gap-1 transition-all active:scale-95"
+              >
+                <Icon className={`h-6 w-6 ${active ? "text-primary" : "text-muted-foreground"}`} />
                 <span
-                  className={`text-xs ${active ? 'font-medium text-primary' : 'text-muted-foreground'}`}
-                  style={{ fontSize: '12px', fontWeight: active ? 500 : 400 }}
+                  className={`text-xs ${active ? "font-medium text-primary" : "text-muted-foreground"}`}
+                  style={{ fontSize: "12px", fontWeight: active ? 500 : 400 }}
                 >
                   {item.label}
                 </span>
@@ -130,8 +197,8 @@ export function BottomNav() {
             <div
               className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-transform"
               style={{
-                background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
-                transform: isExpanded ? 'rotate(45deg)' : 'rotate(0deg)',
+                background: "linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)",
+                transform: isExpanded ? "rotate(45deg)" : "rotate(0deg)",
               }}
             >
               <Plus className="h-7 w-7 text-white" />
@@ -141,12 +208,17 @@ export function BottomNav() {
           {rightNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
+
             return (
-              <Link key={item.id} to={item.path} className="flex min-w-[48px] flex-col items-center gap-1 transition-all active:scale-95">
-                <Icon className={`h-6 w-6 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+              <Link
+                key={item.id}
+                to={item.path}
+                className="flex min-w-[48px] flex-col items-center gap-1 transition-all active:scale-95"
+              >
+                <Icon className={`h-6 w-6 ${active ? "text-primary" : "text-muted-foreground"}`} />
                 <span
-                  className={`text-xs ${active ? 'font-medium text-primary' : 'text-muted-foreground'}`}
-                  style={{ fontSize: '12px', fontWeight: active ? 500 : 400 }}
+                  className={`text-xs ${active ? "font-medium text-primary" : "text-muted-foreground"}`}
+                  style={{ fontSize: "12px", fontWeight: active ? 500 : 400 }}
                 >
                   {item.label}
                 </span>

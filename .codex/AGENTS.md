@@ -2,7 +2,7 @@
 trigger: always_on
 ---
 
-# AGENTS.md - Codex Workspace Rules (Migrated from GEMINI.md)
+# AGENTS.md - Augment Workspace Rules (Migrated from GEMINI.md)
 
 > This file defines how the AI behaves in this workspace.
 
@@ -24,6 +24,38 @@ Agent activated → Check frontmatter "skills:" → Read SKILL.md (INDEX) → Re
 1. **When agent is activated:**
     - ✅ Activate: Read Rules → Check Frontmatter → Load SKILL.md → Apply All.
 2. **Forbidden:** Never skip reading agent rules or skill instructions. "Read → Understand → Apply" is mandatory.
+
+---
+
+## 🔁 DEFAULT DEV LIFECYCLE PROTOCOL
+
+> **MANDATORY FOR ALL REPO WORK:** If a request touches files, code, docs, config, tests, UI, DB, or architecture, automatically apply `@[skills/dev-lifecycle]`.
+
+### Default Behavior
+
+1. **Before repo work starts:**
+    - Run `npx ai-devkit@latest lint`
+    - Read `docs/ai/monitoring/project-status.md`
+    - Read existing feature docs in `docs/ai/{phase}/feature-<name>.md` if the task continues existing work
+2. **For small tasks:** Minimum doc output is:
+    - Update `docs/ai/monitoring/project-status.md`
+    - Create or update `docs/ai/implementation/task-YYYYMMDD-<slug>.md`
+3. **For multi-file / structural / feature work:** Maintain full `dev-lifecycle` docs:
+    - `requirements/`
+    - `design/`
+    - `planning/`
+    - `implementation/`
+    - `testing/`
+4. **After every code task:** Refresh the project status snapshot and fix docs drift in the same task.
+
+### Source Of Truth Rule
+
+- `AGENTS.md` = protocol and operating rules only
+- `docs/ai/monitoring/project-status.md` = current project state
+- `docs/ai/implementation/task-YYYYMMDD-<slug>.md` = per-task execution memory
+- `docs/ai/{phase}/feature-<name>.md` = feature-specific lifecycle memory
+
+> 🔴 **Do not dump live project state into `AGENTS.md`.** Keep the evolving state in `docs/ai/`.
 
 ---
 
@@ -120,9 +152,15 @@ When user's prompt is NOT in English:
 2. Identify dependent files
 3. Update ALL affected files together
 
+**Fallback when `CODEBASE.md` is missing or stale:**
+
+1. Read `docs/ai/monitoring/project-status.md`
+2. Search imports/usages in the repo
+3. Update dependent files and docs in the same task
+
 ### 🗺️ System Map Read
 
-> 🔴 **MANDATORY:** Read `ARCHITECTURE.md` at session start to understand Agents, Skills, and Scripts.
+> 🔴 **MANDATORY:** Read `.agents/ARCHITECTURE.md` at session start to understand Agents, Skills, and Scripts.
 
 **Path Awareness:**
 
@@ -142,6 +180,22 @@ When user's prompt is NOT in English:
 1. What is the GOAL of this agent/skill?
 2. What PRINCIPLES must I apply?
 3. How does this DIFFER from generic output?
+
+### 📚 Living Project Memory (Mandatory)
+
+**Before any repo-affecting task:**
+
+1. Read `docs/ai/monitoring/project-status.md`
+2. Read the relevant `docs/ai/{phase}/feature-<name>.md` files when continuing a feature
+3. Confirm whether existing docs match the codebase
+
+**After any code task:**
+
+1. Update `docs/ai/monitoring/project-status.md`
+2. Create or update `docs/ai/implementation/task-YYYYMMDD-<slug>.md`
+3. If docs are incomplete or wrong, fix them immediately in the same task
+
+> 🔴 **Docs drift is a bug.** Treat stale documentation as part of the implementation work.
 
 ---
 
@@ -253,6 +307,26 @@ When user's prompt is NOT in English:
 - Deep Design Thinking protocol
 
 > 🔴 **For design work:** Open and READ the agent file. Rules are there.
+
+### 🧩 Preferred Supplemental Skills For UI / Motion / 3D
+
+When available in the environment, load the smallest relevant set from the list below:
+
+| Context | Preferred Skills |
+| ------- | ---------------- |
+| **Web design system** | `frontend-design`, `tailwind-design-system`, `design-system-patterns`, `ui-typography`, `ux-principles`, `accessibility-design-checklist` |
+| **Mobile mapping / MD3** | `mobile-design`, `google-material-design` |
+| **Motion** | `framer-motion-animator` |
+| **3D web accent** | `react-three-fiber`, `threejs-fundamentals`, `threejs-animation` |
+
+### 🎥 UI / Motion / 3D Runtime Defaults
+
+- **Typography:** maximum 2 font families per surface
+- **Motion:** Framer Motion only, light and purposeful
+- **3D:** `three.js` + `@react-three/fiber` + `@react-three/drei`
+- **3D Placement:** only landing, login, onboarding, or empty-state accents unless explicitly expanded
+- **Fallbacks:** reduced-motion fallback and low-end device fallback are mandatory
+- **Inline User-Facing Dropdowns:** prefer `FormSelectPopover` / listbox-style popovers over raw Radix `Select` for filters and centered forms; only use raw `Select` when the layout is isolated and verified not to cause scroll-lock layout shift
 
 ---
 

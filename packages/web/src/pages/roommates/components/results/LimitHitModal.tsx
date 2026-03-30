@@ -1,21 +1,21 @@
-import { Button } from '@/components/ui/button';
+import { ArrowRight, Crown, Eye, MapPin, Phone, Send } from "lucide-react";
+import { useNavigate } from "react-router";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { getRommZPlusPlan } from '@/services/payments';
-import { PREMIUM_ROOMMATE_UPSELL_BENEFITS } from '@roomz/shared/constants/premium-offer';
-import { UPGRADE_SOURCES } from '@roomz/shared/constants/tracking';
-import { ArrowRight, Crown, Eye, MapPin, Phone, Send } from 'lucide-react';
-import { useNavigate } from 'react-router';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { getRommZPlusPlan } from "@/services/payments";
+import { PREMIUM_ROOMMATE_UPSELL_BENEFITS } from "@roomz/shared/constants/premium-offer";
+import { UPGRADE_SOURCES } from "@roomz/shared/constants/tracking";
 
 interface LimitHitModalProps {
   isOpen: boolean;
   onClose: () => void;
-  limitType: 'views' | 'requests';
+  limitType: "views" | "requests";
   onUpgrade?: () => void;
 }
 
@@ -24,17 +24,17 @@ const BENEFIT_ICONS = [Eye, Send, Phone, MapPin] as const;
 export function LimitHitModal({ isOpen, onClose, limitType }: LimitHitModalProps) {
   const navigate = useNavigate();
   const rommzPlusPlan = getRommZPlusPlan();
-  const priceDisplay = rommzPlusPlan?.priceDisplay || '49.000đ/tháng';
+  const priceDisplay = rommzPlusPlan?.priceDisplay || "39.000đ/tháng";
 
   const title =
-    limitType === 'views'
-      ? 'Đã hết lượt xem profile hôm nay'
-      : 'Đã hết lượt gửi yêu cầu hôm nay';
+    limitType === "views"
+      ? "Đã hết lượt xem profile hôm nay"
+      : "Đã hết lượt gửi yêu cầu hôm nay";
 
   const description =
-    limitType === 'views'
-      ? 'Bạn đã dùng hết lượt xem roommate trong hôm nay. RommZ+ sẽ mở khóa hoàn toàn luồng xem hồ sơ này.'
-      : 'Bạn đã dùng hết lượt gửi lời chào hôm nay. RommZ+ sẽ mở khóa hoàn toàn luồng kết nối roommate này.';
+    limitType === "views"
+      ? "Bạn đã dùng hết lượt xem roommate trong hôm nay. RommZ+ sẽ mở khóa hoàn toàn luồng xem hồ sơ này."
+      : "Bạn đã dùng hết lượt gửi lời chào hôm nay. RommZ+ sẽ mở khóa hoàn toàn luồng kết nối roommate này.";
 
   const handleUpgrade = () => {
     navigate(`/payment?source=${UPGRADE_SOURCES.ROOMMATE_LIMIT}`);

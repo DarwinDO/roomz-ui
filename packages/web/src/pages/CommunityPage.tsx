@@ -210,7 +210,10 @@ export default function CommunityPage() {
           viewport={motionTokens.viewport}
           variants={motionTokens.stagger(0.08, 0.06)}
         >
-          <div className="space-y-16 lg:col-span-8">
+          <motion.div
+            className="space-y-16 lg:col-span-8"
+            variants={motionTokens.stagger(0.08, 0.06)}
+          >
             <section>
               <div className="mb-8 flex items-end justify-between">
                 <h2 className="text-3xl">Thảo luận nổi bật</h2>
@@ -234,6 +237,8 @@ export default function CommunityPage() {
                     key={post.id}
                     role="button"
                     tabIndex={0}
+                    initial="hidden"
+                    animate="show"
                     onClick={() => setSelectedPost(transformToPost(post))}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
@@ -242,7 +247,7 @@ export default function CommunityPage() {
                       }
                     }}
                     className="group w-full rounded-[28px] bg-surface-container-lowest p-8 text-left shadow-[0_10px_40px_rgba(40,43,81,0.04)] transition-all hover:shadow-[0_20px_60px_rgba(40,43,81,0.08)]"
-                    variants={motionTokens.revealScale(18)}
+                    variants={motionTokens.revealScale(18, 0.98, index * 0.08)}
                   >
                     {(() => {
                       const media = getFeaturedMedia(
@@ -361,9 +366,11 @@ export default function CommunityPage() {
                   <motion.button
                     key={post.id}
                     type="button"
+                    initial="hidden"
+                    animate="show"
                     onClick={() => setSelectedPost(transformToPost(post))}
                     className="group overflow-hidden rounded-[28px] bg-white text-left shadow-sm transition-all hover:shadow-xl"
-                    variants={motionTokens.revealScale(18)}
+                    variants={motionTokens.revealScale(18, 0.98, index * 0.08)}
                     whileTap={motionTokens.tap}
                   >
                     <div className="relative h-64 overflow-hidden">
@@ -392,7 +399,7 @@ export default function CommunityPage() {
                 ))}
               </motion.div>
             </section>
-          </div>
+          </motion.div>
 
           <motion.aside className="space-y-12 lg:col-span-4" variants={motionTokens.stagger(0.08, 0.08)}>
             <motion.section

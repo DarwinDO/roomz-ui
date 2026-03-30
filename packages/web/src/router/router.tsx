@@ -29,6 +29,7 @@ const VerifyEmailPage = lazy(() => import('@/pages/VerifyEmailPage'));
 const AuthCallbackPage = lazy(() => import('@/pages/AuthCallbackPage'));
 const VerificationPage = lazy(() => import('@/pages/VerificationPage'));
 const ServicesHubPage = lazy(() => import('@/pages/ServicesHubPage'));
+const RomiPage = lazy(() => import('@/pages/RomiPage'));
 const SubletDetailPage = lazy(() => import('@/pages/SubletDetailPage'));
 const MessagesPage = lazy(() => import('@/pages/MessagesPage'));
 const LandlordDashboardPage = lazy(() => import('@/pages/LandlordDashboardPage'));
@@ -219,6 +220,10 @@ export const router = createBrowserRouter([
       {
         path: 'services',
         element: <ServicesHubPage />,
+      },
+      {
+        path: 'romi',
+        element: <RomiPage />,
       },
       {
         path: 'local-passport',

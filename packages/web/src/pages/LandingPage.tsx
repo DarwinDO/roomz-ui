@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -22,17 +22,11 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PROVINCES } from "@/data/vietnam-locations";
+import { LandingHeroIllustration } from "@/components/common/HeroIllustrationPilot";
 import { createPublicMotion } from "@/lib/motion";
 import { stitchAssets } from "@/lib/stitchAssets";
-import { useThreePilotEnabled } from "@/lib/threePilot";
 import { StitchFooter } from "@/components/common/StitchFooter";
 import { cn } from "@/components/ui/utils";
-
-const LandingHeroPilot3D = lazy(() =>
-  import("@/components/3d/HeroAccentPilot").then((module) => ({
-    default: module.LandingHeroPilot3D,
-  })),
-);
 
 const landingLocations = PROVINCES.map((province) => province.name);
 const defaultLandingLocation =
@@ -123,10 +117,6 @@ const serviceCards = [
 export default function LandingPage() {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
-  const canRenderThreePilot = useThreePilotEnabled({
-    enabled: !shouldReduceMotion,
-    minWidth: 1180,
-  });
   const motionTokens = useMemo(
     () => createPublicMotion(!!shouldReduceMotion),
     [shouldReduceMotion],
@@ -370,65 +360,7 @@ export default function LandingPage() {
               <div className="absolute -right-10 -top-10 h-64 w-64 rounded-full bg-primary-container/20 blur-3xl" />
               <div className="absolute -bottom-10 -left-10 h-64 w-64 rounded-full bg-tertiary-container/20 blur-3xl" />
 
-              {canRenderThreePilot ? (
-                <div aria-hidden className="h-[640px]" />
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-                <motion.div className="space-y-4" variants={motionTokens.stagger(0.08, 0.08)}>
-                  <motion.img
-                    src={stitchAssets.landing.heroLeftTall}
-                    alt="Phòng trọ hiện đại nhiều ánh sáng"
-                    className="mt-12 h-80 w-full rounded-[32px] object-cover shadow-lg"
-                    variants={motionTokens.revealScale(24)}
-                  />
-                  <motion.div
-                    className="stitch-editorial-shadow flex items-center gap-4 rounded-[28px] border border-surface-container bg-white p-6"
-                    variants={motionTokens.reveal(18)}
-                  >
-                    <div className="flex -space-x-3 overflow-hidden">
-                      {stitchAssets.landing.friendAvatars.map((avatar) => (
-                        <img
-                          key={avatar}
-                          src={avatar}
-                          alt="Thành viên RommZ"
-                          className="h-10 w-10 rounded-full ring-2 ring-white"
-                        />
-                      ))}
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container text-xs font-bold text-primary-container-foreground ring-2 ring-white">
-                        +12
-                      </div>
-                    </div>
-                    <div className="text-xs">
-                      <p className="font-bold text-foreground">12+ bạn mới</p>
-                      <p className="text-muted-foreground">Đang tìm phòng tại Quận 1</p>
-                    </div>
-                  </motion.div>
-                </motion.div>
-
-                <motion.div className="space-y-4" variants={motionTokens.stagger(0.08, 0.12)}>
-                  <motion.img
-                    src={stitchAssets.landing.heroRightTall}
-                    alt="Không gian sống chung sáng sủa"
-                    className="h-96 w-full rounded-[32px] object-cover shadow-lg"
-                    variants={motionTokens.revealScale(28)}
-                  />
-                  <motion.img
-                    src={stitchAssets.landing.heroRightBottom}
-                    alt="Ngoại thất khu nhà hiện đại"
-                    className="h-48 w-full rounded-[32px] object-cover shadow-lg"
-                    variants={motionTokens.revealScale(18)}
-                  />
-                </motion.div>
-                </div>
-              )}
-
-              {canRenderThreePilot ? (
-                <div className="absolute inset-0">
-                  <Suspense fallback={null}>
-                    <LandingHeroPilot3D friendAvatars={stitchAssets.landing.friendAvatars} />
-                  </Suspense>
-                </div>
-              ) : null}
+              <LandingHeroIllustration friendAvatars={stitchAssets.landing.friendAvatars} />
             </motion.div>
           </div>
         </motion.section>
@@ -632,7 +564,7 @@ export default function LandingPage() {
                 <div className="flex w-full flex-col gap-2 rounded-[28px] bg-white/10 p-2 backdrop-blur-md sm:flex-row sm:items-center">
                   <input
                     type="email"
-                    aria-label="Nhap email de nhan thong bao phong moi"
+                    aria-label="Nhập email để nhận thông báo phòng mới"
                     placeholder="Email của bạn"
                     className="w-full border-none bg-transparent px-4 text-white outline-none placeholder:text-white/50 sm:w-64"
                   />

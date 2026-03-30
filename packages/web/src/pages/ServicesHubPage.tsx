@@ -15,6 +15,7 @@ import { useDeals } from "@/hooks/useDeals";
 import { usePartners } from "@/hooks/usePartners";
 import { usePremiumLimits } from "@/hooks/usePremiumLimits";
 import { ShopDetailModal } from "@/components/modals/ShopDetailModal";
+import { PartnerDetailModal } from "@/components/modals/PartnerDetailModal";
 import { BookMovingModal } from "@/components/modals/BookMovingModal";
 import { CleaningScheduleModal } from "@/components/modals/CleaningScheduleModal";
 import { ChatDrawer } from "@/components/common/ChatDrawer";
@@ -132,6 +133,7 @@ export default function ServicesHubPage() {
   const { isPremium } = usePremiumLimits();
 
   const [selectedDeal, setSelectedDeal] = useState<DealWithPartner | null>(null);
+  const [selectedPartner, setSelectedPartner] = useState<typeof partners[number] | null>(null);
   const [isDealModalOpen, setIsDealModalOpen] = useState(false);
   const [isMovingModalOpen, setIsMovingModalOpen] = useState(false);
   const [isCleaningModalOpen, setIsCleaningModalOpen] = useState(false);
@@ -361,65 +363,70 @@ export default function ServicesHubPage() {
             className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
             variants={motionTokens.stagger(0.08, 0.08)}
           >
-            {mappedDeals.length > 0
-              ? visibleDeals.map((deal) => (
-                  <motion.button
-                    key={deal.id}
-                    type="button"
-                    onClick={() => openDeal(deal)}
-                    className="overflow-hidden rounded-[28px] bg-white text-left stitch-editorial-shadow"
-                    variants={motionTokens.revealScale(18)}
-                    whileTap={motionTokens.tap}
-                  >
-                    <div className="relative h-40">
-                      <img src={deal.image} alt={deal.partner.name} className="h-full w-full object-cover" />
-                      <div className="absolute left-4 top-4">
-                        <Badge
-                          className={`rounded-full border px-3 py-1.5 text-[10px] font-bold tracking-[0.22em] backdrop-blur-md ${categoryTone(deal.partner.category)}`}
-                        >
-                          {categoryDisplayLabel(deal.partner.category)}
-                        </Badge>
-                      </div>
-                      <div className="absolute bottom-4 right-4 rounded-full bg-white/90 px-3 py-1 text-sm font-bold text-primary backdrop-blur">
-                        {deal.discount_value || "Ưu đãi"}
-                      </div>
-                    </div>
-                    <div className="flex h-[188px] flex-col p-6">
-                      <h4 className="text-lg">{deal.partner.name}</h4>
-                      <p className="mt-1 text-xs text-muted-foreground">{deal.title}</p>
-                      <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
-                        {deal.description || deal.partner.specialization || "Ưu đãi đang mở cho cư dân RommZ."}
-                      </p>
-                      <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4 text-xs text-muted-foreground">
-                        <span>HSD: {formatExpiry(deal.valid_until)}</span>
-                        <span className="font-bold text-primary">
-                          {deal.is_premium_only && !isPremium ? "Premium" : "Lấy mã"}
-                        </span>
-                      </div>
-                    </div>
-                  </motion.button>
-                ))
-              : visiblePartners.map((partner, index) => (
-                  <motion.div
-                    key={partner.id}
-                    className="overflow-hidden rounded-[28px] bg-white stitch-editorial-shadow"
-                    variants={motionTokens.revealScale(18)}
-                  >
-                    <div className="relative h-40">
-                      <img
-                        src={partner.image_url || stitchAssets.services.dealImages[index]}
-                        alt={partner.name}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div className="p-6">
-                      <h4 className="text-lg">{partner.name}</h4>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {partner.specialization || "Đối tác địa phương của RommZ"}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
+            {visibleDeals.map((deal) => (
+              <motion.button
+                key={deal.id}
+                type="button"
+                onClick={() => openDeal(deal)}
+                className="overflow-hidden rounded-[28px] bg-white text-left stitch-editorial-shadow"
+                variants={motionTokens.revealScale(18)}
+                whileTap={motionTokens.tap}
+              >
+                <div className="relative h-40">
+                  <img src={deal.image} alt={deal.partner.name} className="h-full w-full object-cover" />
+                  <div className="absolute left-4 top-4">
+                    <Badge
+                      className={`rounded-full border px-3 py-1.5 text-[10px] font-bold tracking-[0.22em] backdrop-blur-md ${categoryTone(deal.partner.category)}`}
+                    >
+                      {categoryDisplayLabel(deal.partner.category)}
+                    </Badge>
+                  </div>
+                  <div className="absolute bottom-4 right-4 rounded-full bg-white/90 px-3 py-1 text-sm font-bold text-primary backdrop-blur">
+                    {deal.discount_value || "Ưu đãi"}
+                  </div>
+                </div>
+                <div className="flex h-[188px] flex-col p-6">
+                  <h4 className="text-lg">{deal.partner.name}</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">{deal.title}</p>
+                  <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
+                    {deal.description || deal.partner.specialization || "Ưu đãi đang mở cho cư dân RommZ."}
+                  </p>
+                  <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4 text-xs text-muted-foreground">
+                    <span>HSD: {formatExpiry(deal.valid_until)}</span>
+                    <span className="font-bold text-primary">
+                      {deal.is_premium_only && !isPremium ? "Premium" : "Lấy mã"}
+                    </span>
+                  </div>
+                </div>
+              </motion.button>
+            ))}
+            {visiblePartners.map((partner, index) => (
+              <motion.button
+                key={partner.id}
+                type="button"
+                onClick={() => setSelectedPartner(partner)}
+                className="overflow-hidden rounded-[28px] bg-white text-left stitch-editorial-shadow"
+                variants={motionTokens.revealScale(18)}
+                whileTap={motionTokens.tap}
+              >
+                <div className="relative h-40">
+                  <img
+                    src={partner.image_url || stitchAssets.services.dealImages[index]}
+                    alt={partner.name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="flex h-[188px] flex-col p-6">
+                  <h4 className="text-lg">{partner.name}</h4>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {partner.specialization || "Đối tác địa phương của RommZ"}
+                  </p>
+                  <div className="mt-auto border-t border-slate-100 pt-4 text-xs text-muted-foreground">
+                    Đối tác
+                  </div>
+                </div>
+              </motion.button>
+            ))}
           </motion.div>
 
           {showAllDeals && mappedDeals.length > 0 && partners.length > 0 ? (
@@ -529,6 +536,13 @@ export default function ServicesHubPage() {
         onClose={() => setIsDealModalOpen(false)}
         deal={selectedDeal}
       />
+      {selectedPartner && (
+        <PartnerDetailModal
+          isOpen={true}
+          onClose={() => setSelectedPartner(null)}
+          partner={selectedPartner}
+        />
+      )}
     </div>
   );
 }

@@ -2,128 +2,89 @@
 phase: planning
 feature: ai-chatbot
 title: AI Chatbot - Project Planning & Task Breakdown
-description: Task breakdown, dependencies, and implementation order for AI chatbot feature
+description: ROMI v3 execution plan for knowledge-only RAG, guest support, and web workspace rebuild
 ---
 
-# AI Chatbot — Project Planning & Task Breakdown
+# AI Chatbot - Project Planning & Task Breakdown
 
 ## Milestones
 
-- [ ] Milestone 1: Database & Edge Function Foundation
-- [ ] Milestone 2: Shared API Layer
-- [ ] Milestone 3: Web Chatbot UI (Upgrade)
-- [ ] Milestone 4: Mobile Chatbot UI
-- [ ] Milestone 5: Integration Testing & Polish
+- [x] Milestone 1: Confirm ROMI v3 scope and keep mobile out of phase 1
+- [x] Milestone 2: Install requested external chatbot / RAG / prompt skills
+- [x] Milestone 3: Extend shared contracts for viewer mode, journey state, and new stream events
+- [x] Milestone 4: Add knowledge schema and retrieval layer in Supabase
+- [x] Milestone 5: Rebuild `/romi` into a reducer-driven web workspace
+- [x] Milestone 6: Add guest access, clarification flow, and login handoff behavior
+- [x] Milestone 7: Update lifecycle docs and validation logs
 
-## Task Breakdown
+## Delivery Breakdown
 
-### Phase 1: Database Schema (Foundation)
+### Phase 1: Skill and repo preparation
 
-- [ ] Task 1.1: Create migration for `ai_chat_sessions` table
-- [ ] Task 1.2: Create migration for `ai_chat_messages` table
-- [ ] Task 1.3: Add RLS policies for both tables
-- [ ] Task 1.4: Verify migration with `npx supabase db push` or MCP
+- [x] Run `npx ai-devkit@latest lint`
+- [x] Read current project status and existing AI chatbot lifecycle docs
+- [x] Install requested external skills:
+  - `inferen-sh/skills@ai-rag-pipeline`
+  - `wshobson/agents@rag-implementation`
+  - `wshobson/agents@prompt-engineering-patterns`
+  - `vercel-labs/vercel-plugin@ai-sdk`
+  - `ancoleman/ai-design-components@building-ai-chat`
 
-### Phase 2: Edge Function — AI Chatbot
+### Phase 2: Shared contracts and ROMI state model
 
-- [ ] Task 2.1: Create `supabase/functions/ai-chatbot/index.ts`
-  - CORS handling
-  - JWT verification
-  - Request parsing
-- [ ] Task 2.2: Implement Gemini API integration
-  - System prompt (RommZ context, Vietnamese)
-  - Chat history context (20 messages)
-  - Temperature, safety settings
-- [ ] Task 2.3: Implement function calling tools
-  - `search_rooms`: Query rooms table by city, district, price range
-  - `get_room_details`: Get room by ID
-  - `get_app_info`: Static info about app features
-- [ ] Task 2.4: Implement DB operations
-  - Create/get session
-  - Save user + assistant messages
-  - Rate limiting (10 req/min)
-- [ ] Task 2.5: Add `GEMINI_API_KEY` to Supabase secrets
-- [ ] Task 2.6: Deploy & test Edge Function
-- [x] Task 2.7: Migrate model orchestration to Vercel AI SDK (`ai` + `@ai-sdk/google`) with bounded tool loop (`stepCountIs(1)`)
+- [x] Extend `AIChatRequest`
+- [x] Extend `AIChatStreamEvent`
+- [x] Add shared journey-state helpers
+- [x] Add shared intake analysis helpers
+- [x] Update shared API transport for guest + signed-in flows
 
-### Phase 3: Shared API Layer (`@roomz/shared`)
+### Phase 3: Runtime and knowledge layer
 
-- [ ] Task 3.1: Create `packages/shared/src/services/ai-chatbot/types.ts`
-- [ ] Task 3.2: Create `packages/shared/src/services/ai-chatbot/api.ts`
-  - `sendAIChatMessage(supabase, message, sessionId?)`
-  - `getAIChatSessions(supabase, userId)`
-  - `getAIChatMessages(supabase, sessionId)`
-  - `deleteAIChatSession(supabase, sessionId)`
-- [ ] Task 3.3: Export from shared index
+- [x] Add migration for:
+  - `experience_version`
+  - `journey_state`
+  - `romi_knowledge_documents`
+  - `romi_knowledge_chunks`
+  - retrieval RPC
+- [x] Add curated knowledge corpus seed data
+- [x] Add edge-function knowledge retrieval helpers
+- [x] Add clarification and guest handoff helpers
+- [x] Thread journey state and knowledge sources through streaming and non-streaming responses
 
-### Phase 4: Web Chatbot UI (Upgrade)
+### Phase 4: Web workspace rebuild
 
-- [ ] Task 4.1: Create `packages/web/src/hooks/useAIChatbot.ts`
-  - TanStack Query integration
-  - Optimistic UI updates
-  - Session management
-- [ ] Task 4.2: Upgrade `packages/web/src/components/common/Chatbot.tsx`
-  - Replace hardcoded `getBotResponse` with AI API call
-  - Add session/history support
-  - Loading states, error states
-  - Typing indicator animation
-- [ ] Task 4.3: Verify web chatbot works end-to-end
+- [x] Make `/romi` public
+- [x] Keep the launcher available for guests
+- [x] Replace the prior page orchestration with a reducer-based workspace state
+- [x] Add guest rail, signed-in session rail, context rail, and action cards
+- [x] Pass guest history locally instead of persisting guest messages
 
-### Phase 5: Mobile Chatbot UI
+### Phase 5: Validation and docs
 
-- [ ] Task 5.1: Create `packages/mobile/src/hooks/useAIChatbot.ts`
-- [ ] Task 5.2: Create `packages/mobile/components/AIChatMessage.tsx`
-- [ ] Task 5.3: Create `packages/mobile/components/AIChatbot.tsx` (Bottom Sheet)
-- [ ] Task 5.4: Add chatbot entry point (FAB button or tab)
-- [ ] Task 5.5: Verify mobile chatbot works end-to-end
+- [x] Add reducer-focused ROMI unit tests
+- [x] Add shared-intake / knowledge alignment tests
+- [x] Re-run web lint, unit tests, and build
+- [x] Re-run shared typecheck
+- [x] Refresh project status and AI chatbot lifecycle docs
 
-### Phase 6: Integration & Polish
+## Deferred Work
 
-- [ ] Task 6.1: TypeScript check (`npx tsc --noEmit`) across all packages
-- [ ] Task 6.2: Test cross-platform session sync
-- [ ] Task 6.3: Test function calling (room search queries)
-- [ ] Task 6.4: Edge case testing (rate limit, long messages, errors)
+- [ ] Add dedicated edge-function tests or Deno-level validation
+- [ ] Replace in-memory guest rate limiting with a durable shared strategy
+- [ ] Bring mobile onto the ROMI v3 contract
+- [ ] Extract more legacy orchestration out of `supabase/functions/ai-chatbot/index.ts`
+- [ ] Run browser-level validation for Vietnamese guest prompts and signed-in persistence on the live `/romi` route
 
-## Dependencies
+## Risks
 
-```mermaid
-graph LR
-    T1["Phase 1<br/>DB Schema"] --> T2["Phase 2<br/>Edge Function"]
-    T2 --> T3["Phase 3<br/>Shared API"]
-    T3 --> T4["Phase 4<br/>Web UI"]
-    T3 --> T5["Phase 5<br/>Mobile UI"]
-    T4 --> T6["Phase 6<br/>Integration"]
-    T5 --> T6
-```
+- The edge runtime is only indirectly validated through shared typecheck and web-facing tests in this task.
+- Lazy knowledge seeding may add latency to the first request after deploy or cold start.
+- Guest flows depend on local browser memory until login, so refreshing the page drops guest history by design.
 
-**External Dependencies:**
+## Acceptance
 
-- Google Gemini API key (user needs to create in Google AI Studio)
-- Supabase project access for secrets & Edge Function deployment
-
-## Timeline & Estimates
-
-| Phase | Estimated Effort | Priority |
-|-------|-----------------|----------|
-| Phase 1: DB Schema | 30 min | P0 |
-| Phase 2: Edge Function | 2-3 hours | P0 |
-| Phase 3: Shared API | 30 min | P0 |
-| Phase 4: Web UI | 1-2 hours | P1 |
-| Phase 5: Mobile UI | 1-2 hours | P1 |
-| Phase 6: Integration | 1 hour | P1 |
-| **Total** | **~6-9 hours** | |
-
-## Risks & Mitigation
-
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| Gemini API rate limits (free tier) | Response failures | Implement retry + fallback response |
-| Slow Gemini response | Poor UX | Add loading indicator, consider streaming later |
-| Function calling inaccuracy | Wrong room results | Careful prompt engineering, validate tool outputs |
-| Token cost growth | Unexpected billing | Limit context window to 20 messages, rate limit users |
-
-## Resources Needed
-
-- **API Key**: Google AI Studio → Gemini API key
-- **Supabase**: Edge Function deployment, DB migration
-- **Packages**: `@google/generative-ai` (for Deno: npm specifier in Edge Function)
+- Guests can open `/romi` and receive grounded onboarding or product answers without authentication.
+- Signed-in users receive versioned session persistence and structured journey carry-over.
+- Product knowledge answers can cite curated sources from the new knowledge layer.
+- Room, deal, and service discovery remain live-data-first.
+- The web app still passes lint, relevant unit tests, build, and shared typecheck after the rebuild.

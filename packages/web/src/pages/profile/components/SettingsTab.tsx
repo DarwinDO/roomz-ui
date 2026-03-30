@@ -192,6 +192,13 @@ export function SettingsTab({
                             </span>
                         </div>
                     </div>
+                    <Button
+                        onClick={() => navigate('/payment')}
+                        variant="outline"
+                        className="mt-4 w-full rounded-xl border-amber-300 bg-white text-amber-900 hover:bg-amber-50"
+                    >
+                        Xem gói của bạn
+                    </Button>
                 </Card>
             ) : (
                 // Free User Card
