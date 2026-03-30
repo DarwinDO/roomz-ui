@@ -18,6 +18,9 @@ dist-ssr
 playwright-report/
 test-results/
 .tmp*
+packages/web/.tmp/
+packages/web/out/
+packages/web/remotion-renders/
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

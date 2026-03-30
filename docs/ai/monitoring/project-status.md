@@ -58,6 +58,22 @@ updated: 2026-03-30
 
 ## Latest Update (2026-03-30)
 
+- Started the Remotion ad-render bootstrap for the web workspace:
+  - installed local `16:9` video tooling in `@roomz/web` via `remotion`, `@remotion/cli`, `@remotion/bundler`, and `@remotion/renderer`
+  - pinned `zod 4.3.6` at the web and workspace-root level so the monorepo Remotion CLI resolves the expected schema version
+  - searched and installed the agent skills `remotion-best-practices` and `remotion-render`
+  - aligned the future render contract to `API/server action -> normalized serializable ad payload -> Remotion composition props`, with JSON snapshots recommended as reproducible fixtures rather than the source of truth
+- Added the first local Remotion brand ad scaffold for RommZ:
+  - `packages/web/src/remotion` now contains the entry root, composition root, schema, timeline resolver, and metadata helper for `RommzBrandAd16x9`
+  - the first template is a desktop-first `16:9` brand ad that reuses existing RommZ palette, typography, and public assets
+  - the template now includes caption-driven voiceover timing plus optional soundtrack ducking and optional voiceover-track attachment
+  - `@roomz/web` now exposes local scripts for studio, composition discovery, still rendering, and brand-ad rendering
+- Added the local live-payload pipeline for the Remotion brand ad:
+  - `packages/web/src/remotion/payloads/buildRommzBrandAdPayload.ts` now maps room, deal, partner, and community signals into serializable `RommzBrandAdProps`
+  - `packages/web/scripts/remotion/renderBrandAd.ts` now loads env files, snapshots Supabase data for local use, writes a reproducible payload JSON, and can render either a still or MP4 from that payload
+  - the payload builder now keeps compositions pure and falls back to the fixture contract when env or live data is missing
+  - the creative mapper now only trusts featured-room location data from known RommZ markets, so noisy DB rows do not degrade the brand-ad headline or hero image
+  - targeted unit coverage now exists for the payload builder, and `@roomz/web` now exposes `remotion:payload:brand`, `remotion:still:brand:live`, and `remotion:render:brand:live`
 - Fixed a ROMI session-hydration regression on `/romi`:
   - the initial session list fetch no longer overwrites a freshly selected session via a stale `selectedSessionId` closure
   - the chat viewport no longer swaps the active thread out for loading skeletons when `messagesLoading` flips on while messages are already present
@@ -70,11 +86,52 @@ updated: 2026-03-30
   - after the first message creates or selects a thread, the user should keep seeing their live conversation instead of a blank skeleton state
   - background hydration can still happen, but it should no longer visually erase the current thread
   - first-turn `/romi` should now feel like a focused chat surface instead of an internal workspace with multiple explanatory panels
+- ROMI stability hardening `P0` is now implemented in repo:
+  - intake and journey merge now keep valid values unless the new turn explicitly overrides or clears them
+  - POI parsing is split from admin-area parsing, so phrases like `gần đại học ... và từ 5 triệu trở xuống` no longer pollute location filters
+  - terse budget replies like `5 triệu nha` now fill budget correctly when ROMI just asked for budget
+  - room-search orchestration now forces `search_locations` before `search_rooms` when a `poiHint` exists
+  - deterministic recovery now follows `exact -> broaden_location -> broaden_budget`, with budget broadening still guarded behind a feature flag
+  - signed-in session previews now prefer repaired or resolved journey summaries instead of stale clarification prompts
+- ROMI hardening rollout controls now exist in schema and runtime:
+  - new table `public.romi_feature_flags` is added in repo
+  - default seeded flags are:
+    - `romi_normalization_v2 = true`
+    - `romi_knowledge_gating_v1 = true`
+    - `romi_auto_broaden_v1 = false`
+- Follow-up live hardening fixes are now also deployed on top of `P0`:
+  - POI parsing no longer carries malformed budget clauses like `và từ 5 triệu trở xuống` into `poiHint`
+  - city alias normalization now converts `TP.HCM` into `Thành phố Hồ Chí Minh` before live room search execution
+  - terse budget replies in clarification context now keep final metadata on the `room_search` path instead of falling back to `general`
+  - live mixed-intent UTF-8 smoke requests now stay search-first and append RommZ+ knowledge after the room answer
+  - live `ai-chatbot` is now on function version `51` in project `vevnoxlgwisdottaifdn`
+- `/romi` signed-in draft creation is now guarded against session snap-back:
+  - clicking `Luồng mới` keeps the user in a fresh draft instead of being immediately reselected into the latest saved thread
+  - the session list loader now resolves selection from explicit draft intent rather than re-running on every `selectedSessionId` change
+  - regression coverage now exists for fresh-draft session selection on top of the earlier guest and reducer tests
+- `/romi` default surface is now stricter chat-first:
+  - the large introductory concierge hero is no longer rendered in the main route layout
+  - signed-in conversation history has moved behind a `Lịch sử` sheet trigger instead of occupying a persistent side rail
+  - first paint now lands directly in the chat workspace for both guest and signed-in users
 - Validation:
+  - `deno check supabase/functions/ai-chatbot/index.ts`: pass
   - `npm run lint --workspace=@roomz/web`: pass with the same 3 pre-existing hook warnings
   - `npm run test:unit --workspace=@roomz/web -- --grep "ROMI|romi workspace reducer"`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/pages/romi/sessionSelection.test.ts`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/remotion/payloads/buildRommzBrandAdPayload.test.ts`: pass
   - `npm run test:e2e --workspace=@roomz/web -- romi.spec.ts`: pass
+  - `npm run typecheck --workspace=@roomz/shared`: pass
   - `npm run build --workspace=@roomz/web`: pass
+  - `npx ai-devkit@latest lint`: pass
+  - `npm run remotion:compositions --workspace=@roomz/web`: pass (`RommzBrandAd16x9`, `994` frames, `33.13s`)
+  - `npm run remotion:still:brand --workspace=@roomz/web`: pass
+  - `npm run remotion:payload:brand --workspace=@roomz/web`: pass (`source: database`)
+  - `npm run remotion:still:brand:live --workspace=@roomz/web`: pass
+  - live UTF-8 smokes:
+    - `Tìm phòng gần đại học sư phạm kỹ thuật và từ 5 triệu trở xuống`: pass
+    - `5 triệu nha` with budget-clarification context: pass
+    - `Tìm phòng ở TP.HCM dưới 5 triệu`: pass
+    - `Tìm phòng ở Thủ Đức dưới 5 triệu, với lại RommZ+ có đáng nâng cấp không?`: pass
 
 ## Product Surface
 
@@ -126,6 +183,29 @@ updated: 2026-03-30
   - `create-sublet`
   - quick post-listing modal
 - The canonical services route is `/services`
+- `@roomz/web` now carries the bootstrap Remotion toolchain in devDependencies for future local ad rendering work
+- Planned ad-video data flow is `API/server action -> normalized serializable payload -> composition props`; Remotion compositions should not own live server fetching directly
+- Remotion entry registration now lives in:
+  - `packages/web/src/remotion/index.ts`
+  - `packages/web/src/remotion/Root.tsx`
+- The first local ad template now lives in:
+  - `packages/web/src/remotion/compositions/RommzBrandAd.tsx`
+  - `packages/web/src/remotion/compositions/rommzBrandAd.schema.ts`
+  - `packages/web/src/remotion/compositions/rommzBrandAd.timeline.ts`
+  - `packages/web/src/remotion/compositions/rommzBrandAd.metadata.ts`
+- The local live-payload layer for Remotion now lives in:
+  - `packages/web/src/remotion/payloads/buildRommzBrandAdPayload.ts`
+  - `packages/web/src/remotion/payloads/buildRommzBrandAdPayload.test.ts`
+  - `packages/web/scripts/remotion/renderBrandAd.ts`
+- Local Remotion workflow scripts now exist in `packages/web/package.json`:
+  - `remotion:studio`
+  - `remotion:compositions`
+  - `remotion:render`
+  - `remotion:render:brand`
+  - `remotion:still:brand`
+  - `remotion:payload:brand`
+  - `remotion:still:brand:live`
+  - `remotion:render:brand:live`
 - Legacy routes redirect as follows:
   - `/support-services` -> `/services?tab=services`
   - `/local-passport` -> `/services?tab=deals`
@@ -141,6 +221,7 @@ updated: 2026-03-30
   - `ai_chat_sessions.journey_state`
   - `romi_knowledge_documents`
   - `romi_knowledge_chunks`
+  - `romi_feature_flags`
   - `public.match_romi_knowledge_chunks(...)`
 - Stitch-first desktop routes now ported in repo:
   - `/` <- `Trang Chủ - Living Atlas`
@@ -231,6 +312,11 @@ updated: 2026-03-30
 - `react-three-fiber`
 - `threejs-fundamentals`
 - `threejs-animation`
+
+### Video / Remotion
+
+- `remotion-best-practices`
+- `remotion-render`
 
 ### Notes
 
@@ -650,6 +736,11 @@ updated: 2026-03-30
     - generated as an early chatbot draft, but should not be treated as the preferred review source because it skewed too generic-support / Living-Atlas-branded
 - **Status:** in progress; `/`, `/login`, `/services`, `/community`, `/roommates`, `/room/:id`, `/search`, `/profile`, `/swap`, `/host`, `/become-host`, `/romi`, and `/payment` are now complete in repo, with RommZ+ discoverability and Romi v2 runtime now added, and authenticated parity review / mobile mapping still remaining
 - **Status:** in progress; `/`, `/login`, `/services`, `/community`, `/roommates`, `/room/:id`, `/search`, `/profile`, `/swap`, `/host`, `/become-host`, `/romi`, and `/payment` are now complete in repo, with RommZ+ discoverability and `ROMI v3` guest + knowledge-only-RAG rebuild now added, and live Supabase migration review / authenticated parity review / mobile mapping still remaining
+- Latest parity fix:
+  - `/services` no longer mixes nearby partner cards into the voucher grid
+  - the catalog CTA now reveals either more vouchers or the nearby-partners section based on real data shape
+  - `/services` now has dedicated regression coverage for catalog expansion
+  - the `/services` expanded catalog no longer renders as a blank white area after toggle; the dynamic cards now bypass the stuck hidden motion state that was keeping loaded content at `opacity: 0`
 
 ### Phase 4: Motion + 3D accent
 
@@ -665,6 +756,11 @@ updated: 2026-03-30
 
 ## Immediate Next Step
 
+- Re-check the `/services` catalog expansion live:
+  - `Ưu đãi đối tác` should only show deal cards
+  - `Xem toàn bộ ưu đãi` should reveal more vouchers when they exist
+  - `Xem đối tác gần bạn` should appear when the voucher preview is already exhausted
+  - `Đối tác gần bạn` should render as its own section instead of stretching the main voucher grid
 - Review the completed RommZ+ discoverability and ROMI v3 pass live in the repo:
   - `/payment`
   - `/romi`

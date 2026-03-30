@@ -5,9 +5,43 @@ function uniq(values: string[] | undefined) {
 }
 
 function normalizeNullableString(value: string | null | undefined) {
-  if (typeof value !== 'string') return null;
+  if (value == null) return value ?? null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function mergeNullableString(current: string | null | undefined, patch: string | null | undefined) {
+  if (patch === undefined) return normalizeNullableString(current);
+  return normalizeNullableString(patch);
+}
+
+function mergeNullableNumber(current: number | null | undefined, patch: number | null | undefined) {
+  if (patch === undefined) return typeof current === 'number' ? current : current ?? null;
+  if (patch === null) return null;
+  return Number.isFinite(patch) ? patch : current ?? null;
+}
+
+function mergeScalar<T>(current: T | null | undefined, patch: T | null | undefined) {
+  return patch === undefined ? current ?? null : patch;
+}
+
+function mergeLoopCounts(
+  current: Record<string, number> | null | undefined,
+  patch: Record<string, number> | null | undefined,
+) {
+  if (patch === undefined) {
+    return current ? { ...current } : null;
+  }
+
+  if (patch === null) {
+    return null;
+  }
+
+  return Object.entries(patch).reduce<Record<string, number>>((accumulator, [field, value]) => {
+    if (!Number.isFinite(value)) return accumulator;
+    accumulator[field] = Math.max(0, Math.trunc(value));
+    return accumulator;
+  }, {});
 }
 
 export function mergeJourneyState(
@@ -17,25 +51,31 @@ export function mergeJourneyState(
   const next: RomiJourneyState = {
     ...current,
     ...patch,
-    city: normalizeNullableString(patch?.city ?? current?.city),
-    district: normalizeNullableString(patch?.district ?? current?.district),
-    areaHint: normalizeNullableString(patch?.areaHint ?? current?.areaHint),
-    moveInPeriod: normalizeNullableString(patch?.moveInPeriod ?? current?.moveInPeriod),
-    serviceCategory: normalizeNullableString(patch?.serviceCategory ?? current?.serviceCategory),
-    dealCategory: normalizeNullableString(patch?.dealCategory ?? current?.dealCategory),
-    productTopic: normalizeNullableString(patch?.productTopic ?? current?.productTopic),
-    summary: normalizeNullableString(patch?.summary ?? current?.summary),
-    missingFields: uniq([...(current?.missingFields || []), ...(patch?.missingFields || [])]),
-    groundedBy: uniq([...(current?.groundedBy || []), ...(patch?.groundedBy || [])]),
+    stage: mergeScalar(current?.stage, patch?.stage),
+    goal: mergeScalar(current?.goal, patch?.goal),
+    city: mergeNullableString(current?.city, patch?.city),
+    district: mergeNullableString(current?.district, patch?.district),
+    areaHint: mergeNullableString(current?.areaHint, patch?.areaHint),
+    poiHint: mergeNullableString(current?.poiHint, patch?.poiHint),
+    budgetMin: mergeNullableNumber(current?.budgetMin, patch?.budgetMin),
+    budgetMax: mergeNullableNumber(current?.budgetMax, patch?.budgetMax),
+    budgetConstraintType: mergeScalar(current?.budgetConstraintType, patch?.budgetConstraintType),
+    roomType: mergeScalar(current?.roomType, patch?.roomType),
+    moveInPeriod: mergeNullableString(current?.moveInPeriod, patch?.moveInPeriod),
+    urgency: mergeScalar(current?.urgency, patch?.urgency),
+    serviceCategory: mergeNullableString(current?.serviceCategory, patch?.serviceCategory),
+    dealCategory: mergeNullableString(current?.dealCategory, patch?.dealCategory),
+    productTopic: mergeNullableString(current?.productTopic, patch?.productTopic),
+    summary: mergeNullableString(current?.summary, patch?.summary),
+    missingFields: patch?.missingFields ? uniq(patch.missingFields) : uniq(current?.missingFields),
+    lastIntent: mergeScalar(current?.lastIntent, patch?.lastIntent),
+    lastAskedField: mergeNullableString(current?.lastAskedField, patch?.lastAskedField),
+    lastAskedTurnIndex: mergeNullableNumber(current?.lastAskedTurnIndex, patch?.lastAskedTurnIndex),
+    clarificationLoopCounts: mergeLoopCounts(current?.clarificationLoopCounts, patch?.clarificationLoopCounts),
+    needsLogin: patch?.needsLogin === undefined ? current?.needsLogin : patch.needsLogin,
+    groundedBy: patch?.groundedBy ? uniq(patch.groundedBy) : uniq(current?.groundedBy),
+    resolutionOutcome: mergeScalar(current?.resolutionOutcome, patch?.resolutionOutcome),
   };
-
-  if (patch?.missingFields) {
-    next.missingFields = uniq(patch.missingFields);
-  }
-
-  if (patch?.groundedBy) {
-    next.groundedBy = uniq(patch.groundedBy);
-  }
 
   return next;
 }
@@ -58,6 +98,8 @@ export function buildJourneySummary(state: Partial<RomiJourneyState> | null | un
   const location = [state.district, state.city].filter(Boolean).join(', ');
   if (location) {
     fragments.push(`khu vực ${location}`);
+  } else if (state.poiHint) {
+    fragments.push(`gần ${state.poiHint}`);
   } else if (state.areaHint) {
     fragments.push(`gần ${state.areaHint}`);
   }

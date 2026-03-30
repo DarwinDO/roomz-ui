@@ -7,7 +7,11 @@ import {
   getRomiAppInfo,
 } from "@roomz/shared/constants/romi";
 import { ROMI_KNOWLEDGE_DOCUMENTS } from "@roomz/shared/constants/romiKnowledge";
-import { analyzeRomiIntake, buildJourneySummary } from "@roomz/shared/services/ai-chatbot";
+import {
+  analyzeRomiIntake,
+  buildJourneySummary,
+  getAIChatSessionPreview,
+} from "@roomz/shared/services/ai-chatbot";
 
 test.describe("ROMI shared sources of truth", () => {
   test("exposes stable branding, prompts, and experience version", () => {
@@ -44,5 +48,107 @@ test.describe("ROMI shared sources of truth", () => {
     expect(analysis.intent).toBe("general");
     expect(analysis.requestedTopics).toContain("onboarding");
     expect(analysis.shouldUseKnowledge).toBe(true);
+  });
+
+  test("splits POI hints from malformed budget clauses without polluting area parsing", () => {
+    const analysis = analyzeRomiIntake(
+      "Tìm phòng gần đại học sư phạm kỹ thuật và từ 5 triệu trở xuống",
+      {},
+      "guest",
+    );
+
+    expect(analysis.intent).toBe("room_search");
+    expect(analysis.journeyState.poiHint).toBe("đại học sư phạm kỹ thuật");
+    expect(analysis.journeyState.areaHint).toBeNull();
+    expect(analysis.journeyState.budgetMax).toBe(5000000);
+    expect(analysis.journeyState.budgetConstraintType).toBe("hard_cap");
+    expect(analysis.journeyState.summary).not.toContain("và từ 5 triệu");
+    expect(analysis.clarification).toBeNull();
+  });
+
+  test("supports ascii gan prefixes when users skip Vietnamese diacritics", () => {
+    const analysis = analyzeRomiIntake("tim phong gan Bach Khoa duoi 4 trieu", {}, "guest");
+
+    expect(analysis.intent).toBe("room_search");
+    expect(analysis.journeyState.poiHint || analysis.journeyState.areaHint).toBe("Bach Khoa");
+    expect(analysis.journeyState.budgetMax).toBe(4000000);
+  });
+
+  test("fills terse budget replies when ROMI has just asked for budget", () => {
+    const analysis = analyzeRomiIntake(
+      "5 triệu nha",
+      {
+        goal: "find_room",
+        city: "TP.HCM",
+        budgetMax: 4000000,
+        lastAskedField: "ngan_sach",
+        missingFields: ["ngan_sach"],
+      },
+      "guest",
+    );
+
+    expect(analysis.journeyState.budgetMax).toBe(5000000);
+    expect(analysis.journeyState.budgetConstraintType).toBe("soft_cap");
+    expect(analysis.clarification).toBeNull();
+    expect(analysis.journeyState.lastAskedField).toBeNull();
+  });
+
+  test("does not silently override an existing budget from an out-of-context terse reply", () => {
+    const analysis = analyzeRomiIntake(
+      "5 triệu nha",
+      {
+        goal: "find_room",
+        city: "TP.HCM",
+        budgetMax: 4000000,
+        budgetConstraintType: "hard_cap",
+      },
+      "guest",
+    );
+
+    expect(analysis.journeyState.budgetMax).toBe(4000000);
+    expect(analysis.journeyState.budgetConstraintType).toBe("hard_cap");
+  });
+
+  test("parses approximate and ranged budgets from direct room-search prompts", () => {
+    const softCap = analyzeRomiIntake("Mình cần tìm phòng ở Quận 7 tầm 5 triệu", {}, "guest");
+    const range = analyzeRomiIntake("Tìm phòng 3 đến 5 triệu ở Hà Nội", {}, "guest");
+
+    expect(softCap.journeyState.budgetMax).toBe(5000000);
+    expect(softCap.journeyState.budgetConstraintType).toBe("soft_cap");
+    expect(range.journeyState.budgetMin).toBe(3000000);
+    expect(range.journeyState.budgetMax).toBe(5000000);
+    expect(range.journeyState.budgetConstraintType).toBe("range");
+  });
+
+  test("treats an explicit budget clear as no-budget-preference instead of looping the same clarification", () => {
+    const analysis = analyzeRomiIntake(
+      "không",
+      {
+        goal: "find_room",
+        city: "TP.HCM",
+        budgetMax: 4000000,
+        budgetConstraintType: "soft_cap",
+        lastAskedField: "ngan_sach",
+        missingFields: ["ngan_sach"],
+      },
+      "guest",
+    );
+
+    expect(analysis.journeyState.budgetMax).toBeNull();
+    expect(analysis.journeyState.budgetConstraintType).toBe("unspecified");
+    expect(analysis.clarification).toBeNull();
+  });
+
+  test("prefers repaired or resolved journey summaries over stale clarification previews", () => {
+    const preview = getAIChatSessionPreview({
+      preview: "Ngân sách bạn muốn giữ ở khoảng nào mỗi tháng?",
+      journeyState: {
+        summary: "Đang tìm phòng • khu vực Thành phố Thủ Đức • ngân sách tối đa 5.000.000đ",
+        resolutionOutcome: "repair_after_failed_extraction",
+      },
+    });
+
+    expect(preview).toContain("Thành phố Thủ Đức");
+    expect(preview).not.toContain("Ngân sách bạn muốn giữ");
   });
 });

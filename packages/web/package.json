@@ -15,6 +15,14 @@
         "build": "tsc -b && vite build",
         "lint": "eslint .",
         "preview": "vite preview",
+        "remotion:studio": "remotion studio src/remotion/index.ts",
+        "remotion:compositions": "remotion compositions src/remotion/index.ts",
+        "remotion:render": "remotion render src/remotion/index.ts",
+        "remotion:payload:brand": "node --experimental-strip-types scripts/remotion/renderBrandAd.ts --payload",
+        "remotion:render:brand": "remotion render src/remotion/index.ts RommzBrandAd16x9 remotion-renders/rommz-brand-ad-16x9.mp4",
+        "remotion:render:brand:live": "node --experimental-strip-types scripts/remotion/renderBrandAd.ts --render",
+        "remotion:still:brand": "remotion still src/remotion/index.ts RommzBrandAd16x9 remotion-renders/rommz-brand-ad-16x9.png",
+        "remotion:still:brand:live": "node --experimental-strip-types scripts/remotion/renderBrandAd.ts --still",
         "test:unit": "playwright test --config ./playwright.unit.config.ts",
         "test:e2e": "playwright test --config ./playwright.config.ts",
         "test": "playwright test",
@@ -87,6 +95,10 @@
     "devDependencies": {
         "@eslint/js": "^9.36.0",
         "@playwright/test": "^1.57.0",
+        "@remotion/bundler": "^4.0.441",
+        "@remotion/cli": "^4.0.441",
+        "@remotion/media": "^4.0.441",
+        "@remotion/renderer": "^4.0.441",
         "@types/leaflet": "^1.9.21",
         "@types/node": "^24.6.0",
         "@types/react": "^19.1.16",
@@ -98,9 +110,11 @@
         "eslint-plugin-react-refresh": "^0.4.22",
         "globals": "^16.4.0",
         "postcss": "^8.5.6",
+        "remotion": "^4.0.441",
         "tailwindcss": "^4.1.15",
         "typescript": "~5.9.3",
         "typescript-eslint": "^8.45.0",
-        "vite": "^7.1.7"
+        "vite": "^7.1.7",
+        "zod": "4.3.6"
     }
 }

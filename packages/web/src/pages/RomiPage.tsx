@@ -15,6 +15,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
   Bot,
+  History,
   Loader2,
   LogIn,
   MessageSquarePlus,
@@ -26,6 +27,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts";
 import { createPublicMotion } from "@/lib/motion";
@@ -40,6 +42,7 @@ import {
 import {
   deleteAIChatSession,
   getAIChatMessages,
+  getAIChatSessionPreview,
   getAIChatSessions,
   sendAIChatMessageStream,
   type AIChatHistoryEntry,
@@ -49,7 +52,6 @@ import {
   type RomiViewerMode,
 } from "@roomz/shared/services/ai-chatbot";
 import {
-  ROMI_DISCOVERY_PROMPTS,
   ROMI_EXPERIENCE_VERSION,
   ROMI_GUEST_SUGGESTED_QUESTIONS,
   ROMI_NAME,
@@ -61,6 +63,7 @@ import {
   romiWorkspaceReducer,
   type RomiDisplayMessage,
 } from "./romi/reducer";
+import { resolveLoadedSessionSelection } from "./romi/sessionSelection";
 
 function formatRelativeTime(value: string | null | undefined) {
   if (!value) return "Vừa xong";
@@ -77,7 +80,7 @@ function formatSessionTitle(session: AIChatSession | null | undefined) {
 }
 
 function formatSessionPreview(session: AIChatSession) {
-  return session.preview?.trim() || session.journeyState?.summary || "Tiếp tục đúng ngữ cảnh đang hỏi.";
+  return getAIChatSessionPreview(session);
 }
 
 function upsertSessions(current: AIChatSession[], incoming: AIChatSession) {
@@ -176,13 +179,13 @@ const SessionRail = memo(function SessionRail({
   onDelete: (sessionId: string) => void;
 }) {
   return (
-    <aside className="rounded-[28px] border border-slate-200 bg-white/94 p-5 shadow-soft xl:flex xl:h-[calc(100svh-11rem)] xl:flex-col">
+    <aside className="flex min-h-0 flex-col rounded-[28px] border border-slate-200 bg-white/96 p-5 shadow-soft">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">History</p>
       <h2 className="mt-2 font-display text-2xl font-black tracking-[-0.04em] text-slate-900">
         Lịch sử hội thoại
       </h2>
       <p className="mt-2 text-sm leading-6 text-slate-600">
-        Chỉ hiện khi bạn đã có nhiều hơn một thread để quay lại hoặc so sánh.
+        Mở lại thread cũ hoặc xoá những luồng bạn không cần nữa.
       </p>
 
       <div className="mt-4 rounded-[22px] bg-slate-50 px-4 py-3">
@@ -197,7 +200,7 @@ const SessionRail = memo(function SessionRail({
         </div>
       </div>
 
-      <div className="mt-4 space-y-3 xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:pr-1">
+      <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
         {sessionsLoading ? (
           Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="h-24 animate-skeleton rounded-[22px] bg-slate-100" />
@@ -344,15 +347,18 @@ export default function RomiPage() {
   const [inputValue, setInputValue] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const deferredSearch = useDeferredValue(searchQuery);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const skipHydrationSessionIdRef = useRef<string | null>(null);
+  const prefersFreshConversationRef = useRef(false);
 
   useEffect(() => {
     void trackRomiOpened(user?.id || null);
   }, [user?.id]);
 
   useEffect(() => {
+    prefersFreshConversationRef.current = false;
     dispatch({ type: "reset", viewerMode });
     setSelectedSessionId(null);
     setInputValue("");
@@ -361,6 +367,7 @@ export default function RomiPage() {
   useEffect(() => {
     if (loading) return;
     if (!user) {
+      prefersFreshConversationRef.current = false;
       setSessions([]);
       setSessionsLoading(false);
       return;
@@ -374,9 +381,13 @@ export default function RomiPage() {
         if (cancelled) return;
         startTransition(() => {
           setSessions(nextSessions);
-          if (nextSessions[0]) {
-            setSelectedSessionId((current) => current ?? nextSessions[0].id);
-          }
+          setSelectedSessionId((current) =>
+            resolveLoadedSessionSelection({
+              currentSelectedSessionId: current,
+              nextSessions,
+              prefersFreshConversation: prefersFreshConversationRef.current,
+            }),
+          );
         });
       } catch (error) {
         console.error("Failed to load ROMI sessions:", error);
@@ -393,7 +404,7 @@ export default function RomiPage() {
     return () => {
       cancelled = true;
     };
-  }, [loading, user, selectedSessionId]);
+  }, [loading, user]);
 
   useEffect(() => {
     if (!user || !selectedSessionId) return;
@@ -454,8 +465,7 @@ export default function RomiPage() {
     () => workspaceState.messages.some((message) => message.role === "user"),
     [workspaceState.messages],
   );
-  const showHeroIntro = !hasConversationStarted && !selectedSessionId;
-  const showSessionRail = viewerMode === "user" && (sessionsLoading || filteredSessions.length > 1 || Boolean(searchQuery.trim()));
+  const showHistoryShortcut = viewerMode === "user" && (sessionsLoading || sessions.length > 0);
   const hasMeaningfulJourney = useMemo(
     () => hasMeaningfulJourneySummary(workspaceState.journeyState),
     [workspaceState.journeyState],
@@ -471,16 +481,23 @@ export default function RomiPage() {
     : viewerMode === "guest"
       ? "Mô tả khu vực, ngân sách hoặc câu hỏi sản phẩm để ROMI trả lời sát hơn."
       : "Nói nhu cầu hiện tại, ROMI sẽ bám theo đúng thread này thay vì bày thêm các bảng phụ.";
-  const layoutClass = showSessionRail ? "grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]" : "grid gap-6";
 
   function handleLogin() {
     navigate("/login", { state: { from: location } });
   }
 
   function handleCreateConversation() {
+    prefersFreshConversationRef.current = true;
+    setHistoryOpen(false);
     dispatch({ type: "reset", viewerMode });
     setSelectedSessionId(null);
     setInputValue("");
+  }
+
+  function handleSelectSession(sessionId: string) {
+    prefersFreshConversationRef.current = false;
+    setHistoryOpen(false);
+    setSelectedSessionId(sessionId);
   }
 
   async function handleDeleteSession(sessionId: string) {
@@ -558,12 +575,14 @@ export default function RomiPage() {
         dispatch({ type: "stream_event", event, placeholderId, createdAt });
 
         if (event.type === "start" && event.session) {
+          prefersFreshConversationRef.current = false;
           skipHydrationSessionIdRef.current = event.session.id;
           setSelectedSessionId(event.session.id);
           setSessions((current) => upsertSessions(current, event.session as AIChatSession));
         }
 
         if (event.type === "final" && event.session) {
+          prefersFreshConversationRef.current = false;
           skipHydrationSessionIdRef.current = event.session.id;
           setSelectedSessionId(event.session.id);
           setSessions((current) => upsertSessions(current, event.session as AIChatSession));
@@ -593,41 +612,10 @@ export default function RomiPage() {
       animate="show"
       variants={motionTokens.stagger(0.08, 0.03)}
     >
-      <div className="mx-auto max-w-7xl space-y-6">
-        {showHeroIntro ? (
-          <motion.div
-            variants={motionTokens.revealScale(16, 0.985)}
-            className="rounded-[34px] border border-[#0f172a]/8 bg-[linear-gradient(135deg,#fbf7ef_0%,#f8fbff_55%,#ffffff_100%)] px-6 py-6 shadow-soft-lg"
-          >
-            <div className="max-w-3xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#a04e17]">
-                Web concierge
-              </p>
-              <h1 className="mt-3 font-display text-4xl font-black tracking-[-0.06em] text-slate-950 md:text-5xl">
-                {ROMI_NAME} hỏi đúng trước, trả lời sát hơn sau.
-              </h1>
-              <p className="mt-4 text-sm leading-7 text-slate-600 md:text-base">
-                Mô tả ngắn nhu cầu của bạn trước. Sau tin nhắn đầu tiên, giao diện sẽ co lại về đúng khung chat để
-                ROMI bám theo cuộc hội thoại thay vì bày thêm bảng phụ.
-              </p>
-            </div>
-
-            <div className="mt-5">
-              <PromptChips
-                prompts={viewerMode === "guest" ? ROMI_DISCOVERY_PROMPTS : promptOptions}
-                disabled={isStreaming || loading}
-                onPrompt={(prompt) => void handlePrompt(prompt)}
-              />
-            </div>
-          </motion.div>
-        ) : null}
-
-        <motion.div
-          variants={motionTokens.stagger(0.08, 0.04)}
-          className={layoutClass}
-        >
-          {showSessionRail ? (
-            <motion.div variants={motionTokens.revealScale(18, 0.985)}>
+      <div className="mx-auto max-w-4xl">
+        <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+          {showHistoryShortcut ? (
+            <SheetContent side="left" className="w-full border-r border-slate-200 bg-[#fcfcfd] p-4 sm:max-w-md">
               <SessionRail
                 sessions={filteredSessions}
                 sessionsLoading={sessionsLoading}
@@ -635,13 +623,14 @@ export default function RomiPage() {
                 onSearchChange={setSearchQuery}
                 selectedSessionId={selectedSessionId}
                 deletingSessionId={deletingSessionId}
-                onSelect={setSelectedSessionId}
+                onSelect={handleSelectSession}
                 onDelete={(sessionId) => void handleDeleteSession(sessionId)}
               />
-            </motion.div>
+            </SheetContent>
           ) : null}
+        </Sheet>
 
-          <motion.div variants={motionTokens.revealScale(20, 0.99)} className={cn(!showSessionRail && "xl:mx-auto xl:w-full xl:max-w-4xl")}>
+        <motion.div variants={motionTokens.revealScale(20, 0.99)}>
             <section className="flex min-h-[72vh] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white/96 shadow-soft-lg xl:h-[calc(100svh-11rem)]">
               <div className="border-b border-slate-100 px-6 py-5">
                 <div className="flex items-start justify-between gap-4">
@@ -677,6 +666,17 @@ export default function RomiPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    {showHistoryShortcut ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-full"
+                        onClick={() => setHistoryOpen(true)}
+                      >
+                        <History className="h-4 w-4" />
+                        Lịch sử
+                      </Button>
+                    ) : null}
                     {viewerMode === "guest" ? (
                       <Button type="button" variant="outline" className="rounded-full" onClick={handleLogin}>
                         <LogIn className="h-4 w-4" />
@@ -732,7 +732,9 @@ export default function RomiPage() {
                 {workspaceState.clarification ? (
                   <div className="mb-4 rounded-[24px] border border-[#a04e17]/14 bg-[#fff7ef] px-4 py-4">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a04e17]">
-                      ROMI cần thêm 1 chi tiết
+                      {workspaceState.clarification.mode === "repair_after_failed_extraction"
+                        ? "ROMI đang sửa lại tiêu chí"
+                        : "ROMI cần thêm 1 chi tiết"}
                     </p>
                     <p className="mt-2 text-sm leading-6 text-slate-700">{workspaceState.clarification.prompt}</p>
                   </div>
@@ -791,7 +793,6 @@ export default function RomiPage() {
               </div>
             </section>
           </motion.div>
-        </motion.div>
       </div>
     </motion.section>
   );

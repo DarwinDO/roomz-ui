@@ -24,6 +24,7 @@ import { createPublicMotion } from "@/lib/motion";
 import { stitchAssets } from "@/lib/stitchAssets";
 import { UPGRADE_SOURCES } from "@roomz/shared/constants/tracking";
 import type { DealWithPartner } from "@/services/deals";
+import { getServicesHubCatalogState } from "./servicesHubCatalog";
 
 const familyServices = [
   {
@@ -152,8 +153,13 @@ export default function ServicesHubPage() {
     [deals],
   );
 
-  const visibleDeals = showAllDeals ? mappedDeals : mappedDeals.slice(0, 4);
-  const visiblePartners = showAllDeals ? partners : partners.slice(0, 4);
+  const catalogState = getServicesHubCatalogState(
+    mappedDeals.length,
+    partners.length,
+    showAllDeals,
+  );
+  const visibleDeals = mappedDeals.slice(0, catalogState.visibleDealCount);
+  const expandedPartners = partners.slice(0, catalogState.expandedPartnerCount);
 
   const handleServiceClick = (id: string) => {
     if (id === "moving") {
@@ -180,8 +186,19 @@ export default function ServicesHubPage() {
   };
 
   const revealDeals = () => {
+    if (!catalogState.canToggleCatalog) {
+      return;
+    }
+
     setShowAllDeals(true);
-    document.getElementById("hot-deals")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document
+          .getElementById(catalogState.revealTargetId)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
   };
 
   return (
@@ -340,26 +357,31 @@ export default function ServicesHubPage() {
                 thật của RommZ.
               </p>
             </div>
-            <motion.button
-              type="button"
-              onClick={() => {
-                if (showAllDeals) {
-                  setShowAllDeals(false);
-                  document.getElementById("hot-deals")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  return;
-                }
+            {catalogState.canToggleCatalog ? (
+              <motion.button
+                type="button"
+                onClick={() => {
+                  if (showAllDeals) {
+                    setShowAllDeals(false);
+                    document
+                      .getElementById("hot-deals")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    return;
+                  }
 
-                revealDeals();
-              }}
-              className="flex items-center gap-2 font-display text-sm font-bold text-primary hover:underline"
-              whileTap={motionTokens.tap}
-            >
-              {showAllDeals ? "Thu gọn ưu đãi" : "Xem toàn bộ ưu đãi"}
-              <ArrowRight className="h-4 w-4" />
-            </motion.button>
+                  revealDeals();
+                }}
+                className="flex items-center gap-2 font-display text-sm font-bold text-primary hover:underline"
+                whileTap={motionTokens.tap}
+              >
+                {catalogState.toggleLabel}
+                <ArrowRight className="h-4 w-4" />
+              </motion.button>
+            ) : null}
           </motion.div>
 
           <motion.div
+            id="hot-deals-grid"
             className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
             variants={motionTokens.stagger(0.08, 0.08)}
           >
@@ -369,7 +391,7 @@ export default function ServicesHubPage() {
                 type="button"
                 onClick={() => openDeal(deal)}
                 className="overflow-hidden rounded-[28px] bg-white text-left stitch-editorial-shadow"
-                variants={motionTokens.revealScale(18)}
+                initial={false}
                 whileTap={motionTokens.tap}
               >
                 <div className="relative h-40">
@@ -400,37 +422,10 @@ export default function ServicesHubPage() {
                 </div>
               </motion.button>
             ))}
-            {visiblePartners.map((partner, index) => (
-              <motion.button
-                key={partner.id}
-                type="button"
-                onClick={() => setSelectedPartner(partner)}
-                className="overflow-hidden rounded-[28px] bg-white text-left stitch-editorial-shadow"
-                variants={motionTokens.revealScale(18)}
-                whileTap={motionTokens.tap}
-              >
-                <div className="relative h-40">
-                  <img
-                    src={partner.image_url || stitchAssets.services.dealImages[index]}
-                    alt={partner.name}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="flex h-[188px] flex-col p-6">
-                  <h4 className="text-lg">{partner.name}</h4>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {partner.specialization || "Đối tác địa phương của RommZ"}
-                  </p>
-                  <div className="mt-auto border-t border-slate-100 pt-4 text-xs text-muted-foreground">
-                    Đối tác
-                  </div>
-                </div>
-              </motion.button>
-            ))}
           </motion.div>
 
-          {showAllDeals && mappedDeals.length > 0 && partners.length > 0 ? (
-            <div className="mt-14">
+          {showAllDeals && catalogState.hasPartners ? (
+            <div id="nearby-partners" className="mt-14">
               <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <h3 className="text-2xl">Đối tác gần bạn</h3>
@@ -444,14 +439,18 @@ export default function ServicesHubPage() {
               </div>
 
               <motion.div
+                id="nearby-partners-grid"
                 className="grid gap-6 md:grid-cols-2 lg:grid-cols-4"
                 variants={motionTokens.stagger(0.08, 0.06)}
               >
-                {visiblePartners.map((partner, index) => (
-                  <motion.div
+                {expandedPartners.map((partner, index) => (
+                  <motion.button
                     key={`expanded-${partner.id}`}
+                    type="button"
+                    onClick={() => setSelectedPartner(partner)}
                     className="overflow-hidden rounded-[28px] bg-white stitch-editorial-shadow"
-                    variants={motionTokens.revealScale(16)}
+                    initial={false}
+                    whileTap={motionTokens.tap}
                   >
                     <div className="relative h-40">
                       <img
@@ -466,7 +465,7 @@ export default function ServicesHubPage() {
                         {partner.specialization || "Đối tác địa phương của RommZ"}
                       </p>
                     </div>
-                  </motion.div>
+                  </motion.button>
                 ))}
               </motion.div>
             </div>

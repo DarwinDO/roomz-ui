@@ -17,6 +17,55 @@ description: ROMI v3 implementation notes for shared contracts, web workspace, a
 
 Mobile was intentionally left unchanged in this phase.
 
+## Stability Hardening On 2026-03-30
+
+- `P0` trust-breaker hardening now landed for ROMI room-search turns:
+  - safe merge semantics for persisted journey state
+  - POI-aware parsing and normalization
+  - budget constraint typing
+  - repair-vs-clarify distinction
+  - deterministic same-district zero-result recovery
+  - feature-flagged auto-broaden guardrails
+
+### Shared hardening details
+
+- `packages/shared/src/services/ai-chatbot/types.ts`
+  - added `poiHint`, `budgetConstraintType`, `lastAskedField`, `lastAskedTurnIndex`, `clarificationLoopCounts`, `resolutionOutcome`
+  - added hardening metadata such as `searchAttempts`, `searchNormalizationWarnings`, `normalizationConfidence`, and `autoBroadenApplied`
+- `packages/shared/src/services/ai-chatbot/journey.ts`
+  - now keeps prior values on `undefined`
+  - only clears on explicit `null`
+  - preserves per-field clarification loop counters
+- `packages/shared/src/services/ai-chatbot/intake.ts`
+  - splits `poiHint` from `areaHint`
+  - strips malformed trailing budget clauses from POI text before normalization tries to resolve the location
+  - supports `gần`, `gan`, and `near` style POI prefixes more deterministically
+  - parses terse and malformed Vietnamese budget phrases more reliably
+  - treats contextual `không` as explicit budget-clear instead of forcing the same clarification loop
+
+### Edge hardening details
+
+- `supabase/functions/ai-chatbot/index.ts`
+  - loads hybrid env + DB feature flags
+  - forces `search_locations` before `search_rooms` when `poiHint` is present
+  - canonicalizes city aliases such as `TP.HCM` to `Thành phố Hồ Chí Minh` before room search execution
+  - keeps room-search deterministic with `exact -> broaden_location -> broaden_budget`
+  - blocks budget broadening for anything except `soft_cap`
+  - infers final intent from executed tool results as well as selected tool names so terse contextual replies keep the correct room-search metadata
+  - tracks loop and recovery metadata for later rollout measurement
+- `supabase/migrations/20260330183000_add_romi_feature_flags.sql`
+  - adds `romi_feature_flags`
+  - seeds:
+    - `romi_normalization_v2 = true`
+    - `romi_knowledge_gating_v1 = true`
+    - `romi_auto_broaden_v1 = false`
+
+### Web hardening details
+
+- `packages/web/src/pages/RomiPage.tsx`
+  - session preview now prefers repaired or resolved journey summaries over stale assistant clarification prompts
+  - inline clarification UI distinguishes repair mode from first-pass clarification
+
 ## External Skills Applied
 
 - `inferen-sh/skills@ai-rag-pipeline`
@@ -169,11 +218,16 @@ The new workspace introduces:
 - `npm run build --workspace=@roomz/web`
 - live Supabase migration applied on `vevnoxlgwisdottaifdn`
 - live `ai-chatbot` function deployed on `vevnoxlgwisdottaifdn`
-- direct guest smoke request against the live function returned a real ROMI reply with guest metadata and onboarding knowledge sources
+- follow-up live redeploy moved `ai-chatbot` to version `51`
+- direct live UTF-8 smokes now confirm:
+  - POI parsing no longer swallows malformed budget clauses
+  - terse budget replies in clarification context stay on the room-search path
+  - mixed-intent room-search + RommZ+ requests remain search-first and append knowledge after the room answer
+  - `TP.HCM` alias now resolves into live room results instead of a false `0 results` branch
 
 ## Known Gaps
 
 - No direct Deno/edge-function test suite was added in this task.
 - Guest rate limiting is still in-memory.
 - Knowledge seeding currently happens on first request rather than through a dedicated seed job.
-- Browser-side Vietnamese unicode prompts still need a real `/romi` UI verification pass after the live rollout.
+- Post-deploy hardening metrics still need real sample collection before `romi_auto_broaden_v1` can roll out broadly.

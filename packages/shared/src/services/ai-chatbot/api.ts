@@ -8,6 +8,7 @@ import { ROMI_EXPERIENCE_VERSION } from "../../constants/romi";
 import type {
   AIChatHistoryEntry,
   AIChatMessage,
+  AIChatMessageMetadata,
   AIChatRequest,
   AIChatResponse,
   AIChatSession,
@@ -94,6 +95,35 @@ function getSessionPreview(content: string | null | undefined) {
   if (!normalized) return null;
 
   return normalized.length > 110 ? `${normalized.slice(0, 107)}...` : normalized;
+}
+
+function buildMessagePreview(
+  content: string | null | undefined,
+  metadata: AIChatMessageMetadata | undefined,
+) {
+  const summary = metadata?.journeyState?.summary?.trim();
+  const resolutionOutcome = metadata?.resolutionOutcome ?? metadata?.journeyState?.resolutionOutcome;
+
+  if (summary && resolutionOutcome && resolutionOutcome !== "needs_clarification") {
+    return summary;
+  }
+
+  if (metadata?.handoff?.reason?.trim()) {
+    return metadata.handoff.reason.trim();
+  }
+
+  return getSessionPreview(content);
+}
+
+export function getAIChatSessionPreview(session: Pick<AIChatSession, "preview" | "journeyState">) {
+  const summary = session.journeyState?.summary?.trim();
+  const resolutionOutcome = session.journeyState?.resolutionOutcome;
+
+  if (summary && resolutionOutcome && resolutionOutcome !== "needs_clarification") {
+    return summary;
+  }
+
+  return session.preview?.trim() || summary || "Tiếp tục đúng ngữ cảnh đang hỏi.";
 }
 
 function normalizeRequest(
@@ -250,14 +280,15 @@ export async function getAIChatSessions(supabase: SupabaseClient): Promise<AICha
 
   return sessions.map((session) => {
     const latest = latestMessageBySession.get(session.id);
+    const journeyState = latest?.metadata?.journeyState ?? session.journeyState;
     return {
       ...session,
-      preview: getSessionPreview(latest?.content),
+      preview: buildMessagePreview(latest?.content, latest?.metadata),
       previewRole: latest?.role ?? null,
       lastMessageAt: latest?.created_at ?? session.updated_at,
       intent: latest?.metadata?.intent ?? null,
       contextType: latest?.metadata?.contextType ?? null,
-      journeyState: latest?.metadata?.journeyState ?? session.journeyState,
+      journeyState,
     };
   });
 }

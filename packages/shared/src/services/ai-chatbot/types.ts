@@ -25,6 +25,14 @@ export type RomiContextType =
 export type RomiViewerMode = 'guest' | 'user';
 export type RomiEntryPoint = 'launcher' | 'romi_page' | 'contextual_handoff';
 export type RomiJourneyStage = 'discover' | 'clarify' | 'recommend' | 'handoff' | 'resolved';
+export type RomiBudgetConstraintType = 'hard_cap' | 'soft_cap' | 'range' | 'min_only' | 'unspecified';
+export type RomiNormalizationConfidence = 'high' | 'medium' | 'low';
+export type RomiResolutionOutcome =
+    | 'results'
+    | 'broadened_results'
+    | 'needs_clarification'
+    | 'repair_after_failed_extraction'
+    | 'no_match';
 
 export interface RomiPageContext {
     route: string;
@@ -46,6 +54,7 @@ export interface RomiKnowledgeSource {
 export interface RomiClarificationRequest {
     prompt: string;
     missingFields: string[];
+    mode?: 'needs_clarification' | 'repair_after_failed_extraction';
 }
 
 export interface RomiHandoff {
@@ -61,8 +70,10 @@ export interface RomiJourneyState {
     city?: string | null;
     district?: string | null;
     areaHint?: string | null;
+    poiHint?: string | null;
     budgetMin?: number | null;
     budgetMax?: number | null;
+    budgetConstraintType?: RomiBudgetConstraintType | null;
     roomType?: 'private' | 'shared' | 'studio' | 'entire' | null;
     moveInPeriod?: string | null;
     urgency?: 'immediate' | 'soon' | 'flexible' | null;
@@ -72,8 +83,12 @@ export interface RomiJourneyState {
     summary?: string | null;
     missingFields?: string[];
     lastIntent?: RomiIntent | null;
+    lastAskedField?: string | null;
+    lastAskedTurnIndex?: number | null;
+    clarificationLoopCounts?: Record<string, number> | null;
     needsLogin?: boolean;
     groundedBy?: string[];
+    resolutionOutcome?: RomiResolutionOutcome | null;
 }
 
 export interface RomiToolCallSummary {
@@ -103,6 +118,17 @@ export interface AIChatMessageMetadata {
     source?: string;
     finishReason?: string;
     usage?: unknown;
+    budgetConstraintType?: RomiBudgetConstraintType | null;
+    normalizationConfidence?: RomiNormalizationConfidence | null;
+    searchNormalizationWarnings?: string[];
+    searchAttempts?: Array<{
+        mode: 'exact' | 'broaden_location' | 'broaden_budget';
+        resultCount: number;
+        appliedFilters: Record<string, unknown>;
+    }>;
+    clarificationLoopCount?: number;
+    autoBroadenApplied?: boolean;
+    resolutionOutcome?: RomiResolutionOutcome | null;
 }
 
 export interface AIChatMessage {

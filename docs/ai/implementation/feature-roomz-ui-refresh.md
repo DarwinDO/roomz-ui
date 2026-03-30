@@ -53,6 +53,11 @@ description: Implementation rules and technical boundaries for the RoomZ Stitch-
   - community featured cards now support both single-image and multi-image media layouts
   - services deals now expand in-place into a full voucher catalog plus a nearby-partners section
   - login trims the floating copy panel, removes the public admin-login shortcut, and clarifies that the profile is created after first successful sign-in
+- Fixed a follow-up `/services` catalog regression after live review:
+  - the main `Ưu đãi đối tác` grid now renders deal cards only instead of mixing partner cards into the same grid
+  - `Đối tác gần bạn` now reveals through its own section and grid instead of duplicating cards inside the voucher catalog
+  - the expand CTA now switches to `Xem đối tác gần bạn` when the deal preview is already exhausted
+  - dynamic voucher and partner cards no longer get stuck at `opacity: 0` after expansion, which previously produced a blank white catalog area even though the data had loaded
 - Fixed the third post-port parity bug pass from user review:
   - landing `Vi tri` now uses a searchable combobox with compact trigger labels for better hero-filter ergonomics
   - landing budget trigger labels are shortened so the Stitch rail stays readable at desktop widths
