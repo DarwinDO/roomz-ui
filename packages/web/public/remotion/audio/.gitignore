@@ -1,0 +1,5 @@
+*.mp3
+*.json
+*.txt
+*.wav
+!.gitignore

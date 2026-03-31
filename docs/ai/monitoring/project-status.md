@@ -2,7 +2,7 @@
 phase: monitoring
 title: Project Status Snapshot
 description: Living project memory for RoomZ product scope, architecture, roadmap, and current implementation state
-updated: 2026-03-30
+updated: 2026-03-31
 ---
 
 # RommZ Project Status
@@ -56,6 +56,30 @@ updated: 2026-03-30
   - `npm run test:unit --workspace=@roomz/web -- --grep "ROMI|romi workspace reducer"`: pass
   - `npm run build --workspace=@roomz/web`: pass
 
+## Latest Update (2026-03-31)
+
+- The hybrid Remotion product-launch ad now has a local preview audio pack instead of staying visual-only:
+  - `packages/web/scripts/remotion/generateProductLaunchHybridAudio.ts` now generates a preview voiceover script, a preview bed track, and a preview Vietnamese voiceover asset for the renter-first hybrid ad
+  - the preview bed is synthesized directly in Node, so the repo keeps a zero-extra-dependency soundtrack fallback
+  - the preview voiceover now prefers `edge-tts` Vietnamese output on this workstation and falls back to local Windows PowerShell speech synthesis only when the online provider is unavailable
+  - the active local preview voice is now `vi-VN-HoaiMyNeural`; it is good enough for timing and product review, but still treated as a preview asset rather than guaranteed final delivery
+  - generated preview assets now live under `packages/web/public/remotion/audio/` and stay ignored in git except for the folder-level `.gitignore`
+- The local hybrid render workflow now prefers generated preview audio automatically:
+  - `packages/web/scripts/remotion/renderProductLaunchHybrid.ts` now supports generated-audio attachment before payload build and render
+  - `@roomz/web` now exposes `remotion:audio:product` for standalone preview-audio generation
+  - `remotion:render:product` now runs with `--use-generated-audio --generate-audio-first` by default
+- Latest validation:
+  - `npx ai-devkit@latest lint`: pass
+  - `npm run lint --workspace=@roomz/web`: pass with the same 3 pre-existing hook warnings
+  - `npm run build --workspace=@roomz/web`: pass
+  - `npm run remotion:audio:product --workspace=@roomz/web`: pass
+    - provider: `edge-tts`
+    - voice: `vi-VN-HoaiMyNeural`
+  - `npm run remotion:render:product --workspace=@roomz/web`: pass
+    - Playwright capture step: `5/5` passed
+    - preview audio pack generation: pass
+    - hybrid MP4 render with Vietnamese preview audio: pass
+
 ## Latest Update (2026-03-30)
 
 - Started the Remotion ad-render bootstrap for the web workspace:
@@ -74,6 +98,21 @@ updated: 2026-03-30
   - the payload builder now keeps compositions pure and falls back to the fixture contract when env or live data is missing
   - the creative mapper now only trusts featured-room location data from known RommZ markets, so noisy DB rows do not degrade the brand-ad headline or hero image
   - targeted unit coverage now exists for the payload builder, and `@roomz/web` now exposes `remotion:payload:brand`, `remotion:still:brand:live`, and `remotion:render:brand:live`
+- Added the first hybrid product-launch ad pipeline for RommZ:
+  - `packages/web/src/remotion/Root.tsx` now also registers `RommzProductLaunchHybrid16x9`, a renter-first `33s` desktop ad that keeps fake UI as the main visual language and uses deterministic product captures as controlled inserts
+  - the new composition stack now lives in:
+    - `packages/web/src/remotion/compositions/RommzProductLaunchHybrid.tsx`
+    - `packages/web/src/remotion/compositions/rommzProductLaunchHybrid.schema.ts`
+    - `packages/web/src/remotion/compositions/rommzProductLaunchHybrid.timeline.ts`
+    - `packages/web/src/remotion/compositions/rommzProductLaunchHybrid.metadata.ts`
+  - the hybrid payload builder now lives in:
+    - `packages/web/src/remotion/payloads/buildRommzProductLaunchHybridPayload.ts`
+    - `packages/web/src/remotion/payloads/buildRommzProductLaunchHybridPayload.test.ts`
+  - the capture manifest now lives in `packages/web/src/remotion/captures/rommzProductLaunchHybridCaptures.ts`
+  - the local helper `packages/web/scripts/remotion/renderProductLaunchHybrid.ts` now owns the local `capture -> payload -> still -> render` flow and fails fast if any required capture is missing
+  - deterministic Playwright coverage for the hybrid ad now lives in `packages/web/tests/e2e/remotion-product-launch-capture.spec.ts`
+  - the shared E2E mock layer in `packages/web/tests/e2e/helpers/mockApi.ts` now includes renter-auth, payment, services-catalog, search, and Romi-concierge mocks for reusable ad captures
+  - v1 capture surfaces are fixed to `/`, `/search`, `/romi`, `/services`, and `/payment`; `/host` is intentionally deferred to a later landlord-focused variant
 - Fixed a ROMI session-hydration regression on `/romi`:
   - the initial session list fetch no longer overwrites a freshly selected session via a stale `selectedSessionId` closure
   - the chat viewport no longer swaps the active thread out for loading skeletons when `messagesLoading` flips on while messages are already present
@@ -119,7 +158,10 @@ updated: 2026-03-30
   - `npm run test:unit --workspace=@roomz/web -- --grep "ROMI|romi workspace reducer"`: pass
   - `npm run test:unit --workspace=@roomz/web -- src/pages/romi/sessionSelection.test.ts`: pass
   - `npm run test:unit --workspace=@roomz/web -- src/remotion/payloads/buildRommzBrandAdPayload.test.ts`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/remotion/payloads/buildRommzProductLaunchHybridPayload.test.ts`: pass
   - `npm run test:e2e --workspace=@roomz/web -- romi.spec.ts`: pass
+  - `npm run test:e2e --workspace=@roomz/web -- remotion-product-launch-capture.spec.ts`: pass
+  - `npm run test:e2e --workspace=@roomz/web -- otp-login.spec.ts search-location.spec.ts services.spec.ts`: pass
   - `npm run typecheck --workspace=@roomz/shared`: pass
   - `npm run build --workspace=@roomz/web`: pass
   - `npx ai-devkit@latest lint`: pass
@@ -127,6 +169,10 @@ updated: 2026-03-30
   - `npm run remotion:still:brand --workspace=@roomz/web`: pass
   - `npm run remotion:payload:brand --workspace=@roomz/web`: pass (`source: database`)
   - `npm run remotion:still:brand:live --workspace=@roomz/web`: pass
+  - `npm run remotion:capture:product --workspace=@roomz/web`: pass
+  - `npm run remotion:payload:product --workspace=@roomz/web`: pass (`source: captures`)
+  - representative hybrid still renders: pass at frames `48`, `240`, `420`, `600`, `780`, `930`
+  - full local hybrid MP4 render: pass
   - live UTF-8 smokes:
     - `Tìm phòng gần đại học sư phạm kỹ thuật và từ 5 triệu trở xuống`: pass
     - `5 triệu nha` with budget-clarification context: pass
@@ -197,6 +243,21 @@ updated: 2026-03-30
   - `packages/web/src/remotion/payloads/buildRommzBrandAdPayload.ts`
   - `packages/web/src/remotion/payloads/buildRommzBrandAdPayload.test.ts`
   - `packages/web/scripts/remotion/renderBrandAd.ts`
+- The hybrid product-launch Remotion stack now also lives in:
+  - `packages/web/src/remotion/captures/rommzProductLaunchHybridCaptures.ts`
+  - `packages/web/src/remotion/compositions/RommzProductLaunchHybrid.tsx`
+  - `packages/web/src/remotion/compositions/rommzProductLaunchHybrid.schema.ts`
+  - `packages/web/src/remotion/compositions/rommzProductLaunchHybrid.timeline.ts`
+  - `packages/web/src/remotion/compositions/rommzProductLaunchHybrid.metadata.ts`
+  - `packages/web/src/remotion/payloads/buildRommzProductLaunchHybridPayload.ts`
+  - `packages/web/src/remotion/payloads/buildRommzProductLaunchHybridPayload.test.ts`
+  - `packages/web/scripts/remotion/renderProductLaunchHybrid.ts`
+- The local preview-audio layer for the hybrid ad now also lives in:
+  - `packages/web/scripts/remotion/generateProductLaunchHybridAudio.ts`
+  - `packages/web/public/remotion/audio/.gitignore`
+- Deterministic product-capture coverage for Remotion now lives in:
+  - `packages/web/tests/e2e/helpers/mockApi.ts`
+  - `packages/web/tests/e2e/remotion-product-launch-capture.spec.ts`
 - Local Remotion workflow scripts now exist in `packages/web/package.json`:
   - `remotion:studio`
   - `remotion:compositions`
@@ -206,6 +267,11 @@ updated: 2026-03-30
   - `remotion:payload:brand`
   - `remotion:still:brand:live`
   - `remotion:render:brand:live`
+  - `remotion:capture:product`
+  - `remotion:payload:product`
+  - `remotion:still:product`
+  - `remotion:render:product`
+  - `remotion:audio:product`
 - Legacy routes redirect as follows:
   - `/support-services` -> `/services?tab=services`
   - `/local-passport` -> `/services?tab=deals`
@@ -756,27 +822,18 @@ updated: 2026-03-30
 
 ## Immediate Next Step
 
-- Re-check the `/services` catalog expansion live:
-  - `Ưu đãi đối tác` should only show deal cards
-  - `Xem toàn bộ ưu đãi` should reveal more vouchers when they exist
-  - `Xem đối tác gần bạn` should appear when the voucher preview is already exhausted
-  - `Đối tác gần bạn` should render as its own section instead of stretching the main voucher grid
-- Review the completed RommZ+ discoverability and ROMI v3 pass live in the repo:
-  - `/payment`
-  - `/romi`
-- Confirm that:
-  - the desktop navbar utility pill is now the clearest global way to reach RommZ+
-  - the mobile quick-access path to `/payment` is discoverable enough
-  - guest `/romi` provides useful onboarding before login
-  - signed-in `/romi` feels like a concierge workspace rather than a support console
-  - streamed Romi turns show progress early enough without flashing or resetting the workspace
-  - clarification and handoff only appear when genuinely needed
-  - room/deal/service context only appears when it is actually useful
-- After review, decide whether to:
-  - polish Romi / RommZ+ further
-  - validate the new Supabase migration and retrieval RPC live
-  - freeze the current desktop scope
-  - or move into mobile mapping / the next utility surface
+- Review the completed hybrid ad locally:
+  - inspect capture legibility and pacing across `/`, `/search`, `/romi`, `/services`, and `/payment`
+  - confirm the Vietnamese-first copy feels renter-first rather than generic SaaS motion copy
+  - confirm the fake-UI shells still feel like RommZ instead of a template ad system
+- Review the preview audio specifically:
+  - decide whether `vi-VN-HoaiMyNeural` is good enough for the internal review cut or should be replaced by a human recording / higher-directability Vietnamese TTS for the final ad
+  - tune the generated bed level if it competes with captions or scene pacing
+- Decide whether the next video phase should:
+  - attach final Vietnamese voiceover and soundtrack assets
+  - tune the `services + payment` block if it still feels too dense at ad speed
+  - build a landlord-focused `/host` variant later
+  - or freeze the current local video workflow and return to product-surface parity work
 
 ## Update Rules
 

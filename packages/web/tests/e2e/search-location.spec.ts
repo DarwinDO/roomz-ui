@@ -20,12 +20,13 @@ test.describe('search with location selection', () => {
     await expect(locationOption).toBeVisible();
     await locationOption.click();
 
-    await expect(page.getByText(/Đang tìm quanh:/i)).toBeVisible();
     await expect(
-      page.getByText('Đại học Bách khoa Hà Nội, Thành phố Hà Nội', { exact: true })
+      page.getByRole('heading', { name: /Đang hiển thị 2 căn phòng tại Thành phố Hà Nội/i })
     ).toBeVisible();
-    await expect(page.getByText(/2 phòng còn trống/i)).toBeVisible();
-    await expect(page.getByText(/Studio gần Bách Khoa/i)).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /Quận Hai Bà Trưng, Thành phố Hà Nội/i })
+    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Studio gần Bách Khoa/i })).toBeVisible();
     await expect(page.getByText(/Phòng riêng khu Bách Khoa/i)).toBeVisible();
   });
 });

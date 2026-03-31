@@ -13,6 +13,7 @@ const BASE_HEADERS = {
 
 export const ADMIN_USER_ID = '00000000-0000-4000-8000-000000000001';
 export const STUDENT_USER_ID = '00000000-0000-4000-8000-000000000002';
+export const RENTER_USER_ID = '00000000-0000-4000-8000-000000000003';
 
 type MockRole = 'admin' | 'student' | 'renter' | 'landlord';
 
@@ -45,6 +46,13 @@ type MockProfile = {
   full_name: string;
   role: MockRole;
   avatar_url: string | null;
+};
+
+type MockAuthOptions = {
+  userId?: string;
+  email?: string;
+  fullName?: string;
+  role?: MockRole;
 };
 
 type CrawlSource = {
@@ -169,6 +177,31 @@ function buildProfile(
   };
 }
 
+type ServicePartner = {
+  id: string;
+  name: string;
+  category: string;
+  specialization: string;
+  image_url: string | null;
+  status: string;
+  rating: number;
+  review_count: number;
+};
+
+type ServiceDeal = {
+  id: string;
+  partner_id: string;
+  title: string;
+  discount_value: string;
+  description: string;
+  valid_until: string;
+  is_active: boolean;
+  is_premium_only: boolean;
+  created_at: string;
+  updated_at: string;
+  partner: ServicePartner;
+};
+
 async function fulfillJson(
   route: Route,
   payload: unknown,
@@ -243,6 +276,47 @@ function buildSearchRoomRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
+export function buildServicePartner(id: string, name: string): ServicePartner {
+  return {
+    id,
+    name,
+    category: 'moving',
+    specialization: `${name} specialization`,
+    image_url: null,
+    status: 'active',
+    rating: 4.8,
+    review_count: 12,
+  };
+}
+
+export function buildServiceDeal(index: number): ServiceDeal {
+  const partner = buildServicePartner(`deal-partner-${index}`, `Deal Partner ${index}`);
+
+  return {
+    id: `deal-${index}`,
+    partner_id: partner.id,
+    title: `Voucher deal ${index}`,
+    discount_value: `${index * 5}%`,
+    description: `Deal description ${index}`,
+    valid_until: '2026-04-30T00:00:00.000Z',
+    is_active: true,
+    is_premium_only: index >= 5,
+    created_at: `2026-03-${String(index).padStart(2, '0')}T00:00:00.000Z`,
+    updated_at: `2026-03-${String(index).padStart(2, '0')}T00:00:00.000Z`,
+    partner,
+  };
+}
+
+async function mockAnalyticsEvents(page: Page) {
+  await page.route(`${SUPABASE_URL}/rest/v1/analytics_events**`, async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await fulfillNoContent(route);
+      return;
+    }
+    await fulfillJson(route, [{}], 201);
+  });
+}
+
 export async function mockMapboxSuggestions(page: Page) {
   await page.route(`${MAPBOX_URL}/geocoding/v5/mapbox.places/**`, async (route) => {
     await fulfillJson(route, {
@@ -264,9 +338,13 @@ export async function mockMapboxSuggestions(page: Page) {
   });
 }
 
-export async function mockOtpLoginFlow(page: Page) {
-  const session = buildSession(STUDENT_USER_ID, 'otp-user@example.com', 'Sinh viên OTP');
-  const profile = buildProfile(STUDENT_USER_ID, 'otp-user@example.com', 'Sinh viên OTP', 'student');
+async function mockOtpLoginFlowWithOptions(page: Page, options: MockAuthOptions) {
+  const userId = options.userId ?? STUDENT_USER_ID;
+  const email = options.email ?? 'otp-user@example.com';
+  const fullName = options.fullName ?? 'Sinh vien OTP';
+  const role = options.role ?? 'student';
+  const session = buildSession(userId, email, fullName);
+  const profile = buildProfile(userId, email, fullName, role);
 
   await page.route(`${SUPABASE_URL}/auth/v1/otp`, async (route) => {
     if (route.request().method() === 'OPTIONS') {
@@ -296,13 +374,7 @@ export async function mockOtpLoginFlow(page: Page) {
     await fulfillJson(route, getObjectResponse(route.request().headers(), profile));
   });
 
-  await page.route(`${SUPABASE_URL}/rest/v1/analytics_events**`, async (route) => {
-    if (route.request().method() === 'OPTIONS') {
-      await fulfillNoContent(route);
-      return;
-    }
-    await fulfillJson(route, [{}], 201);
-  });
+  await mockAnalyticsEvents(page);
 
   await page.route(`${SUPABASE_URL}/rest/v1/rpc/search_rooms`, async (route) => {
     await fulfillJson(route, []);
@@ -311,6 +383,29 @@ export async function mockOtpLoginFlow(page: Page) {
   await page.route(`${SUPABASE_URL}/rest/v1/sublet_listings**`, async (route) => {
     await fulfillJson(route, []);
   });
+}
+
+export async function mockOtpLoginFlow(page: Page) {
+  await mockOtpLoginFlowWithOptions(page, {});
+}
+
+export async function mockRenterOtpLoginFlow(page: Page) {
+  await mockOtpLoginFlowWithOptions(page, {
+    userId: RENTER_USER_ID,
+    email: 'renter@example.com',
+    fullName: 'Nguoi thue RommZ',
+    role: 'renter',
+  });
+}
+
+export async function loginAsMockedRenter(page: Page) {
+  await mockRenterOtpLoginFlow(page);
+  await page.goto('/login');
+  await page.getByRole('textbox', { name: /Email/i }).fill('renter@example.com');
+  await page.getByRole('button', { name: /Nhận mã OTP để đăng nhập/i }).click();
+  await page.getByRole('textbox', { name: /Ma xac thuc gom sau chu so/i }).fill('123456');
+  await page.getByRole('button', { name: /Đăng nhập vào RommZ/i }).click();
+  await page.waitForURL('**/search');
 }
 
 export async function mockSearchFlow(page: Page) {
@@ -324,9 +419,8 @@ export async function mockSearchFlow(page: Page) {
     const body = route.request().postDataJSON() as Record<string, unknown> | null;
     const lat = Number(body?.p_lat ?? 0);
     const lng = Number(body?.p_lng ?? 0);
-    const query = String(body?.p_search_query ?? '');
 
-    if (lat && lng && query.includes('Đại học Bách khoa Hà Nội')) {
+    if (lat && lng) {
       await fulfillJson(route, [
         buildSearchRoomRow(),
         buildSearchRoomRow({
@@ -347,13 +441,97 @@ export async function mockSearchFlow(page: Page) {
     await fulfillJson(route, []);
   });
 
-  await page.route(`${SUPABASE_URL}/rest/v1/analytics_events**`, async (route) => {
-    if (route.request().method() === 'OPTIONS') {
-      await fulfillNoContent(route);
-      return;
-    }
-    await fulfillJson(route, [{}], 201);
+  await mockAnalyticsEvents(page);
+}
+
+export async function mockServicesCatalog(
+  page: Page,
+  {
+    deals = Array.from({ length: 6 }, (_, index) => buildServiceDeal(index + 1)),
+    partners = [
+      buildServicePartner('nearby-1', 'Partner Nearby A'),
+      buildServicePartner('nearby-2', 'Partner Nearby B'),
+      buildServicePartner('nearby-3', 'Partner Nearby C'),
+    ],
+  }: {
+    deals?: ServiceDeal[];
+    partners?: ServicePartner[];
+  } = {},
+) {
+  await page.route(`${SUPABASE_URL}/rest/v1/deals**`, async (route) => {
+    await fulfillJson(route, deals);
   });
+
+  await page.route(`${SUPABASE_URL}/rest/v1/partners**`, async (route) => {
+    await fulfillJson(route, partners);
+  });
+
+  await mockAnalyticsEvents(page);
+}
+
+export async function mockPaymentPageData(page: Page) {
+  const subscription = {
+    id: 'subscription-expired-1',
+    user_id: RENTER_USER_ID,
+    plan: 'rommz_plus',
+    status: 'expired',
+    promo_applied: false,
+    payment_provider_customer_id: null,
+    payment_provider_transaction_id: null,
+    payment_provider: 'sepay',
+    amount_paid: 39000,
+    current_period_start: '2026-02-01T00:00:00.000Z',
+    current_period_end: '2026-03-01T00:00:00.000Z',
+    cancel_at_period_end: false,
+    payment_method: 'qr',
+    created_at: NOW,
+    updated_at: NOW,
+  };
+  const promoStatus = {
+    total_slots: 300,
+    claimed_slots: 127,
+  };
+
+  await page.route(`${SUPABASE_URL}/rest/v1/promo_status**`, async (route) => {
+    await fulfillJson(route, getObjectResponse(route.request().headers(), promoStatus));
+  });
+
+  await page.route(`${SUPABASE_URL}/rest/v1/subscriptions**`, async (route) => {
+    await fulfillJson(route, getObjectResponse(route.request().headers(), subscription));
+  });
+
+  await page.route(`${SUPABASE_URL}/rest/v1/rpc/create_checkout_order`, async (route) => {
+    await fulfillJson(route, {
+      order_code: 'ORD-LOCAL-REMOTION',
+      amount: 39000,
+      expires_at: '2026-04-01T10:00:00.000Z',
+      promo_applied: true,
+    });
+  });
+
+  await mockAnalyticsEvents(page);
+}
+
+export async function mockRomiProductConciergeFlow(page: Page) {
+  await page.route(`${SUPABASE_URL}/functions/v1/ai-chatbot`, async (route) => {
+    const streamBody = [
+      'data: {"type":"start","sessionId":null,"session":null}',
+      'data: {"type":"journey_update","journeyState":{"stage":"recommend","summary":"Dang tim phong tai Thu Duc, gan tuyen metro va ngan sach toi da 5 trieu","city":"TP.HCM","district":"Thành phố Thủ Đức","budgetMax":5000000,"resolutionOutcome":"results"}}',
+      'data: {"type":"final","sessionId":null,"messageId":"assistant-final","message":"Mình đã gom shortlist theo khu vực Thủ Đức, ưu tiên các listing có vị trí rõ, giá gọn và tiện ích đủ dùng. Nếu bạn muốn, mình có thể tách tiếp thành nhóm gần metro hoặc nhóm dưới 5 triệu để chốt nhanh hơn.","metadata":{"journeyState":{"stage":"recommend","summary":"Dang tim phong tai Thu Duc, gan tuyen metro va ngan sach toi da 5 trieu","city":"TP.HCM","district":"Thành phố Thủ Đức","budgetMax":5000000,"resolutionOutcome":"results"},"session":null}}',
+    ].join('\n');
+
+    await route.fulfill({
+      status: 200,
+      headers: {
+        'content-type': 'text/event-stream; charset=utf-8',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      },
+      body: streamBody,
+    });
+  });
+
+  await mockAnalyticsEvents(page);
 }
 
 export async function mockAdminAuth(page: Page) {
