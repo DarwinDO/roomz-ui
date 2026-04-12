@@ -1,4 +1,4 @@
-﻿import { expect, test } from '@playwright/test';
+﻿import { describe, expect, test } from 'vitest';
 import {
   buildRoomGeocodingQuery,
   normalizeAddressText,
@@ -7,7 +7,7 @@ import {
   normalizeRoomLocationInput,
 } from './mapboxGeocoding';
 
-test.describe('mapbox geocoding service helpers', () => {
+describe('mapbox geocoding service helpers', () => {
   test('normalizes common city aliases into canonical labels', () => {
     expect(normalizeCityName('Ha Noi')).toBe('Thành phố Hà Nội');
     expect(normalizeCityName('TP Ho Chi Minh')).toBe('Thành phố Hồ Chí Minh');

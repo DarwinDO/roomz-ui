@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import { supabase } from '@/lib/supabase';
 import { getPartners, togglePartnerStatus } from './partners';
 
@@ -58,7 +58,7 @@ const mutableSupabase = supabase as typeof supabase & {
   from: typeof supabase.from;
 };
 
-test.describe('partners service', () => {
+describe('partners service', () => {
   const originalFrom = mutableSupabase.from;
 
   test.afterEach(() => {

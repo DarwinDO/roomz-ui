@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import {
   buildRoomSearchQuery,
   filterMapboxSuggestions,
@@ -8,7 +8,7 @@ import {
   type MapboxFeature,
 } from './mapboxGeocoding.utils';
 
-test.describe('mapbox geocoding utils', () => {
+describe('mapbox geocoding utils', () => {
   test('buildRoomSearchQuery prefers district and city over the full street address', () => {
     expect(
       buildRoomSearchQuery({

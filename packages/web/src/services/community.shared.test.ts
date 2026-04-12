@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import { createPost, deletePost } from '@roomz/shared/services/community';
 
 type InsertResult = {
@@ -18,7 +18,7 @@ type InsertResult = {
   error: { message?: string } | null;
 };
 
-test.describe('shared community service', () => {
+describe('shared community service', () => {
   test('maps legacy post types to database types and persists active status', async () => {
     let insertedPayload: Record<string, unknown> | null = null;
 

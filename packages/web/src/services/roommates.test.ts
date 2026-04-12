@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import { supabase } from '@/lib/supabase';
 import {
   calculateCompatibility,
@@ -20,7 +20,7 @@ const mutableSupabase = supabase as typeof supabase & {
   rpc: typeof supabase.rpc;
 };
 
-test.describe('roommates service RPC contract', () => {
+describe('roommates service RPC contract', () => {
   const originalRpc = mutableSupabase.rpc;
 
   test.afterEach(() => {

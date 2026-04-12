@@ -1,7 +1,7 @@
-﻿import { expect, test } from '@playwright/test';
+﻿import { describe, expect, test } from 'vitest';
 import { searchRooms } from '@roomz/shared/services/rooms';
 
-test.describe('shared rooms search service', () => {
+describe('shared rooms search service', () => {
   test('passes geo filters through to the search_rooms RPC', async () => {
     const rpcCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
     const supabase = {

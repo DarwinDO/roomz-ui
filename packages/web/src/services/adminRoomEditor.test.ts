@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import type { AdminRoom } from '@/services/admin';
 import {
   buildAdminRoomDraft,
@@ -98,7 +98,7 @@ const baseRoom: AdminRoom = {
   },
 };
 
-test.describe('admin room editor helpers', () => {
+describe('admin room editor helpers', () => {
   test('buildAdminRoomDraft maps room rows into a full editor draft', () => {
     const draft = buildAdminRoomDraft(baseRoom);
 

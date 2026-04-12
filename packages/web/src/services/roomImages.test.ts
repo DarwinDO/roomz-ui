@@ -1,11 +1,11 @@
-import { expect, test } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import {
   extractRoomImageStoragePath,
   isManagedRoomImageUrl,
   validateRoomImage,
 } from './roomImages';
 
-test.describe('roomImages', () => {
+describe('roomImages', () => {
   test('accepts supported image mime types within size limit', () => {
     const file = new File([new Uint8Array([1, 2, 3])], 'room.jpg', {
       type: 'image/jpeg',

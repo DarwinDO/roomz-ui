@@ -1,8 +1,8 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vitest";
 
 import { DEAL_PREVIEW_LIMIT, getServicesHubCatalogState } from "./servicesHubCatalog";
 
-test.describe("getServicesHubCatalogState", () => {
+describe("getServicesHubCatalogState", () => {
   test("keeps partner cards out of the deals grid until the catalog is expanded", () => {
     const state = getServicesHubCatalogState(DEAL_PREVIEW_LIMIT + 2, 5, false);
 

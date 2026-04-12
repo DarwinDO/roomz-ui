@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import { buildDataQualityDashboardData, isValidVietnamCoordinate, type LocationCatalogHealthRow, type RoomHealthRow } from './dataQuality';
 import type { CrawlJob, CrawlSource, LocationCrawlReviewItem, PartnerCrawlReviewItem } from '@/services/ingestionReview';
 
@@ -148,7 +148,7 @@ function createLocationReview(overrides: Partial<LocationCrawlReviewItem> = {}):
   };
 }
 
-test.describe('data quality helpers', () => {
+describe('data quality helpers', () => {
   test('validates Vietnam coordinate bounds', () => {
     expect(isValidVietnamCoordinate(21.03, 105.78)).toBe(true);
     expect(isValidVietnamCoordinate(35, 105.78)).toBe(false);

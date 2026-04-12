@@ -1,4 +1,4 @@
-﻿import { expect, test } from '@playwright/test';
+﻿import { describe, expect, test } from 'vitest';
 import {
   buildCrawlFunctionErrorMessage,
   buildCrawlSourceMutationPayload,
@@ -10,7 +10,7 @@ import {
   normalizePartnerUploadRecord,
 } from './ingestionReview';
 
-test.describe('extractUploadRecords', () => {
+describe('extractUploadRecords', () => {
   test('returns root array as-is', () => {
     expect(extractUploadRecords([{ id: 1 }, { id: 2 }])).toHaveLength(2);
   });
@@ -27,7 +27,7 @@ test.describe('extractUploadRecords', () => {
   });
 });
 
-test.describe('normalizePartnerUploadRecord', () => {
+describe('normalizePartnerUploadRecord', () => {
   test('normalizes partner upload payload into ingestion row shape', () => {
     const record = normalizePartnerUploadRecord({
       companyName: '  Moving   Pro  ',
@@ -47,7 +47,7 @@ test.describe('normalizePartnerUploadRecord', () => {
   });
 });
 
-test.describe('normalizeLocationUploadRecord', () => {
+describe('normalizeLocationUploadRecord', () => {
   test('normalizes location payload and infers aliases', () => {
     const record = normalizeLocationUploadRecord({
       name: '  Dai hoc Bach Khoa Ha Noi ',
@@ -67,13 +67,13 @@ test.describe('normalizeLocationUploadRecord', () => {
   });
 });
 
-test.describe('buildCrawlFunctionErrorMessage', () => {
+describe('buildCrawlFunctionErrorMessage', () => {
   test('adds actionable hint for verify_jwt misconfiguration', () => {
     expect(buildCrawlFunctionErrorMessage('Invalid JWT')).toContain('verify_jwt = false');
   });
 });
 
-test.describe('buildPartnerCrawlIngestionUpdate', () => {
+describe('buildPartnerCrawlIngestionUpdate', () => {
   test('sanitizes fields and recomputes dedupe metadata', () => {
     const payload = buildPartnerCrawlIngestionUpdate({
       companyName: '  Moving Pro ',
@@ -94,7 +94,7 @@ test.describe('buildPartnerCrawlIngestionUpdate', () => {
   });
 });
 
-test.describe('buildLocationCrawlIngestionUpdate', () => {
+describe('buildLocationCrawlIngestionUpdate', () => {
   test('normalizes location identity for manual review edits', () => {
     const payload = buildLocationCrawlIngestionUpdate({
       locationName: ' Đại học Bách Khoa Hà Nội ',
@@ -117,7 +117,7 @@ test.describe('buildLocationCrawlIngestionUpdate', () => {
   });
 });
 
-test.describe('normalizeCrawlSourceUrl', () => {
+describe('normalizeCrawlSourceUrl', () => {
   test('returns undefined for empty or invalid values and normalizes bare domains', () => {
     expect(normalizeCrawlSourceUrl('')).toBeUndefined();
     expect(normalizeCrawlSourceUrl('not a url')).toBeUndefined();
@@ -125,7 +125,7 @@ test.describe('normalizeCrawlSourceUrl', () => {
   });
 });
 
-test.describe('buildCrawlSourceMutationPayload', () => {
+describe('buildCrawlSourceMutationPayload', () => {
   test('builds url mode payload and clears discovery fields', () => {
     const payload = buildCrawlSourceMutationPayload({
       name: ' Crawl partner HCM ',

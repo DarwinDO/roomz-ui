@@ -1,4 +1,4 @@
-﻿import { expect, test } from "@playwright/test";
+﻿import { describe, expect, test } from "vitest";
 import {
   buildSearchParamsFromState,
   getNextRadiusOption,
@@ -6,7 +6,7 @@ import {
   parseSearchLocationState,
 } from "./searchPage.utils";
 
-test.describe("searchPage utils", () => {
+describe("searchPage utils", () => {
   test("builds a stable location label from district and city", () => {
     expect(
       getSelectedLocationLabel({

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import { supabase } from '@/lib/supabase';
 import { createSePayCheckoutSession, getAnonymousEntitlements, getEntitlementsForPlan } from './payments';
 import { PREMIUM_PUBLIC_BENEFIT_LABELS } from '@roomz/shared/constants/premium-offer';
@@ -21,7 +21,7 @@ const mutableSupabase = supabase as typeof supabase & {
   rpc: typeof supabase.rpc;
 };
 
-test.describe('createSePayCheckoutSession', () => {
+describe('createSePayCheckoutSession', () => {
   const originalRpc = mutableSupabase.rpc;
 
   test.afterEach(() => {
@@ -83,7 +83,7 @@ test.describe('createSePayCheckoutSession', () => {
   });
 });
 
-test.describe('premium entitlements', () => {
+describe('premium entitlements', () => {
   test('returns free limits for anonymous users', () => {
     expect(getAnonymousEntitlements()).toMatchObject({
       isPremium: false,

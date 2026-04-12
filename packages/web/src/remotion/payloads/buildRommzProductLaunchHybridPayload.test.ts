@@ -1,8 +1,8 @@
-import {expect, test} from "@playwright/test";
+import { describe, expect, test } from "vitest";
 
 import {buildRommzProductLaunchHybridPayload} from "./buildRommzProductLaunchHybridPayload";
 
-test.describe("buildRommzProductLaunchHybridPayload", () => {
+describe("buildRommzProductLaunchHybridPayload", () => {
   test("falls back to the fixture contract when no snapshot is provided", () => {
     const payload = buildRommzProductLaunchHybridPayload();
 

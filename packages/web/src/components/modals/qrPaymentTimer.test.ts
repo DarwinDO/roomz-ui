@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import { getRemainingSeconds } from './qrPaymentTimer';
 
-test.describe('getRemainingSeconds', () => {
+describe('getRemainingSeconds', () => {
   test('returns remaining seconds based on the server expiration time', async () => {
     const now = new Date('2026-03-10T10:00:00.000Z').getTime();
     const expiresAt = '2026-03-10T10:01:30.000Z';

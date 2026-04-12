@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import { getPotentialMatches } from '@roomz/shared/services/swap';
 
-test.describe('shared swap service', () => {
+describe('shared swap service', () => {
   test('calls the swap match RPC with the current database contract', async () => {
     const rpcCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
     const supabase = {

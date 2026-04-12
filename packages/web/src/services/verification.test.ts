@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import { supabase } from '@/lib/supabase';
 import {
   fetchVerificationAuditLog,
@@ -17,7 +17,7 @@ const mutableSupabase = supabase as typeof supabase & {
   rpc: typeof supabase.rpc;
 };
 
-test.describe('verification service', () => {
+describe('verification service', () => {
   const originalRpc = mutableSupabase.rpc;
 
   test.afterEach(() => {

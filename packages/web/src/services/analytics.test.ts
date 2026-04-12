@@ -1,4 +1,4 @@
-﻿import { expect, test } from "@playwright/test";
+﻿import { describe, expect, test } from "vitest";
 import { supabase } from "@/lib/supabase";
 import {
   getFeatureUsageStats,
@@ -18,7 +18,7 @@ const mutableSupabase = supabase as typeof supabase & {
   rpc: typeof supabase.rpc;
 };
 
-test.describe("analytics service", () => {
+describe("analytics service", () => {
   const originalRpc = mutableSupabase.rpc;
 
   test.afterEach(() => {

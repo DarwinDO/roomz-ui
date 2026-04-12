@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import { supabase } from '@/lib/supabase';
 import {
   getFeaturedLocations,
@@ -25,7 +25,7 @@ test.afterEach(() => {
   supabase.rpc = originalRpc;
 });
 
-test.describe('locations service', () => {
+describe('locations service', () => {
   test('passes search filters through to search_location_catalog RPC', async () => {
     await searchLocationCatalog({
       query: 'Bach Khoa',

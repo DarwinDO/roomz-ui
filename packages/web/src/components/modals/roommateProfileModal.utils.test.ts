@@ -1,4 +1,4 @@
-﻿import { expect, test } from '@playwright/test';
+﻿import { describe, expect, test } from 'vitest';
 import {
   buildConcernSignals,
   buildMatchFactors,
@@ -42,7 +42,7 @@ function createMatch(overrides: Partial<RoommateMatch> = {}): RoommateMatch {
   };
 }
 
-test.describe('roommate profile modal utils', () => {
+describe('roommate profile modal utils', () => {
   test('treats zero-score factors as missing data instead of positive compatibility', () => {
     const factors = buildMatchFactors(createMatch());
     const sleepFactor = factors.find((factor) => factor.id === 'sleep');

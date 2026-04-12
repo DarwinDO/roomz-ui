@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import { auth, supabase } from './supabase';
 
 const mutableAuth = supabase.auth as typeof supabase.auth & {
@@ -6,7 +6,7 @@ const mutableAuth = supabase.auth as typeof supabase.auth & {
   verifyOtp: typeof supabase.auth.verifyOtp;
 };
 
-test.describe('supabase auth OTP helpers', () => {
+describe('supabase auth OTP helpers', () => {
   const originalSignInWithOtp = mutableAuth.signInWithOtp;
   const originalVerifyOtp = mutableAuth.verifyOtp;
 

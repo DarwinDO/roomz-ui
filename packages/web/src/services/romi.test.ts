@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vitest";
 import {
   ROMI_EXPERIENCE_VERSION,
   ROMI_GUEST_SUGGESTED_QUESTIONS,
@@ -13,7 +13,7 @@ import {
   getAIChatSessionPreview,
 } from "@roomz/shared/services/ai-chatbot";
 
-test.describe("ROMI shared sources of truth", () => {
+describe("ROMI shared sources of truth", () => {
   test("exposes stable branding, prompts, and experience version", () => {
     expect(ROMI_NAME).toBe("ROMI");
     expect(ROMI_EXPERIENCE_VERSION).toBe("romi_v3");
@@ -74,6 +74,17 @@ test.describe("ROMI shared sources of truth", () => {
     expect(analysis.journeyState.budgetMax).toBe(4000000);
   });
 
+  test("repairs mojibake Vietnamese prompts before intake classification", () => {
+    const mojibakePrompt = new TextDecoder("latin1").decode(
+      new TextEncoder().encode("tôi muốn tìm phòng ở thủ đức dưới 5 triêu"),
+    );
+    const analysis = analyzeRomiIntake(mojibakePrompt, {}, "guest");
+
+    expect(analysis.intent).toBe("room_search");
+    expect(analysis.journeyState.district).toBe("Thành phố Thủ Đức");
+    expect(analysis.journeyState.budgetMax).toBe(5000000);
+  });
+
   test("fills terse budget replies when ROMI has just asked for budget", () => {
     const analysis = analyzeRomiIntake(
       "5 triệu nha",
@@ -107,6 +118,48 @@ test.describe("ROMI shared sources of truth", () => {
 
     expect(analysis.journeyState.budgetMax).toBe(4000000);
     expect(analysis.journeyState.budgetConstraintType).toBe("hard_cap");
+  });
+
+  test("does not keep forcing room_search for short meta reactions with no room cue", () => {
+    const analysis = analyzeRomiIntake(
+      "rồi tự nhiên hiện cái này làm gì?",
+      {
+        goal: "find_room",
+        city: "TP.HCM",
+        district: "Thành phố Thủ Đức",
+        budgetMax: 5000000,
+        budgetConstraintType: "hard_cap",
+      },
+      "guest",
+    );
+
+    expect(analysis.intent).toBe("general");
+    expect(analysis.journeyState.goal).toBe("find_room");
+  });
+
+  test("does not misread short complaints containing ga-like substrings as room refinements", () => {
+    const analysis = analyzeRomiIntake(
+      "ngao a?",
+      {
+        goal: "find_room",
+        district: "Thành phố Thủ Đức",
+        budgetMax: 5000000,
+        budgetConstraintType: "hard_cap",
+        activeEntityType: "room",
+        activeEntityId: "776bd8be-f835-44cb-9994-45ce9511de41",
+        lastIntent: "room_detail",
+        lastResultSetType: "room",
+        lastResultIds: [
+          "aa35f569-47bd-48cb-82bc-18347c951568",
+          "776bd8be-f835-44cb-9994-45ce9511de41",
+        ],
+        lastResultSourceIntent: "room_search",
+      },
+      "guest",
+    );
+
+    expect(analysis.intent).toBe("general");
+    expect(analysis.journeyState.goal).toBe("find_room");
   });
 
   test("parses approximate and ranged budgets from direct room-search prompts", () => {

@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+﻿import { describe, expect, test } from 'vitest';
 import { verifyPayment } from './sepay';
 
 type GetSessionResult = {
@@ -18,7 +18,7 @@ type InvokeResult = {
   } | null;
 };
 
-test.describe('verifyPayment', () => {
+describe('verifyPayment', () => {
   test('returns normalized verification result from edge function', async () => {
     const result = await verifyPayment('ROMMZ123', {
       getSession: async () => ({

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import { supabase } from '@/lib/supabase';
 import { assignPartnerToLead, updateServiceLeadStatus } from './admin';
 
@@ -42,7 +42,7 @@ const mutableSupabase = supabase as typeof supabase & {
   };
 };
 
-test.describe('admin service lead mutations', () => {
+describe('admin service lead mutations', () => {
   const originalFrom = mutableSupabase.from;
   const originalGetUser = mutableSupabase.auth.getUser;
 

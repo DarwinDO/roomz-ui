@@ -1,11 +1,11 @@
-import { expect, test } from '@playwright/test';
+import { describe, expect, test } from 'vitest';
 import {
   buildAdminLocationUpdateInput,
   normalizeLocationCatalogName,
   parseLocationTags,
 } from './adminLocations';
 
-test.describe('adminLocations service helpers', () => {
+describe('adminLocations service helpers', () => {
   test('normalizes Vietnamese location names for unique identity updates', () => {
     expect(normalizeLocationCatalogName('Đại học Bách khoa Hà Nội')).toBe(
       'dai hoc bach khoa ha noi',

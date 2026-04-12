@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { describe, expect, test } from "vitest";
 import type { AIChatSession } from "@roomz/shared/services/ai-chatbot";
 import { resolveLoadedSessionSelection } from "./sessionSelection";
 
@@ -12,7 +12,7 @@ function createSession(id: string): AIChatSession {
   };
 }
 
-test.describe("romi session selection", () => {
+describe("romi session selection", () => {
   test("auto-selects the newest saved session on first load", () => {
     const selectedSessionId = resolveLoadedSessionSelection({
       currentSelectedSessionId: null,
