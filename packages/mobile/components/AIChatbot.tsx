@@ -1,26 +1,52 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+    Linking,
+    Modal,
+    Platform,
+    SafeAreaView,
     Text,
     TextInput,
     TouchableOpacity,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    ActivityIndicator,
-    Modal,
-    SafeAreaView,
+    View,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { AIChatMessage } from './AIChatMessage';
 import { useAIChatbot } from '../src/hooks/useAIChatbot';
-import { ROMI_NAME, ROMI_SUGGESTED_QUESTIONS } from '@roomz/shared/constants/romi';
+import {
+    ROMI_GUEST_SUGGESTED_QUESTIONS,
+    ROMI_NAME,
+    ROMI_SUGGESTED_QUESTIONS,
+} from '@roomz/shared/constants/romi';
+import type { RomiChatAction } from '@roomz/shared/services/ai-chatbot';
+
+const MOBILE_ROUTE_MAP: Record<string, string | null> = {
+    open_search: '/search-filter',
+    open_payment: '/payment',
+    open_verification: '/verification',
+    open_roommates: '/(app)/(tabs)/roommates',
+    open_login: '/login',
+    open_support_services: null,
+    open_local_passport: null,
+    open_swap: null,
+};
+
+function getMessageTimestamp(createdAt: string) {
+    const parsed = new Date(createdAt);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
 
 export function AIChatbot() {
+    const router = useRouter();
     const {
+        workspaceState,
         messages,
         isLoading,
         error,
-        isAuthenticated,
+        viewerMode,
         sendMessage,
         startNewChat,
     } = useAIChatbot();
@@ -37,18 +63,43 @@ export function AIChatbot() {
 
     useEffect(() => {
         scrollToEnd();
-    }, [messages, scrollToEnd]);
+    }, [messages, workspaceState.streamStatus, scrollToEnd]);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         const trimmed = inputValue.trim();
         if (!trimmed) return;
-        sendMessage(trimmed);
         setInputValue('');
+        await sendMessage(trimmed);
     };
 
-    const handleSuggestion = (question: string) => {
-        sendMessage(question);
+    const handleSuggestion = async (question: string) => {
+        setInputValue('');
+        await sendMessage(question);
     };
+
+    const handleAction = useCallback(async (action: RomiChatAction) => {
+        if (action.type === 'open_room') {
+            router.push(action.href as never);
+            return;
+        }
+
+        const mappedRoute = MOBILE_ROUTE_MAP[action.type];
+        if (mappedRoute) {
+            router.push(mappedRoute as never);
+            return;
+        }
+
+        if (mappedRoute === null) {
+            await Linking.openURL(`https://rommz.vn${action.href}`);
+            return;
+        }
+
+        Alert.alert('Chưa hỗ trợ trên mobile', action.label);
+    }, [router]);
+
+    const clarification = workspaceState.clarification;
+    const handoff = workspaceState.handoff;
+    const promptOptions = viewerMode === 'guest' ? ROMI_GUEST_SUGGESTED_QUESTIONS : ROMI_SUGGESTED_QUESTIONS;
 
     return (
         <>
@@ -76,7 +127,9 @@ export function AIChatbot() {
                                 {ROMI_NAME}
                             </Text>
                             <Text className="text-xs text-text-secondary">
-                                Trợ lý của RommZ • Tìm phòng và điều hướng app
+                                {viewerMode === 'guest'
+                                    ? 'Guest mode • Hỏi phòng, deal, dịch vụ, sản phẩm'
+                                    : 'Workspace cá nhân • Giữ ngữ cảnh theo phiên'}
                             </Text>
                         </View>
                         <TouchableOpacity
@@ -98,6 +151,40 @@ export function AIChatbot() {
                         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                         keyboardVerticalOffset={0}
                     >
+                        {clarification ? (
+                            <View className="mx-4 mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                                <Text className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">
+                                    ROMI cần làm rõ
+                                </Text>
+                                <Text className="mt-2 text-sm leading-5 text-amber-900">
+                                    {clarification.prompt}
+                                </Text>
+                            </View>
+                        ) : null}
+
+                        {handoff ? (
+                            <View className="mx-4 mt-3 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
+                                <Text className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">
+                                    Bước tiếp theo
+                                </Text>
+                                <Text className="mt-2 text-sm leading-5 text-blue-900">
+                                    {handoff.reason}
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() => handleAction({
+                                        type: 'open_login',
+                                        label: handoff.label,
+                                        href: handoff.href,
+                                    })}
+                                    className="mt-3 self-start rounded-full bg-blue-600 px-3 py-2"
+                                >
+                                    <Text className="text-xs font-medium text-white">
+                                        {handoff.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : null}
+
                         <FlatList
                             ref={flatListRef}
                             data={messages}
@@ -106,21 +193,23 @@ export function AIChatbot() {
                             renderItem={({ item }) => (
                                 <AIChatMessage
                                     text={item.text}
-                                    sender={item.sender}
-                                    timestamp={item.timestamp}
+                                    sender={item.role === 'user' ? 'user' : 'bot'}
+                                    timestamp={getMessageTimestamp(item.createdAt)}
+                                    actions={item.actions}
+                                    onActionPress={handleAction}
                                 />
                             )}
                             ListHeaderComponent={
-                                messages.length <= 1 ? (
+                                messages.filter((message) => message.role === 'user').length === 0 ? (
                                     <View className="mb-4">
                                         <Text className="mb-2 text-center text-xs text-text-secondary">
                                             Gợi ý nhanh:
                                         </Text>
                                         <View className="flex-row flex-wrap justify-center gap-2">
-                                            {ROMI_SUGGESTED_QUESTIONS.map((question) => (
+                                            {promptOptions.map((question) => (
                                                 <TouchableOpacity
                                                     key={question}
-                                                    onPress={() => handleSuggestion(question)}
+                                                    onPress={() => void handleSuggestion(question)}
                                                     className="rounded-full border border-gray-200 bg-white px-3 py-2"
                                                 >
                                                     <Text className="text-xs text-text-primary">{question}</Text>
@@ -132,28 +221,28 @@ export function AIChatbot() {
                             }
                             ListFooterComponent={
                                 <>
-                                    {isLoading && (
+                                    {isLoading ? (
                                         <View className="mb-3 flex-row gap-2">
                                             <View className="h-8 w-8 items-center justify-center rounded-full bg-primary-500">
                                                 <Text className="text-xs">✨</Text>
                                             </View>
                                             <View className="rounded-2xl rounded-tl-sm bg-gray-100 px-4 py-3">
                                                 <View className="flex-row items-center gap-2">
-                                                    <ActivityIndicator size="small" color="#6366f1" />
+                                                    <ActivityIndicator size="small" color="#2563eb" />
                                                     <Text className="text-sm text-text-secondary">
                                                         ROMI đang suy nghĩ...
                                                     </Text>
                                                 </View>
                                             </View>
                                         </View>
-                                    )}
-                                    {error && (
+                                    ) : null}
+                                    {error ? (
                                         <View className="mb-3 items-center">
                                             <Text className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-500">
                                                 {error}
                                             </Text>
                                         </View>
-                                    )}
+                                    ) : null}
                                 </>
                             }
                             onContentSizeChange={scrollToEnd}
@@ -163,21 +252,21 @@ export function AIChatbot() {
                             <TextInput
                                 value={inputValue}
                                 onChangeText={setInputValue}
-                                onSubmitEditing={handleSend}
+                                onSubmitEditing={() => void handleSend()}
                                 placeholder={
-                                    isAuthenticated
-                                        ? 'Hỏi ROMI bất kỳ điều gì...'
-                                        : 'Đăng nhập để sử dụng ROMI'
+                                    viewerMode === 'guest'
+                                        ? 'Mô tả khu vực, ngân sách hoặc item cần xem...'
+                                        : 'Hỏi ROMI bất kỳ điều gì...'
                                 }
                                 placeholderTextColor="#9CA3AF"
                                 className="mr-2 flex-1 rounded-full bg-gray-100 px-4 py-3 text-sm text-text-primary"
-                                editable={isAuthenticated && !isLoading}
+                                editable={!isLoading}
                                 returnKeyType="send"
                                 multiline={false}
                             />
                             <TouchableOpacity
-                                onPress={handleSend}
-                                disabled={!inputValue.trim() || isLoading || !isAuthenticated}
+                                onPress={() => void handleSend()}
+                                disabled={!inputValue.trim() || isLoading}
                                 className={`h-10 w-10 items-center justify-center rounded-full ${!inputValue.trim() || isLoading
                                         ? 'bg-gray-200'
                                         : 'bg-primary-500'
@@ -196,4 +285,3 @@ export function AIChatbot() {
         </>
     );
 }
-

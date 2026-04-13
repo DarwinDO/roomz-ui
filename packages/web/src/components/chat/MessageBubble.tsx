@@ -3,7 +3,8 @@
  * Reusable message bubble with avatar, timestamp, and read status
  */
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import { Check, CheckCheck } from 'lucide-react';
 import { formatDistanceToNow, parseISO, isToday, isYesterday, format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -55,12 +56,15 @@ export function MessageBubble({ message, isFromMe, showAvatar = true }: MessageB
         <div className={cn('flex gap-2', isFromMe ? 'justify-end' : 'justify-start')}>
             {/* Avatar (only for received messages) */}
             {!isFromMe && showAvatar && (
-                <Avatar className="w-8 h-8 flex-shrink-0">
+                <PremiumAvatar
+                    isPremium={message.sender?.is_premium ?? false}
+                    className="h-8 w-8 shrink-0"
+                >
                     <AvatarImage src={message.sender?.avatar_url || undefined} />
                     <AvatarFallback className="text-xs bg-muted">
                         {initials}
                     </AvatarFallback>
-                </Avatar>
+                </PremiumAvatar>
             )}
 
             {/* Message Bubble */}

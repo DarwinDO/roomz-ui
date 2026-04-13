@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAutoResizeTextarea } from "@/hooks/useAutoResizeTextarea";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -14,9 +15,10 @@ import {
   Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
@@ -167,11 +169,8 @@ export default function MessagesPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">Messaging console</p>
               <h1 className="mt-3 font-display text-4xl font-black tracking-[-0.05em] text-on-surface md:text-5xl">
-                Tin nhắn theo đúng ngữ cảnh đang quan tâm
+                Tin nhắn
               </h1>
-              <p className="mt-4 max-w-[58ch] text-sm leading-7 text-on-surface-variant md:text-base">
-                Nếu đang hỏi phòng, bạn sẽ thấy đúng listing đó. Nếu đang nhắn trực tiếp với người dùng khác, RommZ giữ luồng chat gọn để không ép mọi cuộc trò chuyện thành style của chủ trọ.
-              </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <InboxMetric label="Tổng thread" value={`${conversations.length}`} />
@@ -265,9 +264,6 @@ function ConversationRail({
     <Card className="rounded-[2rem] border-none bg-surface-container-lowest shadow-soft-lg xl:sticky xl:top-28">
       <CardHeader className="pb-4">
         <CardTitle className="font-display text-2xl font-extrabold tracking-[-0.03em]">Hộp thư</CardTitle>
-        <CardDescription className="mt-2 text-sm leading-6">
-          Chọn theo unread, theo phòng hoặc direct thread để vào đúng ngữ cảnh nhanh hơn.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="relative">
@@ -357,10 +353,13 @@ function ConversationCard({
       whileTap={motionTokens.tap}
     >
       <div className="flex items-start gap-3">
-        <Avatar className="h-12 w-12 border border-border/70">
+        <PremiumAvatar
+          isPremium={conversation.participant.is_premium ?? false}
+          className="h-12 w-12 border border-border/70"
+        >
           <AvatarImage src={conversation.participant.avatar_url || undefined} />
           <AvatarFallback className="bg-primary/10 text-primary">{initials}</AvatarFallback>
-        </Avatar>
+        </PremiumAvatar>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -464,6 +463,7 @@ function ChatPanel({
   } = useMessages(conversation.id);
   const { typingUsers } = useTypingIndicator(conversation.id);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useAutoResizeTextarea(draftMessage, { minHeight: 44, maxHeight: 200 });
   const contextMeta = getConversationContextMeta(conversation);
   const quickReplies = useMemo(() => getQuickReplies(conversation, isHostView), [conversation, isHostView]);
   const [isQuickRepliesOpen, setIsQuickRepliesOpen] = useState(false);
@@ -511,12 +511,15 @@ function ChatPanel({
             <Button type="button" variant="ghost" size="icon" className="rounded-full lg:hidden" onClick={onBack}>
               <ChevronLeft className="h-5 w-5" />
             </Button>
-            <Avatar className="h-12 w-12 border border-border/70">
+            <PremiumAvatar
+              isPremium={conversation.participant.is_premium ?? false}
+              className="h-12 w-12 border border-border/70"
+            >
               <AvatarImage src={conversation.participant.avatar_url || undefined} />
               <AvatarFallback className="bg-primary/10 text-primary">
                 {getParticipantInitials(conversation.participant.full_name)}
               </AvatarFallback>
-            </Avatar>
+            </PremiumAvatar>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <CardTitle className="font-display text-2xl font-extrabold tracking-[-0.03em] text-on-surface">
@@ -524,13 +527,10 @@ function ChatPanel({
                 </CardTitle>
                 <Badge className={cn("rounded-full", contextMeta.badgeClassName)}>{contextMeta.label}</Badge>
               </div>
-              <p className="mt-2 max-w-[48ch] text-sm leading-6 text-on-surface-variant">
-                {contextMeta.description}
-              </p>
               {conversation.room ? (
                 <button
                   type="button"
-                  className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary transition-opacity hover:opacity-80"
+                  className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-primary transition-opacity hover:opacity-80"
                   onClick={() => onOpenRoom(conversation.room!.id)}
                 >
                   {conversation.room.title}
@@ -621,11 +621,14 @@ function ChatPanel({
           </div>
           <div className="flex flex-col gap-3 md:flex-row md:items-end">
             <Textarea
+              ref={textareaRef}
               value={draftMessage}
               onChange={(event) => onDraftChange(event.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Nhắn trực tiếp ngay trong thread này..."
-              className="min-h-[108px] rounded-[1.5rem] border-none bg-surface shadow-none"
+              className="rounded-[1.5rem] border-none bg-surface shadow-none transition-[height] duration-100"
+              style={{ resize: "none", overflowY: "hidden" }}
+              rows={1}
               disabled={isSending}
             />
             <Button
@@ -698,12 +701,15 @@ function ContextRail({
           ) : (
             <div className="rounded-[1.5rem] bg-surface p-5">
               <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12 border border-border/70">
+                <PremiumAvatar
+                  isPremium={conversation.participant.is_premium ?? false}
+                  className="h-12 w-12 border border-border/70"
+                >
                   <AvatarImage src={conversation.participant.avatar_url || undefined} />
                   <AvatarFallback className="bg-primary/10 text-primary">
                     {getParticipantInitials(conversation.participant.full_name)}
                   </AvatarFallback>
-                </Avatar>
+                </PremiumAvatar>
                 <div className="min-w-0">
                   <p className="font-semibold text-on-surface">{conversation.participant.full_name}</p>
                   <p className="mt-1 text-sm text-on-surface-variant [overflow-wrap:anywhere] break-all">
@@ -826,8 +832,6 @@ function getConversationContextMeta(conversation: Conversation) {
       kind,
       label: "Hỏi phòng",
       badgeClassName: "bg-primary/10 text-primary hover:bg-primary/10",
-      description:
-        "Thread này đang gắn với một listing cụ thể, nên mọi phản hồi sẽ giữ đúng bối cảnh của căn phòng đang được hỏi.",
     };
   }
 
@@ -835,8 +839,6 @@ function getConversationContextMeta(conversation: Conversation) {
     kind,
     label: "Trực tiếp",
     badgeClassName: "bg-secondary-container text-on-secondary-container hover:bg-secondary-container",
-    description:
-      "Đây là cuộc trò chuyện trực tiếp giữa hai người dùng, phù hợp cho trao đổi hồ sơ, ở ghép hoặc kết nối ngoài luồng hỏi phòng.",
   };
 }
 

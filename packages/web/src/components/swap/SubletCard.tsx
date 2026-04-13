@@ -1,10 +1,12 @@
 ﻿import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { BadgeCheck, CalendarRange, MapPin, Star, User } from 'lucide-react';
+import { BadgeCheck, CalendarRange, MapPin, Star } from 'lucide-react';
+import { AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import { LazyImage } from '@/components/common/LazyImage';
 import { formatMonthlyPrice } from '@roomz/shared/utils/format';
 import type { SubletListingWithDetails } from '@roomz/shared/types/swap';
@@ -74,13 +76,10 @@ export function SubletCard({ sublet, showMatchScore = false, onApply, onSwapRequ
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-muted">
-            {sublet.owner_avatar ? (
-              <img src={sublet.owner_avatar} alt={sublet.owner_name} className="h-full w-full object-cover" />
-            ) : (
-              <User className="h-4 w-4 text-muted-foreground" />
-            )}
-          </div>
+          <PremiumAvatar isPremium={sublet.owner?.is_premium ?? false} className="h-9 w-9">
+            {sublet.owner_avatar ? <AvatarImage src={sublet.owner_avatar} alt={sublet.owner_name || 'Host'} /> : null}
+            <AvatarFallback>{sublet.owner_name?.charAt(0) || 'H'}</AvatarFallback>
+          </PremiumAvatar>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-slate-900">{sublet.owner_name}</p>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">

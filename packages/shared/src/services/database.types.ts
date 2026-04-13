@@ -2248,6 +2248,7 @@ export type Database = {
                     guest_score: number
                     hobbies: string[]
                     hobby_score: number
+                    is_premium: boolean
                     last_seen: string
                     location_score: number
                     major: string
@@ -2301,11 +2302,14 @@ export type Database = {
                     p_district?: string
                     p_furnished?: boolean
                     p_is_verified?: boolean
+                    p_lat?: number
+                    p_lng?: number
                     p_max_price?: number
                     p_min_price?: number
                     p_page?: number
                     p_page_size?: number
                     p_pet_allowed?: boolean
+                    p_radius_km?: number
                     p_room_types?: string[]
                     p_search_query?: string
                     p_sort_by?: string
@@ -2332,11 +2336,13 @@ export type Database = {
                     landlord_avatar: string
                     landlord_email: string
                     landlord_id: string
+                    landlord_is_premium: boolean | null
                     landlord_name: string
                     landlord_phone: string
                     landlord_trust_score: number
                     latitude: number
                     longitude: number
+                    distance_km: number | null
                     max_occupants: number
                     min_lease_term: number
                     pet_allowed: boolean

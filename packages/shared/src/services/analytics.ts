@@ -27,12 +27,15 @@ export type AnalyticsEventName =
     | 'subscription_renewed'
     | 'subscription_cancelled'
     | 'romi_opened'
+    | 'romi_launcher_clicked'
     | 'romi_suggested_prompt_clicked'
     | 'romi_message_sent'
     | 'romi_response_received'
     | 'romi_tool_called'
     | 'romi_action_clicked'
-    | 'romi_error';
+    | 'romi_error'
+    | 'romi_selection_resolved'
+    | 'romi_selection_failed';
 
 export interface AnalyticsEvent {
     id?: string;

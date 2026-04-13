@@ -15,9 +15,10 @@ import {
 import { BookMovingModal } from "@/components/modals/BookMovingModal";
 import { CleaningScheduleModal } from "@/components/modals/CleaningScheduleModal";
 import { PartnerDetailModal } from "@/components/modals/PartnerDetailModal";
-import { ChatDrawer } from "@/components/common/ChatDrawer";
+import { ServiceRequestModal } from "@/components/modals/ServiceRequestModal";
 import { usePartners } from "@/hooks/usePartners";
 import type { Partner } from "@/services/partners";
+import { getPartnerBookingTarget, type ServiceRequestMode } from "@/components/modals/serviceRequestRouting";
 
 interface SupportServicesContentProps {
   embedded?: boolean;
@@ -47,7 +48,7 @@ const services = [
     title: "Đóng gói & lắp đặt",
     description: "Giúp lắp ráp nội thất và sắp xếp không gian gọn gàng.",
     icon: Package,
-    buttonText: "Liên hệ đối tác",
+    buttonText: "Gửi yêu cầu",
     color: "bg-amber-100",
     iconColor: "text-warning",
   },
@@ -61,19 +62,80 @@ export function SupportServicesContent({
 
   const [isMovingModalOpen, setIsMovingModalOpen] = useState(false);
   const [isCleaningModalOpen, setIsCleaningModalOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [activeRequestMode, setActiveRequestMode] = useState<ServiceRequestMode | null>(null);
   const [isPartnerDetailOpen, setIsPartnerDetailOpen] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+  const [selectedBookingPartner, setSelectedBookingPartner] = useState<Partner | null>(null);
+
+  const openMovingModal = (partner: Partner | null = null) => {
+    setSelectedBookingPartner(partner);
+    setIsMovingModalOpen(true);
+  };
+
+  const closeMovingModal = () => {
+    setIsMovingModalOpen(false);
+    setSelectedBookingPartner(null);
+  };
+
+  const openCleaningModal = (partner: Partner | null = null) => {
+    setSelectedBookingPartner(partner);
+    setIsCleaningModalOpen(true);
+  };
+
+  const closeCleaningModal = () => {
+    setIsCleaningModalOpen(false);
+    setSelectedBookingPartner(null);
+  };
+
+  const openRequestModal = (mode: ServiceRequestMode, partner: Partner | null = null) => {
+    setSelectedBookingPartner(partner);
+    setActiveRequestMode(mode);
+  };
+
+  const closeRequestModal = () => {
+    setActiveRequestMode(null);
+    setSelectedBookingPartner(null);
+  };
 
   const handleServiceClick = (serviceId: number) => {
-    if (serviceId === 1) setIsMovingModalOpen(true);
-    if (serviceId === 2) setIsCleaningModalOpen(true);
-    if (serviceId === 3) setIsChatOpen(true);
+    if (serviceId === 1) {
+      openMovingModal();
+      return;
+    }
+
+    if (serviceId === 2) {
+      openCleaningModal();
+      return;
+    }
+
+    if (serviceId === 3) {
+      openRequestModal("setup");
+    }
   };
 
   const handlePartnerClick = (partner: Partner) => {
     setSelectedPartner(partner);
     setIsPartnerDetailOpen(true);
+  };
+
+  const handlePartnerBooking = (partner: Partner) => {
+    const bookingTarget = getPartnerBookingTarget(partner);
+
+    switch (bookingTarget) {
+      case "moving":
+        openMovingModal(partner);
+        return;
+      case "cleaning":
+        openCleaningModal(partner);
+        return;
+      case "voucher":
+        setIsPartnerDetailOpen(false);
+        setSelectedPartner(null);
+        navigate("/services?tab=deals");
+        return;
+      default:
+        openRequestModal(bookingTarget, partner);
+    }
   };
 
   return (
@@ -245,6 +307,9 @@ export function SupportServicesContent({
             </div>
           ) : (
             <Card className="rounded-[28px] p-8 text-center">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                <Package className="h-7 w-7 text-primary" />
+              </div>
               <p className="text-muted-foreground">
                 Chưa có đối tác nào. Hãy quay lại sau.
               </p>
@@ -274,23 +339,28 @@ export function SupportServicesContent({
 
       <BookMovingModal
         isOpen={isMovingModalOpen}
-        onClose={() => setIsMovingModalOpen(false)}
+        onClose={closeMovingModal}
+        partnerId={selectedBookingPartner?.id}
+        partnerName={selectedBookingPartner?.name}
       />
       <CleaningScheduleModal
         isOpen={isCleaningModalOpen}
-        onClose={() => setIsCleaningModalOpen(false)}
+        onClose={closeCleaningModal}
+        partnerId={selectedBookingPartner?.id}
+        partnerName={selectedBookingPartner?.name}
       />
-      <ChatDrawer
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        recipientName="SetupCare"
-        recipientRole="Đối tác - Lắp đặt & sắp xếp"
+      <ServiceRequestModal
+        isOpen={activeRequestMode !== null}
+        onClose={closeRequestModal}
+        mode={activeRequestMode}
+        partner={selectedBookingPartner}
       />
       {selectedPartner ? (
         <PartnerDetailModal
           isOpen={isPartnerDetailOpen}
           onClose={() => setIsPartnerDetailOpen(false)}
           partner={selectedPartner}
+          onBookService={handlePartnerBooking}
         />
       ) : null}
     </div>

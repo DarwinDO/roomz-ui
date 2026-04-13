@@ -25,6 +25,7 @@ import {
   LogOut,
   ChevronRight,
   Building2,
+  ExternalLink,
 } from 'lucide-react';
 
 const navItems = [
@@ -79,7 +80,14 @@ function SidebarUserInfo({
   onLogout: () => void;
 }) {
   return (
-    <div className="flex flex-shrink-0 border-t border-gray-700/50 p-4">
+    <div className="flex flex-shrink-0 flex-col border-t border-gray-700/50 p-4 gap-3">
+      <Link
+        to="/"
+        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700/50 hover:text-white"
+      >
+        <ExternalLink className="h-4 w-4 shrink-0" />
+        Xem trang người dùng
+      </Link>
       <div className="flex w-full items-center">
         <Avatar className="h-10 w-10">
           <AvatarFallback className="bg-primary text-white">{profile?.full_name?.charAt(0) || 'A'}</AvatarFallback>
@@ -184,6 +192,14 @@ export default function AdminShell() {
               </Link>
               <ChevronRight className="mx-2 h-4 w-4" />
               <span className="font-medium text-gray-900">{getBreadcrumb()}</span>
+            </div>
+            <div className="ml-auto">
+              <Link to="/">
+                <Button variant="outline" size="sm" className="gap-2 rounded-full text-xs">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Xem trang người dùng
+                </Button>
+              </Link>
             </div>
           </div>
         </header>

@@ -1,85 +1,107 @@
-import { useState, useCallback } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import {
-    sendAIChatMessage,
+    buildGuestHistory,
+    createInitialWorkspaceState,
+    romiWorkspaceReducer,
+    sendAIChatMessageStream,
+    type RomiDisplayMessage,
+    type RomiViewerMode,
 } from '@roomz/shared/services/ai-chatbot';
-import type { AIChatResponse } from '@roomz/shared/services/ai-chatbot';
-import { ROMI_WELCOME_MESSAGE } from '@roomz/shared/constants/romi';
-
-interface DisplayMessage {
-    id: string;
-    text: string;
-    sender: 'user' | 'bot';
-    timestamp: Date;
-}
-
-const WELCOME_MESSAGE: DisplayMessage = {
-    id: 'welcome',
-    text: ROMI_WELCOME_MESSAGE,
-    sender: 'bot',
-    timestamp: new Date(),
-};
 
 export function useAIChatbot() {
     const { user } = useAuth();
-    const [sessionId, setSessionId] = useState<string | null>(null);
-    const [messages, setMessages] = useState<DisplayMessage[]>([WELCOME_MESSAGE]);
+    const viewerMode: RomiViewerMode = user ? 'user' : 'guest';
+    const [workspaceState, dispatch] = useReducer(
+        romiWorkspaceReducer,
+        viewerMode,
+        createInitialWorkspaceState,
+    );
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const workspaceRef = useRef(workspaceState);
 
-    const sendMutation = useMutation({
-        mutationFn: async (message: string) => {
-            return sendAIChatMessage(supabase, message, sessionId || undefined);
-        },
-        onMutate: (message: string) => {
-            setError(null);
-            const userMsg: DisplayMessage = {
-                id: `user-${Date.now()}`,
-                text: message,
-                sender: 'user',
-                timestamp: new Date(),
-            };
-            setMessages(prev => [...prev, userMsg]);
-        },
-        onSuccess: (response: AIChatResponse) => {
-            if (!sessionId) {
-                setSessionId(response.sessionId);
-            }
-            const botMsg: DisplayMessage = {
-                id: `bot-${Date.now()}`,
-                text: response.message,
-                sender: 'bot',
-                timestamp: new Date(),
-            };
-            setMessages(prev => [...prev, botMsg]);
-        },
-        onError: (err: Error) => {
-            setError(err.message || 'Đã xảy ra lỗi. Vui lòng thử lại.');
-        },
-    });
+    useEffect(() => {
+        workspaceRef.current = workspaceState;
+    }, [workspaceState]);
 
-    const sendMessage = useCallback((text: string) => {
+    useEffect(() => {
+        dispatch({ type: 'reset', viewerMode });
+        setError(null);
+    }, [viewerMode]);
+
+    const sendMessage = useCallback(async (text: string) => {
         const trimmed = text.trim();
-        if (!trimmed || sendMutation.isPending || !user) return;
-        sendMutation.mutate(trimmed);
-    }, [sendMutation, user]);
+        if (!trimmed || isLoading) return;
+
+        const createdAt = new Date().toISOString();
+        const userMessage: RomiDisplayMessage = {
+            id: `user-${Date.now()}`,
+            role: 'user',
+            text: trimmed,
+            createdAt,
+            journeyState: workspaceRef.current.journeyState,
+        };
+        const placeholderId = `assistant-${Date.now()}`;
+
+        setError(null);
+        setIsLoading(true);
+        dispatch({ type: 'user_message', message: userMessage });
+        dispatch({ type: 'assistant_placeholder', id: placeholderId, createdAt });
+
+        try {
+            for await (const event of sendAIChatMessageStream(supabase, trimmed, {
+                sessionId: viewerMode === 'user' ? workspaceRef.current.session?.id || undefined : undefined,
+                viewerMode,
+                entryPoint: 'launcher',
+                pageContext: {
+                    route: 'mobile_ai_chatbot',
+                    surface: viewerMode === 'guest' ? 'mobile_guest_modal' : 'mobile_modal',
+                },
+                journeyState: workspaceRef.current.journeyState,
+                history: viewerMode === 'guest' ? buildGuestHistory(workspaceRef.current.messages) : undefined,
+            })) {
+                dispatch({ type: 'stream_event', event, placeholderId, createdAt });
+
+                if (event.type === 'error') {
+                    throw new Error(event.message);
+                }
+            }
+        } catch (streamError) {
+            const message = streamError instanceof Error
+                ? streamError.message
+                : 'Đã xảy ra lỗi. Vui lòng thử lại.';
+            setError(message);
+            dispatch({
+                type: 'stream_event',
+                event: {
+                    type: 'error',
+                    code: 'GEMINI_ERROR',
+                    message,
+                },
+                placeholderId,
+                createdAt,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [isLoading, viewerMode]);
 
     const startNewChat = useCallback(() => {
-        setSessionId(null);
-        setMessages([WELCOME_MESSAGE]);
+        dispatch({ type: 'reset', viewerMode });
         setError(null);
-    }, []);
+    }, [viewerMode]);
 
     return {
-        messages,
-        isLoading: sendMutation.isPending,
+        workspaceState,
+        messages: workspaceState.messages,
+        isLoading,
         error,
+        viewerMode,
         isAuthenticated: !!user,
         sendMessage,
         startNewChat,
-        sessionId,
+        sessionId: workspaceState.session?.id ?? null,
     };
 }
-
-

@@ -17,6 +17,91 @@ description: ROMI v3 implementation notes for shared contracts, web workspace, a
 
 Mobile was intentionally left unchanged in this phase.
 
+## Stabilization On 2026-04-11
+
+- ROMI routing is now stabilized around a single turn planner instead of letting multiple intent helpers infer independently.
+- Web and mobile now consume the same reducer and stream-event contract from `packages/shared`.
+- Room, partner, and deal follow-up detail turns now use deterministic entity resolution before any model-driven tool choice.
+- Guest throttling is now backed by Postgres minute buckets instead of process memory.
+
+## Incident Hardening On 2026-04-12
+
+- Live session review exposed two separate ROMI trust-breakers:
+  - short meta reactions like `"ngáo à?"` could still inherit the previous `find_room` goal and be misclassified back into a room-search tool path
+  - when the model looped the same tool repeatedly with identical input, the fallback formatter could dump every repeated tool result into the saved assistant message as `Kết quả 1 ... Kết quả N`
+- Local hardening now covers both failure modes:
+  - `packages/shared/src/services/ai-chatbot/intake.ts`
+    - narrows room-intent carry-forward so only genuine search/detail/refinement cues inherit `find_room`
+    - prevents generic meta reactions from being re-routed into `room_search`
+    - repairs likely UTF-8 mojibake before Vietnamese normalization so accented runtime prompts still classify correctly
+    - tightens room follow-up hint matching with word boundaries so short complaints like `ngáo à?` no longer trigger the `ga` location token by substring accident
+  - `supabase/functions/ai-chatbot/tool-result-utils.ts`
+    - adds exact tool-result deduplication for repeated model/tool loops
+  - `supabase/functions/ai-chatbot/index.ts`
+    - caches identical tool executions inside a single request
+    - deduplicates identical tool results before fallback response assembly, persisted metadata, action derivation, and telemetry tracking
+- Live-vs-local caveat:
+  - the incident telemetry captured from `2026-04-12` initially did not fully match the repo planner behavior; `ai-chatbot` has now been redeployed to `vevnoxlgwisdottaifdn`, and the live stream room flow matches the hardened local behavior again
+
+### Shared stabilization details
+
+- `packages/shared/src/services/ai-chatbot/types.ts`
+  - adds persistent selection memory on `RomiJourneyState`:
+    - `activeEntityType`
+    - `activeEntityId`
+    - `lastResultSetType`
+    - `lastResultIds`
+    - `lastResultSourceIntent`
+  - adds `selection` metadata to `AIChatMessageMetadata` so clients can explain why ROMI entered a detail turn
+  - makes `viewerMode` explicit in the shared request contract instead of silently defaulting to `user`
+- `packages/shared/src/services/ai-chatbot/journey.ts`
+  - merges the new selection memory fields into persisted journey state
+  - includes active-entity context in the user-facing journey summary
+- `packages/shared/src/services/ai-chatbot/workspace.ts`
+  - centralizes the ROMI workspace reducer, stored-message mapping, guest-history builder, and stream-event application logic
+- `packages/shared/src/services/ai-chatbot/api.ts`
+  - requires callers to send `viewerMode` explicitly for both normal and streaming requests
+
+### Edge stabilization details
+
+- `supabase/functions/ai-chatbot/planner.ts`
+  - introduces `planRomiTurn(...)` as the routing source of truth for `primary intent`, `turn mode`, `target entity`, and selected tools
+  - enforces follow-up precedence in this order:
+    - explicit UUID
+    - ordinal reference against `lastResultIds`
+    - active-entity detail phrase
+    - search refinement fallback
+  - produces deterministic clarification prompts when a selection reference is invalid or out of range
+  - records ordered result memory and active entity selection through `buildJourneySelectionPatch(...)`
+- `supabase/functions/ai-chatbot/index.ts`
+  - executes room, partner, and deal detail turns through a deterministic detail path when the planner already resolved the target entity
+  - adds `get_partner_details` and `get_deal_details` so `list -> select -> detail` parity no longer exists only for rooms
+  - stops using the first item in a search collection as implicit detail context when the turn is not actually a detail turn
+  - emits selection telemetry for resolved and failed follow-up turns
+  - fixes `search_partners` and `search_deals` correctness by filtering and sorting active rows before applying the response limit
+- `supabase/functions/ai-chatbot/catalog-search.ts`
+  - extracts pure partner and deal catalog filtering so search correctness can be regression-tested independently of the edge request handler
+- `supabase/functions/ai-chatbot/guest-rate-limit.ts`
+  - hashes request-derived guest fingerprints and delegates enforcement to Postgres
+- `supabase/migrations/20260411123000_romi_guest_rate_limit.sql`
+  - creates durable guest rate-limit buckets and the `consume_romi_guest_rate_limit(...)` helper
+
+### Client stabilization details
+
+- `packages/web/src/components/common/Chatbot.tsx`
+  - launcher analytics now fire a dedicated `romi_launcher_clicked` event instead of double-counting `romi_opened`
+- `packages/web/src/pages/RomiPage.tsx`
+  - analytics payloads now keep chat-session identifiers inside properties instead of leaving a mismatched top-level `session_id`
+- `packages/mobile/src/hooks/useAIChatbot.ts`
+  - now uses the shared workspace reducer and stream contract
+  - sends explicit `viewerMode` for every request
+  - allows guest prompting as a first-class flow instead of blocking unauthenticated users
+- `packages/mobile/components/AIChatbot.tsx`
+  - renders clarification banners, handoff banners, and action CTAs from edge metadata
+  - routes supported action chips natively and falls back to the web route for unsupported mobile destinations
+- `packages/mobile/components/AIChatMessage.tsx`
+  - renders structured action buttons beneath assistant turns
+
 ## Stability Hardening On 2026-03-30
 
 - `P0` trust-breaker hardening now landed for ROMI room-search turns:
@@ -227,7 +312,7 @@ The new workspace introduces:
 
 ## Known Gaps
 
-- No direct Deno/edge-function test suite was added in this task.
-- Guest rate limiting is still in-memory.
-- Knowledge seeding currently happens on first request rather than through a dedicated seed job.
+- Knowledge seeding currently still happens on first request rather than through a dedicated seed job.
+- The broader transcript-regression suite from the stabilization plan is only partially covered today by planner tests, shared reducer tests, and web E2E.
+- Mobile TypeScript validation is currently blocked by a pre-existing workspace issue: missing `mapbox__point-geometry` type definitions.
 - Post-deploy hardening metrics still need real sample collection before `romi_auto_broaden_v1` can roll out broadly.

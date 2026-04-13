@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRef } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -77,10 +78,15 @@ export default function RoomsPage() {
   const [selectedRoomForReject, setSelectedRoomForReject] = useState<AdminRoom | null>(null);
   const [selectedRoomForEdit, setSelectedRoomForEdit] = useState<AdminRoom | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const selectedRoomForEditRef = useRef<AdminRoom | null>(null);
+
+  useEffect(() => {
+    selectedRoomForEditRef.current = selectedRoomForEdit;
+  }, [selectedRoomForEdit]);
 
   useEffect(() => {
     const focusId = searchParams.get('focus');
-    if (!focusId || rooms.length === 0 || selectedRoomForEdit) {
+    if (!focusId || rooms.length === 0 || selectedRoomForEditRef.current) {
       return;
     }
 
@@ -91,7 +97,7 @@ export default function RoomsPage() {
 
     setSelectedRoomForEdit(match);
     setEditorOpen(true);
-  }, [rooms, searchParams, selectedRoomForEdit]);
+  }, [rooms, searchParams]);
 
   const stats = useMemo(
     () => ({
@@ -135,7 +141,7 @@ export default function RoomsPage() {
     });
   }, [setSearchParams]);
 
-  const closeEditor = (open: boolean) => {
+  const closeEditor = useCallback((open: boolean) => {
     setEditorOpen(open);
     if (!open) {
       setSelectedRoomForEdit(null);
@@ -143,9 +149,9 @@ export default function RoomsPage() {
         const next = new URLSearchParams(current);
         next.delete('focus');
         return next;
-      });
+      }, { replace: true });
     }
-  };
+  }, [setSearchParams]);
 
   const handleApprove = useCallback(async (roomId: string) => {
     await approveMutation.mutateAsync(roomId);

@@ -7,7 +7,8 @@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Send, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -31,6 +32,7 @@ interface ChatDrawerProps {
   recipientRole?: string;
   compatibilityScore?: number;
   recipientAvatar?: string;
+  recipientIsPremium?: boolean;
 }
 
 export function ChatDrawer({
@@ -40,7 +42,8 @@ export function ChatDrawer({
   recipientName,
   recipientRole,
   compatibilityScore,
-  recipientAvatar
+  recipientAvatar,
+  recipientIsPremium = false,
 }: ChatDrawerProps) {
   const { user } = useAuth();
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -134,12 +137,12 @@ export function ChatDrawer({
         {/* Header */}
         <SheetHeader className="px-6 pt-6 pb-4 border-b">
           <div className="flex items-center gap-3">
-            <Avatar className="w-12 h-12">
+            <PremiumAvatar isPremium={recipientIsPremium} className="h-12 w-12">
               <AvatarImage src={recipientAvatar} />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20">
                 {initials}
               </AvatarFallback>
-            </Avatar>
+            </PremiumAvatar>
             <div className="flex-1">
               <SheetTitle className="mb-1">
                 <div className="flex items-center gap-2">

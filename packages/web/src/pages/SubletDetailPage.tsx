@@ -371,6 +371,7 @@ export default function SubletDetailPage() {
                 <ListingHostCard
                   name={hostName}
                   avatarUrl={owner.avatar_url}
+                  isPremium={owner.is_premium ?? false}
                   isVerified={owner.id_card_verified || false}
                   roleLabel={isOwner ? "Bạn là host của tin đăng này" : "Host của chỗ ở ngắn hạn"}
                   email={owner.email || null}

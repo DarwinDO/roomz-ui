@@ -5,3 +5,5 @@ export * from './types';
 export * from './api';
 export * from './intake';
 export * from './journey';
+export * from './text';
+export * from './workspace';

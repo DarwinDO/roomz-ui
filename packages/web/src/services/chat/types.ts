@@ -14,6 +14,7 @@ export interface UserInfo {
     id: string;
     full_name: string;
     avatar_url: string | null;
+    is_premium?: boolean | null;
     email?: string;
 }
 

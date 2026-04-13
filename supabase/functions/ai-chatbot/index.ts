@@ -17,6 +17,7 @@ import {
 } from '../../../packages/shared/src/constants/romi.ts';
 import { analyzeRomiIntake } from '../../../packages/shared/src/services/ai-chatbot/intake.ts';
 import { finalizeJourneyState, mergeJourneyState } from '../../../packages/shared/src/services/ai-chatbot/journey.ts';
+import { normalizeVietnameseText, repairPotentialMojibake } from '../../../packages/shared/src/services/ai-chatbot/text.ts';
 import type {
     AIChatHistoryEntry,
     AIChatMessageMetadata,
@@ -31,13 +32,18 @@ import type {
     RomiViewerMode,
 } from '../../../packages/shared/src/services/ai-chatbot/types.ts';
 import { buildClarificationReply, buildGuestHandoff } from './fallback-policy.ts';
+import { filterDealSearchRows, filterPartnerSearchRows } from './catalog-search.ts';
+import { buildGuestFingerprintSource, consumeGuestRateLimit, hashGuestFingerprint } from './guest-rate-limit.ts';
 import {
     buildKnowledgeContext,
     ensureKnowledgeCorpus,
     inferKnowledgeSection,
     retrieveKnowledgeSources,
 } from './knowledge.ts';
+import { buildJourneySelectionPatch, planRomiTurn, resolveConversationContext } from './planner.ts';
 import { buildKnowledgeOnlyReply, buildRomiSystemPrompt } from './response-composer.ts';
+import { dedupeToolResults } from './tool-result-utils.ts';
+import { getRequestedViewerMode, resolveEffectiveViewerMode } from './viewer-mode.ts';
 
 const AI_GATEWAY_API_KEY = Deno.env.get('AI_GATEWAY_API_KEY');
 const AI_GATEWAY_MODEL = Deno.env.get('AI_GATEWAY_MODEL') || 'google/gemini-2.0-flash-lite';
@@ -171,6 +177,28 @@ const TOOLS = {
             required: ['room_id'],
         },
     },
+    get_partner_details: {
+        name: 'get_partner_details',
+        description: 'Lấy thông tin chi tiết của một đối tác hoặc dịch vụ theo ID.',
+        parameters: {
+            type: 'OBJECT' as const,
+            properties: {
+                partner_id: { type: 'STRING' as const, description: 'UUID của đối tác' },
+            },
+            required: ['partner_id'],
+        },
+    },
+    get_deal_details: {
+        name: 'get_deal_details',
+        description: 'Lấy thông tin chi tiết của một ưu đãi theo ID.',
+        parameters: {
+            type: 'OBJECT' as const,
+            properties: {
+                deal_id: { type: 'STRING' as const, description: 'UUID của deal' },
+            },
+            required: ['deal_id'],
+        },
+    },
     get_app_info: {
         name: 'get_app_info',
         description: 'Lấy thông tin về tính năng và quyền lợi của RommZ.',
@@ -192,7 +220,6 @@ const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60_000;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 type AdminClient = any;
-const guestRateLimitWindow = new Map<string, number[]>();
 let romiFeatureFlagCache: { expiresAt: number; flags: RomiFeatureFlags } | null = null;
 
 type SearchRoomsRpcRow = {
@@ -335,11 +362,7 @@ type RoomSearchExecution = {
 };
 
 function normalizeText(input: string): string {
-    return input
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd');
+    return normalizeVietnameseText(input);
 }
 
 function normalizeOptionalText(input: unknown): string {
@@ -648,6 +671,60 @@ function buildRomiActionsFromToolResult(functionName: ToolName, result: unknown)
         return actions;
     }
 
+    if (functionName === 'get_room_details' && typeof payload.id === 'string') {
+        return [
+            {
+                type: 'open_room',
+                label: 'Mở chi tiết phòng',
+                href: `/room/${payload.id}`,
+                description: 'Xem listing đầy đủ của phòng này trong app',
+            },
+        ];
+    }
+
+    if (functionName === 'get_partner_details' && typeof payload.id === 'string') {
+        return [
+            {
+                type: 'open_local_passport',
+                label: 'Mở đối tác trong Local Passport',
+                href: buildInternalHref('/local-passport', {
+                    search: typeof payload.name === 'string' ? payload.name : null,
+                    category: typeof payload.category === 'string' ? payload.category : null,
+                }),
+                description: 'Mở đúng đối tác này trong Local Passport',
+            },
+            {
+                type: 'open_support_services',
+                label: 'Mở trang dịch vụ',
+                href: '/support-services',
+            },
+        ];
+    }
+
+    if (functionName === 'get_deal_details' && typeof payload.id === 'string') {
+        const actions: RomiAction[] = [
+            {
+                type: 'open_local_passport',
+                label: 'Mở deal trong Local Passport',
+                href: buildInternalHref('/local-passport', {
+                    search: typeof payload.title === 'string' ? payload.title : null,
+                    category: typeof payload.category === 'string' ? payload.category : null,
+                }),
+                description: 'Mở đúng ưu đãi này trong Local Passport',
+            },
+        ];
+
+        if (payload.isLocked) {
+            actions.push({
+                type: 'open_payment',
+                label: 'Mở khóa deal Premium',
+                href: '/payment?source=romi',
+            });
+        }
+
+        return actions;
+    }
+
     if (functionName === 'search_locations') {
         const locations = Array.isArray(payload.locations) ? payload.locations as Array<Record<string, unknown>> : [];
         if (locations.length === 0) {
@@ -810,6 +887,8 @@ type RomiTelemetryEventName =
     | 'romi_tool_called'
     | 'romi_action_clicked'
     | 'romi_error'
+    | 'romi_selection_resolved'
+    | 'romi_selection_failed'
     | 'romi_clarification_loop'
     | 'romi_budget_terse_fill'
     | 'romi_zero_result_exact'
@@ -1097,27 +1176,6 @@ async function checkRateLimit(
     return (count || 0) < RATE_LIMIT;
 }
 
-function getGuestRateKey(req: Request) {
-    const forwardedFor = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-    const userAgent = req.headers.get('user-agent') || 'unknown';
-    return `${forwardedFor || 'guest'}:${userAgent.slice(0, 48)}`;
-}
-
-function checkGuestRateLimit(key: string) {
-    const now = Date.now();
-    const windowStart = now - RATE_WINDOW_MS;
-    const recentHits = (guestRateLimitWindow.get(key) || []).filter((timestamp) => timestamp >= windowStart);
-
-    if (recentHits.length >= RATE_LIMIT) {
-        guestRateLimitWindow.set(key, recentHits);
-        return false;
-    }
-
-    recentHits.push(now);
-    guestRateLimitWindow.set(key, recentHits);
-    return true;
-}
-
 function formatSearchRoomsReply(result: unknown): string {
     const payload = result as { rooms?: Array<Record<string, unknown>>; message?: string; error?: string };
     if (payload?.error) {
@@ -1156,10 +1214,11 @@ function formatSearchPartnersReply(result: unknown): string {
         const category = String(partner.categoryLabel || 'Dịch vụ');
         const address = String(partner.address || 'Chưa rõ khu vực');
         const rating = typeof partner.rating === 'number' ? ` • ${partner.rating.toFixed(1)}⭐` : '';
-        return `${idx + 1}. ${name} (${category})${rating}\nKhu vực: ${address}`;
+        const partnerId = typeof partner.id === 'string' ? `\nID: ${partner.id}` : '';
+        return `${idx + 1}. ${name} (${category})${rating}\nKhu vực: ${address}${partnerId}`;
     });
 
-    return `ROMI tìm được ${partners.length} dịch vụ/đối tác phù hợp:\n\n${lines.join('\n\n')}`;
+    return `ROMI tìm được ${partners.length} dịch vụ/đối tác phù hợp:\n\n${lines.join('\n\n')}\n\nBạn muốn mình mở chi tiết đối tác số mấy hoặc gửi ID nhé.`;
 }
 
 function formatSearchDealsReply(result: unknown): string {
@@ -1188,15 +1247,16 @@ function formatSearchDealsReply(result: unknown): string {
             : deal.isPremiumOnly
                 ? ' • Deal Premium đã mở khóa'
                 : '';
+        const dealId = typeof deal.id === 'string' ? `\nID: ${deal.id}` : '';
 
-        return `${idx + 1}. ${title} - ${discount}${premiumTag}\nĐối tác: ${partnerName} • Khu vực: ${city}`;
+        return `${idx + 1}. ${title} - ${discount}${premiumTag}\nĐối tác: ${partnerName} • Khu vực: ${city}${dealId}`;
     });
 
     const tail = payload.isPremium
         ? '\n\nBạn đang có RommZ+, nên có thể mở các deal Premium ngay trên Local Passport.'
         : '\n\nNếu bạn muốn mở các deal Premium, ROMI có thể chỉ đường sang trang nâng cấp RommZ+.';
 
-    return `ROMI tìm được ${deals.length} ưu đãi phù hợp:\n\n${lines.join('\n\n')}${tail}`;
+    return `ROMI tìm được ${deals.length} ưu đãi phù hợp:\n\n${lines.join('\n\n')}${tail}\n\nBạn muốn mình mở deal số mấy hoặc gửi ID nhé.`;
 }
 
 function formatSearchLocationsReply(result: unknown): string {
@@ -1240,12 +1300,62 @@ function formatRoomDetailsReply(result: unknown): string {
     return `${title}\nGiá: ${price}\nVị trí: ${location || 'Chưa rõ'}\nTiện ích: ${furnished} • ${verified}`;
 }
 
+function formatPartnerDetailsReply(result: unknown): string {
+    const payload = result as Record<string, unknown>;
+    if (payload?.error) {
+        return 'ROMI chưa tìm thấy chi tiết đối tác này. Bạn kiểm tra lại ID giúp mình nhé.';
+    }
+
+    const name = String(payload.name || 'Đối tác');
+    const category = String(payload.categoryLabel || payload.category || 'Dịch vụ');
+    const address = String(payload.address || 'Chưa rõ khu vực');
+    const rating = typeof payload.rating === 'number' ? `${payload.rating.toFixed(1)}⭐` : 'Chưa có rating';
+    const specialization = typeof payload.specialization === 'string' && payload.specialization.trim()
+        ? `\nChuyên môn: ${payload.specialization}`
+        : '';
+    const discount = typeof payload.discount === 'string' && payload.discount.trim()
+        ? `\nƯu đãi hiện có: ${payload.discount}`
+        : '';
+    const hours = typeof payload.hours === 'string' && payload.hours.trim()
+        ? `\nGiờ mở cửa: ${payload.hours}`
+        : '';
+
+    return `${name}\nLoại: ${category}\nKhu vực: ${address}\nĐánh giá: ${rating}${specialization}${discount}${hours}`;
+}
+
+function formatDealDetailsReply(result: unknown): string {
+    const payload = result as Record<string, unknown>;
+    if (payload?.error) {
+        return 'ROMI chưa tìm thấy chi tiết ưu đãi này. Bạn kiểm tra lại ID giúp mình nhé.';
+    }
+
+    const title = String(payload.title || 'Ưu đãi');
+    const discountValue = String(payload.discountValue || payload.discount_value || 'Ưu đãi đang cập nhật');
+    const partnerName = String(payload.partnerName || 'Đối tác');
+    const category = String(payload.categoryLabel || payload.category || 'Local Passport');
+    const validUntil = typeof payload.validUntil === 'string' && payload.validUntil.trim()
+        ? `\nHiệu lực đến: ${payload.validUntil}`
+        : '';
+    const premiumTag = payload.isLocked
+        ? '\nTrạng thái: Deal Premium, cần RommZ+ để mở khóa'
+        : payload.isPremiumOnly
+            ? '\nTrạng thái: Deal Premium đã mở khóa'
+            : '';
+    const description = typeof payload.description === 'string' && payload.description.trim()
+        ? `\nMô tả: ${payload.description}`
+        : '';
+
+    return `${title}\nMức ưu đãi: ${discountValue}\nĐối tác: ${partnerName}\nNhóm: ${category}${validUntil}${premiumTag}${description}`;
+}
+
 function formatToolResultReply(functionName: string, result: unknown): string {
     if (functionName === 'search_rooms') return formatSearchRoomsReply(result);
     if (functionName === 'search_partners') return formatSearchPartnersReply(result);
     if (functionName === 'search_deals') return formatSearchDealsReply(result);
     if (functionName === 'search_locations') return formatSearchLocationsReply(result);
     if (functionName === 'get_room_details') return formatRoomDetailsReply(result);
+    if (functionName === 'get_partner_details') return formatPartnerDetailsReply(result);
+    if (functionName === 'get_deal_details') return formatDealDetailsReply(result);
     if (functionName === 'get_app_info') {
         const info = (result as { info?: string })?.info;
         return info || 'ROMI chưa có thông tin cho chủ đề này.';
@@ -1285,6 +1395,8 @@ type SearchLocationsToolInput = {
     limit?: number | string;
 };
 type RoomDetailsToolInput = { room_id: string };
+type PartnerDetailsToolInput = { partner_id: string };
+type DealDetailsToolInput = { deal_id: string };
 type AppInfoToolInput = { topic?: RomiAppInfoTopic };
 
 async function handleFunctionCall(
@@ -1405,40 +1517,16 @@ async function handleFunctionCall(
                 .eq('status', 'active')
                 .order('rating', { ascending: false, nullsFirst: false })
                 .order('review_count', { ascending: false, nullsFirst: false })
-                .limit(50);
+                .limit(500);
 
             if (error) return { error: 'Lỗi tìm kiếm đối tác' };
 
-            const partners = ((data || []) as PartnerSearchRow[])
-                .filter((partner) => !category || partner.category === category)
-                .filter((partner) => {
-                    if (!city) return true;
-                    const haystack = [
-                        partner.address,
-                        partner.description,
-                        partner.specialization,
-                        partner.discount,
-                    ]
-                        .filter(Boolean)
-                        .map(normalizeOptionalText)
-                        .join(' ');
-                    return haystack.includes(city);
-                })
-                .filter((partner) => {
-                    if (!query) return true;
-                    const haystack = [
-                        partner.name,
-                        partner.description,
-                        partner.specialization,
-                        partner.discount,
-                        partner.address,
-                    ]
-                        .filter(Boolean)
-                        .map(normalizeOptionalText)
-                        .join(' ');
-                    return haystack.includes(query);
-                })
-                .slice(0, limit);
+            const partners = filterPartnerSearchRows((data || []) as PartnerSearchRow[], {
+                query,
+                city,
+                category,
+                limit,
+            });
 
             if (partners.length === 0) {
                 return {
@@ -1504,43 +1592,18 @@ async function handleFunctionCall(
                     )
                 `)
                 .eq('is_active', true)
-                .limit(50);
+                .limit(500);
 
             if (error) return { error: 'Lỗi tìm kiếm ưu đãi' };
 
-            const deals = ((data || []) as DealSearchRow[])
-                .filter((deal) => deal.partner?.status === 'active')
-                .filter((deal) => !deal.valid_until || deal.valid_until >= nowIso)
-                .filter((deal) => !premiumOnly || deal.is_premium_only === true)
-                .filter((deal) => !category || deal.partner?.category === category)
-                .filter((deal) => {
-                    if (!city) return true;
-                    const haystack = [
-                        deal.partner?.address,
-                        deal.description,
-                        deal.title,
-                    ]
-                        .filter(Boolean)
-                        .map(normalizeOptionalText)
-                        .join(' ');
-                    return haystack.includes(city);
-                })
-                .filter((deal) => {
-                    if (!query) return true;
-                    const haystack = [
-                        deal.title,
-                        deal.description,
-                        deal.discount_value,
-                        deal.partner?.name,
-                        deal.partner?.address,
-                    ]
-                        .filter(Boolean)
-                        .map(normalizeOptionalText)
-                        .join(' ');
-                    return haystack.includes(query);
-                })
-                .sort((a, b) => Number(a.is_premium_only) - Number(b.is_premium_only))
-                .slice(0, limit);
+            const deals = filterDealSearchRows((data || []) as DealSearchRow[], {
+                query,
+                city,
+                category,
+                premiumOnly,
+                limit,
+                nowIso,
+            });
 
             if (deals.length === 0) {
                 return {
@@ -1639,6 +1702,79 @@ async function handleFunctionCall(
 
             if (error || !data) return { error: 'Không tìm thấy phòng' };
             return data;
+        }
+
+        case 'get_partner_details': {
+            const { data, error } = await adminClient
+                .from('partners')
+                .select('id, name, category, description, address, phone, email, contact_info, specialization, discount, rating, review_count, hours, status')
+                .eq('id', args.partner_id as string)
+                .eq('status', 'active')
+                .maybeSingle();
+
+            if (error || !data) return { error: 'Không tìm thấy đối tác' };
+
+            return {
+                id: data.id,
+                name: data.name,
+                category: data.category,
+                categoryLabel: formatPartnerCategoryLabel(data.category),
+                description: data.description,
+                address: data.address,
+                website: getPartnerContactValue(data.contact_info, 'website'),
+                phone: data.phone || getPartnerContactValue(data.contact_info, 'phone'),
+                email: data.email || getPartnerContactValue(data.contact_info, 'email'),
+                specialization: data.specialization,
+                discount: data.discount,
+                rating: data.rating,
+                reviewCount: data.review_count,
+                hours: data.hours,
+            };
+        }
+
+        case 'get_deal_details': {
+            const isPremium = await hasActiveRommzPlus(userId, adminClient);
+            const { data, error } = await adminClient
+                .from('deals')
+                .select(`
+                    id,
+                    title,
+                    discount_value,
+                    description,
+                    valid_until,
+                    is_premium_only,
+                    is_active,
+                    partner:partners(
+                        id,
+                        name,
+                        category,
+                        address,
+                        status
+                    )
+                `)
+                .eq('id', args.deal_id as string)
+                .eq('is_active', true)
+                .maybeSingle();
+
+            if (error || !data || data.partner?.status !== 'active') {
+                return { error: 'Không tìm thấy ưu đãi' };
+            }
+
+            return {
+                id: data.id,
+                title: data.title,
+                discountValue: data.discount_value,
+                description: data.description,
+                validUntil: data.valid_until,
+                isPremiumOnly: Boolean(data.is_premium_only),
+                isLocked: Boolean(data.is_premium_only) && !isPremium,
+                partnerId: data.partner?.id,
+                partnerName: data.partner?.name,
+                category: data.partner?.category,
+                categoryLabel: data.partner?.category ? formatPartnerCategoryLabel(data.partner.category) : null,
+                city: data.partner?.address,
+                isPremium,
+            };
         }
 
         case 'get_app_info': {
@@ -2006,8 +2142,22 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
     const includeSearchDeals = selectedToolNames.includes('search_deals');
     const includeSearchLocations = selectedToolNames.includes('search_locations');
     const includeRoomDetails = selectedToolNames.includes('get_room_details');
+    const includePartnerDetails = selectedToolNames.includes('get_partner_details');
+    const includeDealDetails = selectedToolNames.includes('get_deal_details');
     const includeAppInfo = selectedToolNames.includes('get_app_info');
     const toolset = {};
+    const toolExecutionCache = new Map<string, Promise<unknown>>();
+    const executeCachedTool = (toolName: ToolName, input: Record<string, unknown>) => {
+        const cacheKey = `${toolName}:${JSON.stringify(input)}`;
+        const cached = toolExecutionCache.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+
+        const pending = handleFunctionCall(toolName, input, adminClient, userId);
+        toolExecutionCache.set(cacheKey, pending);
+        return pending;
+    };
 
     if (includeSearchRooms) {
         const searchRoomsTool = tool({
@@ -2023,7 +2173,7 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
                 },
             }),
             execute: async (input: SearchRoomsToolInput) =>
-                handleFunctionCall('search_rooms', input, adminClient, userId),
+                executeCachedTool('search_rooms', input as Record<string, unknown>),
         });
         Object.assign(toolset, { search_rooms: searchRoomsTool });
     }
@@ -2041,7 +2191,7 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
                 },
             }),
             execute: async (input: SearchPartnersToolInput) =>
-                handleFunctionCall('search_partners', input, adminClient, userId),
+                executeCachedTool('search_partners', input as Record<string, unknown>),
         });
         Object.assign(toolset, { search_partners: searchPartnersTool });
     }
@@ -2060,7 +2210,7 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
                 },
             }),
             execute: async (input: SearchDealsToolInput) =>
-                handleFunctionCall('search_deals', input, adminClient, userId),
+                executeCachedTool('search_deals', input as Record<string, unknown>),
         });
         Object.assign(toolset, { search_deals: searchDealsTool });
     }
@@ -2082,7 +2232,7 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
                 required: ['query'],
             }),
             execute: async (input: SearchLocationsToolInput) =>
-                handleFunctionCall('search_locations', input, adminClient, userId),
+                executeCachedTool('search_locations', input as Record<string, unknown>),
         });
         Object.assign(toolset, { search_locations: searchLocationsTool });
     }
@@ -2098,9 +2248,41 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
                 required: ['room_id'],
             }),
             execute: async (input: RoomDetailsToolInput) =>
-                handleFunctionCall('get_room_details', input, adminClient, userId),
+                executeCachedTool('get_room_details', input as Record<string, unknown>),
         });
         Object.assign(toolset, { get_room_details: roomDetailsTool });
+    }
+
+    if (includePartnerDetails) {
+        const partnerDetailsTool = tool({
+            description: TOOLS.get_partner_details.description,
+            inputSchema: jsonSchema<PartnerDetailsToolInput>({
+                type: 'object',
+                properties: {
+                    partner_id: { type: 'string' },
+                },
+                required: ['partner_id'],
+            }),
+            execute: async (input: PartnerDetailsToolInput) =>
+                executeCachedTool('get_partner_details', input as Record<string, unknown>),
+        });
+        Object.assign(toolset, { get_partner_details: partnerDetailsTool });
+    }
+
+    if (includeDealDetails) {
+        const dealDetailsTool = tool({
+            description: TOOLS.get_deal_details.description,
+            inputSchema: jsonSchema<DealDetailsToolInput>({
+                type: 'object',
+                properties: {
+                    deal_id: { type: 'string' },
+                },
+                required: ['deal_id'],
+            }),
+            execute: async (input: DealDetailsToolInput) =>
+                executeCachedTool('get_deal_details', input as Record<string, unknown>),
+        });
+        Object.assign(toolset, { get_deal_details: dealDetailsTool });
     }
 
     if (includeAppInfo) {
@@ -2116,7 +2298,7 @@ function createToolset(selectedToolNames: ToolName[], adminClient: AdminClient, 
                 },
             }),
             execute: async (input: AppInfoToolInput) =>
-                handleFunctionCall('get_app_info', input, adminClient, userId),
+                executeCachedTool('get_app_info', input as Record<string, unknown>),
         });
         Object.assign(toolset, { get_app_info: appInfoTool });
     }
@@ -2231,6 +2413,8 @@ function inferIntent(
         | undefined;
 
     if (selectedToolNames.includes('get_room_details') || executedToolNames.includes('get_room_details')) return 'room_detail';
+    if (selectedToolNames.includes('get_partner_details') || executedToolNames.includes('get_partner_details')) return 'services';
+    if (selectedToolNames.includes('get_deal_details') || executedToolNames.includes('get_deal_details')) return 'deals';
     if (selectedToolNames.includes('search_rooms') || executedToolNames.includes('search_rooms')) return 'room_search';
     if (selectedToolNames.includes('search_deals') || executedToolNames.includes('search_deals')) return 'deals';
     if (selectedToolNames.includes('search_partners') || executedToolNames.includes('search_partners')) return 'services';
@@ -2258,28 +2442,27 @@ function inferContext(functionCallResults: Array<{ name: ToolName; result: unkno
         }
 
         if (call.name === 'search_rooms') {
-            const firstRoom = Array.isArray(payload.rooms) ? payload.rooms[0] as Record<string, unknown> : null;
-            if (typeof firstRoom?.id === 'string') {
-                return { contextType: 'room', contextId: firstRoom.id };
-            }
+            return { contextType: 'room', contextId: null };
+        }
+
+        if (call.name === 'get_deal_details' && typeof payload.id === 'string') {
+            return { contextType: 'deal', contextId: payload.id };
+        }
+
+        if (call.name === 'get_partner_details' && typeof payload.id === 'string') {
+            return { contextType: 'service', contextId: payload.id };
         }
 
         if (call.name === 'search_deals') {
-            const firstDeal = Array.isArray(payload.deals) ? payload.deals[0] as Record<string, unknown> : null;
-            if (typeof firstDeal?.id === 'string') {
-                return { contextType: 'deal', contextId: firstDeal.id };
-            }
-
             if (payload.hasLockedPremiumDeals) {
                 return { contextType: 'premium', contextId: 'rommz_plus' };
             }
+
+            return { contextType: 'deal', contextId: null };
         }
 
         if (call.name === 'search_partners') {
-            const firstPartner = Array.isArray(payload.partners) ? payload.partners[0] as Record<string, unknown> : null;
-            if (typeof firstPartner?.id === 'string') {
-                return { contextType: 'service', contextId: firstPartner.id };
-            }
+            return { contextType: 'service', contextId: null };
         }
 
         if (call.name === 'get_app_info' && typeof payload.topic === 'string') {
@@ -2310,11 +2493,11 @@ function buildSources(functionCallResults: Array<{ name: ToolName; result: unkno
         if (call.name === 'search_rooms' || call.name === 'get_room_details') {
             sources.add('Nguồn phòng đang mở');
         }
-        if (call.name === 'search_deals') {
+        if (call.name === 'search_deals' || call.name === 'get_deal_details') {
             sources.add('Local Passport');
         }
-        if (call.name === 'search_partners') {
-            sources.add('Đối tác RommZ');
+        if (call.name === 'search_partners' || call.name === 'get_partner_details') {
+            sources.add('Đối tác Local Passport');
         }
         if (call.name === 'search_locations') {
             sources.add('Location catalog');
@@ -2342,6 +2525,92 @@ function buildToolCallSummaries(functionCallResults: Array<{ name: ToolName; res
         status: 'completed' as const,
         result: call.result,
     }));
+}
+
+function finalizeRomiTurn(
+    currentJourneyState: RomiJourneyState,
+    functionCallResults: Array<{ name: ToolName; result: unknown }>,
+    turnPlan: ReturnType<typeof planRomiTurn>,
+    options: {
+        clarification: RomiClarificationRequest | null;
+        handoff: RomiHandoff | null;
+        viewerMode: RomiViewerMode;
+        knowledgeSources: RomiKnowledgeSource[];
+        knowledgeAppended: boolean;
+        resolutionOutcome: RomiResolutionOutcome | null;
+    },
+) {
+    const sources = buildSources(functionCallResults);
+    const selectionPatch = buildJourneySelectionPatch(currentJourneyState, functionCallResults);
+    const finalJourneyState = finalizeJourneyState(
+        mergeJourneyState(currentJourneyState, {
+            ...selectionPatch,
+            lastIntent: turnPlan.primaryIntent,
+            stage: options.handoff
+                ? 'handoff'
+                : options.clarification
+                    ? 'clarify'
+                    : functionCallResults.length > 0
+                        ? 'recommend'
+                        : currentJourneyState.stage,
+            groundedBy: [
+                ...(currentJourneyState.groundedBy || []),
+                ...(options.knowledgeAppended ? options.knowledgeSources.map((source) => source.documentTitle) : []),
+                ...sources,
+            ],
+            resolutionOutcome: options.resolutionOutcome || currentJourneyState.resolutionOutcome,
+        }),
+        options.viewerMode,
+    );
+    const { contextType, contextId } = resolveConversationContext(functionCallResults, finalJourneyState);
+    const selection = {
+        entityType: finalJourneyState.activeEntityType ?? turnPlan.targetEntityType ?? null,
+        entityId: finalJourneyState.activeEntityId ?? turnPlan.targetEntityId ?? null,
+        resolvedFrom: turnPlan.selectionRequested ? turnPlan.resolvedFrom : 'none' as const,
+        ordinal: turnPlan.selectionOrdinal,
+    };
+
+    return {
+        contextType,
+        contextId,
+        sources,
+        selection,
+        finalJourneyState,
+    };
+}
+
+async function executeDetailFlow(
+    adminClient: AdminClient,
+    userId: string,
+    turnPlan: ReturnType<typeof planRomiTurn>,
+) {
+    const detailToolName = turnPlan.selectedToolNames[0];
+    if (turnPlan.turnMode !== 'detail' || !turnPlan.targetEntityId || !detailToolName) {
+        return null;
+    }
+
+    let args: Record<string, unknown> | null = null;
+    if (detailToolName === 'get_room_details') {
+        args = { room_id: turnPlan.targetEntityId };
+    } else if (detailToolName === 'get_partner_details') {
+        args = { partner_id: turnPlan.targetEntityId };
+    } else if (detailToolName === 'get_deal_details') {
+        args = { deal_id: turnPlan.targetEntityId };
+    }
+
+    if (!args) {
+        return null;
+    }
+
+    const result = await handleFunctionCall(detailToolName, args, adminClient, userId);
+    const functionCallResults = [{ name: detailToolName as ToolName, result }];
+
+    return {
+        functionCallResults,
+        responseText: formatToolResultReply(detailToolName, result),
+        responseSource: 'deterministic_detail',
+        romiActions: buildRomiActions(functionCallResults),
+    };
 }
 
 function buildSessionPayload(
@@ -2478,7 +2747,7 @@ Deno.serve(async (req) => {
         }
 
         const authHeader = req.headers.get('Authorization');
-        const requestedMode = requestedViewerMode || (authHeader ? 'user' : 'guest');
+        const requestedMode = getRequestedViewerMode(requestedViewerMode, Boolean(authHeader));
         let user: { id: string } | null = null;
 
         if (authHeader) {
@@ -2503,11 +2772,11 @@ Deno.serve(async (req) => {
             );
         }
         telemetryUserId = user?.id || null;
-        const effectiveViewerMode: RomiViewerMode = user ? requestedMode : 'guest';
+        const effectiveViewerMode = resolveEffectiveViewerMode(Boolean(user));
 
         const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        const trimmedMessage = message.trim();
-        const guestRateKey = getGuestRateKey(req);
+        const trimmedMessage = repairPotentialMojibake(message).trim();
+        const guestFingerprintHash = await hashGuestFingerprint(buildGuestFingerprintSource(req));
 
         if (effectiveViewerMode === 'user' && user) {
             if (!(await checkRateLimit(user.id, adminClient))) {
@@ -2516,7 +2785,7 @@ Deno.serve(async (req) => {
                     { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
                 );
             }
-        } else if (!checkGuestRateLimit(guestRateKey)) {
+        } else if (!(await consumeGuestRateLimit(adminClient, guestFingerprintHash, RATE_LIMIT))) {
             return new Response(
                 JSON.stringify({ error: 'Bạn đang gửi quá nhiều tin nhắn. Vui lòng đợi 1 phút.', code: 'RATE_LIMITED' }),
                 { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -2645,10 +2914,36 @@ Deno.serve(async (req) => {
             ];
         }
 
-        const selectedTools = getToolsForMessage(message, historyRows);
-        const selectedToolNames = selectedTools.map(t => t.name) as ToolName[];
-        const shouldRetrieveKnowledge = shouldRetrieveKnowledgeForTurn(
+        const turnPlan = planRomiTurn(
+            trimmedMessage,
             intakeAnalysis.intent,
+            currentJourneyState,
+            {
+                clarificationPending: Boolean(clarification),
+                handoffPending: Boolean(handoff),
+            },
+        );
+
+        if (turnPlan.selectionFailurePrompt) {
+            clarification = {
+                prompt: turnPlan.selectionFailurePrompt,
+                missingFields: ['selection'],
+                mode: 'needs_clarification',
+            };
+            currentJourneyState = finalizeJourneyState(
+                mergeJourneyState(currentJourneyState, {
+                    stage: 'clarify',
+                    missingFields: ['selection'],
+                    lastAskedField: 'selection',
+                    resolutionOutcome: 'needs_clarification',
+                }),
+                effectiveViewerMode,
+            );
+        }
+
+        const selectedToolNames = turnPlan.selectedToolNames as ToolName[];
+        const shouldRetrieveKnowledge = shouldRetrieveKnowledgeForTurn(
+            turnPlan.primaryIntent,
             intakeAnalysis.requestedTopics,
             selectedToolNames,
             flags,
@@ -2672,23 +2967,20 @@ Deno.serve(async (req) => {
             content: String(msg.content || ''),
         }));
 
-        const shouldPauseForClarification = Boolean(clarification);
-        const forceFunctionNames = selectedToolNames.filter(
-            (name): name is ToolName =>
-                name === 'search_rooms' ||
-                name === 'search_partners' ||
-                name === 'search_deals' ||
-                name === 'search_locations' ||
-                name === 'get_room_details'
-        );
+        const shouldPauseForClarification = turnPlan.turnMode === 'clarify' || Boolean(clarification);
+        const forceFunctionNames = turnPlan.forceToolNames as ToolName[];
+        // search_locations is always resolved as a direct function call in executePrimaryRoomSearch,
+        // never through the streaming LLM toolset — exposing it to the model causes parallel tool
+        // call loops (model calls it 30+ times with identical queries).
         const activeToolNames = shouldPauseForClarification
             ? []
-            : forceFunctionNames.length > 0
+            : (forceFunctionNames.length > 0
                 ? forceFunctionNames
-                : selectedToolNames;
-        const toolset = createToolset(activeToolNames, adminClient, user?.id || guestRateKey);
+                : selectedToolNames
+            ).filter((name) => name !== 'search_locations');
+        const toolset = createToolset(activeToolNames, adminClient, user?.id || guestFingerprintHash);
         const hasTools = Object.keys(toolset).length > 0;
-        const baseIntent = intakeAnalysis.intent;
+        const baseIntent = turnPlan.primaryIntent;
         const languageModel = getLanguageModel();
 
         if (telemetryUserId) {
@@ -2704,6 +2996,9 @@ Deno.serve(async (req) => {
                     page_context: pageContext || null,
                     selected_tools: selectedToolNames,
                     active_tools: activeToolNames,
+                    turn_mode: turnPlan.turnMode,
+                    selection_requested: turnPlan.selectionRequested,
+                    selection_resolved_from: turnPlan.resolvedFrom,
                     is_new_session: !sessionId,
                     stream: requestStream === true,
                     knowledge_source_count: knowledgeSources.length,
@@ -2784,6 +3079,7 @@ Deno.serve(async (req) => {
                 let forcedStreamActions: RomiAction[] = [];
 
                 const finalizeStream = async () => {
+                    streamedToolResults = dedupeToolResults(streamedToolResults);
                     const streamActions = forcedStreamActions.length > 0
                         ? forcedStreamActions
                         : buildRomiActions(streamedToolResults);
@@ -2791,22 +3087,21 @@ Deno.serve(async (req) => {
                         ...streamedToolCalls.values(),
                         ...buildToolCallSummaries(streamedToolResults).filter((summary) => !streamedToolCalls.has(summary.name)),
                     ];
-                    const { contextType, contextId } = inferContext(streamedToolResults);
-                    const streamIntent = inferIntent(trimmedMessage, selectedToolNames, streamedToolResults);
-                    const streamSources = buildSources(streamedToolResults);
-                    const finalJourneyState = finalizeJourneyState(
-                        mergeJourneyState(currentJourneyState, {
-                            lastIntent: streamIntent,
-                            stage: handoff ? 'handoff' : clarification ? 'clarify' : streamedToolResults.length > 0 ? 'recommend' : currentJourneyState.stage,
-                            groundedBy: [
-                                ...(currentJourneyState.groundedBy || []),
-                                ...(knowledgeAppended ? knowledgeSources.map((source) => source.documentTitle) : []),
-                                ...streamSources,
-                            ],
-                            resolutionOutcome: resolutionOutcome || currentJourneyState.resolutionOutcome,
-                        }),
-                        effectiveViewerMode,
-                    );
+                    const streamIntent = turnPlan.primaryIntent;
+                    const {
+                        contextType,
+                        contextId,
+                        sources: streamSources,
+                        selection,
+                        finalJourneyState,
+                    } = finalizeRomiTurn(currentJourneyState, streamedToolResults, turnPlan, {
+                        clarification,
+                        handoff,
+                        viewerMode: effectiveViewerMode,
+                        knowledgeSources,
+                        knowledgeAppended,
+                        resolutionOutcome,
+                    });
                     const responseMetadata: Record<string, unknown> = {
                         source: streamResponseSource,
                         geminiCallCount: streamGeminiCallCount || 1,
@@ -2815,6 +3110,7 @@ Deno.serve(async (req) => {
                         intent: streamIntent,
                         contextType,
                         contextId,
+                        selection,
                         toolCalls: streamToolCalls,
                         journeyState: finalJourneyState,
                         knowledgeSources,
@@ -2860,6 +3156,21 @@ Deno.serve(async (req) => {
                                 summarizeToolOutput(call.name, call.result),
                             )
                         ));
+                    }
+
+                    if (telemetryUserId && turnPlan.selectionRequested) {
+                        await trackRomiAnalyticsEvent(
+                            adminClient,
+                            telemetryUserId,
+                            currentSessionId,
+                            selection.entityId ? 'romi_selection_resolved' : 'romi_selection_failed',
+                            {
+                                entity_type: selection.entityType,
+                                entity_id: selection.entityId,
+                                resolved_from: selection.resolvedFrom,
+                                ordinal: selection.ordinal,
+                            },
+                        );
                     }
 
                     const assistantCreatedAt = new Date().toISOString();
@@ -2996,10 +3307,57 @@ Deno.serve(async (req) => {
                         return;
                     }
 
+                    if (turnPlan.turnMode === 'detail') {
+                        const detailExecution = await executeDetailFlow(
+                            adminClient,
+                            user?.id || guestFingerprintHash,
+                            turnPlan,
+                        );
+
+                        if (detailExecution) {
+                            streamedToolResults = detailExecution.functionCallResults;
+                            streamResponseText = detailExecution.responseText;
+                            streamResponseSource = detailExecution.responseSource;
+                            streamFinishReason = 'deterministic_detail';
+                            forcedStreamActions = detailExecution.romiActions;
+
+                            for (const call of detailExecution.functionCallResults) {
+                                emit({
+                                    type: 'tool_call',
+                                    tool: {
+                                        name: call.name,
+                                        status: 'running',
+                                    },
+                                });
+                                emit({
+                                    type: 'tool_result',
+                                    tool: {
+                                        name: call.name,
+                                        status: 'completed',
+                                        result: call.result,
+                                    },
+                                    actions: buildRomiActionsFromToolResult(call.name, call.result),
+                                    sources: buildSources([{ name: call.name, result: call.result }]),
+                                });
+                            }
+
+                            emit({
+                                type: 'status',
+                                stage: 'synthesis',
+                                message: 'ROMI đã khóa đúng item bạn chọn và đang mở chi tiết tương ứng.',
+                                intent: baseIntent,
+                                contextType: turnPlan.targetEntityType,
+                            });
+                            emitChunkedText(emit, streamResponseText);
+                            await finalizeStream();
+                            return;
+                        }
+                    }
+
                     if (baseIntent === 'room_search' && flags.romi_normalization_v2) {
                         const roomSearchExecution = await executeRoomSearchFlow(
                             adminClient,
-                            user?.id || guestRateKey,
+                            user?.id || guestFingerprintHash,
                             currentJourneyState,
                             flags,
                             effectiveViewerMode,
@@ -3178,6 +3536,7 @@ Deno.serve(async (req) => {
                         }
                     }
 
+                    streamedToolResults = dedupeToolResults(streamedToolResults);
                     if (!streamResponseText.trim() && streamedToolResults.length > 0) {
                         streamResponseText = streamedToolResults
                             .map((call, index) => {
@@ -3267,10 +3626,24 @@ Deno.serve(async (req) => {
             responseText = buildClarificationReply(clarification);
             finishReason = 'clarification_requested';
             responseSource = 'clarification';
+        } else if (turnPlan.turnMode === 'detail') {
+            const detailExecution = await executeDetailFlow(
+                adminClient,
+                user?.id || guestFingerprintHash,
+                turnPlan,
+            );
+
+            if (detailExecution) {
+                functionCallResults = detailExecution.functionCallResults;
+                responseText = detailExecution.responseText;
+                finishReason = 'deterministic_detail';
+                responseSource = detailExecution.responseSource;
+                romiActions = detailExecution.romiActions;
+            }
         } else if (baseIntent === 'room_search' && flags.romi_normalization_v2) {
             const roomSearchExecution = await executeRoomSearchFlow(
                 adminClient,
-                user?.id || guestRateKey,
+                user?.id || guestFingerprintHash,
                 currentJourneyState,
                 flags,
                 effectiveViewerMode,
@@ -3326,10 +3699,10 @@ Deno.serve(async (req) => {
                 });
 
                 responseText = aiResult.text?.trim() || '';
-                functionCallResults = (aiResult.toolResults || []).map(result => ({
+                functionCallResults = dedupeToolResults((aiResult.toolResults || []).map(result => ({
                     name: result.toolName as ToolName,
                     result: result.output,
-                }));
+                })));
 
                 if (!responseText && functionCallResults.length > 0) {
                     responseText = functionCallResults
@@ -3372,22 +3745,22 @@ Deno.serve(async (req) => {
             }
         }
 
-        const { contextType, contextId } = inferContext(functionCallResults);
-        const intent = inferIntent(trimmedMessage, selectedToolNames, functionCallResults);
-        const sources = buildSources(functionCallResults);
-        const finalJourneyState = finalizeJourneyState(
-            mergeJourneyState(currentJourneyState, {
-                lastIntent: intent,
-                stage: handoff ? 'handoff' : clarification ? 'clarify' : functionCallResults.length > 0 ? 'recommend' : currentJourneyState.stage,
-                groundedBy: [
-                    ...(currentJourneyState.groundedBy || []),
-                    ...(knowledgeAppended ? knowledgeSources.map((source) => source.documentTitle) : []),
-                    ...sources,
-                ],
-                resolutionOutcome: resolutionOutcome || currentJourneyState.resolutionOutcome,
-            }),
-            effectiveViewerMode,
-        );
+        functionCallResults = dedupeToolResults(functionCallResults);
+        const intent = turnPlan.primaryIntent;
+        const {
+            contextType,
+            contextId,
+            sources,
+            selection,
+            finalJourneyState,
+        } = finalizeRomiTurn(currentJourneyState, functionCallResults, turnPlan, {
+            clarification,
+            handoff,
+            viewerMode: effectiveViewerMode,
+            knowledgeSources,
+            knowledgeAppended,
+            resolutionOutcome,
+        });
         const responseMetadata: Record<string, unknown> = {
             source: responseSource,
             geminiCallCount,
@@ -3396,6 +3769,7 @@ Deno.serve(async (req) => {
             intent,
             contextType,
             contextId,
+            selection,
             toolCalls: buildToolCallSummaries(functionCallResults),
             journeyState: finalJourneyState,
             knowledgeSources,
@@ -3441,6 +3815,21 @@ Deno.serve(async (req) => {
                     summarizeToolOutput(call.name, call.result),
                 )
             ));
+        }
+
+        if (telemetryUserId && turnPlan.selectionRequested) {
+            await trackRomiAnalyticsEvent(
+                adminClient,
+                telemetryUserId,
+                currentSessionId,
+                selection.entityId ? 'romi_selection_resolved' : 'romi_selection_failed',
+                {
+                    entity_type: selection.entityType,
+                    entity_id: selection.entityId,
+                    resolved_from: selection.resolvedFrom,
+                    ordinal: selection.ordinal,
+                },
+            );
         }
 
         const assistantCreatedAt = new Date().toISOString();

@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import type { TablesUpdate } from '@/lib/database.types';
 import type { Comment, CreatePostData, PostsFilter } from '@/pages/community/types';
 
 export interface PostRow {
@@ -24,6 +25,7 @@ export interface PostRow {
         role: string;
         avatar?: string;
         verified?: boolean;
+        isPremium?: boolean;
     };
     liked?: boolean;
 }
@@ -52,6 +54,7 @@ type CommunityPost = {
         role: string | null;
         avatar_url: string | null;
         email_verified: boolean | null;
+        is_premium: boolean | null;
     };
 };
 
@@ -67,6 +70,7 @@ type CommunityComment = {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
     };
 };
 
@@ -93,9 +97,32 @@ function transformCommunityPost(row: CommunityPost, liked: boolean = false): Pos
             role: row.author?.role || 'Người dùng',
             avatar: row.author?.avatar_url || undefined,
             verified: row.author?.email_verified || false,
+            isPremium: row.author?.is_premium ?? false,
         },
         liked,
     };
+}
+
+async function getLikedPostMap(postIds: string[], userId?: string) {
+    const likedMap: Record<string, boolean> = {};
+
+    if (!userId || postIds.length === 0) {
+        return likedMap;
+    }
+
+    const { data: likes } = await supabase
+        .from('community_likes')
+        .select('post_id')
+        .eq('user_id', userId)
+        .in('post_id', postIds);
+
+    if (likes) {
+        likes.forEach((like: { post_id: string }) => {
+            likedMap[like.post_id] = true;
+        });
+    }
+
+    return likedMap;
 }
 
 /**
@@ -114,7 +141,8 @@ export async function getPosts(filters: PostsFilter = {}): Promise<PostsResponse
                 full_name,
                 role,
                 avatar_url,
-                email_verified
+                email_verified,
+                is_premium
             )
         `, { count: 'exact' })
         .eq('status', 'active')
@@ -129,22 +157,10 @@ export async function getPosts(filters: PostsFilter = {}): Promise<PostsResponse
 
     if (error) throw error;
 
-    // If userId provided, check likes for all posts
-    const likedMap: Record<string, boolean> = {};
-    if (userId && data && data.length > 0) {
-        const postIds = (data as CommunityPost[]).map(row => row.id);
-        const { data: likes } = await supabase
-            .from('community_likes')
-            .select('post_id')
-            .eq('user_id', userId)
-            .in('post_id', postIds);
-
-        if (likes) {
-            likes.forEach((like: { post_id: string }) => {
-                likedMap[like.post_id] = true;
-            });
-        }
-    }
+    const likedMap = await getLikedPostMap(
+        ((data || []) as CommunityPost[]).map((row) => row.id),
+        userId,
+    );
 
     const posts = (data || []).map((row: CommunityPost) =>
         transformCommunityPost(row, !!likedMap[row.id])
@@ -159,7 +175,7 @@ export async function getPosts(filters: PostsFilter = {}): Promise<PostsResponse
 /**
  * Get a single post by ID with author and comments
  */
-export async function getPostById(id: string): Promise<PostRow | null> {
+export async function getPostById(id: string, userId?: string): Promise<PostRow | null> {
     const { data, error } = await supabase
         .from('community_posts')
         .select(`
@@ -169,7 +185,8 @@ export async function getPostById(id: string): Promise<PostRow | null> {
                 full_name,
                 role,
                 avatar_url,
-                email_verified
+                email_verified,
+                is_premium
             )
         `)
         .eq('id', id)
@@ -181,7 +198,9 @@ export async function getPostById(id: string): Promise<PostRow | null> {
         throw error;
     }
 
-    return transformCommunityPost(data as CommunityPost);
+    const likedMap = await getLikedPostMap([id], userId);
+
+    return transformCommunityPost(data as CommunityPost, !!likedMap[id]);
 }
 
 /**
@@ -197,7 +216,8 @@ export async function getTopPosts(limit: number = 5): Promise<PostRow[]> {
                 full_name,
                 role,
                 avatar_url,
-                email_verified
+                email_verified,
+                is_premium
             )
         `)
         .eq('status', 'active')
@@ -235,7 +255,8 @@ export async function createPost(
                 full_name,
                 role,
                 avatar_url,
-                email_verified
+                email_verified,
+                is_premium
             )
         `)
         .single();
@@ -254,7 +275,7 @@ export async function updatePost(
     data: Partial<CreatePostData>,
     imageUrls?: string[]
 ): Promise<PostRow> {
-    const updateData: Record<string, unknown> = {
+    const updateData: TablesUpdate<'community_posts'> = {
         updated_at: new Date().toISOString(),
     };
 
@@ -275,7 +296,8 @@ export async function updatePost(
                 full_name,
                 role,
                 avatar_url,
-                email_verified
+                email_verified,
+                is_premium
             )
         `)
         .single();
@@ -362,7 +384,8 @@ export async function getComments(postId: string): Promise<Comment[]> {
             author:users!community_comments_user_id_fkey(
                 id,
                 full_name,
-                avatar_url
+                avatar_url,
+                is_premium
             )
         `)
         .eq('post_id', postId)
@@ -382,6 +405,7 @@ export async function getComments(postId: string): Promise<Comment[]> {
         author: {
             name: row.author?.full_name || 'Unknown',
             avatar: row.author?.avatar_url || undefined,
+            isPremium: row.author?.is_premium ?? false,
         },
     })) as Comment[];
 
@@ -435,7 +459,8 @@ export async function createComment(
             author:users!community_comments_user_id_fkey(
                 id,
                 full_name,
-                avatar_url
+                avatar_url,
+                is_premium
             )
         `)
         .single();
@@ -453,6 +478,7 @@ export async function createComment(
         author: {
             name: row.author?.full_name || 'Unknown',
             avatar: row.author?.avatar_url || undefined,
+            isPremium: row.author?.is_premium ?? false,
         },
     } as Comment;
 }

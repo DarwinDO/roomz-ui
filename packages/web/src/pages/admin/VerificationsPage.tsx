@@ -181,7 +181,7 @@ export default function VerificationsPage() {
       setFrontImageUrl(front);
       setBackImageUrl(back);
     } catch {
-      toast.error('Lỗi tải ảnh CCCD');
+      toast.error('Lỗi tải ảnh xác thực');
     } finally {
       setLoadingImages(false);
     }
@@ -268,7 +268,7 @@ export default function VerificationsPage() {
         <div>
           <h1 className="text-3xl font-bold text-slate-950">Quản lý xác thực</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Duyệt yêu cầu CCCD, theo dõi người dùng đang verified và lưu audit mỗi lần admin gỡ xác thực.
+            Duyệt yêu cầu CCCD và thẻ sinh viên, theo dõi người dùng đã xác thực và lưu audit mỗi lần admin gỡ xác thực.
           </p>
         </div>
 
@@ -552,7 +552,10 @@ export default function VerificationsPage() {
       <Dialog open={Boolean(selectedRequest) && !rejectDialogOpen} onOpenChange={closeDetail}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>CCCD của {selectedRequest?.user?.full_name || 'người dùng'}</DialogTitle>
+            <DialogTitle>
+            {getVerificationTypeLabel(selectedRequest?.document_type || 'id_card')} của{' '}
+            {selectedRequest?.user?.full_name || 'người dùng'}
+          </DialogTitle>
             <DialogDescription>
               Gửi lúc {selectedRequest ? formatDateTime(selectedRequest.submitted_at) : 'Chưa có'}
             </DialogDescription>
@@ -578,7 +581,7 @@ export default function VerificationsPage() {
                     <div className="relative">
                       <img
                         src={frontImageUrl}
-                        alt="Mặt trước CCCD"
+                        alt={`Mặt trước ${getVerificationTypeLabel(selectedRequest?.document_type || 'id_card')}`}
                         className="h-64 w-full cursor-zoom-in bg-white object-contain"
                         onClick={() => setFullscreenImage(frontImageUrl)}
                       />
@@ -603,7 +606,7 @@ export default function VerificationsPage() {
                     <div className="relative">
                       <img
                         src={backImageUrl}
-                        alt="Mặt sau CCCD"
+                        alt={`Mặt sau ${getVerificationTypeLabel(selectedRequest?.document_type || 'id_card')}`}
                         className="h-64 w-full cursor-zoom-in bg-white object-contain"
                         onClick={() => setFullscreenImage(backImageUrl)}
                       />
@@ -670,7 +673,7 @@ export default function VerificationsPage() {
           <Textarea
             value={rejectionReason}
             onChange={(event) => setRejectionReason(event.target.value)}
-            placeholder="Ví dụ: Ảnh CCCD bị mờ, vui lòng chụp lại rõ hơn."
+            placeholder={`Ví dụ: Ảnh ${getVerificationTypeLabel(selectedRequest?.document_type || 'id_card')} bị mờ, vui lòng chụp lại rõ hơn.`}
             className="min-h-[100px]"
           />
           <DialogFooter>
@@ -777,7 +780,7 @@ export default function VerificationsPage() {
 
           <img
             src={fullscreenImage}
-            alt="CCCD fullscreen"
+            alt="Ảnh xác thực fullscreen"
             className="max-h-[90vh] max-w-[95vw] select-none object-contain"
             onClick={(event) => event.stopPropagation()}
             style={{ touchAction: 'pinch-zoom' }}

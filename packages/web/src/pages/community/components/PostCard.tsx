@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
@@ -51,11 +52,12 @@ export function PostCard({ post, currentUserId, onLike, onOpenPost, onEdit, onDe
             >
                 {/* Author Info */}
                 <div className="flex items-start gap-3 mb-4">
-                    <Avatar className="w-10 h-10">
+                    <PremiumAvatar isPremium={post.author.isPremium ?? false} className="h-10 w-10">
+                        <AvatarImage src={post.author.avatar || undefined} alt="" />
                         <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary">
                             {post.author.name.split(" ").map((n) => n[0]).join("")}
                         </AvatarFallback>
-                    </Avatar>
+                    </PremiumAvatar>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                             <p className="text-sm truncate font-medium">{post.author.name}</p>

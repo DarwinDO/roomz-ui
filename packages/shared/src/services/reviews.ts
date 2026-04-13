@@ -25,6 +25,7 @@ export interface Review {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
     };
 }
 
@@ -43,7 +44,7 @@ export async function getPartnerReviews(
         .from('reviews')
         .select(`
             *,
-            user:users!user_id(id, full_name, avatar_url)
+            user:users!user_id(id, full_name, avatar_url, is_premium)
         `)
         .eq('partner_id', partnerId)
         .eq('status', 'published')
@@ -122,7 +123,7 @@ export async function createReview(
         })
         .select(`
             *,
-            user:users!user_id(id, full_name, avatar_url)
+            user:users!user_id(id, full_name, avatar_url, is_premium)
         `)
         .single();
 
@@ -150,7 +151,10 @@ export async function updateReview(
             updated_at: new Date().toISOString(),
         })
         .eq('id', id)
-        .select()
+        .select(`
+            *,
+            user:users!user_id(id, full_name, avatar_url, is_premium)
+        `)
         .single();
 
     if (error) throw error;

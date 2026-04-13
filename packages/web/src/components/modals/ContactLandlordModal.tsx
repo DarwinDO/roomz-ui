@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Loader2, Send, User } from "lucide-react";
 import { useAuth } from "@/contexts";
@@ -24,6 +25,7 @@ interface LandlordInfo {
   full_name: string;
   avatar_url?: string | null;
   email?: string;
+  is_premium?: boolean | null;
 }
 
 interface ContactLandlordModalProps {
@@ -218,10 +220,13 @@ export function ContactLandlordModal({
           </VisuallyHidden>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12 bg-gradient-to-br from-primary/20 to-secondary/20">
+              <PremiumAvatar
+                isPremium={landlord?.is_premium ?? false}
+                className="h-12 w-12 bg-gradient-to-br from-primary/20 to-secondary/20"
+              >
                 <AvatarImage src={landlord?.avatar_url || undefined} />
                 <AvatarFallback>{hostInitials}</AvatarFallback>
-              </Avatar>
+              </PremiumAvatar>
               <div>
                 <p className="text-base font-medium">{hostName}</p>
                 <div className="mt-0.5 flex items-center gap-1.5">
@@ -271,7 +276,10 @@ export function ContactLandlordModal({
                   key={message.id}
                   className={`flex gap-2 ${isFromMe ? "flex-row-reverse" : "flex-row"}`}
                 >
-                  <Avatar className="h-8 w-8 shrink-0">
+                  <PremiumAvatar
+                    isPremium={isFromMe ? profile?.is_premium ?? false : landlord?.is_premium ?? false}
+                    className="h-8 w-8 shrink-0"
+                  >
                     <AvatarImage
                       src={isFromMe ? profile?.avatar_url || undefined : landlord?.avatar_url || undefined}
                     />
@@ -284,7 +292,7 @@ export function ContactLandlordModal({
                     >
                       {isFromMe ? <User className="h-4 w-4" /> : hostInitials}
                     </AvatarFallback>
-                  </Avatar>
+                  </PremiumAvatar>
 
                   <div
                     className={`flex max-w-[75%] flex-col gap-1 ${

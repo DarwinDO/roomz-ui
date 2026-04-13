@@ -24,6 +24,7 @@ export interface UserInfo {
     id: string;
     full_name: string;
     avatar_url: string | null;
+    is_premium?: boolean | null;
     email?: string;
 }
 
@@ -132,7 +133,7 @@ export async function getConversations(
       ),
       conversation_participants!inner (
         user_id,
-        user:users (id, full_name, avatar_url, email)
+        user:users (id, full_name, avatar_url, is_premium, email)
       )
     `)
         .in('id', conversationIds);
@@ -179,6 +180,7 @@ export async function getConversations(
                 id: otherParticipant.user.id,
                 full_name: otherParticipant.user.full_name || 'Unknown',
                 avatar_url: otherParticipant.user.avatar_url,
+                is_premium: otherParticipant.user.is_premium ?? undefined,
                 email: otherParticipant.user.email || undefined,
             },
             lastMessage: latestMessage,
@@ -210,7 +212,7 @@ export async function getMessages(
         .from('messages')
         .select(`
       *,
-      sender:users!sender_id(id, full_name, avatar_url)
+      sender:users!sender_id(id, full_name, avatar_url, is_premium)
     `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });

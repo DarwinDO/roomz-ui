@@ -3,6 +3,7 @@
  * Interact with 'deals' and 'user_saved_vouchers' tables
  */
 import { supabase } from '@/lib/supabase';
+import type { TablesUpdate } from '@/lib/database.types';
 import type { Partner } from './partners';
 
 // ============================================
@@ -154,20 +155,44 @@ export async function getMyVouchers(): Promise<SavedVoucher[]> {
  * Save a voucher (claim a deal)
  * Generates QR data for the voucher
  */
+/** Derives a stable, human-readable voucher code from deal + user IDs. */
+function generateVoucherCode(dealId: string, userId: string): string {
+    const dealPart = dealId.replace(/-/g, '').slice(0, 4).toUpperCase();
+    const userPart = userId.replace(/-/g, '').slice(0, 4).toUpperCase();
+    return `RMZ-${dealPart}${userPart}`;
+}
+
+/**
+ * Parses the voucher code from a stored qr_data string.
+ * Falls back gracefully for vouchers created before this format.
+ */
+export function parseVoucherCode(qrData: string): string {
+    try {
+        const parsed = JSON.parse(qrData) as { code?: string; deal_id?: string; user_id?: string };
+        if (parsed.code) return parsed.code;
+        // Legacy vouchers: derive from embedded IDs if available
+        if (parsed.deal_id && parsed.user_id) {
+            return generateVoucherCode(parsed.deal_id, parsed.user_id);
+        }
+    } catch {
+        // not parseable
+    }
+    return 'RMZ-VOUCHER';
+}
+
 export async function saveVoucher(dealId: string): Promise<SavedVoucher> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         throw new Error('User not authenticated');
     }
 
-    // Generate QR data payload (browser-safe, no Buffer)
-    const randomPart = Math.random().toString(36).substring(2, 10);
+    const code = generateVoucherCode(dealId, user.id);
     const qrData = JSON.stringify({
         type: 'roomz_deal',
+        code,
         deal_id: dealId,
         user_id: user.id,
-        timestamp: Date.now(),
-        signature: btoa(`${dealId}_${user.id}_${Date.now()}_${randomPart}`).slice(0, 16),
+        issued_at: Date.now(),
     });
 
     const { data, error } = await supabase
@@ -290,12 +315,21 @@ export async function createDeal(input: CreateDealInput): Promise<Deal> {
  * Update an existing deal
  */
 export async function updateDeal(id: string, data: Partial<Deal>): Promise<Deal> {
+    const updateData: TablesUpdate<'deals'> = {
+        updated_at: new Date().toISOString(),
+    };
+
+    if (data.partner_id !== undefined) updateData.partner_id = data.partner_id;
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.discount_value !== undefined) updateData.discount_value = data.discount_value;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.valid_until !== undefined) updateData.valid_until = data.valid_until;
+    if (data.is_active !== undefined) updateData.is_active = data.is_active;
+    if (data.is_premium_only !== undefined) updateData.is_premium_only = data.is_premium_only;
+
     const { data: updated, error } = await supabase
         .from('deals')
-        .update({
-            ...data,
-            updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();

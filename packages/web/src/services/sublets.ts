@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import type { TablesUpdate } from '@/lib/database.types';
 import type {
     SubletListing,
     SubletListingWithDetails,
@@ -18,6 +19,7 @@ import type {
 } from '@roomz/shared/types/swap';
 
 const PAGE_SIZE = 12;
+type SubletListingUpdate = TablesUpdate<'sublet_listings'>;
 
 interface SubletRoomImage {
     image_url: string;
@@ -56,7 +58,7 @@ export async function fetchSublets(
         amenities:room_amenities(*)
       ),
       owner:owner_id (
-        id, full_name, avatar_url, id_card_verified, email, trust_score
+        id, full_name, avatar_url, id_card_verified, email, trust_score, is_premium
       )
     `,
             { count: 'exact' }
@@ -152,7 +154,7 @@ export async function fetchSubletById(id: string): Promise<SubletListing | null>
         amenities:room_amenities(*)
       ),
       owner:owner_id (
-        id, full_name, avatar_url, id_card_verified, email, trust_score
+        id, full_name, avatar_url, id_card_verified, email, trust_score, is_premium
       )
     `
         )
@@ -365,7 +367,7 @@ export async function updateSublet(
     if (!user.user) throw new Error('User not authenticated');
 
     // Build update object
-    const updateData: Record<string, unknown> = {};
+    const updateData: SubletListingUpdate = {};
     if (updates.start_date) updateData.start_date = updates.start_date;
     if (updates.end_date) updateData.end_date = updates.end_date;
     if (updates.sublet_price !== undefined)
@@ -518,7 +520,7 @@ export async function fetchApplicationsForSublet(
             `
       *,
       applicant:applicant_id (
-        id, full_name, avatar_url, email, phone, id_card_verified
+        id, full_name, avatar_url, email, phone, id_card_verified, is_premium
       )
     `
         )
@@ -639,7 +641,7 @@ export async function fetchMySublets(): Promise<SubletListing[]> {
         amenities:room_amenities(*)
       ),
       owner:owner_id (
-        id, full_name, avatar_url, id_card_verified, email, trust_score
+        id, full_name, avatar_url, id_card_verified, email, trust_score, is_premium
       ),
       sublet_applications(count)
     `

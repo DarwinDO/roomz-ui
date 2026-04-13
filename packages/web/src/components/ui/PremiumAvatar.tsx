@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Crown } from "lucide-react";
 import { Avatar } from "./avatar";
 import { cn } from "./utils";
 
@@ -22,7 +23,12 @@ export function PremiumAvatar({ isPremium, className, children }: PremiumAvatarP
           background: "conic-gradient(#f59e0b 0%, #fde68a 30%, #f97316 60%, #f59e0b 100%)",
         }}
       />
-      <Avatar className="absolute inset-[3px] size-auto border-2 border-white rounded-[inherit]">
+      <Avatar
+        className={cn(
+          className,
+          "absolute inset-[3px] h-[calc(100%-6px)] w-[calc(100%-6px)] rounded-[inherit] border-2 border-white",
+        )}
+      >
         {children}
       </Avatar>
       <span
@@ -32,10 +38,9 @@ export function PremiumAvatar({ isPremium, className, children }: PremiumAvatarP
         style={{
           width: "clamp(14px, 28%, 28px)",
           height: "clamp(14px, 28%, 28px)",
-          fontSize: "clamp(7px, 40%, 14px)",
         }}
       >
-        👑
+        <Crown className="h-[60%] w-[60%] text-white" strokeWidth={2.25} />
       </span>
     </div>
   );

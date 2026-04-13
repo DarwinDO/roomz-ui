@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import { Badge } from '@/components/ui/badge';
 import {
     Inbox,
@@ -88,12 +89,12 @@ function RequestCard({
             <Card className="p-4">
                 <div className="flex items-start gap-4">
                     {/* Avatar */}
-                    <Avatar className="w-12 h-12">
+                    <PremiumAvatar isPremium={user?.is_premium ?? false} className="h-12 w-12">
                         <AvatarImage src={user?.avatar_url || undefined} />
                         <AvatarFallback className="bg-primary/10 text-primary">
                             {getInitials(user?.full_name || '')}
                         </AvatarFallback>
-                    </Avatar>
+                    </PremiumAvatar>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">

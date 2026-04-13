@@ -25,6 +25,7 @@ export interface MessageWithSender extends Message {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
     };
 }
 
@@ -103,7 +104,7 @@ export function subscribeToConversationMessages(
                     const newMessage = payload.new as Message;
                     const { data: sender } = await supabase
                         .from('users')
-                        .select('id, full_name, avatar_url')
+                        .select('id, full_name, avatar_url, is_premium')
                         .eq('id', newMessage.sender_id)
                         .single();
 

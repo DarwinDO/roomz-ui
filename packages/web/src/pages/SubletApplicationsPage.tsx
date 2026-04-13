@@ -9,8 +9,9 @@ import { ArrowLeft, Check, Loader2, MessageCircle, User, Users, X } from 'lucide
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -240,10 +241,10 @@ function ApplicationCard({ app, onApprove, onReject, onMessage, isProcessing }: 
   return (
     <Card className="p-4 sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row">
-        <Avatar className="h-14 w-14">
-          <AvatarImage src={applicant?.avatar_url || ''} />
+        <PremiumAvatar isPremium={applicant?.is_premium ?? false} className="h-14 w-14">
+          {applicant?.avatar_url ? <AvatarImage src={applicant.avatar_url} alt={applicant.full_name || 'Người dùng'} /> : null}
           <AvatarFallback className="bg-primary/10 text-primary">{applicant?.full_name?.charAt(0) || 'U'}</AvatarFallback>
-        </Avatar>
+        </PremiumAvatar>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

@@ -4,6 +4,12 @@ function uniq(values: string[] | undefined) {
   return [...new Set((values || []).filter(Boolean))];
 }
 
+function uniqNullable(values: string[] | null | undefined) {
+  if (values === undefined) return undefined;
+  if (values === null) return null;
+  return uniq(values);
+}
+
 function normalizeNullableString(value: string | null | undefined) {
   if (value == null) return value ?? null;
   const trimmed = value.trim();
@@ -48,7 +54,7 @@ export function mergeJourneyState(
   current: Partial<RomiJourneyState> | null | undefined,
   patch: Partial<RomiJourneyState> | null | undefined,
 ): RomiJourneyState {
-  const next: RomiJourneyState = {
+  return {
     ...current,
     ...patch,
     stage: mergeScalar(current?.stage, patch?.stage),
@@ -75,9 +81,12 @@ export function mergeJourneyState(
     needsLogin: patch?.needsLogin === undefined ? current?.needsLogin : patch.needsLogin,
     groundedBy: patch?.groundedBy ? uniq(patch.groundedBy) : uniq(current?.groundedBy),
     resolutionOutcome: mergeScalar(current?.resolutionOutcome, patch?.resolutionOutcome),
+    activeEntityType: mergeScalar(current?.activeEntityType, patch?.activeEntityType),
+    activeEntityId: mergeNullableString(current?.activeEntityId, patch?.activeEntityId),
+    lastResultSetType: mergeScalar(current?.lastResultSetType, patch?.lastResultSetType),
+    lastResultIds: uniqNullable(patch?.lastResultIds ?? current?.lastResultIds) ?? null,
+    lastResultSourceIntent: mergeScalar(current?.lastResultSourceIntent, patch?.lastResultSourceIntent),
   };
-
-  return next;
 }
 
 export function buildJourneySummary(state: Partial<RomiJourneyState> | null | undefined) {
@@ -135,6 +144,10 @@ export function buildJourneySummary(state: Partial<RomiJourneyState> | null | un
 
   if (state.productTopic) {
     fragments.push(`chủ đề ${state.productTopic}`);
+  }
+
+  if (state.activeEntityType && state.activeEntityId) {
+    fragments.push(`đang mở ${state.activeEntityType}`);
   }
 
   if (!fragments.length) {

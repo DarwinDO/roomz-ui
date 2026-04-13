@@ -71,6 +71,10 @@ export async function trackRomiOpened(userId: string | null) {
   await trackFeatureEvent('romi_opened', userId, {});
 }
 
+export async function trackRomiLauncherClicked(userId: string | null) {
+  await trackFeatureEvent('romi_launcher_clicked', userId, {});
+}
+
 export async function trackRomiSuggestedPromptClicked(userId: string | null, prompt: string) {
   await trackFeatureEvent('romi_suggested_prompt_clicked', userId, {
     prompt,

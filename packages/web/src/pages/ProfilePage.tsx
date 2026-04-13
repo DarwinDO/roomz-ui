@@ -13,10 +13,12 @@ import {
   ShieldCheck,
   Sparkles,
   Users,
+  Wrench,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileEditModal } from "@/components/modals/ProfileEditModal";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -43,9 +45,10 @@ import { transformRoomToCardProps } from "@/utils/room";
 import { UPGRADE_SOURCES } from "@roomz/shared/constants/tracking";
 import { getUserInitials } from "@roomz/shared/utils/user";
 import { BookingsTab } from "./profile/components/BookingsTab";
+import { MyServicesTab } from "./profile/components/MyServicesTab";
 import { SettingsTab } from "./profile/components/SettingsTab";
 
-type DetailPanel = "favorites" | "bookings" | "settings" | null;
+type DetailPanel = "favorites" | "bookings" | "settings" | "services" | null;
 type SavedRoomCard = ReturnType<typeof transformRoomToCardProps>;
 
 const ShopMiniMapbox = lazy(() =>
@@ -274,7 +277,10 @@ export default function ProfilePage() {
               <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(135deg,var(--primary)_0%,var(--primary-container)_100%)] opacity-10" />
               <div className="relative mt-4 flex flex-col items-center text-center">
                 <div className="relative">
-                  <Avatar className="h-32 w-32 border-4 border-surface-container-lowest shadow-[0_20px_40px_rgba(40,43,81,0.12)]">
+                  <PremiumAvatar
+                    isPremium={profile?.is_premium ?? false}
+                    className="h-32 w-32 border-4 border-surface-container-lowest shadow-[0_20px_40px_rgba(40,43,81,0.12)]"
+                  >
                     <AvatarImage
                       src={profile?.avatar_url || undefined}
                       alt={profile?.full_name || user?.email || "Ảnh đại diện"}
@@ -282,7 +288,7 @@ export default function ProfilePage() {
                     <AvatarFallback className="bg-primary/10 font-display text-3xl text-primary">
                       {getUserInitials(profile?.full_name, user?.email)}
                     </AvatarFallback>
-                  </Avatar>
+                  </PremiumAvatar>
                   {(trustScore >= 80 || profile?.id_card_verified) ? (
                     <div className="absolute right-1 bottom-1 flex items-center gap-1 rounded-full bg-tertiary-container px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-on-tertiary-container shadow-sm">
                       <ShieldCheck className="h-3 w-3" />
@@ -545,12 +551,15 @@ export default function ProfilePage() {
                         className="group flex flex-col items-center rounded-[24px] bg-surface-container-low p-4 text-center transition-transform hover:-translate-y-0.5"
                       >
                         <div className="relative">
-                          <Avatar className="h-16 w-16">
+                          <PremiumAvatar
+                            isPremium={match.is_premium ?? false}
+                            className="h-16 w-16"
+                          >
                             <AvatarImage src={match.avatar_url || undefined} alt={match.full_name} />
                             <AvatarFallback className="bg-primary/10 text-primary">
                               {getUserInitials(match.full_name, null)}
                             </AvatarFallback>
-                          </Avatar>
+                          </PremiumAvatar>
                           <div className="absolute -right-1 -bottom-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface-container-low bg-tertiary text-[10px] font-bold text-on-tertiary">
                             {Math.round(match.compatibility_score)}%
                           </div>
@@ -586,6 +595,11 @@ export default function ProfilePage() {
                     icon={<Bell className="h-4 w-4" />}
                     label="Lịch sử và thông báo"
                     onClick={() => setDetailPanel("bookings")}
+                  />
+                  <SettingsAction
+                    icon={<Wrench className="h-4 w-4" />}
+                    label="Dịch vụ đã đặt"
+                    onClick={() => setDetailPanel("services")}
                   />
                 </div>
 
@@ -745,6 +759,20 @@ export default function ProfilePage() {
           </DialogHeader>
           <div className="max-h-[calc(90vh-96px)] overflow-y-auto px-6 py-6">
             <BookingsTab />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={detailPanel === "services"} onOpenChange={(open) => !open && setDetailPanel(null)}>
+        <DialogContent className="max-h-[90vh] overflow-hidden border-border/70 bg-background p-0 sm:max-w-[600px]">
+          <DialogHeader className="border-b border-border/70 px-6 py-5">
+            <DialogTitle>Dịch vụ đã đặt</DialogTitle>
+            <DialogDescription>
+              Theo dõi trạng thái các yêu cầu dịch vụ bạn đã gửi — chuyển phòng, dọn dẹp, lắp đặt và hơn thế nữa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[calc(90vh-96px)] overflow-y-auto px-6 py-6">
+            <MyServicesTab />
           </div>
         </DialogContent>
       </Dialog>

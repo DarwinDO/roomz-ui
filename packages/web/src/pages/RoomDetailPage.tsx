@@ -25,6 +25,8 @@ import {
   WashingMachine,
   Wifi,
 } from "lucide-react";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -189,13 +191,9 @@ export default function RoomDetailPage() {
     [room?.images],
   );
 
-  const galleryImages = useMemo(() => {
-    if (roomImages.length >= 4) {
-      return roomImages;
-    }
-
-    return [...roomImages, ...stitchAssets.roomDetail.gallery.filter((image) => !roomImages.includes(image))];
-  }, [roomImages]);
+  // gridImages: only real uploaded photos — no placeholders.
+  // The grid renders slots conditionally so it gracefully handles 1–3 images.
+  const gridImages = roomImages;
 
   const amenityItems = useMemo(() => {
     const amenityList = amenityLabels.filter((item) => Boolean(room?.amenities?.[item.key]));
@@ -338,7 +336,7 @@ export default function RoomDetailPage() {
   }
 
   const location = [room.address, room.district, room.city].filter(Boolean).join(", ");
-  const displayImages = galleryImages.slice(0, 4);
+  const displayImages = gridImages.slice(0, 4);
   const extraImageCount = Math.max(roomImages.length - 4, 0);
   const descriptionHighlights = buildHighlightItems(room);
   const hostRating = room.landlord?.trust_score
@@ -587,13 +585,23 @@ export default function RoomDetailPage() {
                     >
                       <div className="mb-4 flex items-start justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 overflow-hidden rounded-full bg-surface-container-highest">
-                            <img
+                          <PremiumAvatar
+                            isPremium={review.reviewer?.is_premium ?? false}
+                            className="h-12 w-12"
+                          >
+                            <AvatarImage
                               src={review.reviewer?.avatar_url || stitchAssets.roomDetail.reviewAvatars[index % stitchAssets.roomDetail.reviewAvatars.length]}
                               alt={review.reviewer?.full_name || "Khách thuê"}
-                              className="h-full w-full object-cover"
                             />
-                          </div>
+                            <AvatarFallback className="bg-surface-container-highest text-xs font-semibold text-on-surface">
+                              {(review.reviewer?.full_name || "K")
+                                .split(" ")
+                                .map((p) => p[0])
+                                .join("")
+                                .slice(0, 2)
+                                .toUpperCase()}
+                            </AvatarFallback>
+                          </PremiumAvatar>
                           <div>
                             <h3 className="font-bold text-on-surface">
                               {review.reviewer?.full_name || "Khách thuê"}
@@ -633,8 +641,21 @@ export default function RoomDetailPage() {
           <aside className="space-y-8 lg:sticky lg:top-28 lg:self-start">
             <div className="rounded-[32px] border border-outline-variant/10 bg-white p-8 shadow-[0_20px_40px_rgba(40,43,81,0.06)]">
               <div className="mb-6 text-center">
-                <div className="mx-auto mb-4 h-24 w-24 overflow-hidden rounded-full bg-surface-container-high ring-4 ring-primary-container/20">
-                  <img src={hostAvatar} alt={room.landlord?.full_name || "Chủ nhà"} className="h-full w-full object-cover" />
+                <div className="mx-auto mb-4 flex justify-center">
+                  <PremiumAvatar
+                    isPremium={room.landlord?.is_premium ?? false}
+                    className="h-24 w-24 ring-4 ring-primary-container/20"
+                  >
+                    <AvatarImage src={hostAvatar} alt={room.landlord?.full_name || "Chủ nhà"} />
+                    <AvatarFallback className="bg-surface-container-high text-lg font-semibold text-on-surface">
+                      {(room.landlord?.full_name || "H")
+                        .split(" ")
+                        .map((p) => p[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </AvatarFallback>
+                  </PremiumAvatar>
                 </div>
                 <h2 className="text-xl font-bold text-on-surface">
                   {room.landlord?.full_name || "Chủ nhà RommZ"}
@@ -798,6 +819,7 @@ export default function RoomDetailPage() {
                 full_name: room.landlord.full_name || "Chủ nhà",
                 avatar_url: room.landlord.avatar_url,
                 email: room.landlord.email,
+                is_premium: room.landlord.is_premium,
               }
             : undefined
         }
@@ -807,8 +829,8 @@ export default function RoomDetailPage() {
       <GalleryModal
         isOpen={isGalleryOpen}
         onClose={() => setIsGalleryOpen(false)}
-        images={galleryImages.length ? galleryImages : [""]}
-        initialIndex={currentImageIndex}
+        images={roomImages.length ? roomImages : [""]}
+        initialIndex={Math.min(currentImageIndex, Math.max(0, roomImages.length - 1))}
       />
     </div>
   );

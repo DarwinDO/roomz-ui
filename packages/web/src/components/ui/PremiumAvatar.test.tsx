@@ -39,4 +39,15 @@ describe("PremiumAvatar", () => {
     );
     expect(container.firstChild).toHaveClass("h-20", "w-20");
   });
+
+  it("passes className through to the inner Avatar when premium", () => {
+    const { container } = render(
+      <PremiumAvatar isPremium={true} className="h-20 w-20 rounded-[28px] shadow-lg">
+        <AvatarFallback>AB</AvatarFallback>
+      </PremiumAvatar>,
+    );
+
+    const premiumAvatar = container.querySelector('[data-slot="avatar"]');
+    expect(premiumAvatar).toHaveClass("absolute", "border-2", "border-white", "shadow-lg", "rounded-[inherit]");
+  });
 });

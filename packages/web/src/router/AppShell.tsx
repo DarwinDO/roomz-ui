@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router-dom";
 import {
   BadgeCheck,
   HousePlus,
@@ -7,10 +7,12 @@ import {
   LogIn,
   LogOut,
   MessageCircle,
+  ShieldCheck,
   Sparkles,
   User as UserIcon,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
 import { Badge } from "@/components/ui/badge";
 import { BottomNav } from "@/components/common/BottomNav";
 import { Chatbot } from "@/components/common/Chatbot";
@@ -45,6 +47,7 @@ export default function AppShell() {
   const { unreadCount } = useUnreadConversationCount();
   const { isPremium, loading: premiumLoading } = usePremiumLimits();
   const isLandlord = profile?.role === "landlord";
+  const isAdmin = profile?.role === "admin";
 
   const desktopNavItems = isLandlord
     ? [...NAV_ITEMS, { path: "/host", label: "Chủ nhà" }]
@@ -158,7 +161,7 @@ export default function AppShell() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                      <Avatar className="h-10 w-10">
+                      <PremiumAvatar isPremium={profile?.is_premium ?? false} className="h-10 w-10">
                         <AvatarImage
                           src={profile?.avatar_url || undefined}
                           alt={profile?.full_name || user.email || ""}
@@ -166,7 +169,7 @@ export default function AppShell() {
                         <AvatarFallback className="bg-primary text-primary-foreground">
                           {getUserInitials()}
                         </AvatarFallback>
-                      </Avatar>
+                      </PremiumAvatar>
                     </Button>
                   </DropdownMenuTrigger>
 
@@ -200,6 +203,13 @@ export default function AppShell() {
                       )}
                       {isPremium ? "RommZ+ đang hoạt động" : "RommZ+"}
                     </DropdownMenuItem>
+
+                    {isAdmin && (
+                      <DropdownMenuItem onSelect={() => navigate("/admin")} className="text-primary font-medium">
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                    )}
 
                     {isLandlord ? (
                       <DropdownMenuItem onSelect={() => navigate("/host")}>
@@ -314,6 +324,7 @@ export default function AppShell() {
       <BottomNav />
       <Chatbot />
       <Toaster />
+      <ScrollRestoration />
     </div>
   );
 }

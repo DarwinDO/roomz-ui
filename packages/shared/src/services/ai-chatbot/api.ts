@@ -128,20 +128,10 @@ export function getAIChatSessionPreview(session: Pick<AIChatSession, "preview" |
 
 function normalizeRequest(
   message: string,
-  sessionIdOrOptions?: string | null | SendAIChatOptions,
+  options: SendAIChatOptions,
 ): AIChatRequest {
-  if (
-    sessionIdOrOptions == null ||
-    typeof sessionIdOrOptions === "string"
-  ) {
-    return {
-      message,
-      sessionId: sessionIdOrOptions ?? undefined,
-    };
-  }
-
   return {
-    ...sessionIdOrOptions,
+    ...options,
     message,
   };
 }
@@ -151,7 +141,7 @@ async function callAIChatFunction(
   request: AIChatRequest,
   stream: boolean,
 ) {
-  const viewerMode = request.viewerMode ?? "user";
+  const viewerMode = request.viewerMode;
   const accessToken = viewerMode === "guest"
     ? await getOptionalAccessToken(supabase)
     : await getAccessTokenOrThrow(supabase);
@@ -174,9 +164,9 @@ async function callAIChatFunction(
 export async function sendAIChatMessage(
   supabase: SupabaseClient,
   message: string,
-  sessionIdOrOptions?: string | null | SendAIChatOptions,
+  options: SendAIChatOptions,
 ): Promise<AIChatResponse> {
-  const request = normalizeRequest(message, sessionIdOrOptions);
+  const request = normalizeRequest(message, options);
   const response = await callAIChatFunction(supabase, request, false);
 
   if (!response.ok) {
@@ -192,9 +182,9 @@ export async function sendAIChatMessage(
 export async function* sendAIChatMessageStream(
   supabase: SupabaseClient,
   message: string,
-  sessionIdOrOptions?: string | null | SendAIChatOptions,
+  options: SendAIChatOptions,
 ): AsyncGenerator<AIChatStreamEvent, void, void> {
-  const request = normalizeRequest(message, sessionIdOrOptions);
+  const request = normalizeRequest(message, options);
   const response = await callAIChatFunction(supabase, request, true);
 
   if (!response.ok) {

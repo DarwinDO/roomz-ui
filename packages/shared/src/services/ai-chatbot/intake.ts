@@ -6,6 +6,7 @@ import type {
   RomiViewerMode,
 } from './types.ts';
 import { buildJourneySummary, mergeJourneyState } from './journey.ts';
+import { normalizeVietnameseText } from './text.ts';
 
 export interface RomiIntakeAnalysis {
   intent: RomiIntent;
@@ -26,6 +27,8 @@ const POI_KEYWORDS = /(dai hoc|truong|campus|ga|ben xe|landmark|diem moc|vincom|
 const BUDGET_REPLY_HINT = /(trieu|tr|m|k|duoi|tren|toi da|toi thieu|max|min|khoang|tam|tro xuong|tro len|\d)/i;
 const LOCATION_REPLY_HINT = /(gan|o|tai|quan|huyen|thu duc|ha noi|tp\.?hcm|ho chi minh|da nang|can tho|truong|dai hoc|campus|landmark|ga|ben xe)/i;
 const ROOM_SEARCH_BUDGET_HINT = /(phong|tro|can ho|studio|ngan sach|budget|gia|thue)/i;
+const ROOM_SEARCH_CONTEXT_FOLLOW_UP_HINT =
+  /\b(?:gan|quan|huyen|thu duc|ha noi|tp\.?hcm|ho chi minh|da nang|can tho|truong|dai hoc|campus|landmark|ga|ben xe|duoi|tren|toi da|toi thieu|trieu|budget|gia|thue|xem|chi tiet|thong tin|ma|id|so\s*\d+)\b/i;
 const NEAR_PREFIX_PATTERN = /\b(?:gan|near)\s+/i;
 const TRAILING_POI_CLAUSE_PATTERN =
   /\s+(?:va|tu|duoi|tren|tro xuong|tro len|toi da|toi thieu|it nhat|khong qua|ngan sach|budget|khoang|tam)(?=\s|$)/i;
@@ -37,11 +40,7 @@ type BudgetSignal = {
 };
 
 function normalizeText(input: string) {
-  return input
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd');
+  return normalizeVietnameseText(input);
 }
 
 function trimNullable(value: string | null | undefined) {
@@ -255,12 +254,21 @@ function attemptedFieldReply(input: string, field: 'ngan_sach' | 'khu_vuc') {
 
 function detectIntent(input: string, existingState: Partial<RomiJourneyState>) {
   const normalized = normalizeText(input);
+  const hasExplicitRoomSearchCue = /(phong|tro|can ho|studio)/.test(normalized);
+  const shouldInheritRoomSearchIntent =
+    existingState.goal === 'find_room'
+    && (
+      hasExplicitRoomSearchCue
+      || ROOM_SEARCH_CONTEXT_FOLLOW_UP_HINT.test(normalized)
+      || isBudgetReplyContext(existingState)
+      || isLocationReplyContext(existingState)
+    );
 
   if (/(chi tiet phong|ma phong|room id|phong nay|phong kia)/.test(normalized)) {
     return 'room_detail' as const;
   }
 
-  if (/(phong|tro|can ho|studio)/.test(normalized) || existingState.goal === 'find_room') {
+  if (hasExplicitRoomSearchCue || shouldInheritRoomSearchIntent) {
     return 'room_search' as const;
   }
 

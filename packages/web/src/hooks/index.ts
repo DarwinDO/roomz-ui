@@ -73,6 +73,7 @@ export { useGeolocation } from './useGeolocation';
 export { useActivityTracker } from './useActivityTracker';
 export { useConfirm } from './useConfirm';
 export { usePostSubletForm } from './usePostSubletForm';
+export { useAutoResizeTextarea } from './useAutoResizeTextarea';
 
 // Admin hooks
 export { useAdminStats } from './useAdmin';

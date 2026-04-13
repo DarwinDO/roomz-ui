@@ -74,6 +74,7 @@ export interface RoomWithDetails extends Room {
         phone: string | null;
         email: string;
         trust_score: number | null;
+        is_premium?: boolean | null;
     };
     images?: RoomImage[];
     amenities?: RoomAmenity | null;
@@ -136,6 +137,7 @@ interface SearchRoomRow {
     landlord_avatar: string | null;
     landlord_email: string | null;
     landlord_phone: string | null;
+    landlord_is_premium: boolean | null;
     landlord_trust_score: number | null;
     total_count: number;
     search_rank: number;
@@ -228,6 +230,7 @@ function transformSearchRow(row: SearchRoomRow): RoomWithDetails {
             // Security: Mask phone in search results - use get_room_contact RPC for full access
             phone: row.landlord_phone ? maskPhoneNumber(row.landlord_phone) : null,
             email: row.landlord_email || '',
+            is_premium: row.landlord_is_premium,
             trust_score: row.landlord_trust_score,
         },
         images: row.primary_image_url
@@ -297,7 +300,7 @@ export async function getRoomById(
         .from('rooms')
         .select(`
       *,
-      landlord:users!landlord_id(id, full_name, avatar_url, phone, email, trust_score),
+      landlord:users!landlord_id(id, full_name, avatar_url, phone, email, trust_score, is_premium),
       images:room_images(*),
       amenities:room_amenities(*)
     `)

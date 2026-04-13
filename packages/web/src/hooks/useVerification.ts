@@ -7,12 +7,14 @@ import {
   fetchVerificationRequests,
   fetchVerifiedUsers,
   getMyVerificationStatus,
+  getMyStudentCardVerificationStatus,
   reviewVerification,
   revokeVerification,
   submitVerificationRequest,
   type ManagedVerificationType,
   type VerificationStatus,
   uploadCCCDImages,
+  uploadStudentCardImages,
 } from '@/services/verification';
 
 export const verificationKeys = {
@@ -51,6 +53,38 @@ export function useSubmitVerification() {
       toast.success('Đã gửi yêu cầu xác thực', {
         description: 'Chúng tôi sẽ xem xét trong vòng 24 giờ.',
       });
+    },
+    onError: (error: Error) => {
+      toast.error('Lỗi gửi yêu cầu', { description: error.message });
+    },
+  });
+}
+
+export function useMyStudentCardStatus() {
+  return useQuery({
+    queryKey: [...verificationKeys.all, 'student-card-status'] as const,
+    queryFn: getMyStudentCardVerificationStatus,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useSubmitStudentCardVerification() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ frontFile, backFile }: { frontFile: File; backFile: File }) => {
+      const { frontPath, backPath } = await uploadStudentCardImages(frontFile, backFile);
+      try {
+        await submitVerificationRequest('', 'student_card', [frontPath, backPath]);
+      } catch (error) {
+        await deleteUploadedFiles(frontPath, backPath).catch(() => {});
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: verificationKeys.all });
+      queryClient.invalidateQueries({ queryKey: [...verificationKeys.all, 'student-card-status'] });
+      queryClient.invalidateQueries({ queryKey: verificationKeys.myStatus() });
     },
     onError: (error: Error) => {
       toast.error('Lỗi gửi yêu cầu', { description: error.message });

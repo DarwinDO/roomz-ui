@@ -35,7 +35,6 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +48,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts";
 import { useLandlordBookings } from "@/hooks/useBookings";
@@ -745,10 +746,13 @@ export default function LandlordDashboardPage() {
                       queueBookings.map((booking) => (
                         <div key={booking.id} className="rounded-[1.5rem] bg-surface-container p-4">
                           <div className="flex items-start gap-3">
-                            <Avatar className="h-12 w-12 border border-white">
+                            <PremiumAvatar
+                              isPremium={booking.renter?.is_premium ?? false}
+                              className="h-12 w-12 border border-white"
+                            >
                               <AvatarImage src={booking.renter?.avatar_url || undefined} />
                               <AvatarFallback>{getBookingGuestName(booking).slice(0, 2).toUpperCase()}</AvatarFallback>
-                            </Avatar>
+                            </PremiumAvatar>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -2014,12 +2018,15 @@ function MessagesOverviewStrip({
                       : "bg-surface-container hover:bg-surface-container-low",
                   )}
                 >
-                  <Avatar className="h-11 w-11 border border-border/70">
+                  <PremiumAvatar
+                    isPremium={conversation.participant.is_premium ?? false}
+                    className="h-11 w-11 border border-border/70"
+                  >
                     <AvatarImage src={conversation.participant.avatar_url || undefined} />
                     <AvatarFallback>
                       {conversation.participant.full_name?.slice(0, 2).toUpperCase() || "CH"}
                     </AvatarFallback>
-                  </Avatar>
+                  </PremiumAvatar>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-on-surface">{conversation.participant.full_name}</p>
                     <p className="mt-1 truncate text-xs uppercase tracking-[0.18em] text-primary">
@@ -2059,12 +2066,15 @@ function MessagesOverviewStrip({
           {selectedConversation ? (
             <div className="flex flex-col rounded-[1.75rem] bg-surface-container p-6">
                 <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16 border border-border/70">
+                  <PremiumAvatar
+                    isPremium={selectedConversation.participant.is_premium ?? false}
+                    className="h-16 w-16 border border-border/70"
+                  >
                     <AvatarImage src={selectedConversation.participant.avatar_url || undefined} />
                     <AvatarFallback>
                       {selectedConversation.participant.full_name?.slice(0, 2).toUpperCase() || "CH"}
                     </AvatarFallback>
-                  </Avatar>
+                  </PremiumAvatar>
                   <div className="min-w-0">
                     <p className="font-display text-2xl font-black tracking-[-0.03em] text-on-surface">
                       {selectedConversation.participant.full_name}

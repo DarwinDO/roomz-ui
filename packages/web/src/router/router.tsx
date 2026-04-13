@@ -28,6 +28,7 @@ const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const VerifyEmailPage = lazy(() => import('@/pages/VerifyEmailPage'));
 const AuthCallbackPage = lazy(() => import('@/pages/AuthCallbackPage'));
 const VerificationPage = lazy(() => import('@/pages/VerificationPage'));
+const StudentCardVerificationPage = lazy(() => import('@/pages/StudentCardVerificationPage'));
 const ServicesHubPage = lazy(() => import('@/pages/ServicesHubPage'));
 const RomiPage = lazy(() => import('@/pages/RomiPage'));
 const SubletDetailPage = lazy(() => import('@/pages/SubletDetailPage'));
@@ -214,6 +215,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <VerificationPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'verification/student-card',
+        element: (
+          <ProtectedRoute>
+            <StudentCardVerificationPage />
           </ProtectedRoute>
         ),
       },

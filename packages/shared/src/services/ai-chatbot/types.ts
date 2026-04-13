@@ -27,6 +27,8 @@ export type RomiEntryPoint = 'launcher' | 'romi_page' | 'contextual_handoff';
 export type RomiJourneyStage = 'discover' | 'clarify' | 'recommend' | 'handoff' | 'resolved';
 export type RomiBudgetConstraintType = 'hard_cap' | 'soft_cap' | 'range' | 'min_only' | 'unspecified';
 export type RomiNormalizationConfidence = 'high' | 'medium' | 'low';
+export type RomiResultSetType = 'room' | 'deal' | 'service' | 'location';
+export type RomiSelectionResolvedFrom = 'uuid' | 'ordinal' | 'active_context' | 'none';
 export type RomiResolutionOutcome =
     | 'results'
     | 'broadened_results'
@@ -89,6 +91,11 @@ export interface RomiJourneyState {
     needsLogin?: boolean;
     groundedBy?: string[];
     resolutionOutcome?: RomiResolutionOutcome | null;
+    activeEntityType?: RomiContextType | null;
+    activeEntityId?: string | null;
+    lastResultSetType?: RomiResultSetType | null;
+    lastResultIds?: string[] | null;
+    lastResultSourceIntent?: RomiIntent | null;
 }
 
 export interface RomiToolCallSummary {
@@ -115,6 +122,12 @@ export interface AIChatMessageMetadata {
     clarification?: RomiClarificationRequest | null;
     handoff?: RomiHandoff | null;
     viewerMode?: RomiViewerMode;
+    selection?: {
+        entityType?: RomiContextType | null;
+        entityId?: string | null;
+        resolvedFrom?: RomiSelectionResolvedFrom;
+        ordinal?: number | null;
+    };
     source?: string;
     finishReason?: string;
     usage?: unknown;
@@ -165,7 +178,7 @@ export interface AIChatRequest {
     message: string;
     sessionId?: string | null;
     stream?: boolean;
-    viewerMode?: RomiViewerMode;
+    viewerMode: RomiViewerMode;
     entryPoint?: RomiEntryPoint;
     pageContext?: RomiPageContext;
     journeyState?: Partial<RomiJourneyState>;

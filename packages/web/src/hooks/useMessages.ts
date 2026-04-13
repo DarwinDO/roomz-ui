@@ -203,6 +203,7 @@ export function useConversationMessages(
               id: user.id,
               full_name: profile?.full_name || 'You',
               avatar_url: profile?.avatar_url ?? null,
+              is_premium: profile?.is_premium ?? undefined,
             },
           },
         ];
@@ -211,7 +212,7 @@ export function useConversationMessages(
       console.error('[useConversationMessages] Send error:', err);
       throw err;
     }
-  }, [conversationId, profile?.avatar_url, profile?.full_name, user?.id]);
+  }, [conversationId, profile?.avatar_url, profile?.full_name, profile?.is_premium, user?.id]);
 
   const handleMarkAsRead = useCallback(async () => {
     if (!user?.id || !conversationId) {

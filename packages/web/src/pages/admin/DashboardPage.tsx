@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Users, Home, DollarSign, ShieldCheck, ArrowRight, Loader2, Building2, UserPlus, CalendarPlus, Flag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAdminStats } from "@/hooks/useAdmin";
-import { useUserGrowthStats, useRoomTypeDistribution, useRecentActivities } from "@/hooks/useAdminAnalytics";
+import { useUserGrowthStats, useRoomTypeDistribution, useRecentActivities, useRevenueStats } from "@/hooks/useAdminAnalytics";
 
 export default function DashboardPage() {
   const { data: stats, isLoading: loading } = useAdminStats();
   const { data: userGrowth = [] } = useUserGrowthStats();
   const { data: roomDistribution = [] } = useRoomTypeDistribution();
   const { data: activities = [], isLoading: activitiesLoading } = useRecentActivities();
+  const { data: revenueStats } = useRevenueStats();
 
   // Map room type labels to Vietnamese
   const roomTypeLabels: Record<string, string> = {
@@ -121,10 +122,46 @@ export default function DashboardPage() {
           dataKey="users"
           xAxisKey="month"
         />
-        {/* Placeholder for Revenue Chart */}
-        <Card className="p-6 flex flex-col items-center justify-center text-gray-500 min-h-[300px]">
-          <DollarSign className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p>Dữ liệu doanh thu đang được thu thập...</p>
+        {/* Revenue Summary */}
+        <Card className="p-6 min-h-[300px] flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-gray-900">Tổng quan doanh thu</h3>
+            <Link to="/admin/revenue" className="text-sm text-primary hover:underline font-medium flex items-center gap-1">
+              Xem chi tiết <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          {revenueStats ? (
+            <div className="flex flex-col gap-4 flex-1">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-5 border border-green-100">
+                <p className="text-xs font-semibold uppercase tracking-wide text-green-600 mb-1">Tổng doanh thu</p>
+                <p className="text-3xl font-bold text-green-700">
+                  {revenueStats.totalRevenue.toLocaleString('vi-VN')}đ
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-gray-50 p-3 text-center border border-gray-100">
+                  <p className="text-xl font-bold text-gray-900">{revenueStats.paidOrders}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Đã thanh toán</p>
+                </div>
+                <div className="rounded-xl bg-amber-50 p-3 text-center border border-amber-100">
+                  <p className="text-xl font-bold text-amber-700">{revenueStats.pendingOrders}</p>
+                  <p className="text-xs text-amber-600 mt-0.5">Chờ xử lý</p>
+                </div>
+                <div className="rounded-xl bg-red-50 p-3 text-center border border-red-100">
+                  <p className="text-xl font-bold text-red-600">{revenueStats.manualReviewOrders}</p>
+                  <p className="text-xs text-red-500 mt-0.5">Cần review</p>
+                </div>
+              </div>
+              <div className="mt-auto pt-2 border-t border-gray-100">
+                <p className="text-xs text-gray-400 text-right">Tổng {revenueStats.totalOrders} đơn hàng</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center flex-1 text-gray-400">
+              <DollarSign className="w-10 h-10 mb-2 opacity-40" />
+              <p className="text-sm">Đang tải dữ liệu doanh thu...</p>
+            </div>
+          )}
         </Card>
       </div>
 

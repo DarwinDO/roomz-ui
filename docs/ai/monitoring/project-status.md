@@ -2,7 +2,7 @@
 phase: monitoring
 title: Project Status Snapshot
 description: Living project memory for RoomZ product scope, architecture, roadmap, and current implementation state
-updated: 2026-03-31
+updated: 2026-04-13
 ---
 
 # RommZ Project Status
@@ -17,6 +17,308 @@ updated: 2026-03-31
 - **Current design direction:** `Stitch-first` Living Atlas direct port for eleven desktop routes
 - **Motion direction:** Framer Motion only; shared motion foundation plus public and product polish are now active on `/`, `/login`, `/services`, `/community`, `/search`, `/messages`, and `/host`
 - **Hero accent direction:** Draftly-like layered illustration hero on landing/login; no runtime WebGL is active now
+
+## Latest Update (2026-04-13, premium avatar review follow-up batch)
+
+- Closed the remaining review findings around premium-avatar coverage instead of leaving the implementation split between UI-only fixes and stale data paths.
+- Shared avatar contract + live surfaces:
+  - `packages/web/src/components/ui/PremiumAvatar.tsx` now keeps the premium branch compiling cleanly, preserves wrapper sizing, and passes caller styling through the inner avatar path where it matters
+  - host legacy messaging and swap/sublet surfaces now render `PremiumAvatar` on the live user-avatar paths that were still plain before this batch
+- Data-path and backend alignment:
+  - `packages/shared/src/services/messages.ts`, `packages/web/src/hooks/useMessages.ts`, and `packages/web/src/pages/LandlordDashboardPage.tsx` now carry `is_premium` through the legacy host messaging flow
+  - `packages/web/src/services/sublets.ts`, `packages/web/src/services/swap.ts`, and `packages/shared/src/types/swap.ts` now carry `is_premium` through the swap/sublet request and application flows
+  - new migration `supabase/migrations/20260413153000_add_landlord_is_premium_to_search_rooms.sql` adds `landlord_is_premium` to `search_rooms`, so landlord avatar metadata stays available on the RPC path instead of only on room detail fetches
+  - `packages/shared/src/services/rooms.ts`, `packages/shared/src/types/database.ts`, and `packages/shared/src/services/database.types.ts` now map that RPC field into the shared room contract
+  - `packages/shared/src/services/reviews.ts` now re-selects `user:users(..., is_premium)` on update, so edited reviews do not lose reviewer premium metadata until a later refetch
+- Live rollout status:
+  - applied on Supabase project `vevnoxlgwisdottaifdn`
+  - direct SQL verification confirms `public.search_rooms(...)` now includes `landlord_is_premium` in the return contract and selects `u.is_premium AS landlord_is_premium`
+  - migration history was aligned to the local repo version `20260413153000 / add_landlord_is_premium_to_search_rooms` so future migration runs should not see a synthetic version drift
+- Regression coverage:
+  - `packages/web/src/components/ui/PremiumAvatar.test.tsx`
+  - `packages/web/src/services/rooms.shared.test.ts`
+  - `packages/web/src/services/reviews.shared.test.ts`
+- Latest validation:
+  - `npx eslint packages/shared/src/services/messages.ts packages/web/src/hooks/useMessages.ts packages/web/src/pages/LandlordDashboardPage.tsx packages/shared/src/types/swap.ts packages/web/src/services/sublets.ts packages/web/src/services/swap.ts packages/web/src/components/swap/SubletCard.tsx packages/web/src/components/swap/SwapRequestCard.tsx packages/web/src/pages/SubletApplicationsPage.tsx packages/web/src/pages/SwapRoomPage.tsx packages/web/src/components/ui/PremiumAvatar.tsx packages/web/src/components/ui/PremiumAvatar.test.tsx packages/shared/src/services/rooms.ts packages/shared/src/types/database.ts packages/shared/src/services/database.types.ts packages/shared/src/services/reviews.ts packages/web/src/services/rooms.shared.test.ts packages/web/src/services/reviews.shared.test.ts`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/components/ui/PremiumAvatar.test.tsx src/services/rooms.shared.test.ts src/services/reviews.shared.test.ts`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npm run build --workspace=@roomz/web`: pass
+- Known remaining gap:
+  - `SwapMatchesPage` / potential-match surfaces were not expanded in this batch because they were outside the approved swap/sublet worker scope
+
+## Latest Update (2026-04-13, host legacy messaging premium avatars)
+
+- Patched the remaining live host-dashboard and legacy messaging surfaces that were still dropping premium metadata or rendering plain avatars:
+  - the shared legacy messaging service now selects `is_premium` for conversation participants and message senders
+  - the `useMessages` hook preserves `is_premium` on the optimistic sender payload so local send behavior stays consistent with the fetched data shape
+  - the host dashboard now renders `PremiumAvatar` for the booking queue avatar plus both visible conversation avatars in the messages tab
+- Scope stayed inside the allowed messaging path files:
+  - `packages/shared/src/services/messages.ts`
+  - `packages/web/src/hooks/useMessages.ts`
+  - `packages/web/src/pages/LandlordDashboardPage.tsx`
+- Latest validation:
+  - `npx ai-devkit@latest lint`: pass
+  - `npx eslint packages/shared/src/services/messages.ts packages/web/src/hooks/useMessages.ts packages/web/src/pages/LandlordDashboardPage.tsx`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+- Tests:
+  - no new test file was added because there was no nearby messaging-specific test pattern inside the approved scope
+
+## Latest Update (2026-04-13, swap/sublet premium avatar surface fix)
+
+- Closed the remaining premium-avatar gaps on the live swap/sublet routes and aligned the shared avatar primitive with the existing premium-ring contract.
+- Data-path updates now propagate `is_premium` into the swap/sublet reads that feed the live cards and request lists:
+  - `packages/web/src/services/sublets.ts` now returns `is_premium` for sublet applicants
+  - `packages/web/src/services/swap.ts` now returns `is_premium` for swap request requesters and recipients
+  - `packages/shared/src/types/swap.ts` now reflects the premium metadata on `SwapRequest` and `SubletApplication` joined user objects
+- Live route updates now render `PremiumAvatar` instead of plain `img` / `Avatar` on real-user avatar surfaces:
+  - `packages/web/src/components/swap/SubletCard.tsx`
+  - `packages/web/src/components/swap/SwapRequestCard.tsx`
+  - `packages/web/src/pages/SubletApplicationsPage.tsx`
+  - `packages/web/src/pages/SwapRoomPage.tsx`
+- The shared avatar primitive was also corrected so the premium branch builds cleanly and preserves the className contract for both wrapper and inner avatar.
+- Added a regression assertion in `packages/web/src/components/ui/PremiumAvatar.test.tsx` to cover the premium branch className contract.
+- Latest validation:
+  - `npx eslint packages/web/src/components/ui/PremiumAvatar.tsx packages/web/src/components/ui/PremiumAvatar.test.tsx packages/web/src/services/sublets.ts packages/web/src/services/swap.ts packages/web/src/components/swap/SubletCard.tsx packages/web/src/components/swap/SwapRequestCard.tsx packages/web/src/pages/SubletApplicationsPage.tsx packages/web/src/pages/SwapRoomPage.tsx packages/shared/src/types/swap.ts`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npm run build --workspace=@roomz/web`: pass
+
+## Latest Update (2026-04-13, room contact UTC reset alignment)
+
+- Aligned the backend room phone-reveal quota contract with the UTC-based roommate quota model instead of leaving phone views on a timezone-dependent `CURRENT_DATE` boundary.
+- Added migration `supabase/migrations/20260413133000_align_room_contact_daily_reset_to_utc.sql`:
+  - `public.get_room_contact(uuid)` now counts `phone_number_views` inside an explicit UTC day window
+  - free and premium limits remain unchanged at `3/day` and `100/day`
+  - masked/unmasked reveal behavior is unchanged outside the day-boundary fix
+- Added coverage for the room-contact service contract:
+  - `packages/web/src/services/rooms.shared.test.ts` now verifies the `get_room_contact` RPC mapping alongside the existing shared room-search coverage
+- Latest validation:
+  - `npx ai-devkit@latest lint`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/services/rooms.shared.test.ts`: pass
+  - `npx eslint packages/web/src/services/rooms.shared.test.ts`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+- Live rollout status:
+  - applied live on Supabase project `vevnoxlgwisdottaifdn` with `supabase db query --linked` because the repo-root `.env.local` BOM still blocks normal linked CLI runs unless a temporary workdir is used
+  - direct SQL verification confirms `public.get_room_contact(uuid)` now uses the explicit UTC window and checks premium status against `plan = 'rommz_plus'`
+  - direct SQL verification confirms `supabase_migrations.schema_migrations.version = 20260413133000` with name `align_room_contact_daily_reset_to_utc`
+
+## Latest Update (2026-04-13, daily limit rollover refresh)
+
+- Fixed two stale client-side quota surfaces that could look "stuck" after a new day started even though the backend reset logic had already rolled over:
+  - roommate free-tier limits now refresh when the UTC day changes instead of waiting for a later incidental refetch
+  - the room phone-reveal CTA no longer stays trapped in the masked-result branch after a day rollover if the page remains open
+- Added a shared UTC rollover helper for the web package:
+  - `packages/web/src/utils/dailyReset.ts` now centralizes UTC date keys and the delay until the next UTC midnight
+  - the helper is used by both roommate limits and the phone reveal flow so rollover timing stays consistent across both features
+- Roommate limit UI is now resilient across midnight and tab lifecycle edges:
+  - `packages/web/src/hooks/useRoommatesQuery.ts` now remembers the last successful limit-sync UTC date
+  - active roommate limit queries now invalidate on the next UTC midnight, on window focus, and on visibility restore if the cached day is stale
+  - this prevents `canViewMore` and the limit bar from blocking a newly reset day with yesterday's cached values
+- Phone reveal now recovers without a full page reload:
+  - `packages/web/src/components/PhoneRevealButton.tsx` stores the UTC day for masked responses
+  - masked phone state now clears on the next UTC day rollover or when the user returns to the tab after rollover, so the normal reveal action becomes available again
+- Added regression coverage:
+  - `packages/web/src/utils/dailyReset.test.ts` covers the UTC rollover helper contract
+  - `packages/web/src/components/PhoneRevealButton.test.tsx` covers clearing stale masked phone state after the day changes
+- Latest validation:
+  - `npx ai-devkit@latest lint`: pass
+  - `npx eslint packages/web/src/hooks/useRoommatesQuery.ts packages/web/src/components/PhoneRevealButton.tsx packages/web/src/components/PhoneRevealButton.test.tsx packages/web/src/utils/dailyReset.ts packages/web/src/utils/dailyReset.test.ts`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/components/PhoneRevealButton.test.tsx src/utils/dailyReset.test.ts src/services/roommates.test.ts`: pass
+
+## Latest Update (2026-04-12, user avatar storage bucket)
+
+- Fixed the live backend gap behind the new profile-avatar UI:
+  - the Supabase project `vevnoxlgwisdottaifdn` was missing the `user-avatars` bucket entirely, so avatar uploads failed with `StorageApiError: Bucket not found`
+  - new migration `supabase/migrations/20260412170000_add_user_avatar_storage_bucket.sql` now creates or normalizes the `user-avatars` bucket as a public image bucket with a `5 MB` limit and allowed mime types `jpeg/png/webp/jpg`
+- Added storage policies that match the current client upload contract instead of copying the room-image folder policy blindly:
+  - avatar files are currently stored as `${userId}.${ext}`, so insert/update/delete policies validate ownership via `split_part(name, '.', 1) = auth.uid()`
+  - public read access is enabled for `user-avatars`, matching the current use of public avatar URLs across the app
+- Applied the migration directly to the live Supabase project:
+  - bucket verification now returns `user-avatars` with `public = true`, `file_size_limit = 5242880`, and the expected mime whitelist
+  - storage policy verification now shows `User avatars public read`, `Users can upload own avatar`, `Users can update own avatar`, and `Users can delete own avatar`
+- Latest validation:
+  - direct SQL verification on `vevnoxlgwisdottaifdn`: pass, bucket `user-avatars` exists with expected config
+  - direct SQL verification on `vevnoxlgwisdottaifdn`: pass, avatar storage policies exist and target `user-avatars`
+  - `npx ai-devkit@latest lint`: pass
+  - Supabase security advisors still report multiple pre-existing unrelated warnings; no new avatar-bucket-specific warning was introduced
+
+## Latest Update (2026-04-12, profile avatar upload)
+
+- Completed the missing avatar-edit path in the existing profile flow instead of leaving `Thay đổi ảnh` as a disabled placeholder:
+  - `packages/web/src/components/modals/ProfileEditModal.tsx` now supports image picking, local preview, validation feedback, reset-to-current-avatar, and upload on save
+  - the modal keeps avatar persistence inside the same save flow as the rest of the profile form, so the user does not end up with a partially updated profile state
+- Added a dedicated avatar upload helper for the web package:
+  - `packages/web/src/services/profile.ts` now compresses avatar uploads toward a `webp` target before sending them to Supabase Storage
+  - uploaded avatar URLs now receive a cache-busting query suffix so the profile surface does not keep showing a stale image after an upsert to the same storage path
+  - upload errors now map to user-facing messages for missing storage permission or bucket configuration
+- Added regression coverage for the new profile helpers:
+  - `packages/web/src/services/profile.utils.ts` centralizes avatar validation and profile update payload shaping
+  - `packages/web/src/services/profile.test.ts` now covers supported avatar file types, max-size rejection, and `avatar_url` persistence in the update payload
+- Latest validation:
+  - `npx eslint packages/web/src/components/modals/ProfileEditModal.tsx packages/web/src/services/profile.ts packages/web/src/services/profile.utils.ts packages/web/src/services/profile.test.ts`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npx playwright test --config ./playwright.unit.config.ts src/services/profile.test.ts` in `packages/web`: pass
+
+## Latest Update (2026-04-12, ROMI tool-loop investigation)
+
+- Investigated live ROMI incident data directly from `ai_chat_sessions`, `ai_chat_messages`, and `analytics_events` for the latest broken sessions instead of assuming the repeated `search_locations` / `search_deals` replies were just UI rendering noise:
+  - session `67d7eec2-ac25-42dd-8692-786eebe30a8f` stored an assistant turn with `functionCalls.length = 34`, all `search_locations`, and the user-visible content was the raw fallback aggregation `Kết quả 1...Kết quả 34...`
+  - session `092c9fba-274b-4c97-a896-b222aa05804f` showed the same failure mode for `search_deals`, proving the issue was tool-loop fallback hardening, not a single location-search edge case
+  - live telemetry also showed `selected_tools = ["search_locations"]` for the `"ngáo à?"` turn, while the current local planner does not select tools that way, which strongly indicates the deployed Supabase edge function is behind the repo code
+- Hardened the local ROMI code against the exact failure pattern:
+  - `packages/shared/src/services/ai-chatbot/intake.ts` no longer keeps forcing `room_search` for short meta reactions with no room cue just because the previous journey goal was `find_room`
+  - the same intake layer now repairs likely UTF-8 mojibake before Vietnamese normalization, so accented prompts still classify correctly even if an upstream layer mangles text into sequences like `tÃ´i muá»‘n...`
+  - room-search follow-up hints now use word-boundaried matching, preventing short complaint text like `ngáo à?` from accidentally matching the `ga` token inside `ngao`
+  - `supabase/functions/ai-chatbot/index.ts` now caches identical tool executions within a single request and deduplicates identical tool results before fallback formatting, metadata persistence, action building, and telemetry fan-out
+  - new helper `supabase/functions/ai-chatbot/tool-result-utils.ts` centralizes exact tool-result deduplication so ROMI cannot dump the same result dozens of times into the final assistant message
+- Live deployment + verification:
+  - redeployed `supabase/functions/ai-chatbot` to project `vevnoxlgwisdottaifdn` with `npx supabase@2.84.2 functions deploy ai-chatbot --project-ref vevnoxlgwisdottaifdn --no-verify-jwt`
+  - used a temporary workdir with junctions to `supabase/` and `packages/` because the repo-root `.env.local` currently has a UTF-8 BOM and Supabase CLI fails early if it parses that file directly
+  - production stream smoke verification now passes for the previously broken room flow:
+    - `tôi muốn tìm phòng ở thủ đức dưới 5 triêu` => `intent = room_search`, tool `search_rooms`
+    - `phòng số 2 đi` => `intent = room_detail`, tool `get_room_details`, `selection.resolvedFrom = ordinal`
+    - `ngáo à?` => `intent = general`, no tool calls, so the old repeated-tool failure path is no longer reachable from that complaint turn
+- Latest validation:
+  - `npm run test:unit --workspace=@roomz/web -- src/services/romi.test.ts`: pass
+  - `deno test supabase/functions/ai-chatbot/planner_test.ts supabase/functions/ai-chatbot/tool-result-utils_test.ts`: pass
+  - `deno check supabase/functions/ai-chatbot/index.ts`: pass
+  - `npm run build --workspace=@roomz/web`: pass
+  - `npx ai-devkit@latest lint`: pass
+
+## Latest Update (2026-04-12, community counter sync)
+
+- Fixed the `/community` like/comment counter drift across feed cards and the post-detail modal instead of treating it as a single stale-label bug:
+  - community cache updates now sync `feed`, `detail`, and `topPosts` query data together for like toggles and comment mutations
+  - `/community` now tracks `selectedPostId` and resolves the modal from live query data instead of freezing a copied `selectedPost` snapshot
+  - single-post fetches now hydrate the viewer-specific `liked` state so the modal no longer loses heart-state parity with the feed
+- Added and applied the missing database-side counter sync contract for persisted aggregates:
+  - migration `20260412093000_sync_community_post_counters.sql` now adds counter refresh functions, sync triggers, and backfill logic for `community_posts.likes_count` and `community_posts.comments_count`
+  - the live Supabase project `vevnoxlgwisdottaifdn` now runs only the new sync triggers on `community_likes` and `community_comments`; legacy increment/decrement triggers were dropped so counters no longer drift after insert/delete ordering
+  - migration version `20260412093000` is now present in `supabase_migrations.schema_migrations`, so future Supabase CLI runs should treat it as already applied
+  - new indexes now support the trigger-side recount path on `community_likes.post_id` and `community_comments(post_id, status)`
+- Fixed the unrelated build blocker uncovered during the community pass:
+  - `/services` and `/support-services` now route `"voucher"` partners through voucher-aware flows instead of passing them into the service-request modal path that only accepts `ServiceRequestMode`
+  - `npm run build --workspace=@roomz/web` no longer fails on the `"voucher"` union mismatch in `ServicesHubPage.tsx` and `SupportServicesPage.tsx`
+- Added regression coverage for the cache-sync layer:
+  - new unit test `packages/web/src/hooks/useCommunityCache.test.ts` verifies feed/list/detail cache updates for likes and comments
+- Latest validation:
+  - `npx eslint packages/web/src/hooks/useCommunity.ts packages/web/src/hooks/useCommunityCache.ts packages/web/src/hooks/useCommunityCache.test.ts packages/web/src/services/community.ts packages/web/src/pages/CommunityPage.tsx`: pass
+  - `npx eslint packages/web/src/pages/ServicesHubPage.tsx packages/web/src/pages/SupportServicesPage.tsx`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/hooks/useCommunityCache.test.ts src/services/community.shared.test.ts`: pass
+  - `npm run test:e2e --workspace=@roomz/web -- community.spec.ts`: pass
+  - direct SQL verification on `vevnoxlgwisdottaifdn`: pass, only `sync_community_post_counters_from_likes` and `sync_community_post_counters_from_comments` remain active, counter mismatches = `0`, `schema_migrations.version = 20260412093000` is present
+  - `npm run build --workspace=@roomz/web`: pass
+  - `npx ai-devkit@latest lint`: pass
+
+## Latest Update (2026-04-11, services area bugfixes)
+
+- Stabilized the services-area booking experience across `/services`, `/support-services`, partner detail modals, admin leads, and profile settings instead of treating each bug as an isolated patch:
+  - resident testimonial stars on `/services` now render the correct `Star` icon instead of the incorrect gift icon
+  - the hero `Xem voucher` CTA now disables cleanly and explains the empty-deals state instead of silently doing nothing
+  - partner booking no longer ejects the user back to the generic catalog; booking now stays aligned to the selected partner and service type
+- Service booking flows are now more complete and trustworthy:
+  - moving leads now submit the admin-facing detail fields that were previously always missing, including floors, elevator flags, item list, and contact phone
+  - cleaning pricing now reacts to cleaning type, room count, bathroom count, and add-ons instead of showing a static total
+  - student discounts now appear only for verified student profiles in both moving and cleaning flows
+  - the narrow-screen cleaning modal layout was rebuilt so service-type choices wrap responsively instead of colliding into each other
+- Missing service-request coverage is now implemented:
+  - `repair`, `laundry`, and `setup` requests now open a real request modal and create service leads instead of falling back to the hardcoded `SetupCare` chat drawer
+  - support leads now carry category-aware details so admin views can distinguish repair vs laundry requests
+- Partner, voucher, admin, and settings surfaces were tightened:
+  - partner detail now fetches and displays real review rows, plus an explicit empty state when no reviews exist
+  - voucher detail now shows an invalid-code state instead of rendering a meaningless empty QR payload
+  - admin notes now use the signed-in admin identity instead of the hardcoded string `Admin`
+  - admin lead stats now include `confirmed`, and admins can mark a lead as `cancelled`
+  - profile settings now let users jump into profile editing when a phone number is missing instead of dead-ending on a disabled button
+- Latest validation:
+  - `npx ai-devkit@latest lint`: pass
+  - `npx eslint packages/web/src/pages/ServicesHubPage.tsx packages/web/src/pages/SupportServicesPage.tsx packages/web/src/pages/admin/ServiceLeadsPage.tsx packages/web/src/pages/profile/components/SettingsTab.tsx packages/web/src/components/modals/BookMovingModal.tsx packages/web/src/components/modals/CleaningScheduleModal.tsx packages/web/src/components/modals/PartnerDetailModal.tsx packages/web/src/components/modals/ShopDetailModal.tsx packages/web/src/components/modals/ServiceRequestModal.tsx packages/web/src/components/modals/serviceBookingPricing.ts packages/web/src/components/modals/serviceBookingPricing.test.ts packages/web/src/components/modals/serviceRequestRouting.ts`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/components/modals/serviceBookingPricing.test.ts`: pass
+  - `npm run build --workspace=@roomz/web`: pass
+
+## Latest Update (2026-04-11, live DB cleanup)
+
+- Cleaned mixed demo/test catalog data directly in live Supabase project `vevnoxlgwisdottaifdn` while preserving a user-approved whitelist of `30` admin-visible rooms from screenshot review.
+- Partner cleanup now removes the room-photo placeholder cluster:
+  - deleted `50` partners whose avatar used the same room-photo image family
+  - deleted `112` linked service leads first so partner deletion stayed referentially clean
+  - partner deletion then cascaded `14` deals and `10` reviews
+- Room cleanup now keeps only the whitelisted room set:
+  - deleted `283` non-whitelisted rooms
+  - room deletion cascaded `576` room images, `282` room amenities, `110` favorites, `48` bookings, `34` reviews, `6` phone-number views, `1` sublet listing, and `2` sublet applications
+  - `2` conversations lost room context through the FK `SET NULL` path instead of being deleted
+- Current post-cleanup volume:
+  - `rooms = 30`
+  - `partners = 26`
+  - `service_leads = 41`
+- Latest validation:
+  - direct SQL verification confirms `remaining_partners_with_target_image = 0`
+  - direct SQL verification confirms `remaining_rooms = 30`
+  - direct SQL verification confirms `remaining_service_leads_with_missing_partner = 0`
+
+## Latest Update (2026-04-11, ROMI stabilization)
+
+- Stabilized ROMI follow-up routing across edge, web, and mobile instead of continuing prompt-by-prompt fixes:
+  - edge routing now goes through a single planner that decides `primary intent`, `turn mode`, `target entity`, and allowed tools for each turn
+  - `journey_state` now stores active entity memory plus ordered shortlist IDs so follow-up turns like `phòng số 2`, explicit UUIDs, and `chi tiết phòng đó` resolve deterministically
+  - resolved detail turns for room, deal, and partner flows no longer fall back into a fresh shortlist reply
+- Search correctness is improved for non-room catalogs:
+  - `search_partners` and `search_deals` now filter and sort active rows before slicing to the requested limit
+  - new `get_partner_details` and `get_deal_details` tools bring `list -> select -> detail` parity beyond rooms
+- Guest and client parity are tightened:
+  - guest rate limiting is now backed by Postgres minute buckets keyed by hashed request fingerprints instead of process memory
+  - web and mobile now share the same ROMI workspace reducer and stream-event contract from `packages/shared`
+  - mobile guest mode is now first-class and renders clarification, handoff, and action CTA metadata instead of flattening everything into plain text
+- ROMI telemetry is cleaner:
+  - `/romi` route-open tracking stays on `romi_opened`
+  - launcher clicks now use a separate `romi_launcher_clicked` event
+  - selection follow-up success and failure now emit dedicated analytics events
+- Latest validation:
+  - `npx ai-devkit@latest lint`: pass
+  - `deno test supabase/functions/ai-chatbot/viewer-mode_test.ts supabase/functions/ai-chatbot/planner_test.ts supabase/functions/ai-chatbot/guest-rate-limit_test.ts supabase/functions/ai-chatbot/catalog-search_test.ts`: pass
+  - `deno check supabase/functions/ai-chatbot/index.ts`: pass
+  - `npm run typecheck --workspace=@roomz/shared`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/pages/romi/reducer.test.ts src/pages/romi/sessionSelection.test.ts src/services/romi.test.ts`: pass
+  - `npm run lint --workspace=@roomz/web`: pass with the same 3 pre-existing hook warnings
+  - `npm run build --workspace=@roomz/web`: pass
+  - `npm run test:e2e --workspace=@roomz/web -- romi.spec.ts`: pass
+  - `npx tsc -p packages/mobile/tsconfig.json --noEmit`: fail on the pre-existing missing type definition `mapbox__point-geometry`
+
+## Latest Update (2026-04-11, ROMI bugfixes)
+
+- Fixed a ROMI chatbot bug bundle across `/romi` and `supabase/functions/ai-chatbot`:
+  - authenticated callers can no longer force `guest` mode when a valid user token is present, so ROMI now always uses the authenticated persistence + rate-limit path for signed-in requests
+  - `/romi` now clears stale clarification and handoff cards when the next turn resolves them instead of keeping the old follow-up banner pinned under the composer
+  - switching saved ROMI sessions now blanks the prior thread immediately while hydration runs, so the new session title does not momentarily sit above the previous conversation history
+  - ROMI stream failures now replace the assistant placeholder with an error bubble instead of leaving a stuck “still composing” state in the thread
+  - the session history rail no longer renders a `button` inside another `button`; rows are now keyboard-accessible wrappers with a separate delete button
+- Added regression coverage for the ROMI fixes:
+  - new Deno helper test `supabase/functions/ai-chatbot/viewer-mode_test.ts`
+  - expanded reducer tests in `packages/web/src/pages/romi/reducer.test.ts`
+  - expanded browser coverage in `packages/web/tests/e2e/romi.spec.ts` for clarification reset and stream-failure recovery
+- Latest validation:
+  - `deno test supabase/functions/ai-chatbot/viewer-mode_test.ts`: pass
+  - `deno check supabase/functions/ai-chatbot/index.ts`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/pages/romi/reducer.test.ts src/pages/romi/sessionSelection.test.ts`: pass
+  - `npm run test:e2e --workspace=@roomz/web -- romi.spec.ts`: pass
+  - `npm run lint --workspace=@roomz/web`: pass with the same 3 pre-existing hook warnings
+  - `npm run build --workspace=@roomz/web`: pass
+
+## Latest Update (2026-04-11)
+
+- Fixed an admin room-editor close race on `/admin/rooms`:
+  - after a successful save, the room editor drawer no longer reopens itself from the stale `focus` query-param handshake
+  - the reopen loop came from the auto-open effect in `RoomsPage` observing `selectedRoomForEdit` during close, so a single save could look like it “needed” a second click even though the first mutation had already fired
+  - `closeEditor` now clears the `focus` param with `replace: true`, and the focus-driven reopen logic now guards through a ref instead of treating the in-flight close as a fresh deep-link open
+- Added regression coverage for the admin flow:
+  - new E2E spec `packages/web/tests/e2e/admin-room-editor.spec.ts`
+  - new admin mock helper state in `packages/web/tests/e2e/helpers/mockApi.ts` verifies a single save sends one room patch and closes the drawer
+- Latest validation:
+  - `npm run lint --workspace=@roomz/web`: pass with the same 3 pre-existing hook warnings
+  - `npm run test:e2e --workspace=@roomz/web -- admin-room-editor.spec.ts`: pass
+  - `npm run build --workspace=@roomz/web`: pass
 
 ## Latest Update (2026-03-27)
 
@@ -68,6 +370,11 @@ updated: 2026-03-31
   - `packages/web/scripts/remotion/renderProductLaunchHybrid.ts` now supports generated-audio attachment before payload build and render
   - `@roomz/web` now exposes `remotion:audio:product` for standalone preview-audio generation
   - `remotion:render:product` now runs with `--use-generated-audio --generate-audio-first` by default
+- The hybrid product-launch ad now also has a documented renter-first `v2` storyboard and copy rewrite:
+  - `docs/ai/design/feature-remotion-hybrid-product-launch-v2.md` now records the creative thesis, scene takeaways, and rewrite copy for each scene
+  - `packages/web/src/remotion/compositions/rommzProductLaunchHybrid.schema.ts` now uses renter-facing Vietnamese copy instead of product-team language like `flow`, `surface`, or `signal`
+  - `packages/web/src/remotion/compositions/RommzProductLaunchHybrid.tsx` now uses softer user-facing support labels so the composition reads more like an ad and less like an internal demo
+  - the seven-scene runtime and capture pipeline stay unchanged for now; this pass only shifts narrative voice and creative framing
 - Latest validation:
   - `npx ai-devkit@latest lint`: pass
   - `npm run lint --workspace=@roomz/web`: pass with the same 3 pre-existing hook warnings
@@ -75,10 +382,11 @@ updated: 2026-03-31
   - `npm run remotion:audio:product --workspace=@roomz/web`: pass
     - provider: `edge-tts`
     - voice: `vi-VN-HoaiMyNeural`
+    - output regenerated from the rewritten Vietnamese renter-first copy
   - `npm run remotion:render:product --workspace=@roomz/web`: pass
     - Playwright capture step: `5/5` passed
     - preview audio pack generation: pass
-    - hybrid MP4 render with Vietnamese preview audio: pass
+    - hybrid MP4 render with Vietnamese preview audio after the `v2` rewrite: pass
 
 ## Latest Update (2026-03-30)
 
@@ -759,6 +1067,8 @@ updated: 2026-03-31
 - Large Vite chunks still exist, especially around `mapbox-gl` and admin bundles
 - Several legacy surfaces outside the Stitch-first scope still need future polish
 - Legacy participant-pair conversations remain in the database without room context; only newly opened or reopened host/renter threads now receive `(host, renter, room)` identity
+- ROMI still needs a broader transcript-regression suite; current automated coverage is strong on planner/reducer behavior but not yet the full 25-case stabilization corpus
+- Mobile workspace type validation is still blocked by the pre-existing missing `mapbox__point-geometry` type definition
 - Existing hook warnings remain in:
   - `packages/web/src/hooks/useConfirm.tsx`
   - `packages/web/src/pages/ResetPasswordPage.tsx`

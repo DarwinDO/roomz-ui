@@ -37,6 +37,7 @@ export interface CommunityPost {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
     };
 }
 
@@ -57,6 +58,7 @@ export interface CommunityComment {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
     };
 }
 
@@ -88,6 +90,7 @@ type AuthorRow = {
     id: string;
     full_name: string;
     avatar_url: string | null;
+    is_premium?: boolean | null;
 };
 
 type CommunityCommentRow = {
@@ -155,6 +158,7 @@ function mapPost(row: CommunityPostRow): CommunityPost {
                 id: author.id,
                 full_name: author.full_name,
                 avatar_url: author.avatar_url,
+                is_premium: author.is_premium ?? undefined,
             }
             : undefined,
     };
@@ -178,6 +182,7 @@ function mapComment(row: CommunityCommentRow): CommunityComment {
                 id: author.id,
                 full_name: author.full_name,
                 avatar_url: author.avatar_url,
+                is_premium: author.is_premium ?? undefined,
             }
             : undefined,
     };
@@ -202,7 +207,7 @@ export async function getPosts(
             status,
             created_at,
             updated_at,
-            author:users!community_posts_user_id_fkey(id, full_name, avatar_url)
+            author:users!community_posts_user_id_fkey(id, full_name, avatar_url, is_premium)
         `,
             { count: 'exact' }
         )
@@ -255,7 +260,7 @@ export async function getPostById(
             status,
             created_at,
             updated_at,
-            author:users!community_posts_user_id_fkey(id, full_name, avatar_url)
+            author:users!community_posts_user_id_fkey(id, full_name, avatar_url, is_premium)
         `)
         .eq('id', id)
         .single();
@@ -302,7 +307,7 @@ export async function createPost(
             status,
             created_at,
             updated_at,
-            author:users!community_posts_user_id_fkey(id, full_name, avatar_url)
+            author:users!community_posts_user_id_fkey(id, full_name, avatar_url, is_premium)
         `)
         .single();
 
@@ -354,7 +359,7 @@ export async function updatePost(
             status,
             created_at,
             updated_at,
-            author:users!community_posts_user_id_fkey(id, full_name, avatar_url)
+            author:users!community_posts_user_id_fkey(id, full_name, avatar_url, is_premium)
         `)
         .single();
 
@@ -403,7 +408,7 @@ export async function getComments(
             content,
             status,
             created_at,
-            author:users!community_comments_user_id_fkey(id, full_name, avatar_url)
+            author:users!community_comments_user_id_fkey(id, full_name, avatar_url, is_premium)
         `)
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
@@ -436,7 +441,7 @@ export async function addComment(
             content,
             status,
             created_at,
-            author:users!community_comments_user_id_fkey(id, full_name, avatar_url)
+            author:users!community_comments_user_id_fkey(id, full_name, avatar_url, is_premium)
         `)
         .single();
 

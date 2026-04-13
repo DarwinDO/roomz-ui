@@ -6,10 +6,11 @@
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { ArrowLeft, ArrowRight, CheckCircle, Clock, XCircle } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import { cn } from '@/lib/utils';
 import type { SwapRequest } from '@roomz/shared/types/swap';
 
@@ -52,10 +53,10 @@ export function SwapRequestCard({
     <Card className="space-y-4 p-4 transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={otherUser?.avatar_url || undefined} />
+          <PremiumAvatar isPremium={otherUser?.is_premium ?? false} className="h-10 w-10">
+            {otherUser?.avatar_url ? <AvatarImage src={otherUser.avatar_url} alt={otherUser.full_name || 'Người dùng'} /> : null}
             <AvatarFallback>{otherUser?.full_name?.[0] || '?'}</AvatarFallback>
-          </Avatar>
+          </PremiumAvatar>
           <div>
             <p className="font-medium">{otherUser?.full_name}</p>
             <p className="text-sm text-muted-foreground">

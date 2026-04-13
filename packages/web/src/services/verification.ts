@@ -223,6 +223,63 @@ export async function submitVerificationRequest(
   }
 }
 
+export async function uploadStudentCardImages(
+  frontFile: File,
+  backFile: File,
+): Promise<{ frontPath: string; backPath: string }> {
+  const { data: user } = await supabase.auth.getUser();
+  if (!user.user) throw new Error('Chưa đăng nhập');
+
+  const userId = user.user.id;
+  const timestamp = Date.now();
+
+  const [compressedFront, compressedBack] = await Promise.all([
+    compressImage(frontFile),
+    compressImage(backFile),
+  ]);
+
+  const frontPath = `${userId}/student_front_${timestamp}.jpg`;
+  const backPath = `${userId}/student_back_${timestamp}.jpg`;
+
+  const [frontResult, backResult] = await Promise.all([
+    supabase.storage.from(BUCKET).upload(frontPath, compressedFront, { contentType: 'image/jpeg', upsert: false }),
+    supabase.storage.from(BUCKET).upload(backPath, compressedBack, { contentType: 'image/jpeg', upsert: false }),
+  ]);
+
+  if (frontResult.error) throw new Error(`Lỗi upload mặt trước: ${frontResult.error.message}`);
+  if (backResult.error) throw new Error(`Lỗi upload mặt sau: ${backResult.error.message}`);
+
+  return { frontPath, backPath };
+}
+
+export async function getMyStudentCardVerificationStatus(): Promise<MyVerificationStatus | null> {
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData.user) return null;
+
+  const { data, error } = await supabase
+    .from('verification_requests')
+    .select('id, status, rejection_reason, submitted_at, reviewed_at')
+    .eq('user_id', authData.user.id)
+    .eq('document_type', 'student_card')
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Lỗi tải trạng thái xác thực thẻ SV: ${error.message}`);
+  if (!data) return null;
+
+  return {
+    request_id: data.id,
+    status: data.status as VerificationLifecycleStatus,
+    rejection_reason: data.rejection_reason ?? null,
+    submitted_at: data.submitted_at ?? null,
+    reviewed_at: data.reviewed_at ?? null,
+    is_currently_verified: data.status === 'approved',
+    latest_event_type: null,
+    latest_event_reason: null,
+  };
+}
+
 export async function getMyVerificationStatus(): Promise<MyVerificationStatus | null> {
   const { data, error } = await rpcSupabase.rpc('get_my_verification_status');
 

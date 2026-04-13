@@ -1,5 +1,6 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import type { SavedVoucher } from "@/services/deals";
+import { parseVoucherCode } from "@/services/deals";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,9 @@ import {
   Navigation,
   X,
   CheckCircle2,
+  Copy,
+  Check,
+  BadgeCheck,
 } from "lucide-react";
 import { useMyVouchers, useSaveVoucher } from "@/hooks/useDeals";
 import { useGeolocation } from "@/hooks/useGeolocation";
@@ -45,6 +49,8 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
   const [showVoucher, setShowVoucher] = useState(false);
   // Local state for immediate QR display after claiming (fixes race condition)
   const [claimedVoucher, setClaimedVoucher] = useState<SavedVoucher | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
+  const [isMarkedUsed, setIsMarkedUsed] = useState(false);
 
   // Geolocation
   const { position: userPosition } = useGeolocation();
@@ -103,7 +109,24 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
     setTimeout(() => {
       setShowVoucher(false);
       setClaimedVoucher(null);
+      setIsCopied(false);
+      setIsMarkedUsed(false);
     }, 300);
+  };
+
+  const activeVoucher = claimedVoucher ?? savedVoucher;
+  const voucherCode = activeVoucher ? parseVoucherCode(activeVoucher.qr_data) : null;
+  const hasVoucherQrData = Boolean(activeVoucher?.qr_data?.trim());
+
+  const handleCopyCode = async () => {
+    if (!voucherCode) return;
+    try {
+      await navigator.clipboard.writeText(voucherCode);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch {
+      // clipboard not available
+    }
   };
 
   // Format expiry date
@@ -139,133 +162,122 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
         </VisuallyHidden>
 
         {/* Hero Image */}
-        <div className="relative h-64 overflow-hidden rounded-t-xl">
+        <div className="relative h-52 overflow-hidden rounded-t-xl">
           <img
             src={partner?.image_url || "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=300&fit=crop"}
             alt={partner?.name || "Shop"}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          <div className="absolute top-4 right-4">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-black/10" />
+
+          {/* Close button */}
+          <div className="absolute top-3 right-3">
             <Button
               onClick={handleClose}
               size="icon"
               variant="secondary"
-              className="rounded-full bg-white/90 hover:bg-white shadow-md"
+              className="h-8 w-8 rounded-full bg-white/90 hover:bg-white shadow-md"
             >
-              <X className="w-4 h-4 text-primary" />
+              <X className="w-3.5 h-3.5 text-gray-700" />
             </Button>
           </div>
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="flex items-end justify-between">
-              <div>
-                <h1 className="text-white mb-2">{partner?.name || "Shop"}</h1>
-                <div className="flex gap-1">
-                  {distance && (
-                    <Badge className="bg-white/90 text-gray-900 border-0">
-                      <MapPin className="w-3 h-3 mr-1" />
-                      {distance}
-                    </Badge>
-                  )}
-                  <Badge className="bg-white/90 text-gray-900 border-0">
-                    {partner?.category || "deal"}
-                  </Badge>
-                </div>
-              </div>
-              <Badge
-                variant="secondary"
-                className="rounded-full bg-white/90 text-gray-900"
-              >
-                <Gift className="w-3 h-3 mr-1" />
-                {deal.discount_value || deal.title || "Ưu đãi"}
-              </Badge>
+
+          {/* Bottom overlay: name + badges */}
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-8">
+            <p className="text-white font-semibold text-lg leading-snug line-clamp-1 drop-shadow-sm mb-2">
+              {partner?.name || "Shop"}
+            </p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {distance && (
+                <Badge className="h-6 rounded-full bg-white/20 border border-white/30 text-white text-[11px] backdrop-blur-sm px-2">
+                  <MapPin className="w-3 h-3 mr-1 shrink-0" />
+                  {distance}
+                </Badge>
+              )}
+              {partner?.category && (
+                <Badge className="h-6 rounded-full bg-white/20 border border-white/30 text-white text-[11px] backdrop-blur-sm px-2 uppercase tracking-wide">
+                  {partner.category}
+                </Badge>
+              )}
+              {(deal.discount_value || deal.title) && (
+                <Badge className="h-6 rounded-full bg-primary text-white text-[11px] px-2 ml-auto shrink-0 max-w-[120px] truncate">
+                  <Gift className="w-3 h-3 mr-1 shrink-0" />
+                  <span className="truncate">{deal.discount_value || deal.title}</span>
+                </Badge>
+              )}
             </div>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Offer Banner */}
-          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-secondary/10 rounded-2xl p-5 border border-primary/20 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shrink-0 shadow-md">
-                <Gift className="w-7 h-7 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-500 mb-1 font-medium">Ưu đãi dành riêng cho thành viên RommZ</p>
-                <h2 className="text-lg font-bold text-primary leading-tight">{deal.title || deal.discount_value || "Khám phá ngay"}</h2>
-              </div>
+        <div className="p-5 space-y-5">
+          {/* Offer pill — gọn hơn */}
+          <div className="flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <Gift className="h-4 w-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] text-muted-foreground">Ưu đãi dành riêng cho thành viên RommZ</p>
+              <p className="truncate text-sm font-semibold text-primary leading-snug">
+                {deal.title || deal.discount_value || "Khám phá ngay"}
+              </p>
             </div>
           </div>
 
           {/* Description from deal */}
           {deal.description && (
-            <div className="space-y-2">
-              <h3 className="text-base font-semibold text-gray-900">Về {partner?.name}</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">{deal.description}</p>
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Về {partner?.name}
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{deal.description}</p>
             </div>
           )}
 
           <Separator />
 
-          {/* Contact Information - from partner */}
-          <div className="space-y-3">
-            <h3 className="text-base font-semibold">Liên hệ & địa chỉ</h3>
-            <div className="space-y-2">
+          {/* Contact Information */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Liên hệ & địa chỉ
+            </p>
+            <div className="divide-y divide-border/50 rounded-xl border border-border/60 overflow-hidden">
               {partner?.hours && (
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Clock className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Giờ mở cửa</p>
-                    <p className="text-sm text-gray-600">{partner.hours}</p>
-                  </div>
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Clock className="w-4 h-4 shrink-0 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground w-20 shrink-0">Giờ mở cửa</span>
+                  <span className="text-sm font-medium text-foreground truncate">{partner.hours}</span>
                 </div>
               )}
               {partner?.phone && (
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Phone className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Điện thoại</p>
-                    <p className="text-sm text-gray-600">{partner.phone}</p>
-                  </div>
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Phone className="w-4 h-4 shrink-0 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground w-20 shrink-0">Điện thoại</span>
+                  <a href={`tel:${partner.phone}`} className="text-sm font-medium text-primary hover:underline truncate">
+                    {partner.phone}
+                  </a>
                 </div>
               )}
               {partner?.email && (
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Mail className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Email</p>
-                    <p className="text-sm text-gray-600 truncate">{partner.email}</p>
-                  </div>
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <Mail className="w-4 h-4 shrink-0 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground w-20 shrink-0">Email</span>
+                  <a href={`mailto:${partner.email}`} className="text-sm font-medium text-primary hover:underline truncate">
+                    {partner.email}
+                  </a>
                 </div>
               )}
               {partner?.address && (
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <MapPin className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Địa chỉ</p>
-                    <p className="text-sm text-gray-600">{partner.address}</p>
-                  </div>
+                <div className="flex items-start gap-3 px-4 py-3">
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground w-20 shrink-0 mt-0.5">Địa chỉ</span>
+                  <span className="text-sm font-medium text-foreground">{partner.address}</span>
                 </div>
               )}
-              {/* Fallback if no contact info */}
               {!partner?.hours && !partner?.phone && !partner?.email && !partner?.address && (
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50/50">
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <MapPin className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Địa chỉ</p>
-                    <p className="text-sm text-gray-600">Liên hệ để biết địa chỉ chi tiết</p>
-                  </div>
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <MapPin className="w-4 h-4 shrink-0 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Liên hệ để biết địa chỉ chi tiết</span>
                 </div>
               )}
             </div>
@@ -297,94 +309,162 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
 
           {/* Voucher Section */}
           <div className="space-y-4">
-            <h3 className="text-base font-semibold">Nhận voucher ưu đãi</h3>
+            {(showVoucher || hasVoucher) && activeVoucher ? (
+              voucherCode ? (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                {/* Header */}
+                <div className="flex items-center gap-2">
+                  <BadgeCheck className="w-5 h-5 text-secondary" />
+                  <h3 className="text-base font-semibold text-secondary">Voucher của bạn</h3>
+                </div>
 
-            {/* Show QR if user has voucher OR is claiming now - use claimedVoucher for immediate display */}
-            {(showVoucher || hasVoucher) && (claimedVoucher || savedVoucher) ? (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                {/* QR Code - Real QR from saved voucher */}
-                <div className="bg-white rounded-2xl p-6 border-2 border-dashed border-primary/30 shadow-sm">
-                  <div className="w-48 h-48 bg-white rounded-xl flex items-center justify-center mx-auto mb-3">
-                    <QRCodeSVG
-                      value={(claimedVoucher || savedVoucher)?.qr_data || ""}
-                      size={180}
-                      level="M"
-                      includeMargin={false}
-                    />
+                {/* Ticket card */}
+                <div className="rounded-2xl border-2 border-dashed border-primary/25 bg-gradient-to-br from-primary/5 via-background to-secondary/5 overflow-hidden shadow-sm">
+                  {/* Top — voucher code */}
+                  <div className="px-6 pt-6 pb-5 text-center">
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
+                      Mã ưu đãi
+                    </p>
+                    <div className="flex items-center justify-center gap-3">
+                      <span className="font-mono text-3xl font-bold tracking-widest text-primary">
+                        {voucherCode}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleCopyCode}
+                        aria-label="Sao chép mã"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                      >
+                        {isCopied ? (
+                          <Check className="h-4 w-4 text-secondary" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {isCopied ? "Đã sao chép!" : "Đọc hoặc sao chép mã cho nhân viên"}
+                    </p>
                   </div>
-                  <p className="text-sm text-center text-gray-600 font-medium">
-                    Quét mã này tại {partner?.name}
+
+                  {/* Ticket cut-line divider */}
+                  <div className="relative flex items-center">
+                    <div className="absolute -left-3 h-6 w-6 rounded-full bg-background" />
+                    <div className="mx-3 w-full border-t-2 border-dashed border-primary/20" />
+                    <div className="absolute -right-3 h-6 w-6 rounded-full bg-background" />
+                  </div>
+
+                  {/* Bottom — QR code */}
+                  <div className="flex flex-col items-center gap-3 px-6 pb-6 pt-5">
+                    {hasVoucherQrData ? (
+                      <div className="rounded-xl bg-white p-3 shadow-sm">
+                        <QRCodeSVG
+                          value={activeVoucher.qr_data}
+                          size={140}
+                          level="M"
+                          includeMargin={false}
+                        />
+                      </div>
+                    ) : null}
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <QrCode className="h-3.5 w-3.5" />
+                      <span>Quét QR nếu quầy có máy đọc mã</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* How to use */}
+                <div className="space-y-2.5 rounded-xl bg-muted/40 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Cách dùng
                   </p>
+                  {[
+                    "Đưa màn hình hoặc đọc mã cho nhân viên trước khi thanh toán",
+                    "Xuất trình thẻ sinh viên nếu được yêu cầu",
+                    "Ưu đãi áp dụng trực tiếp vào hoá đơn",
+                  ].map((step) => (
+                    <div key={step} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
+                      <span>{step}</span>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Instructions */}
-                <div className="bg-gradient-to-br from-secondary/5 to-primary/5 rounded-xl p-4 space-y-3">
-                  <p className="text-sm font-medium text-gray-900">Cách sử dụng:</p>
-                  <div className="space-y-2.5">
-                    <div className="flex items-start gap-3 text-sm">
-                      <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <CheckCircle2 className="w-3 h-3 text-secondary" />
-                      </div>
-                      <span className="text-gray-700">Đưa mã QR cho nhân viên trước khi thanh toán</span>
-                    </div>
-                    <div className="flex items-start gap-3 text-sm">
-                      <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <CheckCircle2 className="w-3 h-3 text-secondary" />
-                      </div>
-                      <span className="text-gray-700">Xuất trình thẻ sinh viên khi được yêu cầu</span>
-                    </div>
-                    <div className="flex items-start gap-3 text-sm">
-                      <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <CheckCircle2 className="w-3 h-3 text-secondary" />
-                      </div>
-                      <span className="text-gray-700">Ưu đãi sẽ được áp dụng trực tiếp vào hóa đơn</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Validity - from deal.valid_until */}
+                {/* Expiry */}
                 {deal.valid_until && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-center gap-2">
-                    <span className="text-amber-600">⏰</span>
-                    <p className="text-sm text-amber-800 font-medium">
+                  <div className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                    <span className="text-amber-500">⏰</span>
+                    <p className="text-sm font-medium text-amber-800">
                       Hiệu lực đến: {formatExpiryDate(deal.valid_until)}
                     </p>
                   </div>
                 )}
-              </div>
-            ) : (
-              /* Button to claim voucher */
-              <Button
-                onClick={handleGetVoucher}
-                disabled={isSaving || isVouchersLoading}
-                className="w-full bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 rounded-full h-12 text-base font-medium shadow-md hover:shadow-lg transition-all"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Đang tạo mã...
-                  </>
+
+                {/* Mark as used */}
+                {isMarkedUsed ? (
+                  <div className="flex items-center justify-center gap-2 rounded-xl bg-secondary/10 py-3 text-secondary">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Đã đánh dấu sử dụng</span>
+                  </div>
                 ) : (
-                  <>
-                    <QrCode className="w-5 h-5 mr-2" />
-                    Nhận voucher
-                  </>
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-full border-muted-foreground/25 text-muted-foreground hover:border-secondary hover:text-secondary"
+                    onClick={() => setIsMarkedUsed(true)}
+                  >
+                    <Check className="mr-2 h-4 w-4" />
+                    Đánh dấu đã dùng
+                  </Button>
                 )}
-              </Button>
+              </div>
+              ) : (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center">
+                  <p className="text-sm font-medium text-amber-900">Mã voucher chưa sẵn sàng</p>
+                  <p className="mt-1 text-xs text-amber-700">
+                    Voucher đã được lưu nhưng hiện chưa có mã hợp lệ để xuất trình. Vui lòng liên hệ
+                    hỗ trợ hoặc thử lại sau.
+                  </p>
+                </div>
+              )
+            ) : (
+              /* Not yet claimed */
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold">Nhận voucher ưu đãi</h3>
+                <Button
+                  onClick={handleGetVoucher}
+                  disabled={isSaving || isVouchersLoading}
+                  className="w-full rounded-full h-12 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-base font-medium shadow-md hover:shadow-lg transition-all"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Đang tạo mã...
+                    </>
+                  ) : (
+                    <>
+                      <Gift className="mr-2 h-5 w-5" />
+                      Nhận voucher
+                    </>
+                  )}
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  Bạn sẽ nhận được mã ưu đãi và mã QR để dùng tại {partner?.name}
+                </p>
+              </div>
             )}
           </div>
 
-          {/* Action Buttons - Fixed layout to prevent text cutoff */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4 sticky bottom-0 bg-white pb-2">
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-1">
             <Button
               variant="outline"
-              className="flex-1 rounded-full h-12 text-base font-medium"
+              className="flex-1 rounded-full h-11"
               onClick={handleClose}
             >
               Đóng
             </Button>
             <Button
-              className="flex-1 rounded-full h-12 bg-primary hover:bg-primary/90 text-base font-medium shadow-md"
+              className="flex-1 rounded-full h-11 bg-primary hover:bg-primary/90"
               onClick={() => {
                 if (partner?.latitude && partner?.longitude) {
                   const dest = `${partner.latitude},${partner.longitude}`;
@@ -392,9 +472,10 @@ export function ShopDetailModal({ isOpen, onClose, deal }: ShopDetailModalProps)
                 }
               }}
               disabled={!partner?.latitude || !partner?.longitude}
+              title={!partner?.latitude || !partner?.longitude ? "Đối tác chưa cập nhật vị trí" : undefined}
             >
               <Navigation className="w-4 h-4 mr-2 shrink-0" />
-              <span className="whitespace-nowrap">Chỉ đường</span>
+              Chỉ đường
             </Button>
           </div>
         </div>

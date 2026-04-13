@@ -25,12 +25,14 @@ export interface MessageWithUsers extends Message {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
         email?: string;
     };
     receiver?: {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
         email?: string;
     };
 }
@@ -41,6 +43,7 @@ export interface Conversation {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
         email?: string;
     };
     lastMessage: Message;
@@ -143,7 +146,7 @@ export async function getConversations(
         .from('conversation_participants')
         .select(`
       conversation_id,
-      user:users(id, full_name, avatar_url, email)
+      user:users(id, full_name, avatar_url, is_premium, email)
     `)
         .in('conversation_id', conversationIds)
         .neq('user_id', userId);
@@ -156,6 +159,7 @@ export async function getConversations(
             id: string;
             full_name: string;
             avatar_url: string | null;
+            is_premium?: boolean | null;
             email?: string;
         };
     }>;
@@ -191,6 +195,7 @@ export async function getConversations(
                 id: participant.id,
                 full_name: participant.full_name || 'Unknown',
                 avatar_url: participant.avatar_url,
+                is_premium: participant.is_premium ?? undefined,
                 email: participant.email || undefined,
             },
             lastMessage: lastMessageData || {
@@ -227,7 +232,7 @@ export async function getConversationMessages(
         .from('messages')
         .select(`
       *,
-      sender:users!sender_id(id, full_name, avatar_url, email)
+      sender:users!sender_id(id, full_name, avatar_url, is_premium, email)
     `)
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });

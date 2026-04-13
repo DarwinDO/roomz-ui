@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,12 +62,15 @@ export function LandlordBookingCard({
       <CardHeader className="border-b border-border/50 bg-muted/20 pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 border border-border">
+            <PremiumAvatar
+              isPremium={booking.renter?.is_premium ?? false}
+              className="h-10 w-10 border border-border"
+            >
               <AvatarImage src={booking.renter?.avatar_url || undefined} />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary/20 text-xs text-primary">
                 {guestInitials}
               </AvatarFallback>
-            </Avatar>
+            </PremiumAvatar>
             <div>
               <CardTitle className="text-base font-semibold">{guestName}</CardTitle>
               <CardDescription className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">

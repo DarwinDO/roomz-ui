@@ -5,7 +5,7 @@
  */
 
 import { useMemo } from 'react';
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData, type InfiniteData } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient, keepPreviousData, type QueryClient } from '@tanstack/react-query';
 import {
     getPosts,
     getPostById,
@@ -24,17 +24,58 @@ import {
 import { uploadMultipleCommunityImages } from '@/services/communityImages';
 import { useAuth } from '@/contexts/AuthContext';
 import type { PostsFilter, CreatePostData, Comment } from '@/pages/community/types';
+import {
+    updatePostInCommunityDetail,
+    updatePostInCommunityFeed,
+    updatePostInCommunityList,
+    type CommunityFeedData,
+    type CommunityFeedPage,
+} from './useCommunityCache';
 
 const PAGE_SIZE = 10;
-type CommunityFeedPage = { posts: PostRow[]; totalCount: number };
-type CommunityFeedData = InfiniteData<CommunityFeedPage>;
+type CommunityQuerySnapshots = {
+    feeds: Array<[readonly unknown[], CommunityFeedData | undefined]>;
+    details: Array<[readonly unknown[], PostRow | null | undefined]>;
+    topPosts: Array<[readonly unknown[], PostRow[] | undefined]>;
+};
+
+function syncCommunityPostCaches(
+    queryClient: QueryClient,
+    postId: string,
+    updater: (post: PostRow) => PostRow,
+) {
+    queryClient.setQueriesData(
+        { queryKey: ['community', 'feed'] },
+        (old: CommunityFeedData | undefined) => updatePostInCommunityFeed(old, postId, updater),
+    );
+    queryClient.setQueriesData(
+        { queryKey: ['community', 'detail'] },
+        (old: PostRow | null | undefined) => updatePostInCommunityDetail(old, postId, updater),
+    );
+    queryClient.setQueriesData(
+        { queryKey: ['community', 'topPosts'] },
+        (old: PostRow[] | undefined) => updatePostInCommunityList(old, postId, updater),
+    );
+}
+
+function restoreCommunityQuerySnapshots(queryClient: QueryClient, snapshots: CommunityQuerySnapshots) {
+    snapshots.feeds.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+    });
+    snapshots.details.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+    });
+    snapshots.topPosts.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+    });
+}
 
 /** Query key factory for community */
 export const communityKeys = {
     all: ['community'] as const,
     feed: (filters: PostsFilter) => ['community', 'feed', filters] as const,
     detail: (id: string) => ['community', 'detail', id] as const,
-    topPosts: () => ['community', 'topPosts'] as const,
+    topPosts: (limit: number = 5) => ['community', 'topPosts', limit] as const,
     comments: (postId: string) => ['community', 'comments', postId] as const,
     liked: (postId: string, userId: string) => ['community', 'liked', postId, userId] as const,
 };
@@ -81,9 +122,11 @@ export function usePosts(filters: PostsFilter = {}) {
  * Hook to get a single post by ID
  */
 export function usePost(id: string | undefined) {
+    const { user } = useAuth();
+
     return useQuery<PostRow | null>({
         queryKey: communityKeys.detail(id!),
-        queryFn: () => getPostById(id!),
+        queryFn: () => getPostById(id!, user?.id),
         enabled: !!id,
         staleTime: 60_000,
     });
@@ -94,7 +137,7 @@ export function usePost(id: string | undefined) {
  */
 export function useTopPosts(limit: number = 5) {
     return useQuery<PostRow[]>({
-        queryKey: communityKeys.topPosts(),
+        queryKey: communityKeys.topPosts(limit),
         queryFn: () => getTopPosts(limit),
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
@@ -204,46 +247,43 @@ export function useToggleLike() {
             // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: communityKeys.all });
 
-            // Snapshot the previous value
-            const previousPosts = queryClient.getQueryData(communityKeys.feed({}));
+            const snapshots: CommunityQuerySnapshots = {
+                feeds: queryClient.getQueriesData<CommunityFeedData>({ queryKey: ['community', 'feed'] }),
+                details: queryClient.getQueriesData<PostRow | null>({ queryKey: ['community', 'detail'] }),
+                topPosts: queryClient.getQueriesData<PostRow[]>({ queryKey: ['community', 'topPosts'] }),
+            };
 
-            // Optimistically update the like count
-            queryClient.setQueriesData(
-                { queryKey: communityKeys.all },
-                (old: CommunityFeedData | undefined) => {
-                    if (!old) return old;
+            syncCommunityPostCaches(queryClient, postId, (post) => ({
+                ...post,
+                liked: !post.liked,
+                likes_count: post.liked ? Math.max(0, post.likes_count - 1) : post.likes_count + 1,
+            }));
 
-                    return {
-                        ...old,
-                        pages: old.pages.map((page) => ({
-                            ...page,
-                            posts: page.posts.map((post) =>
-                                post.id === postId
-                                    ? {
-                                        ...post,
-                                        liked: !post.liked,
-                                        likes_count: post.liked
-                                            ? post.likes_count - 1
-                                            : post.likes_count + 1,
-                                    }
-                                    : post
-                            ),
-                        })),
-                    };
-                }
-            );
-
-            return { previousPosts };
+            return { snapshots };
         },
         onError: (_err, _postId, context) => {
-            // Rollback on error
-            if (context?.previousPosts) {
-                queryClient.setQueryData(communityKeys.feed({}), context.previousPosts);
+            if (context?.snapshots) {
+                restoreCommunityQuerySnapshots(queryClient, context.snapshots);
             }
         },
-        onSettled: () => {
-            // Invalidate to ensure sync
-            queryClient.invalidateQueries({ queryKey: communityKeys.all });
+        onSuccess: (liked, postId) => {
+            syncCommunityPostCaches(queryClient, postId, (post) => {
+                if (post.liked === liked) {
+                    return post;
+                }
+
+                return {
+                    ...post,
+                    liked,
+                    likes_count: liked ? post.likes_count + 1 : Math.max(0, post.likes_count - 1),
+                };
+            });
+            queryClient.invalidateQueries({ queryKey: ['community', 'topPosts'] });
+        },
+        onSettled: (_liked, _error, postId) => {
+            if (user) {
+                queryClient.invalidateQueries({ queryKey: communityKeys.liked(postId, user.id) });
+            }
         },
     });
 }
@@ -283,9 +323,11 @@ export function useCreateComment() {
             return createComment(postId, user.id, content, parentId);
         },
         onSuccess: (_, variables) => {
-            // Invalidate comments and post detail
+            syncCommunityPostCaches(queryClient, variables.postId, (post) => ({
+                ...post,
+                comments_count: post.comments_count + 1,
+            }));
             queryClient.invalidateQueries({ queryKey: communityKeys.comments(variables.postId) });
-            queryClient.invalidateQueries({ queryKey: communityKeys.detail(variables.postId) });
         },
     });
 }
@@ -305,8 +347,11 @@ export function useDeleteComment() {
             return deleteComment(commentId, user.id);
         },
         onSuccess: (_, variables) => {
+            syncCommunityPostCaches(queryClient, variables.postId, (post) => ({
+                ...post,
+                comments_count: Math.max(0, post.comments_count - 1),
+            }));
             queryClient.invalidateQueries({ queryKey: communityKeys.comments(variables.postId) });
-            queryClient.invalidateQueries({ queryKey: communityKeys.detail(variables.postId) });
         },
     });
 }

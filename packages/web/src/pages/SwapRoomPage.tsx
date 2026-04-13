@@ -7,9 +7,11 @@ import { LazyImage } from "@/components/common/LazyImage";
 import { ApplySubletDialog } from "@/components/modals/ApplySubletDialog";
 import { SwapRequestDialog } from "@/components/modals/SwapRequestDialog";
 import { SubletCard, SubletFilter } from "@/components/swap";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
 import { useAuth } from "@/contexts";
 import { useMySublets, useSublets } from "@/hooks/useSublets";
 import { stitchAssets } from "@/lib/stitchAssets";
@@ -250,7 +252,10 @@ export default function SwapRoomPage() {
                   {lowerCards.map((sublet, index) => (
                     <article key={sublet.id} className="rounded-[2rem] bg-surface-container-lowest p-8 shadow-soft">
                       <div className="mb-6 flex items-center gap-3">
-                        <div className="h-10 w-10 overflow-hidden rounded-full bg-slate-200"><LazyImage src={sublet.owner_avatar || stitchAssets.swap.moveInAvatars[index % stitchAssets.swap.moveInAvatars.length]} alt={sublet.owner_name} className="h-full w-full object-cover" /></div>
+                        <PremiumAvatar isPremium={sublet.owner?.is_premium ?? false} className="h-10 w-10">
+                          {sublet.owner_avatar ? <AvatarImage src={sublet.owner_avatar} alt={sublet.owner_name || 'Chủ phòng'} /> : null}
+                          <AvatarFallback className="bg-slate-200 text-slate-700">{sublet.owner_name?.charAt(0) || 'H'}</AvatarFallback>
+                        </PremiumAvatar>
                         <div><p className="text-sm font-bold text-on-surface">{sublet.owner_name}</p><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">{sublet.owner_verified ? "Host xác thực" : "Chủ phòng"}</p></div>
                       </div>
                       <h3 className="font-display text-lg font-bold text-on-surface">{sublet.room_title}</h3>

@@ -134,6 +134,7 @@ export interface SubletListing {
         id_card_verified: boolean | null;
         email?: string | null;
         trust_score?: number | null;
+        is_premium?: boolean | null;
     };
     // Joined data from room_images
     images?: Array<{
@@ -184,12 +185,14 @@ export interface SwapRequest {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
     };
     requester_listing?: SubletListing;
     recipient?: {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
     };
     recipient_listing?: SubletListing;
 }
@@ -216,6 +219,7 @@ export interface SubletApplication {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
     };
     reviewed_by_user?: {
         id: string;

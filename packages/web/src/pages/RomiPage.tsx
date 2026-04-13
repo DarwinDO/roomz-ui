@@ -9,6 +9,7 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
+import { useAutoResizeTextarea } from "@/hooks/useAutoResizeTextarea";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { motion, useReducedMotion } from "framer-motion";
@@ -64,6 +65,7 @@ import {
   type RomiDisplayMessage,
 } from "./romi/reducer";
 import { resolveLoadedSessionSelection } from "./romi/sessionSelection";
+import { ROMI_AVATAR } from "@/lib/romiAvatar";
 
 function formatRelativeTime(value: string | null | undefined) {
   if (!value) return "Vừa xong";
@@ -150,7 +152,7 @@ const PromptChips = memo(function PromptChips({
           type="button"
           onClick={() => onPrompt(prompt)}
           disabled={disabled}
-          className="rounded-full border border-slate-200 bg-white/88 px-4 py-2 text-left text-sm text-slate-700 transition hover:border-slate-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full border border-border bg-surface-container-lowest/88 px-4 py-2 text-left text-sm text-on-surface-variant transition hover:border-border/70 hover:bg-surface-container-lowest disabled:cursor-not-allowed disabled:opacity-60"
         >
           {prompt}
         </button>
@@ -179,17 +181,17 @@ const SessionRail = memo(function SessionRail({
   onDelete: (sessionId: string) => void;
 }) {
   return (
-    <aside className="flex min-h-0 flex-col rounded-[28px] border border-slate-200 bg-white/96 p-5 shadow-soft">
+    <aside className="flex min-h-0 flex-col rounded-[28px] border border-border bg-surface-container-lowest p-5 shadow-soft">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">History</p>
-      <h2 className="mt-2 font-display text-2xl font-black tracking-[-0.04em] text-slate-900">
+      <h2 className="mt-2 font-display text-2xl font-black tracking-[-0.04em] text-on-surface">
         Lịch sử hội thoại
       </h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600">
+      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
         Mở lại thread cũ hoặc xoá những luồng bạn không cần nữa.
       </p>
 
-      <div className="mt-4 rounded-[22px] bg-slate-50 px-4 py-3">
-        <div className="flex items-center gap-2 text-slate-500">
+      <div className="mt-4 rounded-[22px] bg-surface px-4 py-3">
+        <div className="flex items-center gap-2 text-on-surface-variant">
           <Search className="h-4 w-4" />
           <Input
             value={searchQuery}
@@ -203,31 +205,38 @@ const SessionRail = memo(function SessionRail({
       <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
         {sessionsLoading ? (
           Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="h-24 animate-skeleton rounded-[22px] bg-slate-100" />
+            <div key={index} className="h-24 animate-skeleton rounded-[22px] bg-surface-container" />
           ))
         ) : sessions.length === 0 ? (
-          <div className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+          <div className="rounded-[22px] border border-dashed border-border bg-surface p-4 text-sm leading-6 text-on-surface-variant">
             ROMI sẽ giữ lại session <span className="font-mono">{ROMI_EXPERIENCE_VERSION}</span> mới của bạn tại đây.
           </div>
         ) : (
           sessions.map((session) => (
-            <button
+            <div
               key={session.id}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => onSelect(session.id)}
+              onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelect(session.id);
+                }
+              }}
               className={cn(
                 "group w-full rounded-[22px] border px-4 py-4 text-left transition",
                 session.id === selectedSessionId
-                  ? "border-[#0f172a]/12 bg-[#f8fafc]"
-                  : "border-transparent bg-slate-50 hover:border-slate-200 hover:bg-white",
+                  ? "border-primary/15 bg-primary/8"
+                  : "border-transparent bg-surface hover:border-border hover:bg-surface-container-lowest",
               )}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="line-clamp-2 font-semibold tracking-[-0.02em] text-slate-900">
+                  <p className="line-clamp-2 font-semibold tracking-[-0.02em] text-on-surface">
                     {formatSessionTitle(session)}
                   </p>
-                  <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                  <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-on-surface-variant">
                     {formatRelativeTime(session.lastMessageAt || session.updated_at)}
                   </p>
                 </div>
@@ -249,8 +258,8 @@ const SessionRail = memo(function SessionRail({
                   )}
                 </Button>
               </div>
-              <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">{formatSessionPreview(session)}</p>
-            </button>
+              <p className="mt-3 line-clamp-2 text-sm leading-6 text-on-surface-variant">{formatSessionPreview(session)}</p>
+            </div>
           ))
         )}
       </div>
@@ -271,8 +280,8 @@ const MessageCard = memo(function MessageCard({
         className={cn(
           "max-w-[85%] rounded-[26px] px-5 py-4 shadow-soft",
           message.role === "user"
-            ? "bg-[image:linear-gradient(135deg,#0f172a_0%,#1d4ed8_100%)] text-white"
-            : "border border-slate-200 bg-white text-slate-900",
+            ? "bg-[image:var(--cta-primary)] text-white"
+            : "border border-border bg-surface-container-lowest text-on-surface",
         )}
       >
         <p className="whitespace-pre-wrap text-[15px] leading-8">
@@ -286,7 +295,7 @@ const MessageCard = memo(function MessageCard({
                 key={source}
                 className={cn(
                   "rounded-full px-3 py-1 text-[11px]",
-                  message.role === "user" ? "bg-white/14 text-white" : "bg-slate-100 text-slate-600",
+                  message.role === "user" ? "bg-white/14 text-white" : "bg-surface-container text-on-surface-variant",
                 )}
               >
                 {source}
@@ -302,23 +311,23 @@ const MessageCard = memo(function MessageCard({
                 key={`${action.type}-${action.href}`}
                 type="button"
                 onClick={() => onAction(action)}
-                className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-slate-300 hover:bg-white"
+                className="rounded-[20px] border border-border bg-surface px-4 py-4 text-left transition hover:border-border/70 hover:bg-surface-container-lowest"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-slate-900">{action.label}</p>
+                    <p className="font-semibold text-on-surface">{action.label}</p>
                     {action.description ? (
-                      <p className="mt-1 text-sm leading-6 text-slate-600">{action.description}</p>
+                      <p className="mt-1 text-sm leading-6 text-on-surface-variant">{action.description}</p>
                     ) : null}
                   </div>
-                  <ArrowRight className="mt-1 h-4 w-4 text-slate-500" />
+                  <ArrowRight className="mt-1 h-4 w-4 text-on-surface-variant" />
                 </div>
               </button>
             ))}
           </div>
         ) : null}
 
-        <div className={cn("mt-3 text-xs", message.role === "user" ? "text-white/70" : "text-slate-500")}>
+        <div className={cn("mt-3 text-xs", message.role === "user" ? "text-white/70" : "text-on-surface-variant")}>
           {formatRelativeTime(message.createdAt)}
         </div>
       </div>
@@ -345,13 +354,19 @@ export default function RomiPage() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [inputValue, setInputValue] = useState("");
+  const textareaRef = useAutoResizeTextarea(inputValue, { minHeight: 44, maxHeight: 200 });
   const [isStreaming, setIsStreaming] = useState(false);
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const deferredSearch = useDeferredValue(searchQuery);
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const sessionsRef = useRef<AIChatSession[]>([]);
   const skipHydrationSessionIdRef = useRef<string | null>(null);
   const prefersFreshConversationRef = useRef(false);
+
+  useEffect(() => {
+    sessionsRef.current = sessions;
+  }, [sessions]);
 
   useEffect(() => {
     void trackRomiOpened(user?.id || null);
@@ -415,11 +430,18 @@ export default function RomiPage() {
 
     let cancelled = false;
     const hydrate = async () => {
+      const pendingSession = sessionsRef.current.find((item) => item.id === selectedSessionId) || null;
       setMessagesLoading(true);
+      dispatch({
+        type: "bootstrap",
+        viewerMode,
+        session: pendingSession,
+        messages: [],
+      });
       try {
         const messageRows = await getAIChatMessages(supabase, selectedSessionId);
         if (cancelled) return;
-        const session = sessions.find((item) => item.id === selectedSessionId) || null;
+        const session = sessionsRef.current.find((item) => item.id === selectedSessionId) || pendingSession;
         dispatch({
           type: "bootstrap",
           viewerMode,
@@ -441,7 +463,7 @@ export default function RomiPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedSessionId, sessions, user, viewerMode]);
+  }, [selectedSessionId, user, viewerMode]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -466,6 +488,7 @@ export default function RomiPage() {
     [workspaceState.messages],
   );
   const showHistoryShortcut = viewerMode === "user" && (sessionsLoading || sessions.length > 0);
+  const showDesktopSidebar = showHistoryShortcut;
   const hasMeaningfulJourney = useMemo(
     () => hasMeaningfulJourneySummary(workspaceState.journeyState),
     [workspaceState.journeyState],
@@ -520,7 +543,7 @@ export default function RomiPage() {
 
   async function handleAction(action: RomiChatAction) {
     await trackRomiActionClicked(user?.id || null, action, {
-      session_id: selectedSessionId,
+      chat_session_id: selectedSessionId,
       viewer_mode: viewerMode,
     });
 
@@ -559,6 +582,7 @@ export default function RomiPage() {
     dispatch({ type: "user_message", message: userMessage });
     dispatch({ type: "assistant_placeholder", id: placeholderId, createdAt });
     setIsStreaming(true);
+    let streamSettled = false;
 
     try {
       for await (const event of sendAIChatMessageStream(supabase, nextText, {
@@ -573,6 +597,10 @@ export default function RomiPage() {
         history: viewerMode === "guest" ? buildGuestHistory(workspaceState.messages) : undefined,
       })) {
         dispatch({ type: "stream_event", event, placeholderId, createdAt });
+
+        if (event.type === "final" || event.type === "error") {
+          streamSettled = true;
+        }
 
         if (event.type === "start" && event.session) {
           prefersFreshConversationRef.current = false;
@@ -595,9 +623,21 @@ export default function RomiPage() {
     } catch (error) {
       console.error("ROMI stream failed:", error);
       const message = error instanceof Error ? error.message : "ROMI chưa thể phản hồi lúc này.";
+      if (!streamSettled) {
+        dispatch({
+          type: "stream_event",
+          event: {
+            type: "error",
+            code: "GEMINI_ERROR",
+            message,
+          },
+          placeholderId,
+          createdAt,
+        });
+      }
       await trackRomiError(user?.id || null, message, {
         viewer_mode: viewerMode,
-        session_id: selectedSessionId,
+        chat_session_id: selectedSessionId,
       });
       toast.error(message);
     } finally {
@@ -612,10 +652,11 @@ export default function RomiPage() {
       animate="show"
       variants={motionTokens.stagger(0.08, 0.03)}
     >
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-7xl">
+        {/* Mobile-only Sheet for history */}
         <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
           {showHistoryShortcut ? (
-            <SheetContent side="left" className="w-full border-r border-slate-200 bg-[#fcfcfd] p-4 sm:max-w-md">
+            <SheetContent side="left" className="w-full border-r border-border bg-surface-container-lowest p-4 sm:max-w-md xl:hidden">
               <SessionRail
                 sessions={filteredSessions}
                 sessionsLoading={sessionsLoading}
@@ -630,33 +671,67 @@ export default function RomiPage() {
           ) : null}
         </Sheet>
 
-        <motion.div variants={motionTokens.revealScale(20, 0.99)}>
-            <section className="flex min-h-[72vh] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white/96 shadow-soft-lg xl:h-[calc(100svh-11rem)]">
-              <div className="border-b border-slate-100 px-6 py-5">
+        <motion.div
+          className={cn(
+            "grid gap-6 xl:items-start",
+            showDesktopSidebar ? "xl:grid-cols-[280px_minmax(0,1fr)]" : "xl:grid-cols-1",
+          )}
+          variants={motionTokens.stagger(0.08, 0.04)}
+        >
+          {/* Persistent sidebar — xl+ only */}
+          {showDesktopSidebar ? (
+            <motion.div
+              className="hidden xl:block xl:sticky xl:top-28"
+              variants={motionTokens.reveal(18)}
+            >
+              <SessionRail
+                sessions={filteredSessions}
+                sessionsLoading={sessionsLoading}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                selectedSessionId={selectedSessionId}
+                deletingSessionId={deletingSessionId}
+                onSelect={handleSelectSession}
+                onDelete={(sessionId) => void handleDeleteSession(sessionId)}
+              />
+            </motion.div>
+          ) : null}
+
+          <motion.div variants={motionTokens.revealScale(20, 0.99)}>
+            <section className="flex min-h-[72vh] flex-col overflow-hidden rounded-[32px] border border-border bg-surface-container-lowest shadow-soft-lg xl:h-[calc(100svh-11rem)]">
+              <div className="border-b border-border/60 px-6 py-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
-                      <Bot className="h-6 w-6" />
-                    </div>
+                    {ROMI_AVATAR ? (
+                      <img
+                        src={ROMI_AVATAR}
+                        alt="ROMI"
+                        className="h-12 w-12 rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-on-surface text-surface-container-lowest">
+                        <Bot className="h-6 w-6" />
+                      </div>
+                    )}
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
                         {viewerMode === "guest" ? "Guest conversation" : activeSessionTitle ? "Thread đang mở" : "Chat workspace"}
                       </p>
-                      <h2 className="mt-2 font-display text-3xl font-black tracking-[-0.04em] text-slate-950">
+                      <h2 className="mt-2 font-display text-3xl font-black tracking-[-0.04em] text-on-surface">
                         {ROMI_NAME}
                       </h2>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                      <p className="mt-2 text-sm leading-6 text-on-surface-variant">
                         {workspaceSubtitle}
                       </p>
                       {activeSessionTitle || journeyChips.length ? (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {activeSessionTitle ? (
-                            <Badge className="rounded-full bg-slate-100 text-slate-700">
+                            <Badge className="rounded-full bg-surface-container text-on-surface">
                               {activeSessionTitle}
                             </Badge>
                           ) : null}
                           {journeyChips.map((chip) => (
-                            <Badge key={chip} className="rounded-full bg-slate-100 text-slate-700">
+                            <Badge key={chip} className="rounded-full bg-surface-container text-on-surface">
                               {chip}
                             </Badge>
                           ))}
@@ -666,11 +741,12 @@ export default function RomiPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    {/* History button: only show on mobile when sidebar not visible */}
                     {showHistoryShortcut ? (
                       <Button
                         type="button"
                         variant="outline"
-                        className="rounded-full"
+                        className="rounded-full xl:hidden"
                         onClick={() => setHistoryOpen(true)}
                       >
                         <History className="h-4 w-4" />
@@ -692,7 +768,7 @@ export default function RomiPage() {
                 </div>
 
                 {workspaceState.streamStatus ? (
-                  <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-surface-container px-4 py-2 text-sm text-on-surface-variant">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     <span>{workspaceState.streamStatus.message}</span>
                   </div>
@@ -701,14 +777,14 @@ export default function RomiPage() {
 
               <div
                 ref={viewportRef}
-                className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[linear-gradient(180deg,#fffaf2_0%,#f8fbff_100%)] px-6 py-5"
+                className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-surface px-6 py-5"
               >
                 {messagesLoading && workspaceState.messages.length === 0 ? (
                   Array.from({ length: 4 }).map((_, index) => (
                     <div
                       key={index}
                       className={cn(
-                        "h-24 max-w-[72%] animate-skeleton rounded-[28px] bg-white shadow-soft",
+                        "h-24 max-w-[72%] animate-skeleton rounded-[28px] bg-surface-container-lowest shadow-soft",
                         index % 2 === 0 ? "mr-auto" : "ml-auto",
                       )}
                     />
@@ -720,7 +796,7 @@ export default function RomiPage() {
                 )}
               </div>
 
-              <div className="border-t border-slate-100 bg-white px-6 py-5">
+              <div className="border-t border-border/60 bg-surface-container-lowest px-6 py-5">
                 {!hasConversationStarted ? (
                   <PromptChips
                     prompts={promptOptions}
@@ -730,21 +806,21 @@ export default function RomiPage() {
                 ) : null}
 
                 {workspaceState.clarification ? (
-                  <div className="mb-4 rounded-[24px] border border-[#a04e17]/14 bg-[#fff7ef] px-4 py-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a04e17]">
+                  <div className="mb-4 rounded-[24px] border border-secondary/20 bg-secondary-container/20 px-4 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-secondary">
                       {workspaceState.clarification.mode === "repair_after_failed_extraction"
                         ? "ROMI đang sửa lại tiêu chí"
                         : "ROMI cần thêm 1 chi tiết"}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-700">{workspaceState.clarification.prompt}</p>
+                    <p className="mt-2 text-sm leading-6 text-on-surface-variant">{workspaceState.clarification.prompt}</p>
                   </div>
                 ) : null}
 
                 {workspaceState.handoff ? (
-                  <div className="mb-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Bước tiếp theo</p>
+                  <div className="mb-4 rounded-[24px] border border-border bg-surface px-4 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-on-surface-variant">Bước tiếp theo</p>
                     <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <p className="text-sm leading-6 text-slate-700">{workspaceState.handoff.reason}</p>
+                      <p className="text-sm leading-6 text-on-surface-variant">{workspaceState.handoff.reason}</p>
                       <Button
                         type="button"
                         className="rounded-full"
@@ -762,8 +838,9 @@ export default function RomiPage() {
                   </div>
                 ) : null}
 
-                <div className="mt-4 rounded-[28px] border border-slate-200 bg-slate-50 p-3 shadow-soft">
+                <div className="mt-4 rounded-[28px] border border-border bg-surface p-3 shadow-soft">
                   <Textarea
+                    ref={textareaRef}
                     value={inputValue}
                     onChange={(event) => setInputValue(event.target.value)}
                     onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -773,10 +850,12 @@ export default function RomiPage() {
                       }
                     }}
                     placeholder="Nêu khu vực, ngân sách, câu hỏi sản phẩm hoặc bước tiếp theo bạn đang cần..."
-                    className="min-h-[116px] resize-none border-none bg-transparent px-2 py-2 text-[15px] leading-8 shadow-none focus-visible:ring-0"
+                    className="resize-none border-none bg-transparent px-2 py-2 text-[15px] leading-8 shadow-none transition-[height] duration-100 focus-visible:ring-0"
+                    style={{ overflowY: "hidden" }}
+                    rows={1}
                   />
                   <div className="mt-3 flex items-center justify-between gap-3">
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-on-surface-variant">
                       ROMI sẽ ưu tiên hỏi bù khi thiếu context bắt buộc thay vì trả lời đoán.
                     </p>
                     <Button
@@ -793,6 +872,7 @@ export default function RomiPage() {
               </div>
             </section>
           </motion.div>
+        </motion.div>
       </div>
     </motion.section>
   );

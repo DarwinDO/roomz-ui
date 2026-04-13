@@ -3,6 +3,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import * as analyticsService from '@/services/analytics';
+import { getRevenueStats } from '@/services/admin-payments';
 
 const STALE_TIME = 5 * 60 * 1000;
 const GC_TIME = 10 * 60 * 1000;
@@ -97,5 +98,14 @@ export function useRecentActivities() {
     queryKey: adminAnalyticsKeys.recentActivities(),
     queryFn: () => analyticsService.getRecentActivities(),
     staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useRevenueStats() {
+  return useQuery({
+    queryKey: [...adminAnalyticsKeys.all, 'revenueStats'] as const,
+    queryFn: getRevenueStats,
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
   });
 }

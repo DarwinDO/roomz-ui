@@ -4,7 +4,7 @@ import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ImageWithFallback } from "@/components/figma/ImageWithFallback";
-import { X, ChevronLeft, ChevronRight, Eye, Maximize2 } from "lucide-react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface GalleryModalProps {
   isOpen: boolean;
@@ -15,7 +15,6 @@ interface GalleryModalProps {
 
 export function GalleryModal({ isOpen, onClose, images, initialIndex = 0 }: GalleryModalProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [is360View, setIs360View] = useState(false);
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
@@ -66,12 +65,6 @@ export function GalleryModal({ isOpen, onClose, images, initialIndex = 0 }: Gall
               <Badge className="border-0 bg-white/20 text-white backdrop-blur-sm">
                 {currentIndex + 1} / {images.length}
               </Badge>
-              {is360View ? (
-                <Badge className="border-0 bg-primary/90 text-white backdrop-blur-sm">
-                  <Eye className="mr-1 h-3 w-3" />
-                  Chế độ 360° đang bật
-                </Badge>
-              ) : null}
             </div>
             <Button
               onClick={onClose}
@@ -97,14 +90,14 @@ export function GalleryModal({ isOpen, onClose, images, initialIndex = 0 }: Gall
                 <Button
                   onClick={handlePrevious}
                   size="icon"
-                  className="absolute left-4 top-1/2 h-12 w-12 -translate-y-1/2 rounded-full bg-white/90 text-foreground shadow-lg hover:bg-white"
+                  className="absolute left-4 top-1/2 -mt-6 h-12 w-12 rounded-full bg-white/90 text-foreground shadow-lg hover:bg-white"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </Button>
                 <Button
                   onClick={handleNext}
                   size="icon"
-                  className="absolute right-4 top-1/2 h-12 w-12 -translate-y-1/2 rounded-full bg-white/90 text-foreground shadow-lg hover:bg-white"
+                  className="absolute right-4 top-1/2 -mt-6 h-12 w-12 rounded-full bg-white/90 text-foreground shadow-lg hover:bg-white"
                 >
                   <ChevronRight className="h-6 w-6" />
                 </Button>
@@ -114,30 +107,6 @@ export function GalleryModal({ isOpen, onClose, images, initialIndex = 0 }: Gall
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/60 to-transparent p-4">
-          <div className="mb-4 flex justify-center gap-2">
-            <Button
-              onClick={() => setIs360View(!is360View)}
-              variant="secondary"
-              size="sm"
-              className={`rounded-full backdrop-blur-sm ${
-                is360View
-                  ? "bg-primary text-white hover:bg-primary/90"
-                  : "bg-white/90 text-foreground hover:bg-white"
-              }`}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              Xem 360°
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="rounded-full bg-white/90 text-foreground backdrop-blur-sm hover:bg-white"
-            >
-              <Maximize2 className="mr-2 h-4 w-4" />
-              Toàn màn hình
-            </Button>
-          </div>
-
           <div className="scrollbar-hide flex justify-center gap-2 overflow-x-auto pb-2">
             <div className="mx-auto flex gap-2">
               {images.map((image, index) => (

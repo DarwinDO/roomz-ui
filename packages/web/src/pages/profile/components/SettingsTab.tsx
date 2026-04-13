@@ -133,7 +133,7 @@ export function SettingsTab({
                                             size="sm"
                                             variant="outline"
                                             className="text-xs h-7 rounded-lg"
-                                            onClick={() => navigate('/verification')}
+                                            onClick={() => navigate('/verification/student-card')}
                                         >
                                             Xác thực ngay
                                         </Button>
@@ -153,9 +153,16 @@ export function SettingsTab({
                                             size="sm"
                                             variant="outline"
                                             className="text-xs h-7 rounded-lg"
-                                            disabled={!profile?.phone}
+                                            onClick={() => {
+                                                if (profile?.phone) {
+                                                    navigate('/verification');
+                                                    return;
+                                                }
+
+                                                onEditProfile();
+                                            }}
                                         >
-                                            {profile?.phone ? 'Xác thực ngay' : 'Thêm SĐT trước'}
+                                            {profile?.phone ? 'Xác thực ngay' : 'Thêm SĐT'}
                                         </Button>
                                     )}
                                 </div>

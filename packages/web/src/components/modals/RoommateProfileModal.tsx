@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import { Badge } from '@/components/ui/badge';
 import {
   Briefcase,
@@ -165,7 +166,10 @@ export function RoommateProfileModal({
             <section className="rounded-[30px] border border-slate-200 bg-[linear-gradient(180deg,#f7f4ed_0%,#ffffff_44%,#f3f8ff_100%)] p-6 shadow-sm">
               <div className="flex flex-col gap-8">
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                  <Avatar className="h-24 w-24 rounded-[28px] border-4 border-white shadow-lg">
+                  <PremiumAvatar
+                    isPremium={roommate.is_premium ?? false}
+                    className="h-24 w-24 rounded-[28px] border-4 border-white shadow-lg"
+                  >
                     <AvatarImage src={roommate.avatar_url || ''} alt={roommate.full_name} className="object-cover" />
                     <AvatarFallback className="rounded-[24px] bg-primary/10 text-2xl font-bold uppercase text-primary">
                       {roommate.full_name
@@ -175,7 +179,7 @@ export function RoommateProfileModal({
                         .map((part) => part[0])
                         .join('') || '?'}
                     </AvatarFallback>
-                  </Avatar>
+                  </PremiumAvatar>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">

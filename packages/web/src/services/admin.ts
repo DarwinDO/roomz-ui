@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
-import type { Tables } from '@/lib/database.types';
+import type { Tables, TablesUpdate } from '@/lib/database.types';
 import { reviewHostApplicationForUser } from '@/services/hostApplications';
 
 export type AdminRoom = Tables<'rooms'> & {
@@ -23,6 +23,7 @@ export type AdminRoom = Tables<'rooms'> & {
 };
 
 export type AdminUser = Tables<'users'>;
+type ServiceLeadUpdate = TablesUpdate<'service_leads'>;
 
 export interface AdminStats {
   totalUsers: number;
@@ -383,7 +384,7 @@ export async function updateServiceLeadStatus(
   status: string,
   reason?: string
 ): Promise<void> {
-  const updateData: Record<string, unknown> = {
+  const updateData: ServiceLeadUpdate = {
     status,
     updated_at: new Date().toISOString(),
     rejection_reason: null,

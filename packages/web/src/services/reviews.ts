@@ -13,7 +13,7 @@ export async function getReviews(targetId: string, type: 'room' | 'partner' | 'u
         .from('reviews')
         .select(`
             *,
-            reviewer:users!reviews_reviewer_id_fkey(id, full_name, avatar_url)
+            reviewer:users!reviews_reviewer_id_fkey(id, full_name, avatar_url, is_premium)
         `)
         .order('created_at', { ascending: false });
 

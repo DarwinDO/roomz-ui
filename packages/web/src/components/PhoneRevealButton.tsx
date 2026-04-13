@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Phone, Lock, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,11 @@ import { useAuth } from "@/contexts";
 import { getRoomContact } from "@/services/rooms";
 import { trackFeatureEvent } from "@/services/analyticsTracking";
 import { UPGRADE_SOURCES } from "@roomz/shared/constants/tracking";
+import {
+  getMillisecondsUntilNextUtcMidnight,
+  getUtcDateKey,
+  hasUtcDayRolledOver,
+} from "@/utils/dailyReset";
 
 interface PhoneRevealButtonProps {
   roomId: string;
@@ -19,6 +24,43 @@ export function PhoneRevealButton({ roomId, className = "" }: PhoneRevealButtonP
   const [isMasked, setIsMasked] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastResolvedUtcDate, setLastResolvedUtcDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!revealedPhone || !isMasked || !lastResolvedUtcDate) {
+      return;
+    }
+
+    const resetMaskedPhoneIfUtcDayRolledOver = () => {
+      if (!hasUtcDayRolledOver(lastResolvedUtcDate)) {
+        return;
+      }
+
+      setRevealedPhone(null);
+      setError(null);
+      setLastResolvedUtcDate(null);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        resetMaskedPhoneIfUtcDayRolledOver();
+      }
+    };
+
+    const timeoutId = window.setTimeout(
+      resetMaskedPhoneIfUtcDayRolledOver,
+      getMillisecondsUntilNextUtcMidnight(),
+    );
+
+    window.addEventListener("focus", resetMaskedPhoneIfUtcDayRolledOver);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener("focus", resetMaskedPhoneIfUtcDayRolledOver);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isMasked, lastResolvedUtcDate, revealedPhone]);
 
   const handleReveal = async () => {
     setLoading(true);
@@ -28,6 +70,7 @@ export function PhoneRevealButton({ roomId, className = "" }: PhoneRevealButtonP
       const result = await getRoomContact(roomId);
       setRevealedPhone(result.phone);
       setIsMasked(result.isMasked);
+      setLastResolvedUtcDate(getUtcDateKey());
 
       void trackFeatureEvent("room_contact_view", user?.id ?? null, {
         room_id: roomId,
@@ -66,7 +109,7 @@ export function PhoneRevealButton({ roomId, className = "" }: PhoneRevealButtonP
         <Button
           onClick={handleUpgrade}
           onKeyDown={(event) => {
-            if (event.key === 'Escape') {
+            if (event.key === "Escape") {
               event.currentTarget.blur();
             }
           }}
@@ -89,7 +132,7 @@ export function PhoneRevealButton({ roomId, className = "" }: PhoneRevealButtonP
         <Button
           onClick={handleReveal}
           onKeyDown={(event) => {
-            if (event.key === 'Escape') {
+            if (event.key === "Escape") {
               event.currentTarget.blur();
             }
           }}

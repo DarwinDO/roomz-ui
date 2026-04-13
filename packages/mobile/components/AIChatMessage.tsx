@@ -1,13 +1,16 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
+import type { RomiChatAction } from '@roomz/shared/services/ai-chatbot';
 
 interface AIChatMessageProps {
     text: string;
     sender: 'user' | 'bot';
     timestamp: Date;
+    actions?: RomiChatAction[];
+    onActionPress?: (action: RomiChatAction) => void;
 }
 
-export function AIChatMessage({ text, sender, timestamp }: AIChatMessageProps) {
+export function AIChatMessage({ text, sender, timestamp, actions, onActionPress }: AIChatMessageProps) {
     const isUser = sender === 'user';
 
     const formatTime = (date: Date) => {
@@ -18,10 +21,9 @@ export function AIChatMessage({ text, sender, timestamp }: AIChatMessageProps) {
     };
 
     return (
-        <View className={`flex-row gap-2 mb-3 ${isUser ? 'flex-row-reverse' : ''}`}>
-            {/* Avatar */}
+        <View className={`mb-3 flex-row gap-2 ${isUser ? 'flex-row-reverse' : ''}`}>
             <View
-                className={`w-8 h-8 rounded-full items-center justify-center ${isUser ? 'bg-gray-200' : 'bg-primary-500'
+                className={`h-8 w-8 items-center justify-center rounded-full ${isUser ? 'bg-gray-200' : 'bg-primary-500'
                     }`}
             >
                 <Text className="text-xs">
@@ -29,12 +31,11 @@ export function AIChatMessage({ text, sender, timestamp }: AIChatMessageProps) {
                 </Text>
             </View>
 
-            {/* Message bubble */}
-            <View className={`max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
+            <View className={`max-w-[82%] ${isUser ? 'items-end' : 'items-start'}`}>
                 <View
                     className={`rounded-2xl px-4 py-2.5 ${isUser
-                            ? 'bg-primary-500 rounded-tr-sm'
-                            : 'bg-gray-100 rounded-tl-sm'
+                            ? 'rounded-tr-sm bg-primary-500'
+                            : 'rounded-tl-sm bg-gray-100'
                         }`}
                 >
                     <Text
@@ -44,7 +45,24 @@ export function AIChatMessage({ text, sender, timestamp }: AIChatMessageProps) {
                         {text}
                     </Text>
                 </View>
-                <Text className="text-xs text-text-secondary mt-1 px-1">
+
+                {!isUser && actions && actions.length > 0 ? (
+                    <View className="mt-2 flex-row flex-wrap gap-2">
+                        {actions.slice(0, 3).map((action) => (
+                            <TouchableOpacity
+                                key={`${action.type}:${action.href}`}
+                                onPress={() => onActionPress?.(action)}
+                                className="rounded-full border border-primary-200 bg-white px-3 py-2"
+                            >
+                                <Text className="text-xs font-medium text-primary-600">
+                                    {action.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                ) : null}
+
+                <Text className="mt-1 px-1 text-xs text-text-secondary">
                     {formatTime(timestamp)}
                 </Text>
             </View>

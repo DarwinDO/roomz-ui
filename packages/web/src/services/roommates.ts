@@ -68,6 +68,7 @@ export interface RoommateMatch {
     match_scope: RoommateMatchScope;
     full_name: string;
     avatar_url: string | null;
+    is_premium?: boolean | null;
     bio: string | null;
     university: string | null;
     major: string | null;
@@ -106,11 +107,13 @@ export interface RoommateRequest {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
     };
     receiver?: {
         id: string;
         full_name: string;
         avatar_url: string | null;
+        is_premium?: boolean | null;
     };
 }
 
@@ -593,7 +596,7 @@ export async function getReceivedRequests(userId: string): Promise<RoommateReque
         .from('roommate_requests')
         .select(`
       *,
-      sender:users!sender_id(id, full_name, avatar_url)
+      sender:users!sender_id(id, full_name, avatar_url, is_premium)
     `)
         .eq('receiver_id', userId)
         .order('created_at', { ascending: false });
@@ -614,7 +617,7 @@ export async function getPendingRequests(userId: string): Promise<RoommateReques
         .from('roommate_requests')
         .select(`
       *,
-      sender:users!sender_id(id, full_name, avatar_url)
+      sender:users!sender_id(id, full_name, avatar_url, is_premium)
     `)
         .eq('receiver_id', userId)
         .eq('status', 'pending')
@@ -636,7 +639,7 @@ export async function getSentRequests(userId: string): Promise<RoommateRequest[]
         .from('roommate_requests')
         .select(`
       *,
-      receiver:users!receiver_id(id, full_name, avatar_url)
+      receiver:users!receiver_id(id, full_name, avatar_url, is_premium)
     `)
         .eq('sender_id', userId)
         .order('created_at', { ascending: false });

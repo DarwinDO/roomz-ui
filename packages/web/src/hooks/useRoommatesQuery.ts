@@ -16,6 +16,11 @@ import { toast } from 'sonner';
 import { FREE_LIMITS } from '@roomz/shared/constants/premium';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
+    getMillisecondsUntilNextUtcMidnight,
+    getUtcDateKey,
+    hasUtcDayRolledOver,
+} from '@/utils/dailyReset';
+import {
     getRoommateProfile,
     createRoommateProfile,
     updateRoommateProfile,
@@ -193,12 +198,55 @@ export function useRoommateQuizQuery() {
 export function useRoommateLimits() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    const lastLimitsSyncUtcDateRef = useRef<string | null>(null);
 
     const query = useQuery({
         queryKey: roommateKeys.limits(user?.id ?? ''),
         queryFn: () => getRoommateFeatureLimits(),
         enabled: !!user?.id,
     });
+
+    useEffect(() => {
+        if (!user?.id || !query.dataUpdatedAt) {
+            return;
+        }
+
+        lastLimitsSyncUtcDateRef.current = getUtcDateKey(query.dataUpdatedAt);
+    }, [query.dataUpdatedAt, user?.id]);
+
+    useEffect(() => {
+        if (!user?.id) {
+            return;
+        }
+
+        const refreshLimitsIfUtcDayRolledOver = () => {
+            if (!hasUtcDayRolledOver(lastLimitsSyncUtcDateRef.current)) {
+                return;
+            }
+
+            void queryClient.invalidateQueries({ queryKey: roommateKeys.limits(user.id) });
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                refreshLimitsIfUtcDayRolledOver();
+            }
+        };
+
+        const timeoutId = window.setTimeout(
+            refreshLimitsIfUtcDayRolledOver,
+            getMillisecondsUntilNextUtcMidnight(),
+        );
+
+        window.addEventListener('focus', refreshLimitsIfUtcDayRolledOver);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+            window.removeEventListener('focus', refreshLimitsIfUtcDayRolledOver);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [query.dataUpdatedAt, queryClient, user?.id]);
 
     const incrementView = useCallback(async () => {
         if (!user?.id) {

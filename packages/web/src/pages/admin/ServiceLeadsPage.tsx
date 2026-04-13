@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { isPartnerCompatibleWithServiceType } from "@/components/modals/serviceRequestRouting";
 import type { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/admin/DataTable";
 import { StatsCard } from "@/components/admin/StatsCard";
@@ -28,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
+    Ban,
     Wrench,
     CheckCircle,
     Clock,
@@ -41,6 +43,7 @@ import {
     User,
     Building2,
 } from "lucide-react";
+import { useAuth } from "@/contexts";
 import { useAdminServiceLeads, useServiceLeadStats, useUpdateLeadStatus, useAssignPartner, useAppendAdminNote } from "@/hooks/useAdminServiceLeads";
 import type { AdminServiceLead } from "@/services/admin";
 import { usePartners } from "@/hooks/usePartners";
@@ -48,8 +51,8 @@ import { usePartners } from "@/hooks/usePartners";
 const SERVICE_TYPE_LABELS: Record<string, string> = {
     moving: "Chuyển nhà",
     cleaning: "Dọn dẹp",
-    setup: "Lắp đặt",
-    support: "Hỗ trợ",
+    setup: "Đóng gói & lắp đặt",
+    support: "Yêu cầu hỗ trợ",
 };
 
 const STATUS_LABELS: Record<string, { label: string; variant: string }> = {
@@ -92,6 +95,7 @@ const DETAIL_LABELS: Record<string, Record<string, { label: string; icon?: strin
         contact_phone: { label: "SĐT liên hệ", icon: "📞" },
     },
     support: {
+        address: { label: "Địa chỉ", icon: "📍" },
         message: { label: "Nội dung", icon: "💬" },
         category: { label: "Danh mục", icon: "📁" },
         notes: { label: "Ghi chú", icon: "📝" },
@@ -112,16 +116,24 @@ const SETUP_TYPE_LABELS: Record<string, string> = {
     full: "Trọn gói",
 };
 
+const SUPPORT_CATEGORY_LABELS: Record<string, string> = {
+    repair: "Sửa chữa & điện nước",
+    laundry: "Giặt ủi lấy liền",
+    support: "Yêu cầu hỗ trợ",
+};
+
 function formatDetailValue(key: string, value: unknown): string {
     if (value === null || value === undefined) return "Không có";
     if (typeof value === "boolean") return value ? "Có" : "Không";
     if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "Không có";
     if (key === "cleaning_type") return CLEANING_TYPE_LABELS[value as string] || String(value);
     if (key === "setup_type") return SETUP_TYPE_LABELS[value as string] || String(value);
+    if (key === "category") return SUPPORT_CATEGORY_LABELS[value as string] || String(value);
     return String(value);
 }
 
 export default function ServiceLeadsPage() {
+    const { profile, user } = useAuth();
     const { data: leads, isLoading, error, refetch } = useAdminServiceLeads();
     const { data: stats } = useServiceLeadStats();
     const { mutate: updateStatus } = useUpdateLeadStatus();
@@ -140,6 +152,11 @@ export default function ServiceLeadsPage() {
     const [selectedPartnerId, setSelectedPartnerId] = useState("");
     const [noteDialogOpen, setNoteDialogOpen] = useState(false);
     const [adminNote, setAdminNote] = useState("");
+    const adminDisplayName =
+        profile?.full_name?.trim() ||
+        user?.user_metadata?.full_name?.trim() ||
+        user?.email ||
+        "Admin";
 
     const filteredLeads = (leads || []).filter(lead => {
         const matchesSearch =
@@ -161,6 +178,10 @@ export default function ServiceLeadsPage() {
         updateStatus({ leadId, status: "completed" });
     };
 
+    const handleCancel = (leadId: string) => {
+        updateStatus({ leadId, status: "cancelled" });
+    };
+
     const openRejectDialog = (lead: AdminServiceLead) => {
         setSelectedLead(lead);
         setRejectReason("");
@@ -172,6 +193,15 @@ export default function ServiceLeadsPage() {
         updateStatus({ leadId: selectedLead.id, status: "rejected", reason: rejectReason });
         setRejectDialogOpen(false);
     };
+
+    const compatiblePartners = useMemo(() => {
+        if (!selectedLead || !partners) return partners ?? [];
+        return partners.filter(
+            (p) =>
+                p.status === "active" &&
+                isPartnerCompatibleWithServiceType(p, selectedLead.service_type),
+        );
+    }, [selectedLead, partners]);
 
     const openAssignDialog = (lead: AdminServiceLead) => {
         setSelectedLead(lead);
@@ -192,7 +222,7 @@ export default function ServiceLeadsPage() {
 
     const handleAddNote = () => {
         if (!selectedLead || !adminNote.trim()) return;
-        appendNote({ leadId: selectedLead.id, note: adminNote, adminName: "Admin" });
+        appendNote({ leadId: selectedLead.id, note: adminNote, adminName: adminDisplayName });
         setAdminNote("");
         setNoteDialogOpen(false);
     };
@@ -322,6 +352,12 @@ export default function ServiceLeadsPage() {
                                 </DropdownMenuItem>
                             )}
                             {lead.status !== "completed" && lead.status !== "cancelled" && lead.status !== "rejected" && (
+                                <DropdownMenuItem onClick={() => handleCancel(lead.id)}>
+                                    <Ban className="h-4 w-4 mr-2" />
+                                    Hủy yêu cầu
+                                </DropdownMenuItem>
+                            )}
+                            {lead.status !== "completed" && lead.status !== "cancelled" && lead.status !== "rejected" && (
                                 <>
                                     <DropdownMenuItem onClick={() => openRejectDialog(lead)} className="text-red-600">
                                         <X className="h-4 w-4 mr-2" />
@@ -365,7 +401,7 @@ export default function ServiceLeadsPage() {
             )}
 
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-5">
                 <StatsCard
                     title="Tổng yêu cầu"
                     value={stats?.total || 0}
@@ -382,6 +418,12 @@ export default function ServiceLeadsPage() {
                     title="Đang xử lý"
                     value={stats?.assigned || 0}
                     icon={CheckCircle}
+                    variant="info"
+                />
+                <StatsCard
+                    title="Đã xác nhận"
+                    value={stats?.confirmed || 0}
+                    icon={Star}
                     variant="info"
                 />
                 <StatsCard
@@ -572,20 +614,35 @@ export default function ServiceLeadsPage() {
                             Chọn đối tác để xử lý yêu cầu dịch vụ này.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4">
-                        <Label>Đối tác</Label>
-                        <Select value={selectedPartnerId} onValueChange={setSelectedPartnerId}>
-                            <SelectTrigger className="mt-2">
-                                <SelectValue placeholder="Chọn đối tác" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {(partners || []).filter(p => p.status === 'active').map((partner) => (
-                                    <SelectItem key={partner.id} value={partner.id}>
-                                        {partner.name} - {partner.category}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                    <div className="py-4 space-y-3">
+                        <div>
+                            <Label>Đối tác phù hợp</Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Chỉ hiển thị đối tác phù hợp với loại dịch vụ{" "}
+                                <span className="font-medium text-foreground">
+                                    {SERVICE_TYPE_LABELS[selectedLead?.service_type ?? ""] ?? selectedLead?.service_type}
+                                </span>.
+                            </p>
+                        </div>
+                        {compatiblePartners.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+                                Chưa có đối tác nào phù hợp với loại dịch vụ này trong hệ thống.
+                            </div>
+                        ) : (
+                            <Select value={selectedPartnerId} onValueChange={setSelectedPartnerId}>
+                                <SelectTrigger className="mt-1">
+                                    <SelectValue placeholder="Chọn đối tác" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {compatiblePartners.map((partner) => (
+                                        <SelectItem key={partner.id} value={partner.id}>
+                                            {partner.name}
+                                            {partner.specialization ? ` — ${partner.specialization}` : ""}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>Hủy</Button>

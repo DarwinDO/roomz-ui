@@ -10,9 +10,12 @@ description: Validation plan and current results for ROMI v3 web concierge and k
 ## Coverage Goals
 
 - Validate shared intake and journey-state extraction.
+- Validate planner precedence and selection-memory updates for follow-up turns.
 - Validate reducer behavior for ROMI streaming events.
+- Validate parity for guest and signed-in viewers across web and mobile request contracts.
 - Validate web build quality after the `/romi` rebuild.
 - Validate that guest/public ROMI flows no longer depend on Supabase auth at request time.
+- Validate that partner and deal search filtering does not drop valid matches due to premature limiting.
 
 ## Automated Coverage Landed
 
@@ -36,42 +39,58 @@ description: Validation plan and current results for ROMI v3 web concierge and k
   - final metadata merge behavior
   - clarification state handling
   - handoff state handling
+  - selection metadata propagation through stored and streamed assistant turns
+
+### Edge planner and rate-limit checks
+
+- `supabase/functions/ai-chatbot/catalog-search_test.ts`
+  - partner filtering before limit slicing
+  - deal filtering before limit slicing
+  - expired or inactive deal removal before the response limit
+- `supabase/functions/ai-chatbot/planner_test.ts`
+  - explicit UUID selection resolution
+  - ordinal follow-up resolution against ordered shortlist memory
+  - invalid ordinal clarification fallback
+  - ordered result memory patching
+  - collection context not collapsing into the first result item
+- `supabase/functions/ai-chatbot/guest-rate-limit_test.ts`
+  - request fingerprint construction
+  - deterministic hashing
+  - Postgres RPC enforcement result handling
+- `supabase/functions/ai-chatbot/viewer-mode_test.ts`
+  - authenticated requests overriding guest payload claims
 
 ## Validation Commands
 
 - `npm run typecheck --workspace=@roomz/shared`
 - `npm run lint --workspace=@roomz/web`
-- `npm run test:unit --workspace=@roomz/web -- --grep "ROMI|romi workspace reducer"`
+- `npm run test:unit --workspace=@roomz/web -- src/pages/romi/reducer.test.ts src/pages/romi/sessionSelection.test.ts src/services/romi.test.ts`
 - `npm run test:e2e --workspace=@roomz/web -- romi.spec.ts`
 - `npm run build --workspace=@roomz/web`
+- `deno test supabase/functions/ai-chatbot/viewer-mode_test.ts supabase/functions/ai-chatbot/planner_test.ts supabase/functions/ai-chatbot/guest-rate-limit_test.ts supabase/functions/ai-chatbot/catalog-search_test.ts`
 - `deno check supabase/functions/ai-chatbot/index.ts`
 - `npx ai-devkit@latest lint`
 
-## Latest Results (2026-03-30)
+## Latest Results (2026-04-11)
 
+- `npx ai-devkit@latest lint`: pass
 - `npm run typecheck --workspace=@roomz/shared`: pass
 - `npm run lint --workspace=@roomz/web`: pass with the same 3 pre-existing hook warnings
-- `npm run test:unit --workspace=@roomz/web -- --grep "ROMI|romi workspace reducer"`: pass
+- `npm run test:unit --workspace=@roomz/web -- src/pages/romi/reducer.test.ts src/pages/romi/sessionSelection.test.ts src/services/romi.test.ts`: pass
 - `npm run test:e2e --workspace=@roomz/web -- romi.spec.ts`: pass
 - `npm run build --workspace=@roomz/web`: pass
+- `deno test supabase/functions/ai-chatbot/viewer-mode_test.ts supabase/functions/ai-chatbot/planner_test.ts supabase/functions/ai-chatbot/guest-rate-limit_test.ts supabase/functions/ai-chatbot/catalog-search_test.ts`: pass
 - `deno check supabase/functions/ai-chatbot/index.ts`: pass
-- Supabase migration `romi_v3_knowledge_rag` on project `vevnoxlgwisdottaifdn`: pass
-- Supabase migration `add_romi_feature_flags` on project `vevnoxlgwisdottaifdn`: pass
-- Supabase edge function deploy `ai-chatbot` on project `vevnoxlgwisdottaifdn`: pass
-  - latest live version after follow-up hardening fix: `51`
-- Direct guest smoke requests to the live function: pass
-  - returned `sessionId: null`
-  - returned guest metadata
-  - returned search-first mixed-intent replies with appended RommZ+ knowledge
-  - returned resolved POI-based room results for `gần đại học ... và từ 5 triệu trở xuống`
-  - returned room results for `TP.HCM dưới 5 triệu` after city alias canonicalization
-  - returned `room_search` metadata for terse budget replies in clarification context
+- `npx tsc -p packages/mobile/tsconfig.json --noEmit`: fail
+  - blocker: pre-existing missing type definition file `mapbox__point-geometry`
 
 ### Browser coverage added for `/romi`
 
 - chat-first collapse after first turn
 - repair clarification label
 - mixed-intent search-first reply with appended product knowledge
+- follow-up detail selection via ordered shortlist memory
+- action and clarification lifecycle after the stabilization pass
 
 ## Manual Follow-Up
 
@@ -81,13 +100,17 @@ description: Validation plan and current results for ROMI v3 web concierge and k
 - Verify signed-in `/romi` flow live:
   - new sessions should persist under `romi_v3`
   - old sessions should not be mixed into the new workspace
-  - search / clarification / action cards should remain readable across long conversations
+  - search, clarification, and action cards should remain readable across long conversations
 - Verify knowledge retrieval after migration deploy:
   - embeddings should populate successfully
   - vector retrieval should return meaningful sources
   - lexical fallback should still produce usable answers if embeddings are unavailable
+- Verify mobile parity live:
+  - guest suggested prompts should submit successfully
+  - clarification and action banners should render with the same metadata semantics as web
+  - unsupported action routes should degrade cleanly to web fallback URLs
 
 ## Known Testing Gaps
 
-- No dedicated edge-function test harness was added for Deno runtime behavior.
+- The larger transcript-regression suite from the stabilization plan is still incomplete; coverage today is planner-focused rather than a full 25-case conversation corpus.
 - The room-search hardening metrics still need real post-deploy sample analysis before `romi_auto_broaden_v1` can roll out broadly.

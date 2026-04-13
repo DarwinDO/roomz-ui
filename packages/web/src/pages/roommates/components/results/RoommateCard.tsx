@@ -1,7 +1,8 @@
 ﻿import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import {
   Check,
   Eye,
@@ -81,10 +82,13 @@ export function RoommateCard({
     <Card className="p-4 transition-shadow hover:shadow-md">
       <div className="flex gap-4">
         <div className="relative shrink-0">
-          <Avatar className="h-16 w-16 sm:h-20 sm:w-20">
+          <PremiumAvatar
+            isPremium={match.is_premium ?? false}
+            className="h-16 w-16 sm:h-20 sm:w-20"
+          >
             <AvatarImage src={match.avatar_url || undefined} alt={match.full_name} />
             <AvatarFallback className="bg-primary/10 text-lg text-primary">{initials}</AvatarFallback>
-          </Avatar>
+          </PremiumAvatar>
 
           <div
             className={cn(

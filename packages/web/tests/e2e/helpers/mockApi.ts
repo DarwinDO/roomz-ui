@@ -564,6 +564,183 @@ export async function mockAdminAuth(page: Page) {
 
 }
 
+type MockAdminRoomsFlowState = {
+  roomPatchCount: number;
+  amenityUpsertCount: number;
+  imageDeleteCount: number;
+  imageInsertCount: number;
+  lastRoomPatchBody: Record<string, unknown> | null;
+  room: Record<string, unknown>;
+};
+
+export async function mockAdminRoomsFlow(page: Page) {
+  const state: MockAdminRoomsFlowState = {
+    roomPatchCount: 0,
+    amenityUpsertCount: 0,
+    imageDeleteCount: 0,
+    imageInsertCount: 0,
+    lastRoomPatchBody: null,
+    room: {
+      id: 'admin-room-1',
+      landlord_id: 'landlord-1',
+      title: 'Phòng thử nghiệm',
+      description: 'Phòng sáng, gọn và gần trường.',
+      address: '123 Đường Test',
+      district: 'Quận 1',
+      city: 'TP.HCM',
+      latitude: 10.7769,
+      longitude: 106.7009,
+      price_per_month: 5_000_000,
+      deposit_amount: 5_000_000,
+      area_sqm: 20,
+      bedroom_count: 1,
+      bathroom_count: 1,
+      max_occupants: 2,
+      min_lease_term: 1,
+      electricity_cost: '3500',
+      water_cost: '100000',
+      room_type: 'studio',
+      gender_restriction: 'none',
+      status: 'pending',
+      furnished: false,
+      is_available: true,
+      is_verified: false,
+      utilities_included: false,
+      pet_allowed: false,
+      smoking_allowed: false,
+      has_360_photos: false,
+      available_from: NOW,
+      verification_date: null,
+      rejection_reason: null,
+      furniture_details: null,
+      created_at: NOW,
+      updated_at: NOW,
+      deleted_at: null,
+      view_count: 12,
+      favorite_count: 3,
+      landlord: {
+        id: 'landlord-1',
+        full_name: 'Chủ nhà test',
+        email: 'landlord@example.com',
+        phone: null,
+        avatar_url: null,
+      },
+      images: [
+        {
+          id: 'room-image-1',
+          room_id: 'admin-room-1',
+          image_url: 'https://images.example.com/admin-room-1.jpg',
+          image_type: 'photo',
+          is_primary: true,
+          display_order: 0,
+          caption: null,
+          created_at: NOW,
+          updated_at: NOW,
+        },
+      ],
+      amenities: {
+        room_id: 'admin-room-1',
+        wifi: true,
+        air_conditioning: false,
+        parking: false,
+        washing_machine: false,
+        refrigerator: false,
+        heater: false,
+        security_camera: false,
+        balcony: false,
+        dryer: false,
+        elevator: false,
+        fingerprint_lock: false,
+        gym: false,
+        kitchen: false,
+        microwave: false,
+        security_guard: false,
+        swimming_pool: false,
+        tv: false,
+        updated_at: NOW,
+      },
+    },
+  };
+
+  await page.route(`${SUPABASE_URL}/rest/v1/rooms**`, async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await fulfillNoContent(route);
+      return;
+    }
+
+    if (route.request().method() === 'PATCH') {
+      const patchBody = route.request().postDataJSON() as Record<string, unknown>;
+      state.roomPatchCount += 1;
+      state.lastRoomPatchBody = patchBody;
+      state.room = {
+        ...state.room,
+        ...patchBody,
+      };
+      await fulfillJson(route, []);
+      return;
+    }
+
+    await fulfillJson(route, [state.room]);
+  });
+
+  await page.route(`${SUPABASE_URL}/rest/v1/room_amenities**`, async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await fulfillNoContent(route);
+      return;
+    }
+
+    if (route.request().method() === 'POST') {
+      state.amenityUpsertCount += 1;
+    }
+
+    await fulfillJson(route, []);
+  });
+
+  await page.route(`${SUPABASE_URL}/rest/v1/room_images**`, async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await fulfillNoContent(route);
+      return;
+    }
+
+    if (route.request().method() === 'DELETE') {
+      state.imageDeleteCount += 1;
+      await fulfillJson(route, []);
+      return;
+    }
+
+    if (route.request().method() === 'POST') {
+      state.imageInsertCount += 1;
+    }
+
+    await fulfillJson(route, []);
+  });
+
+  await page.route(`${SUPABASE_URL}/rest/v1/rpc/get_admin_stats`, async (route) => {
+    await fulfillJson(route, {
+      totalUsers: 1,
+      activeUsers: 1,
+      totalRooms: 1,
+      pendingRooms: 1,
+      activeRooms: 0,
+      totalBookings: 0,
+    });
+  });
+
+  await page.route(`${SUPABASE_URL}/rest/v1/rpc/get_user_growth_stats`, async (route) => {
+    await fulfillJson(route, []);
+  });
+
+  await page.route(`${SUPABASE_URL}/rest/v1/rpc/get_room_type_distribution`, async (route) => {
+    await fulfillJson(route, []);
+  });
+
+  await page.route(`${SUPABASE_URL}/rest/v1/rpc/get_recent_admin_activities`, async (route) => {
+    await fulfillJson(route, []);
+  });
+
+  return state;
+}
+
 export async function loginAsAdmin(page: Page) {
   await page.goto('/admin/login');
   await page.getByLabel('Email').fill('admin@example.com');

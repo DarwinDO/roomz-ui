@@ -1,5 +1,6 @@
 ﻿import type { ReactNode } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -8,6 +9,7 @@ import { CheckCircle, MessageCircle } from "lucide-react";
 interface ListingHostCardProps {
   name: string;
   avatarUrl?: string | null;
+  isPremium?: boolean;
   isVerified?: boolean;
   roleLabel?: string;
   email?: string | null;
@@ -20,6 +22,7 @@ interface ListingHostCardProps {
 export function ListingHostCard({
   name,
   avatarUrl,
+  isPremium = false,
   isVerified = false,
   roleLabel = "Host",
   email,
@@ -38,10 +41,10 @@ export function ListingHostCard({
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
       <div className="mb-3 flex items-center gap-3">
-        <Avatar className="h-12 w-12">
+        <PremiumAvatar isPremium={isPremium} className="h-12 w-12">
           <AvatarImage src={avatarUrl || undefined} />
           <AvatarFallback>{initials || "H"}</AvatarFallback>
-        </Avatar>
+        </PremiumAvatar>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="truncate font-medium">{name}</p>

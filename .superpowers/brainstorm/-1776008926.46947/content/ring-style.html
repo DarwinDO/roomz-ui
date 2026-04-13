@@ -1,0 +1,234 @@
+<style>
+  .preview-row {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 24px 0;
+  }
+  .avatar-demo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .avatar-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Base avatar */
+  .avatar-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7ec8e3 0%, #4a90a4 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 22px;
+    color: white;
+    letter-spacing: 0.5px;
+  }
+  .avatar-img.large {
+    width: 80px;
+    height: 80px;
+    font-size: 28px;
+  }
+  .avatar-img.small {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+  }
+
+  /* A: Solid gold ring */
+  .ring-solid {
+    border-radius: 50%;
+    padding: 3px;
+    background: #f59e0b;
+  }
+  .ring-solid .avatar-img {
+    border: 2px solid white;
+  }
+
+  /* B: Gradient gold ring */
+  .ring-gradient {
+    border-radius: 50%;
+    padding: 3px;
+    background: conic-gradient(#f59e0b 0%, #fde68a 25%, #f97316 50%, #fbbf24 75%, #f59e0b 100%);
+  }
+  .ring-gradient .avatar-img {
+    border: 2px solid white;
+  }
+
+  /* C: Animated shimmer ring */
+  @keyframes ring-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes ring-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+    50% { box-shadow: 0 0 0 5px rgba(245,158,11,0.3); }
+  }
+  .ring-animated {
+    border-radius: 50%;
+    padding: 3px;
+    background: conic-gradient(#f59e0b 0%, #fde68a 30%, #f97316 60%, #f59e0b 100%);
+    animation: ring-spin 3s linear infinite, ring-pulse 2s ease-in-out infinite;
+  }
+  .ring-animated .avatar-img {
+    border: 2px solid white;
+  }
+
+  /* D: Dashed/dotted gold ring */
+  .ring-dashed .avatar-img {
+    outline: 3px dashed #f59e0b;
+    outline-offset: 3px;
+  }
+
+  .avatar-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-muted, #666);
+    text-align: center;
+  }
+  .avatar-label .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(90deg, #f59e0b, #f97316);
+    color: white;
+    border-radius: 99px;
+    padding: 2px 8px;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .note {
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+  }
+  .sizes-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
+  }
+  .section-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #aaa;
+    margin: 32px 0 8px;
+    text-align: center;
+  }
+  .context-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #333;
+  }
+  .context-row .name {
+    font-weight: 600;
+  }
+  .context-row .sub {
+    font-size: 12px;
+    color: #888;
+  }
+</style>
+
+<h2>Kiểu khung vàng Premium cho avatar</h2>
+<p class="subtitle">Người dùng Rommz+ sẽ có khung này xung quanh ảnh đại diện ở mọi nơi</p>
+
+<div class="preview-row">
+  <!-- A: Solid -->
+  <div class="avatar-demo">
+    <div class="option" data-choice="solid" onclick="toggleSelect(this)" style="border:none;padding:16px;border-radius:16px;">
+      <div class="avatar-wrap">
+        <div class="ring-solid">
+          <div class="avatar-img">NT</div>
+        </div>
+      </div>
+      <div class="sizes-row" style="justify-content:center;margin-top:12px;">
+        <div class="ring-solid"><div class="avatar-img large">NT</div></div>
+        <div class="ring-solid"><div class="avatar-img small">NT</div></div>
+      </div>
+      <div class="avatar-label" style="margin-top:10px;">
+        <div>A — Solid Gold</div>
+        <div class="badge">★ Rommz+</div>
+        <div class="note">Viền vàng đặc, đơn giản, rõ ràng</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B: Gradient -->
+  <div class="avatar-demo">
+    <div class="option" data-choice="gradient" onclick="toggleSelect(this)" style="border:none;padding:16px;border-radius:16px;">
+      <div class="avatar-wrap">
+        <div class="ring-gradient">
+          <div class="avatar-img">NT</div>
+        </div>
+      </div>
+      <div class="sizes-row" style="justify-content:center;margin-top:12px;">
+        <div class="ring-gradient"><div class="avatar-img large">NT</div></div>
+        <div class="ring-gradient"><div class="avatar-img small">NT</div></div>
+      </div>
+      <div class="avatar-label" style="margin-top:10px;">
+        <div>B — Gradient Gold</div>
+        <div class="badge">★ Rommz+</div>
+        <div class="note">Viền vàng gradient xoay màu</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C: Animated -->
+  <div class="avatar-demo">
+    <div class="option" data-choice="animated" onclick="toggleSelect(this)" style="border:none;padding:16px;border-radius:16px;">
+      <div class="avatar-wrap">
+        <div class="ring-animated">
+          <div class="avatar-img">NT</div>
+        </div>
+      </div>
+      <div class="sizes-row" style="justify-content:center;margin-top:12px;">
+        <div class="ring-animated"><div class="avatar-img large">NT</div></div>
+        <div class="ring-animated"><div class="avatar-img small">NT</div></div>
+      </div>
+      <div class="avatar-label" style="margin-top:10px;">
+        <div>C — Shimmer Animated</div>
+        <div class="badge">★ Rommz+</div>
+        <div class="note">Gradient xoay + glow nhấp nháy</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-title">Context thực tế — ví dụ PostCard, Chat, Roommate</div>
+
+<div style="max-width:440px;margin:0 auto;">
+  <div class="context-row">
+    <div class="ring-gradient" style="border-radius:50%;padding:2px;background:conic-gradient(#f59e0b,#fde68a,#f97316,#fbbf24,#f59e0b);flex-shrink:0;">
+      <div class="avatar-img small" style="border:2px solid white;">NT</div>
+    </div>
+    <div>
+      <div class="name">Nguyễn Thành <span style="font-size:11px;color:#f59e0b;font-weight:600;">✦ Rommz+</span></div>
+      <div class="sub">Sinh viên · 2 phút trước</div>
+    </div>
+  </div>
+  <div class="context-row">
+    <div class="avatar-img small" style="flex-shrink:0;">HV</div>
+    <div>
+      <div class="name">Hà Văn</div>
+      <div class="sub">Sinh viên · 5 phút trước</div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:20px;">Bạn thích kiểu nào? Click để chọn, hoặc nhắn trong terminal nếu muốn góp ý thêm.</p>

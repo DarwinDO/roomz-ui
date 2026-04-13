@@ -315,7 +315,7 @@ const CopyColumn = ({
       </p>
       <div style={{display: "flex", gap: 16, flexWrap: "wrap"}}>
         <StatCard label={scene.statLabel} value={scene.statValue} />
-        <StatCard label="Signal" value={scene.chipLabel} />
+        <StatCard label="Điểm chính" value={scene.chipLabel} />
       </div>
     </div>
   );
@@ -595,10 +595,10 @@ const RevealScene = ({
                     marginBottom: 8,
                   }}
                 >
-                  Entry points
+                  Bắt đầu
                 </div>
                 <div style={{fontFamily: DISPLAY_FONT, fontSize: 24, letterSpacing: "-0.04em"}}>
-                  Search, services, Romi và premium trong cùng một nhịp.
+                  Bắt đầu tìm, hỏi ROMI và đi tiếp gọn hơn trong cùng một nơi.
                 </div>
               </div>
             </div>
@@ -623,7 +623,7 @@ const SearchScene = ({
     <AbsoluteFill style={{padding: "88px 92px 206px"}}>
       <div style={{display: "grid", gridTemplateColumns: "0.9fr 1.1fr", gap: 34, height: "100%", alignItems: "center"}}>
         <CopyColumn scene={scene} headline={scene.headline} body={getRevealText(scene.body, frame - 8, 3.8)} />
-        <BrowserFrame eyebrow="Search" surfaceLabel="Filters / map / shortlist">
+        <BrowserFrame eyebrow="Search" surfaceLabel="Bộ lọc / map / shortlist">
           <div style={{position: "absolute", inset: 0}}>
             <CaptureFill src={captures["search-results"]} opacity={0.92} />
             <div
@@ -892,7 +892,7 @@ const RomiScene = ({
     <AbsoluteFill style={{padding: "88px 92px 206px"}}>
       <div style={{display: "grid", gridTemplateColumns: "0.86fr 1.14fr", gap: 34, height: "100%", alignItems: "center"}}>
         <CopyColumn scene={scene} headline={scene.headline} body={getRevealText(scene.body, frame - 8, 3.8)} />
-        <BrowserFrame eyebrow="ROMI" surfaceLabel="Guest concierge">
+        <BrowserFrame eyebrow="ROMI" surfaceLabel="Gợi ý theo nhu cầu">
           <div style={{position: "absolute", inset: 0}}>
             <CaptureFill src={captures["romi-chat"]} />
             <div
@@ -924,7 +924,7 @@ const RomiScene = ({
                   marginBottom: 8,
                 }}
               >
-                Romi signal
+                Gợi ý Romi
               </div>
               <div style={{fontFamily: DISPLAY_FONT, fontSize: 22, letterSpacing: "-0.04em", lineHeight: 1.18}}>
                 Hỏi đúng trước khi gợi ý, giữ flow chat-first thay vì mở thêm nhiều panel.
@@ -970,7 +970,7 @@ const ServicesScene = ({
       <div style={{display: "grid", gridTemplateColumns: "0.84fr 1.16fr", gap: 34, height: "100%", alignItems: "center"}}>
         <CopyColumn scene={scene} headline={scene.headline} body={getRevealText(scene.body, frame - 8, 3.8)} />
         <div style={{display: "grid", gap: 22}}>
-          <BrowserFrame eyebrow="Services" surfaceLabel="Local deals">
+          <BrowserFrame eyebrow="Services" surfaceLabel="Ưu đãi quanh nơi ở">
             <div style={{position: "absolute", inset: 0}}>
               <CaptureFill src={captures["services-deals"]} />
               <div
@@ -1182,12 +1182,12 @@ const CtaScene = ({
         </div>
         <div style={{display: "grid", gap: 18}}>
           {[
-            "Tìm theo khu vực và bộ lọc rõ ràng",
-            "Xem listing, map và verified signal cùng lúc",
-            "ROMI hỗ trợ gom shortlist",
-            "Deal địa phương và RommZ+ đi cùng hành trình",
+            "Bắt đầu từ đúng khu vực bạn muốn ở",
+            "Xem ảnh, map và chi tiết trong cùng một nhịp",
+            "Có ROMI khi cần gom shortlist",
+            "Có thêm ưu đãi và RommZ+ cho bước tiếp theo",
           ].map((item) => (
-            <StatCard key={item} label="What ships" value={item} />
+            <StatCard key={item} label="Bạn có" value={item} />
           ))}
           <div
             style={{

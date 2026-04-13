@@ -256,7 +256,7 @@ export default function PaymentPage() {
           {liveBenefitCards.map((benefit) => (
             <div key={benefit.id} className="rounded-[28px] border border-primary/10 bg-white px-5 py-5 shadow-soft">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-                {benefit.kind === "hard_entitlement" ? "Live entitlement" : "Tín hiệu mạnh"}
+                {benefit.kind === "hard_entitlement" ? "Quyền lợi" : "Ưu đãi thêm"}
               </p>
               <p className="mt-3 text-lg font-semibold tracking-[-0.03em] text-on-surface">{benefit.title}</p>
               <p className="mt-2 text-sm leading-7 text-on-surface-variant">{benefit.premiumValue}</p>
@@ -338,12 +338,12 @@ export default function PaymentPage() {
 
         <section className="mt-12 overflow-hidden rounded-[32px] border border-primary/10 bg-white shadow-soft">
           <div className="border-b border-border/70 px-6 py-5 md:px-8">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">So sánh entitlement</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">So sánh quyền lợi</p>
             <h3 className="mt-2 font-display text-3xl font-black tracking-[-0.05em] text-on-surface">
               Bạn sẽ mở khóa gì ngay lúc này
             </h3>
             <p className="mt-2 max-w-[70ch] text-sm leading-7 text-on-surface-variant">
-              Các hàng dưới đây chỉ hiển thị những quyền lợi live trong repo hiện tại, để trang bán gói không overpromise.
+              Danh sách các quyền lợi đang hoạt động thực tế trên RommZ+, cập nhật theo từng phiên bản.
             </p>
           </div>
 

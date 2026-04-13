@@ -7,6 +7,7 @@ export interface Post {
         role: string;
         avatar?: string;
         verified?: boolean;
+        isPremium?: boolean;
     };
     type: "story" | "offer" | "qa" | "tip";
     title: string;
@@ -31,6 +32,7 @@ export interface Comment {
     author: {
         name: string;
         avatar?: string;
+        isPremium?: boolean;
     };
     replies?: Comment[];
 }
@@ -56,5 +58,6 @@ export interface PostWithAuthor extends Post {
         role: string;
         avatar?: string;
         verified?: boolean;
+        isPremium?: boolean;
     };
 }

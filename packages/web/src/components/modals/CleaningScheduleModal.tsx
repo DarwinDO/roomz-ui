@@ -1,176 +1,233 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useEffect, useMemo, useState } from "react";
+import { Calendar, Loader2, MapPin, Phone, Sparkles } from "lucide-react";
+import { useAuth } from "@/contexts";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Sparkles, Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useCreateServiceLead } from "@/hooks/useServiceLeads";
 import { formatCurrency } from "@roomz/shared/utils/format";
+import {
+  calculateCleaningEstimate,
+  calculateFinalPrice,
+  calculateStudentDiscount,
+  CLEANING_ADD_ON_OPTIONS,
+  CLEANING_TYPE_OPTIONS,
+  type CleaningAddOnId,
+  type CleaningTypeId,
+} from "./serviceBookingPricing";
 
 interface CleaningScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
+  partnerId?: string;
+  partnerName?: string | null;
 }
 
-export function CleaningScheduleModal({ isOpen, onClose }: CleaningScheduleModalProps) {
+export function CleaningScheduleModal({
+  isOpen,
+  onClose,
+  partnerId,
+  partnerName,
+}: CleaningScheduleModalProps) {
+  const { profile } = useAuth();
   const createServiceLead = useCreateServiceLead();
 
   const [address, setAddress] = useState("");
-  const [selectedType, setSelectedType] = useState("move_in");
+  const [selectedType, setSelectedType] = useState<CleaningTypeId>("move_in");
   const [cleaningDate, setCleaningDate] = useState("");
   const [cleaningTime, setCleaningTime] = useState("08:00");
   const [numRooms, setNumRooms] = useState(1);
   const [numBathrooms, setNumBathrooms] = useState(1);
-  const [addOns, setAddOns] = useState({
-    aircon: false,
-    laundry: false,
-    trash: false,
-  });
-
+  const [selectedAddOns, setSelectedAddOns] = useState<CleaningAddOnId[]>([]);
+  const [contactPhone, setContactPhone] = useState(profile?.phone ?? "");
+  const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const cleaningTypes = [
-    { id: "move_in", label: "Vệ sinh nhận phòng", price: 900_000 },
-    { id: "move_out", label: "Vệ sinh trả phòng", price: 1_000_000 },
-    { id: "basic", label: "Vệ sinh cơ bản", price: 650_000 },
-  ];
+  const isStudentVerified = Boolean(profile?.student_card_verified);
+  const basePrice = CLEANING_TYPE_OPTIONS.find((type) => type.id === selectedType)?.price ?? 0;
+  const addOnPrice = selectedAddOns.reduce(
+    (total, addOnId) =>
+      total + (CLEANING_ADD_ON_OPTIONS.find((option) => option.id === addOnId)?.price ?? 0),
+    0,
+  );
+  const subtotalPrice = useMemo(
+    () =>
+      calculateCleaningEstimate({
+        cleaningType: selectedType,
+        numRooms,
+        numBathrooms,
+        addOns: selectedAddOns,
+      }),
+    [numBathrooms, numRooms, selectedAddOns, selectedType],
+  );
+  const scaleAdjustment = subtotalPrice - basePrice - addOnPrice;
+  const studentDiscount = calculateStudentDiscount(subtotalPrice, isStudentVerified);
+  const finalPrice = calculateFinalPrice(subtotalPrice, isStudentVerified);
 
-  const addOnOptions = [
-    { id: "aircon", label: "Vệ sinh máy lạnh", price: 250_000 },
-    { id: "laundry", label: "Giặt sấy chăn ga", price: 180_000 },
-    { id: "trash", label: "Thu gom & xử lý rác", price: 120_000 },
-  ];
-
-  const basePrice = cleaningTypes.find((t) => t.id === selectedType)?.price || 0;
-  const addOnPrice = Object.entries(addOns).reduce((total, [key, value]) => {
-    if (value) {
-      const addOn = addOnOptions.find((a) => a.id === key);
-      return total + (addOn?.price || 0);
+  useEffect(() => {
+    if (isOpen && profile?.phone && !contactPhone) {
+      setContactPhone(profile.phone);
     }
-    return total;
-  }, 0);
-  const totalPrice = basePrice + addOnPrice;
+  }, [contactPhone, isOpen, profile?.phone]);
 
   const validate = () => {
-    const newErrors: Record<string, string> = {};
+    const nextErrors: Record<string, string> = {};
 
     if (!address.trim()) {
-      newErrors.address = "Vui lòng nhập địa chỉ";
+      nextErrors.address = "Vui lòng nhập địa chỉ";
     }
+
     if (!cleaningDate) {
-      newErrors.cleaningDate = "Vui lòng chọn ngày";
+      nextErrors.cleaningDate = "Vui lòng chọn ngày";
     } else {
       const selectedDate = new Date(cleaningDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+
       if (selectedDate < today) {
-        newErrors.cleaningDate = "Ngày chọn phải là ngày trong tương lai";
+        nextErrors.cleaningDate = "Ngày chọn phải là ngày trong tương lai";
       }
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const toggleAddOn = (addOnId: CleaningAddOnId, checked: boolean) => {
+    if (checked) {
+      setSelectedAddOns((current) => (current.includes(addOnId) ? current : [...current, addOnId]));
+      return;
+    }
+
+    setSelectedAddOns((current) => current.filter((item) => item !== addOnId));
+  };
+
+  const resetForm = () => {
+    setAddress("");
+    setSelectedType("move_in");
+    setCleaningDate("");
+    setCleaningTime("08:00");
+    setNumRooms(1);
+    setNumBathrooms(1);
+    setSelectedAddOns([]);
+    setContactPhone(profile?.phone ?? "");
+    setNotes("");
+    setErrors({});
   };
 
   const handleConfirm = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      return;
+    }
 
     try {
       await createServiceLead.mutateAsync({
-        service_type: 'cleaning',
+        service_type: "cleaning",
+        partner_id: partnerId,
         details: {
-          address: address,
+          address: address.trim(),
           cleaning_type: selectedType,
           num_rooms: numRooms,
           num_bathrooms: numBathrooms,
           preferred_time: cleaningTime,
-          add_ons: Object.entries(addOns)
-            .filter(([, value]) => value)
-            .map(([key]) => key),
+          add_ons: selectedAddOns,
+          notes: notes.trim(),
+          contact_phone: contactPhone.trim() || profile?.phone || null,
         },
         preferred_date: cleaningDate,
       });
 
-      // Reset form
-      setAddress("");
-      setSelectedType("move_in");
-      setCleaningDate("");
-      setCleaningTime("08:00");
-      setNumRooms(1);
-      setNumBathrooms(1);
-      setAddOns({ aircon: false, laundry: false, trash: false });
-      setErrors({});
+      resetForm();
       onClose();
     } catch {
-      // Error is handled in the mutation
+      // Mutation error is surfaced by toast.
     }
   };
 
   const isLoading = createServiceLead.isPending;
 
   return (
-    <Dialog
-      open={isOpen}
-      onOpenChange={isLoading ? undefined : onClose}
-    >
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={isLoading ? undefined : onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Đặt lịch vệ sinh phòng</DialogTitle>
           <DialogDescription>
-            Dịch vụ vệ sinh tổng quát chuyên nghiệp cho phòng hoặc căn hộ của bạn
+            Dịch vụ vệ sinh tổng quát cho phòng hoặc căn hộ với giá tham khảo theo quy mô thực tế.
+            {partnerName ? ` Yêu cầu sẽ ưu tiên gửi tới ${partnerName}.` : ""}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-4">
-          {/* Address */}
           <div className="space-y-2">
             <Label htmlFor="cleaning-address" className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-primary" />
-              Địa chỉ / Mã phòng <span className="text-red-500">*</span>
+              <MapPin className="h-4 w-4 text-primary" />
+              Địa chỉ / mã phòng <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cleaning-address"
               placeholder="Ví dụ: Căn A203, The Sun Avenue, Quận 2"
               className="rounded-xl"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={(event) => setAddress(event.target.value)}
               disabled={isLoading}
             />
-            {errors.address && (
-              <p className="text-xs text-red-500">{errors.address}</p>
-            )}
+            {errors.address ? <p className="text-xs text-destructive">{errors.address}</p> : null}
           </div>
 
-          {/* Cleaning Type */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-secondary" />
-              Loại hình vệ sinh
-            </Label>
-            <div className="grid grid-cols-3 gap-2">
-              {cleaningTypes.map((type) => (
-                <Badge
-                  key={type.id}
-                  variant={selectedType === type.id ? "default" : "outline"}
-                  className={`cursor-pointer text-center justify-center py-3 px-2 rounded-xl transition-all ${selectedType === type.id
-                    ? "bg-primary text-white hover:bg-primary/90"
-                    : "hover:bg-primary/10"
+          <div className="space-y-3">
+            <div>
+              <Label className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-secondary" />
+                Loại hình vệ sinh
+              </Label>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Trên màn hình hẹp, các gói được xếp dọc để tránh vỡ layout và chồng chữ.
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {CLEANING_TYPE_OPTIONS.map((type) => {
+                const isSelected = selectedType === type.id;
+
+                return (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setSelectedType(type.id)}
+                    className={`rounded-2xl border px-4 py-4 text-left transition-colors ${
+                      isSelected
+                        ? "border-primary bg-primary text-white shadow-soft"
+                        : "border-border/70 bg-card hover:border-primary/30 hover:bg-primary/5"
                     }`}
-                  onClick={() => setSelectedType(type.id)}
-                >
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs">{type.label}</span>
-                    <span className="text-xs opacity-80">{formatCurrency(type.price)}</span>
-                  </div>
-                </Badge>
-              ))}
+                    disabled={isLoading}
+                  >
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold leading-5">{type.label}</p>
+                      <p
+                        className={`text-xs ${
+                          isSelected ? "text-white/85" : "text-muted-foreground"
+                        }`}
+                      >
+                        {formatCurrency(type.price)}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Number of rooms */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="num-rooms">Số phòng</Label>
               <Input
@@ -179,11 +236,12 @@ export function CleaningScheduleModal({ isOpen, onClose }: CleaningScheduleModal
                 min={1}
                 max={10}
                 value={numRooms}
-                onChange={(e) => setNumRooms(parseInt(e.target.value, 10) || 1)}
+                onChange={(event) => setNumRooms(Number(event.target.value) || 1)}
                 className="rounded-xl"
                 disabled={isLoading}
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="num-bathrooms">Số toilet</Label>
               <Input
@@ -192,124 +250,170 @@ export function CleaningScheduleModal({ isOpen, onClose }: CleaningScheduleModal
                 min={1}
                 max={5}
                 value={numBathrooms}
-                onChange={(e) => setNumBathrooms(parseInt(e.target.value, 10) || 1)}
+                onChange={(event) => setNumBathrooms(Number(event.target.value) || 1)}
                 className="rounded-xl"
                 disabled={isLoading}
               />
             </div>
           </div>
 
-          {/* Date & Time */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="cleaning-date" className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-primary" />
-                Ngày <span className="text-red-500">*</span>
+                <Calendar className="h-4 w-4 text-primary" />
+                Ngày <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="cleaning-date"
                 type="date"
                 className="rounded-xl"
                 value={cleaningDate}
-                onChange={(e) => setCleaningDate(e.target.value)}
+                onChange={(event) => setCleaningDate(event.target.value)}
                 disabled={isLoading}
               />
-              {errors.cleaningDate && (
-                <p className="text-xs text-red-500">{errors.cleaningDate}</p>
-              )}
+              {errors.cleaningDate ? (
+                <p className="text-xs text-destructive">{errors.cleaningDate}</p>
+              ) : null}
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="cleaning-time">Khung giờ</Label>
-              <select
-                id="cleaning-time"
-                className="w-full px-3 py-2 rounded-xl border border-input bg-background"
-                value={cleaningTime}
-                onChange={(e) => setCleaningTime(e.target.value)}
-                disabled={isLoading}
-              >
-                <option value="08:00">08:00 - 11:00</option>
-                <option value="12:30">12:30 - 15:30</option>
-                <option value="16:00">16:00 - 19:00</option>
-              </select>
+              <Select value={cleaningTime} onValueChange={setCleaningTime} disabled={isLoading}>
+                <SelectTrigger id="cleaning-time" className="rounded-xl">
+                  <SelectValue placeholder="Chọn khung giờ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="08:00">08:00 - 11:00</SelectItem>
+                  <SelectItem value="12:30">12:30 - 15:30</SelectItem>
+                  <SelectItem value="16:00">16:00 - 19:00</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* Add-ons */}
           <div className="space-y-3">
             <Label>Dịch vụ bổ sung (tùy chọn)</Label>
             <div className="space-y-2">
-              {addOnOptions.map((addOn) => (
-                <div
-                  key={addOn.id}
-                  className="flex items-center justify-between p-3 rounded-xl border border-border hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      id={addOn.id}
-                      checked={addOns[addOn.id as keyof typeof addOns]}
-                      onCheckedChange={(checked) =>
-                        setAddOns({ ...addOns, [addOn.id]: checked === true })
-                      }
-                      disabled={isLoading}
-                    />
-                    <label
-                      htmlFor={addOn.id}
-                      className="text-sm cursor-pointer"
-                    >
-                      {addOn.label}
-                    </label>
-                  </div>
-                  <span className="text-sm text-gray-600">+{formatCurrency(addOn.price)}</span>
-                </div>
-              ))}
+              {CLEANING_ADD_ON_OPTIONS.map((addOn) => {
+                const checked = selectedAddOns.includes(addOn.id);
+
+                return (
+                  <label
+                    key={addOn.id}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 px-4 py-3 text-sm transition-colors hover:bg-muted/30"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(value) => toggleAddOn(addOn.id, value === true)}
+                        disabled={isLoading}
+                      />
+                      <span>{addOn.label}</span>
+                    </div>
+                    <span className="font-medium text-primary">+{formatCurrency(addOn.price)}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
 
-          {/* Price Summary */}
-          <div className="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-5 border border-primary/10 space-y-3">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="cleaning-contact-phone" className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-primary" />
+                Số điện thoại liên hệ
+              </Label>
+              <Input
+                id="cleaning-contact-phone"
+                value={contactPhone}
+                onChange={(event) => setContactPhone(event.target.value)}
+                placeholder="Ví dụ: 09xxxxxxxx"
+                className="rounded-xl"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cleaning-notes">Ghi chú thêm</Label>
+              <Textarea
+                id="cleaning-notes"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="Ví dụ: Cần mang dụng cụ riêng, nhà có thú cưng..."
+                className="min-h-[96px] rounded-xl"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+            <div className="space-y-3 rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/5 to-secondary/5 p-5">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">Gói vệ sinh chính</span>
+              <span className="text-muted-foreground">Gói vệ sinh chính</span>
               <span>{formatCurrency(basePrice)}</span>
             </div>
-            {addOnPrice > 0 && (
+
+            {scaleAdjustment > 0 ? (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Dịch vụ bổ sung</span>
-                <span>+{formatCurrency(addOnPrice)}</span>
+                <span className="text-muted-foreground">
+                  Quy mô phòng ({numRooms} phòng, {numBathrooms} toilet)
+                </span>
+                <span>{formatCurrency(scaleAdjustment)}</span>
               </div>
-            )}
-            <div className="pt-3 border-t border-primary/20">
+            ) : null}
+
+            {selectedAddOns.length > 0 ? (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Dịch vụ bổ sung</span>
+                <span>{formatCurrency(addOnPrice)}</span>
+              </div>
+            ) : null}
+
+            {isStudentVerified ? (
+              <div className="flex items-center justify-between text-sm text-amber-700">
+                <span>Ưu đãi sinh viên</span>
+                <span>-{formatCurrency(studentDiscount)}</span>
+              </div>
+            ) : null}
+
+            <div className="border-t border-primary/20 pt-3">
               <div className="flex items-center justify-between">
                 <span className="font-medium">Tổng cộng</span>
-                <span className="text-2xl text-primary">{formatCurrency(totalPrice)}</span>
+                <span className="text-2xl font-semibold text-primary">
+                  {formatCurrency(finalPrice)}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Student Discount */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-            <p className="text-sm text-amber-800">
-              🎓 Giảm 15% cho sinh viên sẽ được áp dụng khi thanh toán
-            </p>
-          </div>
+          {isStudentVerified ? (
+            <Badge className="w-full justify-center rounded-xl bg-amber-50 py-3 text-amber-800 hover:bg-amber-50">
+              🎓 Ưu đãi sinh viên 15% đã được áp dụng vào tổng cộng
+            </Badge>
+          ) : (
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-center">
+              <p className="text-sm text-muted-foreground">
+                Xác thực thẻ sinh viên trong hồ sơ để mở ưu đãi 15% cho đơn dọn dẹp.
+              </p>
+            </div>
+          )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
             <Button
               onClick={onClose}
               variant="outline"
-              className="flex-1 rounded-full h-12"
+              className="h-12 flex-1 rounded-full"
               disabled={isLoading}
             >
               Hủy
             </Button>
             <Button
               onClick={handleConfirm}
-              className="flex-1 bg-primary hover:bg-primary/90 rounded-full h-12"
+              className="h-12 flex-1 rounded-full"
               disabled={isLoading}
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Đang xử lý...
                 </>
               ) : (

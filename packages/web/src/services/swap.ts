@@ -141,7 +141,7 @@ export async function fetchSwapRequests(
             `
       *,
       requester:users!requester_id (
-        id, full_name, avatar_url
+        id, full_name, avatar_url, is_premium
       ),
       requester_listing:sublet_listings!requester_listing_id (
         id, start_date, end_date, sublet_price,
@@ -150,7 +150,7 @@ export async function fetchSwapRequests(
         )
       ),
       recipient:users!recipient_id (
-        id, full_name, avatar_url
+        id, full_name, avatar_url, is_premium
       ),
       recipient_listing:sublet_listings!recipient_listing_id (
         id, start_date, end_date, sublet_price,
@@ -189,7 +189,7 @@ export async function fetchSwapRequestById(
             `
       *,
       requester:users!requester_id (
-        id, full_name, avatar_url
+        id, full_name, avatar_url, is_premium
       ),
       requester_listing:sublet_listings!requester_listing_id (
         id, start_date, end_date, sublet_price, deposit_required, description,
@@ -200,7 +200,7 @@ export async function fetchSwapRequestById(
         )
       ),
       recipient:users!recipient_id (
-        id, full_name, avatar_url
+        id, full_name, avatar_url, is_premium
       ),
       recipient_listing:sublet_listings!recipient_listing_id (
         id, start_date, end_date, sublet_price, deposit_required, description,

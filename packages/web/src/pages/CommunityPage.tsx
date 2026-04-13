@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CreatePostModal } from "@/components/modals/CreatePostModal";
 import { PostDetailModal } from "@/components/modals/PostDetailModal";
-import { usePosts, useTopPosts, useToggleLike, useDeletePost } from "@/hooks/useCommunity";
+import { usePost, usePosts, useTopPosts, useToggleLike, useDeletePost } from "@/hooks/useCommunity";
 import { createPublicMotion } from "@/lib/motion";
 import { stitchAssets } from "@/lib/stitchAssets";
 import { StitchFooter } from "@/components/common/StitchFooter";
@@ -87,7 +87,7 @@ export default function CommunityPage() {
     [shouldReduceMotion],
   );
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [editPost, setEditPost] = useState<Post | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<keyof typeof filterMap>("Tất cả");
@@ -96,6 +96,7 @@ export default function CommunityPage() {
     type: filterMap[activeFilter],
   });
   const { data: topPosts = [] } = useTopPosts(3);
+  const { data: selectedPostDetail } = usePost(selectedPostId ?? undefined);
   const toggleLikeMutation = useToggleLike();
   const deletePostMutation = useDeletePost();
 
@@ -124,6 +125,20 @@ export default function CommunityPage() {
       })),
     [topPosts],
   );
+
+  const selectedPost = useMemo(() => {
+    if (!selectedPostId) {
+      return null;
+    }
+
+    const fallbackPost =
+      posts.find((post) => post.id === selectedPostId) ??
+      topPosts.find((post) => post.id === selectedPostId) ??
+      null;
+    const livePost = selectedPostDetail ?? fallbackPost;
+
+    return livePost ? transformToPost(livePost) : null;
+  }, [posts, selectedPostDetail, selectedPostId, topPosts]);
 
   return (
     <div className="bg-background text-foreground">
@@ -239,11 +254,11 @@ export default function CommunityPage() {
                     tabIndex={0}
                     initial="hidden"
                     animate="show"
-                    onClick={() => setSelectedPost(transformToPost(post))}
+                    onClick={() => setSelectedPostId(post.id)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        setSelectedPost(transformToPost(post));
+                        setSelectedPostId(post.id);
                       }
                     }}
                     className="group w-full rounded-[28px] bg-surface-container-lowest p-8 text-left shadow-[0_10px_40px_rgba(40,43,81,0.04)] transition-all hover:shadow-[0_20px_60px_rgba(40,43,81,0.08)]"
@@ -368,7 +383,7 @@ export default function CommunityPage() {
                     type="button"
                     initial="hidden"
                     animate="show"
-                    onClick={() => setSelectedPost(transformToPost(post))}
+                    onClick={() => setSelectedPostId(post.id)}
                     className="group overflow-hidden rounded-[28px] bg-white text-left shadow-sm transition-all hover:shadow-xl"
                     variants={motionTokens.revealScale(18, 0.98, index * 0.08)}
                     whileTap={motionTokens.tap}
@@ -524,8 +539,8 @@ export default function CommunityPage() {
 
       {selectedPost ? (
         <PostDetailModal
-          isOpen={!!selectedPost}
-          onClose={() => setSelectedPost(null)}
+          isOpen={!!selectedPostId}
+          onClose={() => setSelectedPostId(null)}
           post={selectedPost}
           onLike={(postId) => toggleLikeMutation.mutate(postId)}
           onEdit={(post) => {

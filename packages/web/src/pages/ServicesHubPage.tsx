@@ -3,11 +3,11 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
-  Gift,
   HeartHandshake,
   MoveRight,
   Shirt,
   Sparkles,
+  Star,
   Wrench,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -18,12 +18,14 @@ import { ShopDetailModal } from "@/components/modals/ShopDetailModal";
 import { PartnerDetailModal } from "@/components/modals/PartnerDetailModal";
 import { BookMovingModal } from "@/components/modals/BookMovingModal";
 import { CleaningScheduleModal } from "@/components/modals/CleaningScheduleModal";
-import { ChatDrawer } from "@/components/common/ChatDrawer";
+import { ServiceRequestModal } from "@/components/modals/ServiceRequestModal";
 import { StitchFooter } from "@/components/common/StitchFooter";
 import { createPublicMotion } from "@/lib/motion";
 import { stitchAssets } from "@/lib/stitchAssets";
 import { UPGRADE_SOURCES } from "@roomz/shared/constants/tracking";
 import type { DealWithPartner } from "@/services/deals";
+import type { Partner } from "@/services/partners";
+import { getPartnerBookingTarget, type ServiceRequestMode } from "@/components/modals/serviceRequestRouting";
 import { getServicesHubCatalogState } from "./servicesHubCatalog";
 
 const familyServices = [
@@ -134,11 +136,12 @@ export default function ServicesHubPage() {
   const { isPremium } = usePremiumLimits();
 
   const [selectedDeal, setSelectedDeal] = useState<DealWithPartner | null>(null);
-  const [selectedPartner, setSelectedPartner] = useState<typeof partners[number] | null>(null);
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [isDealModalOpen, setIsDealModalOpen] = useState(false);
   const [isMovingModalOpen, setIsMovingModalOpen] = useState(false);
   const [isCleaningModalOpen, setIsCleaningModalOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [activeRequestMode, setActiveRequestMode] = useState<ServiceRequestMode | null>(null);
+  const [selectedBookingPartner, setSelectedBookingPartner] = useState<Partner | null>(null);
   const [showAllDeals, setShowAllDeals] = useState(false);
 
   const mappedDeals = useMemo(
@@ -161,18 +164,82 @@ export default function ServicesHubPage() {
   const visibleDeals = mappedDeals.slice(0, catalogState.visibleDealCount);
   const expandedPartners = partners.slice(0, catalogState.expandedPartnerCount);
 
+  const openMovingModal = (partner: Partner | null = null) => {
+    setSelectedBookingPartner(partner);
+    setIsMovingModalOpen(true);
+  };
+
+  const closeMovingModal = () => {
+    setIsMovingModalOpen(false);
+    setSelectedBookingPartner(null);
+  };
+
+  const openCleaningModal = (partner: Partner | null = null) => {
+    setSelectedBookingPartner(partner);
+    setIsCleaningModalOpen(true);
+  };
+
+  const closeCleaningModal = () => {
+    setIsCleaningModalOpen(false);
+    setSelectedBookingPartner(null);
+  };
+
+  const openRequestModal = (
+    mode: ServiceRequestMode,
+    partner: Partner | null = null,
+  ) => {
+    setSelectedBookingPartner(partner);
+    setActiveRequestMode(mode);
+  };
+
+  const closeRequestModal = () => {
+    setActiveRequestMode(null);
+    setSelectedBookingPartner(null);
+  };
+
+  const openPartnerVoucherDeal = (partner: Partner) => {
+    const partnerDeal = mappedDeals.find((deal) => deal.partner_id === partner.id);
+
+    if (partnerDeal) {
+      openDeal(partnerDeal);
+      return;
+    }
+
+    setSelectedPartner(partner);
+  };
+
   const handleServiceClick = (id: string) => {
     if (id === "moving") {
-      setIsMovingModalOpen(true);
+      openMovingModal();
       return;
     }
 
     if (id === "cleaning") {
-      setIsCleaningModalOpen(true);
+      openCleaningModal();
       return;
     }
 
-    setIsChatOpen(true);
+    if (id === "repair" || id === "laundry") {
+      openRequestModal(id);
+    }
+  };
+
+  const handlePartnerBooking = (partner: Partner) => {
+    const bookingTarget = getPartnerBookingTarget(partner);
+
+    switch (bookingTarget) {
+      case "moving":
+        openMovingModal(partner);
+        return;
+      case "cleaning":
+        openCleaningModal(partner);
+        return;
+      case "voucher":
+        openPartnerVoucherDeal(partner);
+        return;
+      default:
+        openRequestModal(bookingTarget, partner);
+    }
   };
 
   const openDeal = (deal: DealWithPartner) => {
@@ -244,11 +311,16 @@ export default function ServicesHubPage() {
                 <motion.button
                   type="button"
                   onClick={revealDeals}
-                  className="rounded-full bg-surface-container-highest px-8 py-4 font-display text-sm font-bold text-primary-container-foreground transition-transform hover:scale-105"
+                  disabled={!catalogState.canToggleCatalog}
+                  className={`rounded-full px-8 py-4 font-display text-sm font-bold transition-transform ${
+                    catalogState.canToggleCatalog
+                      ? "bg-surface-container-highest text-primary-container-foreground hover:scale-105"
+                      : "cursor-not-allowed bg-surface-container-highest/70 text-muted-foreground opacity-70"
+                  }`}
                   whileHover={motionTokens.hoverSoft}
                   whileTap={motionTokens.tap}
                 >
-                  Xem voucher
+                  {catalogState.canToggleCatalog ? "Xem voucher" : "Chưa có voucher mới"}
                 </motion.button>
               </div>
             </motion.div>
@@ -501,7 +573,7 @@ export default function ServicesHubPage() {
                   <div className="stitch-editorial-shadow rounded-[28px] bg-white p-8 text-center">
                     <div className="mb-4 flex justify-center gap-1 text-secondary">
                       {Array.from({ length: 5 }).map((_, starIndex) => (
-                        <Gift key={starIndex} className="h-4 w-4 fill-current" />
+                        <Star key={starIndex} className="h-4 w-4 fill-current" />
                       ))}
                     </div>
                     <p className="mb-6 text-sm italic leading-7 text-muted-foreground">
@@ -519,16 +591,23 @@ export default function ServicesHubPage() {
 
       <StitchFooter variant="dark" />
 
-      <BookMovingModal isOpen={isMovingModalOpen} onClose={() => setIsMovingModalOpen(false)} />
+      <BookMovingModal
+        isOpen={isMovingModalOpen}
+        onClose={closeMovingModal}
+        partnerId={selectedBookingPartner?.id}
+        partnerName={selectedBookingPartner?.name}
+      />
       <CleaningScheduleModal
         isOpen={isCleaningModalOpen}
-        onClose={() => setIsCleaningModalOpen(false)}
+        onClose={closeCleaningModal}
+        partnerId={selectedBookingPartner?.id}
+        partnerName={selectedBookingPartner?.name}
       />
-      <ChatDrawer
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        recipientName="SetupCare"
-        recipientRole="Đối tác hỗ trợ RommZ"
+      <ServiceRequestModal
+        isOpen={activeRequestMode !== null}
+        onClose={closeRequestModal}
+        mode={activeRequestMode}
+        partner={selectedBookingPartner}
       />
       <ShopDetailModal
         isOpen={isDealModalOpen}
@@ -540,6 +619,7 @@ export default function ServicesHubPage() {
           isOpen={true}
           onClose={() => setSelectedPartner(null)}
           partner={selectedPartner}
+          onBookService={handlePartnerBooking}
         />
       )}
     </div>

@@ -1,4 +1,5 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -58,7 +59,10 @@ export function ProfileHeader({
               </div>
 
               <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                <Avatar className="h-24 w-24 shrink-0 border-4 border-white/15 shadow-lg sm:h-28 sm:w-28">
+                <PremiumAvatar
+                  isPremium={profile?.is_premium ?? false}
+                  className="h-24 w-24 shrink-0 border-4 border-white/15 shadow-lg sm:h-28 sm:w-28"
+                >
                   <AvatarImage
                     src={profile?.avatar_url || undefined}
                     alt={profile?.full_name || user?.email || ""}
@@ -66,7 +70,7 @@ export function ProfileHeader({
                   <AvatarFallback className="bg-white/10 text-2xl text-white">
                     {getUserInitials(profile?.full_name, user?.email)}
                   </AvatarFallback>
-                </Avatar>
+                </PremiumAvatar>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

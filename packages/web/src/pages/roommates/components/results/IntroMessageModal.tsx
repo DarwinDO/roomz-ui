@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import { Badge } from '@/components/ui/badge';
 import { Send, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -94,12 +95,12 @@ export function IntroMessageModal({
 
                 {/* Recipient Info */}
                 <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <Avatar className="w-12 h-12">
+                    <PremiumAvatar isPremium={match.is_premium ?? false} className="h-12 w-12">
                         <AvatarImage src={match.avatar_url || undefined} alt={match.full_name} />
                         <AvatarFallback className="bg-primary/10 text-primary">
                             {getInitials(match.full_name)}
                         </AvatarFallback>
-                    </Avatar>
+                    </PremiumAvatar>
                     <div>
                         <p className="font-medium">{match.full_name}</p>
                         <div className="flex items-center gap-2">
