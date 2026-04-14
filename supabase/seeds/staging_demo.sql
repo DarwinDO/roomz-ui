@@ -14,61 +14,249 @@ AS $$
   )::uuid;
 $$;
 
+CREATE OR REPLACE FUNCTION pg_temp.demo_email_local(p_value text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT trim(
+    both '.'
+    FROM regexp_replace(
+      lower(extensions.unaccent(COALESCE(p_value, ''))),
+      '[^a-z0-9]+',
+      '.',
+      'g'
+    )
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION pg_temp.demo_avatar_url(p_value text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT format(
+    'https://api.dicebear.com/9.x/personas/svg?seed=%s',
+    replace(extensions.unaccent(COALESCE(p_value, '')), ' ', '%20')
+  );
+$$;
+
+DROP TABLE IF EXISTS pg_temp.demo_landlords;
+
 CREATE TEMP TABLE pg_temp.demo_landlords AS
+WITH base AS (
+  SELECT
+    gs AS idx,
+    pg_temp.demo_uuid(format('demo-user-landlord-%s', lpad(gs::text, 2, '0'))) AS id,
+    CASE
+      WHEN gs <= 6 THEN 'Thành phố Hà Nội'
+      WHEN gs <= 12 THEN 'Thành phố Hồ Chí Minh'
+      WHEN gs <= 18 THEN 'Thành phố Đà Nẵng'
+      ELSE 'Thành phố Cần Thơ'
+    END AS city,
+    CASE WHEN gs % 3 = 0 THEN 'female' ELSE 'male' END AS persona_gender
+  FROM generate_series(1, 24) AS gs
+),
+identities AS (
+  SELECT
+    b.idx,
+    b.id,
+    b.city,
+    concat_ws(
+      ' ',
+      (ARRAY['Nguyễn','Trần','Lê','Phạm','Hoàng','Phan','Vũ','Võ','Đặng','Bùi','Đỗ','Hồ','Ngô','Dương','Lý','Trịnh'])[1 + (((b.idx - 1) * 5) % 16)],
+      CASE
+        WHEN b.persona_gender = 'female'
+          THEN (ARRAY['Thu','Ngọc','Thanh','Bảo','Quỳnh','Minh','Mỹ','Diệu','Tú','Lan'])[1 + (((b.idx - 1) * 3 + ((b.idx - 1) / 12)) % 10)]
+        ELSE (ARRAY['Minh','Quốc','Thanh','Công','Hữu','Đức','Gia','Anh','Văn','Nhật'])[1 + (((b.idx - 1) * 3 + ((b.idx - 1) / 12)) % 10)]
+      END,
+      CASE
+        WHEN b.persona_gender = 'female'
+          THEN (ARRAY['Anh','Hạnh','Hương','Lan','Linh','Mai','Nga','Oanh','Thảo','Trang','Vy','Yến'])[1 + (((b.idx - 1) * 7 + ((b.idx - 1) / 8)) % 12)]
+        ELSE (ARRAY['Hải','Hùng','Khánh','Nam','Phong','Quang','Sơn','Thành','Tiến','Trung','Tuấn','Vinh'])[1 + (((b.idx - 1) * 7 + ((b.idx - 1) / 8)) % 12)]
+      END
+    ) AS full_name
+  FROM base AS b
+)
 SELECT
-  gs AS idx,
-  pg_temp.demo_uuid(format('demo-user-landlord-%s', lpad(gs::text, 2, '0'))) AS id,
-  format('demo+landlord%s@rommz.local', lpad(gs::text, 2, '0')) AS email,
-  format('Chu nha Demo %s', lpad(gs::text, 2, '0')) AS full_name,
-  format('0901%06s', gs) AS phone,
-  CASE
-    WHEN gs <= 6 THEN 'Thành phố Hà Nội'
-    WHEN gs <= 12 THEN 'Thành phố Hồ Chí Minh'
-    WHEN gs <= 18 THEN 'Thành phố Đà Nẵng'
-    ELSE 'Thành phố Cần Thơ'
-  END AS city
-FROM generate_series(1, 24) AS gs;
+  idx,
+  id,
+  format('%s.l%s@example.com', pg_temp.demo_email_local(full_name), lpad(idx::text, 2, '0')) AS email,
+  full_name,
+  format(
+    '0%s%s',
+    (ARRAY['88','86','90','93','96','97','98','82','83','84','85','81'])[1 + ((idx - 1) % 12)],
+    lpad(((idx * 27183) % 10000000)::text, 7, '0')
+  ) AS phone,
+  pg_temp.demo_avatar_url(full_name) AS avatar_url,
+  format(
+    '%s tại %s, phản hồi nhanh và ưu tiên khách ở gọn gàng.',
+    CASE WHEN persona_gender = 'female' THEN 'Chủ nhà thân thiện đang trực tiếp quản lý phòng cho thuê' ELSE 'Chủ nhà đã xác minh, đang quản lý phòng cho thuê' END,
+    city
+  ) AS bio,
+  city
+FROM identities
+JOIN base USING (idx, id, city);
+
+DROP TABLE IF EXISTS pg_temp.demo_students;
 
 CREATE TEMP TABLE pg_temp.demo_students AS
+WITH base AS (
+  SELECT
+    gs AS idx,
+    pg_temp.demo_uuid(format('demo-user-student-%s', lpad(gs::text, 3, '0'))) AS id,
+    ((gs - 1) % 5) + 1 AS persona,
+    CASE
+      WHEN gs <= 45 THEN 'Thành phố Hà Nội'
+      WHEN gs <= 80 THEN 'Thành phố Hồ Chí Minh'
+      WHEN gs <= 92 THEN 'Thành phố Đà Nẵng'
+      ELSE 'Thành phố Cần Thơ'
+    END AS city,
+    CASE
+      WHEN gs <= 45 THEN (ARRAY['Quận Ba Đình','Quận Cầu Giấy','Quận Đống Đa','Quận Hai Bà Trưng','Quận Hoàng Mai','Quận Nam Từ Liêm'])[1 + ((gs - 1) % 6)]
+      WHEN gs <= 80 THEN (ARRAY['Quận 1','Quận 3','Quận Bình Thạnh','Quận Gò Vấp','Thành phố Thủ Đức','Quận Tân Bình'])[1 + ((gs - 46) % 6)]
+      WHEN gs <= 92 THEN (ARRAY['Quận Hải Châu','Quận Thanh Khê','Quận Sơn Trà','Quận Ngũ Hành Sơn'])[1 + ((gs - 81) % 4)]
+      ELSE (ARRAY['Quận Ninh Kiều','Quận Cái Răng','Quận Bình Thủy'])[1 + ((gs - 93) % 3)]
+    END AS district,
+    CASE WHEN gs % 2 = 0 THEN 'male' ELSE 'female' END AS gender,
+    CASE
+      WHEN gs % 9 = 0 THEN CASE WHEN gs % 2 = 0 THEN 'female' ELSE 'male' END
+      WHEN gs % 7 = 0 THEN CASE WHEN gs % 2 = 0 THEN 'male' ELSE 'female' END
+      ELSE 'any'
+    END AS preferred_gender,
+    CASE ((gs - 1) % 5) + 1
+      WHEN 1 THEN 'student'
+      WHEN 2 THEN 'student'
+      WHEN 3 THEN 'worker'
+      WHEN 4 THEN 'worker'
+      ELSE 'freelancer'
+    END AS occupation,
+    CASE
+      WHEN gs <= 45 THEN 'Đại học Bách khoa Hà Nội'
+      WHEN gs <= 80 THEN 'Đại học Quốc gia TP.HCM'
+      WHEN gs <= 92 THEN 'Đại học Đà Nẵng'
+      ELSE 'Đại học Cần Thơ'
+    END AS university,
+    CASE ((gs - 1) % 5) + 1
+      WHEN 1 THEN 'Công nghệ thông tin'
+      WHEN 2 THEN 'Marketing'
+      WHEN 3 THEN 'Quản trị kinh doanh'
+      WHEN 4 THEN 'Tài chính'
+      ELSE 'Thiết kế'
+    END AS major
+  FROM generate_series(1, 100) AS gs
+),
+identities AS (
+  SELECT
+    b.idx,
+    b.id,
+    concat_ws(
+      ' ',
+      (ARRAY['Nguyễn','Trần','Lê','Phạm','Hoàng','Phan','Vũ','Võ','Đặng','Bùi','Đỗ','Hồ','Ngô','Dương','Lý','Trịnh'])[1 + (((b.idx - 1) * 5) % 16)],
+      CASE
+        WHEN b.gender = 'female'
+          THEN (ARRAY['Ngọc','Khánh','Mai','Bảo','Thanh','Phương','Quỳnh','Ánh','Tú','Diệu'])[1 + (((b.idx - 1) * 3 + ((b.idx - 1) / 16)) % 10)]
+        ELSE (ARRAY['Gia','Minh','Quốc','Thanh','Anh','Đức','Nhật','Hữu','Tuấn','Thiên'])[1 + (((b.idx - 1) * 3 + ((b.idx - 1) / 16)) % 10)]
+      END,
+      CASE
+        WHEN b.gender = 'female'
+          THEN (ARRAY['An','Chi','Giang','Linh','Mai','My','Nhi','Ngân','Phương','Quỳnh','Thảo','Trang','Trâm','Uyên','Vy','Yến'])[1 + (((b.idx - 1) * 7 + ((b.idx - 1) / 10)) % 16)]
+        ELSE (ARRAY['An','Bảo','Duy','Huy','Khang','Khoa','Long','Minh','Nam','Phúc','Quân','Tùng','Vũ','Đạt','Khôi','Hải'])[1 + (((b.idx - 1) * 7 + ((b.idx - 1) / 10)) % 16)]
+      END
+    ) AS full_name
+  FROM base AS b
+)
 SELECT
-  gs AS idx,
-  pg_temp.demo_uuid(format('demo-user-student-%s', lpad(gs::text, 3, '0'))) AS id,
-  format('demo+student%s@rommz.local', lpad(gs::text, 3, '0')) AS email,
-  format('Sinh vien Demo %s', lpad(gs::text, 3, '0')) AS full_name,
-  format('0912%06s', gs) AS phone,
-  ((gs - 1) % 5) + 1 AS persona,
-  CASE
-    WHEN gs <= 45 THEN 'Thành phố Hà Nội'
-    WHEN gs <= 80 THEN 'Thành phố Hồ Chí Minh'
-    WHEN gs <= 92 THEN 'Thành phố Đà Nẵng'
-    ELSE 'Thành phố Cần Thơ'
-  END AS city,
-  CASE
-    WHEN gs <= 45 THEN (ARRAY['Quận Ba Đình','Quận Cầu Giấy','Quận Đống Đa','Quận Hai Bà Trưng','Quận Hoàng Mai','Quận Nam Từ Liêm'])[1 + ((gs - 1) % 6)]
-    WHEN gs <= 80 THEN (ARRAY['Quận 1','Quận 3','Quận Bình Thạnh','Quận Gò Vấp','Thành phố Thủ Đức','Quận Tân Bình'])[1 + ((gs - 46) % 6)]
-    WHEN gs <= 92 THEN (ARRAY['Quận Hải Châu','Quận Thanh Khê','Quận Sơn Trà','Quận Ngũ Hành Sơn'])[1 + ((gs - 81) % 4)]
-    ELSE (ARRAY['Quận Ninh Kiều','Quận Cái Răng','Quận Bình Thủy'])[1 + ((gs - 93) % 3)]
-  END AS district,
-  CASE WHEN gs % 2 = 0 THEN 'male' ELSE 'female' END AS gender,
-  CASE WHEN gs % 9 = 0 THEN CASE WHEN gs % 2 = 0 THEN 'female' ELSE 'male' END WHEN gs % 7 = 0 THEN CASE WHEN gs % 2 = 0 THEN 'male' ELSE 'female' END ELSE 'any' END AS preferred_gender,
-  CASE ((gs - 1) % 5) + 1 WHEN 1 THEN 'student' WHEN 2 THEN 'student' WHEN 3 THEN 'worker' WHEN 4 THEN 'worker' ELSE 'freelancer' END AS occupation,
-  CASE WHEN gs <= 45 THEN 'Đại học Bách khoa Hà Nội' WHEN gs <= 80 THEN 'Đại học Quốc gia TP.HCM' WHEN gs <= 92 THEN 'Đại học Đà Nẵng' ELSE 'Đại học Cần Thơ' END AS university,
-  CASE ((gs - 1) % 5) + 1 WHEN 1 THEN 'Công nghệ thông tin' WHEN 2 THEN 'Marketing' WHEN 3 THEN 'Quản trị kinh doanh' WHEN 4 THEN 'Tài chính' ELSE 'Thiết kế' END AS major
-FROM generate_series(1, 100) AS gs;
+  base.idx,
+  base.id,
+  format('%s.s%s@example.com', pg_temp.demo_email_local(identities.full_name), lpad(base.idx::text, 3, '0')) AS email,
+  identities.full_name,
+  format(
+    '0%s%s',
+    (ARRAY['32','33','34','35','36','37','38','39','70','76','77','78','79','81','82','83','84','85','86','88','89','90','91','93','94','96','97','98'])[1 + ((base.idx - 1) % 28)],
+    lpad(((base.idx * 28411) % 10000000)::text, 7, '0')
+  ) AS phone,
+  base.persona,
+  base.city,
+  base.district,
+  base.gender,
+  base.preferred_gender,
+  base.occupation,
+  base.university,
+  base.major,
+  pg_temp.demo_avatar_url(identities.full_name) AS avatar_url,
+  CASE base.occupation
+    WHEN 'student'
+      THEN format('Sinh viên %s tại %s, đang ưu tiên tìm chỗ ở sạch sẽ và yên tĩnh tại %s.', base.major, base.university, base.city)
+    WHEN 'worker'
+      THEN format('Đang học và đi làm thêm, ưu tiên nơi ở gọn gàng, an toàn và thuận tiện di chuyển tại %s.', base.city)
+    ELSE format('Lịch sinh hoạt linh hoạt, cần chỗ ở ngăn nắp và dễ kết nối khu trung tâm ở %s.', base.city)
+  END AS bio
+FROM base
+JOIN identities USING (idx, id);
 
 INSERT INTO public.users (id, email, password_hash, full_name, phone, avatar_url, role, account_status, email_verified, phone_verified, trust_score, is_premium, premium_until, bio, created_at, updated_at, last_seen, preferences)
-VALUES (pg_temp.demo_uuid('demo-user-admin'), 'demo+admin@rommz.local', '', 'Quan tri Demo', '0900000001', 'https://api.dicebear.com/9.x/initials/svg?seed=Admin%20Demo', 'admin'::public.user_role, 'active'::public.account_status, true, true, 99, true, now() + interval '180 days', 'Tai khoan quan tri cho staging demo.', now() - interval '180 days', now(), now() - interval '10 minutes', jsonb_build_object('seed_group', 'staging_demo', 'kind', 'admin'))
-ON CONFLICT (id) DO NOTHING;
+VALUES (pg_temp.demo_uuid('demo-user-admin'), 'tran.minh.quan.admin@example.com', '', 'Trần Minh Quân', '0919000001', pg_temp.demo_avatar_url('Trần Minh Quân'), 'admin'::public.user_role, 'active'::public.account_status, true, true, 99, true, now() + interval '180 days', 'Điều phối dữ liệu mô phỏng và vận hành môi trường staging của RommZ.', now() - interval '180 days', now(), now() - interval '10 minutes', jsonb_build_object('seed_group', 'staging_demo', 'kind', 'admin', 'seed_profile_style', 'vn_realistic', 'seed_profile_version', '20260413'))
+ON CONFLICT (id) DO UPDATE
+SET
+  email = EXCLUDED.email,
+  full_name = EXCLUDED.full_name,
+  phone = EXCLUDED.phone,
+  avatar_url = EXCLUDED.avatar_url,
+  role = EXCLUDED.role,
+  account_status = EXCLUDED.account_status,
+  email_verified = EXCLUDED.email_verified,
+  phone_verified = EXCLUDED.phone_verified,
+  trust_score = EXCLUDED.trust_score,
+  is_premium = EXCLUDED.is_premium,
+  premium_until = EXCLUDED.premium_until,
+  bio = EXCLUDED.bio,
+  updated_at = EXCLUDED.updated_at,
+  last_seen = EXCLUDED.last_seen,
+  preferences = EXCLUDED.preferences;
 
 INSERT INTO public.users (id, email, password_hash, full_name, phone, avatar_url, role, account_status, email_verified, phone_verified, trust_score, bio, created_at, updated_at, last_seen, preferences)
-SELECT id, email, '', full_name, phone, format('https://api.dicebear.com/9.x/initials/svg?seed=Landlord%%20%s', idx), 'landlord'::public.user_role, 'active'::public.account_status, true, true, 78 + (idx % 15), format('Danh sach phong demo tai %s.', city), now() - ((40 + idx) || ' days')::interval, now(), now() - ((idx % 48) || ' hours')::interval, jsonb_build_object('seed_group', 'staging_demo', 'kind', 'landlord', 'city', city)
+SELECT id, email, '', full_name, phone, avatar_url, 'landlord'::public.user_role, 'active'::public.account_status, true, true, 78 + (idx % 15), bio, now() - ((40 + idx) || ' days')::interval, now(), now() - ((idx % 48) || ' hours')::interval, jsonb_build_object('seed_group', 'staging_demo', 'kind', 'landlord', 'city', city, 'seed_profile_style', 'vn_realistic', 'seed_profile_version', '20260413')
 FROM pg_temp.demo_landlords
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+SET
+  email = EXCLUDED.email,
+  full_name = EXCLUDED.full_name,
+  phone = EXCLUDED.phone,
+  avatar_url = EXCLUDED.avatar_url,
+  role = EXCLUDED.role,
+  account_status = EXCLUDED.account_status,
+  email_verified = EXCLUDED.email_verified,
+  phone_verified = EXCLUDED.phone_verified,
+  trust_score = EXCLUDED.trust_score,
+  bio = EXCLUDED.bio,
+  updated_at = EXCLUDED.updated_at,
+  last_seen = EXCLUDED.last_seen,
+  preferences = EXCLUDED.preferences;
 
 INSERT INTO public.users (id, email, password_hash, full_name, phone, avatar_url, university, major, gender, role, account_status, email_verified, phone_verified, trust_score, is_premium, premium_until, bio, created_at, updated_at, last_seen, preferences)
-SELECT id, email, '', full_name, phone, format('https://api.dicebear.com/9.x/initials/svg?seed=Student%%20%s', idx), university, major, gender::public.user_gender, 'student'::public.user_role, 'active'::public.account_status, true, true, 62 + (idx % 25), idx % 11 = 0, CASE WHEN idx % 11 = 0 THEN now() + interval '45 days' ELSE NULL END, 'Tai khoan demo phuc vu tim phong va roommate matching.', now() - ((10 + (idx % 90)) || ' days')::interval, now(), now() - ((idx % 72) || ' hours')::interval, jsonb_build_object('seed_group', 'staging_demo', 'kind', 'student', 'city', city, 'persona', persona)
+SELECT id, email, '', full_name, phone, avatar_url, university, major, gender::public.user_gender, 'student'::public.user_role, 'active'::public.account_status, true, true, 62 + (idx % 25), idx % 11 = 0, CASE WHEN idx % 11 = 0 THEN now() + interval '45 days' ELSE NULL END, bio, now() - ((10 + (idx % 90)) || ' days')::interval, now(), now() - ((idx % 72) || ' hours')::interval, jsonb_build_object('seed_group', 'staging_demo', 'kind', 'student', 'city', city, 'persona', persona, 'seed_profile_style', 'vn_realistic', 'seed_profile_version', '20260413')
 FROM pg_temp.demo_students
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE
+SET
+  email = EXCLUDED.email,
+  full_name = EXCLUDED.full_name,
+  phone = EXCLUDED.phone,
+  avatar_url = EXCLUDED.avatar_url,
+  university = EXCLUDED.university,
+  major = EXCLUDED.major,
+  gender = EXCLUDED.gender,
+  role = EXCLUDED.role,
+  account_status = EXCLUDED.account_status,
+  email_verified = EXCLUDED.email_verified,
+  phone_verified = EXCLUDED.phone_verified,
+  trust_score = EXCLUDED.trust_score,
+  is_premium = EXCLUDED.is_premium,
+  premium_until = EXCLUDED.premium_until,
+  bio = EXCLUDED.bio,
+  updated_at = EXCLUDED.updated_at,
+  last_seen = EXCLUDED.last_seen,
+  preferences = EXCLUDED.preferences;
 
 INSERT INTO public.subscriptions (
   id,
@@ -321,3 +509,4 @@ FROM (
 WHERE partners.id = review_stats.partner_id;
 
 COMMIT;
+

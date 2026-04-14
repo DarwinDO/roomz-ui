@@ -48,6 +48,7 @@ export interface PostsFilter {
     type?: Post["type"];
     page?: number;
     pageSize?: number;
+    searchQuery?: string;
     userId?: string;
 }
 

@@ -39,6 +39,7 @@ import { RoommateFilters, type FilterOptions } from "./RoommateFilters";
 import { RoommateResultsSkeleton } from "./RoommateCardSkeleton";
 import { StitchFooter } from "@/components/common/StitchFooter";
 import { stitchAssets } from "@/lib/stitchAssets";
+import { openRoommateConversation } from "../../utils/openRoommateConversation";
 
 type ScopeFilter = "all" | "same_district" | "same_city" | "outside_priority_area";
 type AgePreset = "all" | "18-22" | "23-27" | "28-35";
@@ -190,6 +191,7 @@ export function RoommateResults() {
   const [isIntroModalOpen, setIsIntroModalOpen] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [limitType, setLimitType] = useState<"views" | "requests">("views");
+  const [openingConversationUserId, setOpeningConversationUserId] = useState<string | null>(null);
 
   const isLoading = matchesLoading || (requestsLoading && matches.length === 0);
 
@@ -303,13 +305,28 @@ export function RoommateResults() {
     });
   };
 
-  const handleStartChat = (userId: string) => {
-    navigate(`/messages?user=${userId}`);
+  const handleStartChat = async (targetUserId: string) => {
+    setOpeningConversationUserId(targetUserId);
+
+    try {
+      await openRoommateConversation({
+        currentUserId: user?.id,
+        otherUserId: targetUserId,
+        navigate,
+      });
+    } catch (error) {
+      console.error("[RoommateResults] Failed to open conversation:", error);
+      const message =
+        error instanceof Error ? error.message : "Không thể mở cuộc trò chuyện lúc này.";
+      toast.error(message);
+    } finally {
+      setOpeningConversationUserId((current) => (current === targetUserId ? null : current));
+    }
   };
 
   const handleOpenIntroModal = (match: RoommateMatch) => {
     if (checkConnection(match.matched_user_id)) {
-      handleStartChat(match.matched_user_id);
+      void handleStartChat(match.matched_user_id);
       return;
     }
 
@@ -719,9 +736,10 @@ export function RoommateResults() {
                       {isConnected ? (
                         <Button
                           className="stitch-primary-gradient rounded-full text-white"
-                          onClick={() => handleStartChat(match.matched_user_id)}
+                          onClick={() => void handleStartChat(match.matched_user_id)}
+                          disabled={openingConversationUserId === match.matched_user_id}
                         >
-                          Nhắn tin
+                          {openingConversationUserId === match.matched_user_id ? "Đang mở..." : "Nhắn tin"}
                         </Button>
                       ) : isIncomingPending ? (
                         <Button
@@ -795,7 +813,9 @@ export function RoommateResults() {
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
           roommate={selectedMatch}
-          onMessageClick={() => handleStartChat(selectedMatch.matched_user_id)}
+          onMessageClick={() => {
+            void handleStartChat(selectedMatch.matched_user_id);
+          }}
           onSendRequest={() => {
             setIsProfileModalOpen(false);
             handleOpenIntroModal(selectedMatch);

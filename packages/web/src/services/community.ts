@@ -130,7 +130,7 @@ async function getLikedPostMap(postIds: string[], userId?: string) {
  * @param filters - Filter options including optional userId to check liked status
  */
 export async function getPosts(filters: PostsFilter = {}): Promise<PostsResponse> {
-    const { type, page = 1, pageSize = 10, userId } = filters;
+    const { type, page = 1, pageSize = 10, searchQuery, userId } = filters;
 
     let query = supabase
         .from('community_posts')
@@ -151,6 +151,11 @@ export async function getPosts(filters: PostsFilter = {}): Promise<PostsResponse
 
     if (type) {
         query = query.eq('type', type);
+    }
+
+    const normalizedQuery = searchQuery?.trim();
+    if (normalizedQuery) {
+        query = query.or(`title.ilike.%${normalizedQuery}%,content.ilike.%${normalizedQuery}%`);
     }
 
     const { data, error, count } = await query;

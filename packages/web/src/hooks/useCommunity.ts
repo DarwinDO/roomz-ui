@@ -81,27 +81,33 @@ export const communityKeys = {
 };
 
 /**
- * Hook to get paginated posts feed with infinite scroll
+ * Hook to get paginated posts feed with incremental loading
  */
 export function usePosts(filters: PostsFilter = {}) {
     const { user } = useAuth();
+    const normalizedFilters = { ...filters };
+    delete normalizedFilters.page;
 
     const query = useInfiniteQuery<CommunityFeedPage>({
-        queryKey: communityKeys.feed(filters),
+        queryKey: communityKeys.feed(normalizedFilters),
         queryFn: ({ pageParam = 1 }) =>
-            getPosts({ ...filters, page: pageParam as number, pageSize: PAGE_SIZE, userId: user?.id }),
+            getPosts({
+                ...normalizedFilters,
+                page: pageParam as number,
+                pageSize: normalizedFilters.pageSize ?? PAGE_SIZE,
+                userId: user?.id,
+            }),
         initialPageParam: 1,
         getNextPageParam: (lastPage, allPages) => {
-            const loaded = allPages.length * PAGE_SIZE;
-            return loaded < lastPage.totalCount ? allPages.length + 1 : undefined;
+            const loadedPostsCount = allPages.reduce((count, page) => count + page.posts.length, 0);
+            return loadedPostsCount < lastPage.totalCount ? allPages.length + 1 : undefined;
         },
         placeholderData: keepPreviousData,
         staleTime: 30_000,
     });
 
-    // Flatten all pages into a single posts array
     const posts = useMemo(
-        () => query.data?.pages.flatMap((p) => p.posts) ?? [],
+        () => query.data?.pages.flatMap((page) => page.posts) ?? [],
         [query.data?.pages],
     );
     const totalCount = query.data?.pages[0]?.totalCount ?? 0;
@@ -110,6 +116,7 @@ export function usePosts(filters: PostsFilter = {}) {
         posts,
         totalCount,
         isLoading: query.isLoading,
+        isFetching: query.isFetching,
         isFetchingNextPage: query.isFetchingNextPage,
         error: query.error,
         refetch: query.refetch,

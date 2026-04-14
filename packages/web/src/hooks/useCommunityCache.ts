@@ -6,7 +6,7 @@ export type CommunityFeedPage = {
     totalCount: number;
 };
 
-export type CommunityFeedData = InfiniteData<CommunityFeedPage>;
+export type CommunityFeedData = CommunityFeedPage | InfiniteData<CommunityFeedPage>;
 
 type PostUpdater = (post: PostRow) => PostRow;
 
@@ -23,12 +23,19 @@ export function updatePostInCommunityFeed(
         return data;
     }
 
+    if ('pages' in data) {
+        return {
+            ...data,
+            pages: data.pages.map((page) => ({
+                ...page,
+                posts: page.posts.map((post) => updateMatchingPost(post, postId, updater)),
+            })),
+        };
+    }
+
     return {
         ...data,
-        pages: data.pages.map((page) => ({
-            ...page,
-            posts: page.posts.map((post) => updateMatchingPost(post, postId, updater)),
-        })),
+        posts: data.posts.map((post) => updateMatchingPost(post, postId, updater)),
     };
 }
 

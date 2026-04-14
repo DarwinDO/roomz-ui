@@ -3,12 +3,14 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import {
     Inbox,
     Send,
@@ -20,11 +22,13 @@ import {
     Users,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRoommateRequestsQuery } from '@/hooks/useRoommatesQuery';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { PageLoading } from '../common/LoadingSpinner';
 import type { RoommateRequest } from '@/services/roommates';
+import { openRoommateConversation } from '../../utils/openRoommateConversation';
 
 function getStatusBadge(status: string) {
     switch (status) {
@@ -50,6 +54,7 @@ interface RequestCardProps {
     onDecline?: () => Promise<unknown>;
     onCancel?: () => Promise<unknown>;
     onMessage?: () => void;
+    isMessaging?: boolean;
 }
 
 function RequestCard({
@@ -59,6 +64,7 @@ function RequestCard({
     onDecline,
     onCancel,
     onMessage,
+    isMessaging = false,
 }: RequestCardProps) {
     const [loading, setLoading] = useState<'accept' | 'decline' | 'cancel' | null>(null);
 
@@ -180,9 +186,18 @@ function RequestCard({
                         )}
 
                         {isAccepted && (
-                            <Button size="sm" onClick={onMessage}>
-                                <MessageCircle className="w-4 h-4 mr-1" />
-                                Nhắn tin
+                            <Button size="sm" onClick={onMessage} disabled={isMessaging}>
+                                {isMessaging ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                        Đang mở...
+                                    </>
+                                ) : (
+                                    <>
+                                        <MessageCircle className="w-4 h-4 mr-1" />
+                                        Nhắn tin
+                                    </>
+                                )}
                             </Button>
                         )}
                     </div>
@@ -193,6 +208,8 @@ function RequestCard({
 }
 
 export function RequestsList() {
+    const navigate = useNavigate();
+    const { user } = useAuth();
     const {
         receivedRequests,
         sentRequests,
@@ -201,9 +218,29 @@ export function RequestsList() {
         declineRequest,
         cancelRequest,
     } = useRoommateRequestsQuery();
+    const [openingConversationUserId, setOpeningConversationUserId] = useState<string | null>(null);
 
     const pendingReceived = receivedRequests.filter((r) => r.status === 'pending');
     const pendingSent = sentRequests.filter((r) => r.status === 'pending');
+
+    const handleOpenConversation = async (otherUserId: string) => {
+        setOpeningConversationUserId(otherUserId);
+
+        try {
+            await openRoommateConversation({
+                currentUserId: user?.id,
+                otherUserId,
+                navigate,
+            });
+        } catch (error) {
+            console.error('[RequestsList] Failed to open conversation:', error);
+            const message =
+                error instanceof Error ? error.message : 'Không thể mở cuộc trò chuyện lúc này.';
+            toast.error(message);
+        } finally {
+            setOpeningConversationUserId((current) => (current === otherUserId ? null : current));
+        }
+    };
 
     if (loading) {
         return <PageLoading message="Đang tải yêu cầu kết nối..." />;
@@ -260,9 +297,9 @@ export function RequestsList() {
                                         onAccept={() => acceptRequest(request.id)}
                                         onDecline={() => declineRequest(request.id)}
                                         onMessage={() => {
-                                            // Navigate to messages
-                                            window.location.href = `/messages?user=${request.sender_id}`;
+                                            void handleOpenConversation(request.sender_id);
                                         }}
+                                        isMessaging={openingConversationUserId === request.sender_id}
                                     />
                                 ))}
                             </div>
@@ -289,8 +326,9 @@ export function RequestsList() {
                                         type="sent"
                                         onCancel={() => cancelRequest(request.id)}
                                         onMessage={() => {
-                                            window.location.href = `/messages?user=${request.receiver_id}`;
+                                            void handleOpenConversation(request.receiver_id);
                                         }}
+                                        isMessaging={openingConversationUserId === request.receiver_id}
                                     />
                                 ))}
                             </div>

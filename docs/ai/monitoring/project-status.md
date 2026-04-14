@@ -2,7 +2,7 @@
 phase: monitoring
 title: Project Status Snapshot
 description: Living project memory for RoomZ product scope, architecture, roadmap, and current implementation state
-updated: 2026-04-13
+updated: 2026-04-14
 ---
 
 # RommZ Project Status
@@ -17,6 +17,159 @@ updated: 2026-04-13
 - **Current design direction:** `Stitch-first` Living Atlas direct port for eleven desktop routes
 - **Motion direction:** Framer Motion only; shared motion foundation plus public and product polish are now active on `/`, `/login`, `/services`, `/community`, `/search`, `/messages`, and `/host`
 - **Hero accent direction:** Draftly-like layered illustration hero on landing/login; no runtime WebGL is active now
+
+## Latest Update (2026-04-14, community social feed with 10-post incremental loading)
+
+- Reworked the public `/community` page again after product feedback so `Tin đăng` behaves like a real social/community feed instead of a numbered blog archive.
+- Why this changed:
+  - the first 2026-04-14 iteration moved the page toward a blog-style grid with numbered pagination
+  - product feedback clarified that the intended experience is closer to Facebook-style vertical post browsing while keeping the existing community page shell
+  - the final direction is now: stacked full-width post cards, 10 posts per load, and a visible `Xem thêm bài viết` CTA instead of page numbers
+- Implemented:
+  - `packages/web/src/hooks/useCommunity.ts`
+    - restored `usePosts` to `useInfiniteQuery`
+    - the hook now accumulates posts across pages again and exposes `hasNextPage`, `fetchNextPage`, and `isFetchingNextPage`
+  - `packages/web/src/services/community.ts`
+    - kept server-side `searchQuery` filtering on `title` and `content`
+  - `packages/web/src/hooks/useCommunityCache.ts`
+    - retained cache update support for both single-page and infinite feed shapes touched during the pivot
+  - `packages/web/src/pages/community/types.ts`
+    - kept `searchQuery` in `PostsFilter`
+  - `packages/web/src/pages/CommunityPage.tsx`
+    - removed the numbered pagination / blog-grid presentation
+    - now renders a single vertical feed of full-width social post cards in the main column
+    - loads 10 posts at a time and appends the next batch through `Xem thêm bài viết`
+    - keeps live author avatars, `PremiumAvatar`, server-side search, filter chips, and the right-hand sidebar modules
+- Regression coverage:
+  - updated `packages/web/src/pages/CommunityPage.test.tsx` to validate:
+    - feed cards and contributor cards still use live author avatar data
+    - the feed renders as a vertical stack, starts with 10 posts, and appends more posts through `Xem thêm bài viết`
+- Latest validation:
+  - `npx eslint packages/web/src/pages/CommunityPage.tsx packages/web/src/pages/CommunityPage.test.tsx packages/web/src/hooks/useCommunity.ts packages/web/src/hooks/useCommunityCache.ts packages/web/src/services/community.ts packages/web/src/pages/community/types.ts`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/pages/CommunityPage.test.tsx`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npm run build --workspace=@roomz/web`: pass
+  - `npx ai-devkit@latest lint`: pass
+
+## Latest Update (2026-04-13, payment order subscription reuse fix)
+
+- Fixed the live SePay premium-payment failure where a valid payment could reach the webhook but still fail to activate RommZ+ for users who already had an older subscription row.
+- Root cause:
+  - `public.subscriptions` is modeled as a single-row state table with `UNIQUE(user_id)`
+  - `process_payment_order` only looked for an existing subscription where `status = 'active'`
+  - users with an older `expired` or `cancelled` row therefore fell into the `INSERT INTO subscriptions` path and hit `duplicate key value violates unique constraint "subscriptions_user_id_key"`
+  - the same function also wrote `users.premium_until = v_period_end` directly, which could drift from the real subscription end when extending an active term
+- Fix:
+  - added migration `supabase/migrations/20260413222500_fix_payment_order_reuse_existing_subscription.sql`
+  - `process_payment_order` now locks and reuses any existing subscription row for the user, reactivating it when needed instead of attempting a second insert
+  - removed the direct `users` premium write from the payment function and let the existing `sync_user_premium_cache_on_subscriptions` trigger remain the single source of truth for `users.is_premium` / `users.premium_until`
+  - kept order locking and idempotent `already_paid` behavior intact
+- Live recovery:
+  - applied on Supabase project `vevnoxlgwisdottaifdn`
+  - replayed failed order `ROMMZ20260413153241908678` while it was still pending
+  - verified the order is now `paid`, the existing subscription row was reactivated instead of duplicated, and `users.is_premium = true` with `premium_until = 2026-05-13 15:48:41+00`
+- Latest validation:
+  - Supabase migration apply: pass
+  - direct SQL replay of `process_payment_order('ROMMZ20260413153241908678', 19500, 'TF26104679222900', null)`: pass
+  - direct SQL verification of `payment_orders`, `subscriptions`, and `users`: pass
+  - `npx ai-devkit@latest lint`: pass
+
+## Latest Update (2026-04-13, roommate conversation routing fix)
+
+- Fixed the roommate messaging flow so accepted matches and accepted connection requests now open the exact direct thread instead of dumping the user into a generic inbox view.
+- Root cause:
+  - roommate surfaces in `packages/web/src/pages/roommates/components/results/RoommateResults.tsx` and `packages/web/src/pages/roommates/components/requests/RequestsList.tsx` only redirected to `/messages?user=<id>`
+  - `packages/web/src/pages/MessagesPage.tsx` only treats that query param as a best-effort lookup against already-loaded conversations
+  - when no existing thread matched, the inbox silently fell back to the first conversation, making the `Nhắn tin` CTA feel implemented while actually opening the wrong chat
+- Fix:
+  - added `packages/web/src/pages/roommates/utils/openRoommateConversation.ts` as a shared helper that calls `startConversation(otherUserId, currentUserId)` and navigates to `/messages/<conversationId>`
+  - wired both roommate results and roommate requests to use that helper instead of `window.location.href` / query-param redirects
+  - added loading/disabled states on the roommate `Nhắn tin` buttons while the direct thread is being opened
+  - corrected the component-level relative imports to `../../utils/openRoommateConversation` so Vite can resolve the shared helper from both `components/results` and `components/requests`
+- Regression coverage:
+  - added `packages/web/src/pages/roommates/utils/openRoommateConversation.test.ts`
+- Latest validation:
+  - `npx eslint packages/web/src/pages/roommates/components/results/RoommateResults.tsx packages/web/src/pages/roommates/components/requests/RequestsList.tsx packages/web/src/pages/roommates/utils/openRoommateConversation.ts packages/web/src/pages/roommates/utils/openRoommateConversation.test.ts`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/pages/roommates/utils/openRoommateConversation.test.ts`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npm run build --workspace=@roomz/web`: pass
+  - `npx ai-devkit@latest lint`: pass
+
+## Latest Update (2026-04-13, contact landlord existing-thread fix)
+
+- Fixed the room-detail contact modal regression where messaging a landlord could fail only after a conversation for that room already existed.
+- Root cause:
+  - `packages/web/src/components/modals/ContactLandlordModal.tsx` opens by calling `get_or_create_conversation(user, landlord, roomId, roomTitle)`
+  - the live PostgreSQL function `public.get_or_create_conversation` worked for brand-new conversations, but its existing-thread update branch used `room_title_snapshot` ambiguously
+  - PostgreSQL raised `column reference "room_title_snapshot" is ambiguous`, so the modal dropped into its catch block and surfaced `Không thể tải tin nhắn`
+- Fix:
+  - added migration `supabase/migrations/20260413211500_fix_get_or_create_conversation_room_title_snapshot_ambiguity.sql`
+  - qualified the function parameter explicitly as `get_or_create_conversation.room_title_snapshot` so the existing-thread path can update safely without changing the RPC signature
+- Live validation:
+  - applied on Supabase project `vevnoxlgwisdottaifdn`
+  - live Postgres logs previously showed the exact ambiguity error on `get_or_create_conversation`; the function definition is now aligned with the fixed parameter qualification
+  - `npx ai-devkit@latest lint`: pass
+
+## Latest Update (2026-04-13, community feed expansion after featured cards)
+
+- Adjusted the public `/community` page so it no longer feels artificially limited to two visible posts.
+- Root cause:
+  - `CommunityPage` fetched paginated feed data through `usePosts`
+  - but the UI only rendered `slice(0, 2)` for featured cards and `slice(2, 4)` for the second section, silently dropping the rest of the already-fetched feed
+  - the hook already exposed `hasNextPage` / `fetchNextPage`, but the page had no visible continuation control
+- Implemented the lighter-weight hybrid fix instead of a full feed redesign:
+  - kept the first two posts as featured discussion cards
+  - expanded the second section to render all remaining loaded posts via `slice(2)`
+  - changed that second section to use an adaptive layout: short feeds with only `1-2` remaining posts now stretch across the full width as a grid, while longer feeds switch to a horizontal content rail
+  - added a visible `Xem thêm bài viết` CTA that calls the existing infinite-query `fetchNextPage`
+- Also normalized several mojibake / irregular-whitespace lines touched by the page so lint can pass on the file cleanly.
+- Regression coverage:
+  - `packages/web/src/pages/CommunityPage.test.tsx` now verifies the page still uses real author avatars on the featured/community-author surfaces
+  - the same test file now verifies short latest-post lists stay full-width instead of collapsing into a left-aligned rail, and that the load-more CTA calls `fetchNextPage`
+- Latest validation:
+  - `npx eslint packages/web/src/pages/CommunityPage.tsx packages/web/src/pages/CommunityPage.test.tsx`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/pages/CommunityPage.test.tsx`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npx ai-devkit@latest lint`: pass
+
+## Latest Update (2026-04-13, community author avatar source fix)
+
+- Investigated the community report where the public `/community` feed showed non-real author avatars and no premium ring on featured discussion cards.
+- Root cause:
+  - the community data services already return `author.avatar` and `author.isPremium` from `users.avatar_url` / `users.is_premium`
+  - `packages/web/src/pages/CommunityPage.tsx` still had stale presentation-only avatar paths using `stitchAssets.community.discussionAvatars` and `stitchAssets.community.contributors`
+  - those stale paths bypassed `PremiumAvatar`, so both the real avatar and premium ring were lost on those surfaces
+- Fixed the page-level render paths:
+  - featured discussion cards now use live author avatar data with `PremiumAvatar`
+  - sidebar `Thành viên tích cực` cards now use live author avatar data with `PremiumAvatar`
+  - missing-avatar fallback now uses author initials instead of static art
+- Live data verification:
+  - queried the reported post `Chào mọi ngườiii` on Supabase project `vevnoxlgwisdottaifdn`
+  - confirmed the author already has a real `avatar_url`
+  - confirmed the same author currently has `users.is_premium = false` and no active subscription, so the missing premium ring on that specific post was expected from current data
+- Regression coverage:
+  - added `packages/web/src/pages/CommunityPage.test.tsx` to assert featured/community contributor avatars come from author data instead of static Stitch avatar assets
+- Latest validation:
+  - `npx eslint packages/web/src/pages/CommunityPage.tsx packages/web/src/pages/CommunityPage.test.tsx`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/pages/CommunityPage.test.tsx`: pass
+  - `npx ai-devkit@latest lint`: pass
+
+## Latest Update (2026-04-13, staging demo user profile refresh)
+
+- Replaced the obviously fake staging/demo user identities in the live `public.users` dataset with deterministic Vietnamese-looking personas instead of leaving `Chu nha Demo xx` / `Sinh vien Demo xxx` visible across room, roommate, and messaging surfaces.
+- Live data refresh:
+  - applied migration `20260413102410_refresh_staging_demo_user_profiles` on Supabase project `vevnoxlgwisdottaifdn`
+  - refreshed all `125` `staging_demo` users (`24` landlords, `100` students, `1` admin)
+  - `full_name`, `email`, `phone`, `avatar_url`, and `bio` now look realistic while staying safely scoped to records marked with `preferences.seed_group = 'staging_demo'`
+  - no matching records exist in `auth.users`, so this pass only touched app-domain display data in `public.users`
+- Seed-source alignment:
+  - [supabase/seeds/staging_demo.sql](/e:/RoomZ/roomz-ui/supabase/seeds/staging_demo.sql) now generates deterministic Vietnamese identities, realistic bios, safer `example.com` email addresses, and persona avatars for demo users
+  - the user inserts in that seed now use `ON CONFLICT ... DO UPDATE` so rerunning the staging seed refreshes existing demo users instead of preserving stale fake names
+  - local migration source is tracked in [supabase/migrations/20260413102410_refresh_staging_demo_user_profiles.sql](/e:/RoomZ/roomz-ui/supabase/migrations/20260413102410_refresh_staging_demo_user_profiles.sql)
+- Latest validation:
+  - `npx ai-devkit@latest lint`: pass
+  - direct SQL verification on `vevnoxlgwisdottaifdn`: `old_demo_emails = 0`, `old_demo_names = 0`, `staging_total = 125`
+  - direct SQL spot check confirms refreshed rows such as `Bùi Anh Khoa`, `Bùi Đức Huy`, `Đặng Khánh Uyên`, with `seed_profile_style = 'vn_realistic'`
 
 ## Latest Update (2026-04-13, premium avatar review follow-up batch)
 

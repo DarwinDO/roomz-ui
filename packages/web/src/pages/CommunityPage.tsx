@@ -1,16 +1,21 @@
 import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Search, Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Heart, MessageCircle, Search, Share2, Star } from "lucide-react";
+
+import { StitchFooter } from "@/components/common/StitchFooter";
 import { CreatePostModal } from "@/components/modals/CreatePostModal";
 import { PostDetailModal } from "@/components/modals/PostDetailModal";
-import { usePost, usePosts, useTopPosts, useToggleLike, useDeletePost } from "@/hooks/useCommunity";
+import { AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { PremiumAvatar } from "@/components/ui/PremiumAvatar";
+import { useDeletePost, usePost, usePosts, useToggleLike, useTopPosts } from "@/hooks/useCommunity";
 import { createPublicMotion } from "@/lib/motion";
-import { stitchAssets } from "@/lib/stitchAssets";
-import { StitchFooter } from "@/components/common/StitchFooter";
-import type { Post } from "./community/types";
 import type { PostRow } from "@/services/community";
+
+import type { Post } from "./community/types";
+
+const POSTS_PER_PAGE = 10;
 
 const topicChips = [
   "Tìm bạn cùng phòng",
@@ -67,8 +72,8 @@ function getTimeAgo(timestamp: string) {
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now.getTime() - date.getTime();
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days = Math.floor(diff / 86_400_000);
 
   if (hours < 1) return "Vừa đăng";
   if (hours < 24) return `${hours} giờ trước`;
@@ -76,8 +81,21 @@ function getTimeAgo(timestamp: string) {
   return date.toLocaleDateString("vi-VN");
 }
 
-function getFeaturedMedia(post: PostRow, fallbackImage: string) {
-  return post.images.length > 0 ? post.images : [fallbackImage];
+function getUserInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function getPostBadgeLabel(type: PostRow["type"]) {
+  if (type === "qa") return "Hỏi đáp";
+  if (type === "offer") return "Ưu đãi";
+  if (type === "tip") return "Mẹo hay";
+  return "Chia sẻ";
 }
 
 export default function CommunityPage() {
@@ -86,41 +104,40 @@ export default function CommunityPage() {
     () => createPublicMotion(!!shouldReduceMotion),
     [shouldReduceMotion],
   );
+
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [editPost, setEditPost] = useState<Post | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<keyof typeof filterMap>("Tất cả");
 
-  const { posts, isLoading } = usePosts({
+  const normalizedSearchQuery = searchQuery.trim();
+  const {
+    posts,
+    totalCount,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = usePosts({
     type: filterMap[activeFilter],
+    pageSize: POSTS_PER_PAGE,
+    searchQuery: normalizedSearchQuery || undefined,
   });
   const { data: topPosts = [] } = useTopPosts(3);
   const { data: selectedPostDetail } = usePost(selectedPostId ?? undefined);
   const toggleLikeMutation = useToggleLike();
   const deletePostMutation = useDeletePost();
-
-  const filteredPosts = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return posts;
-    }
-
-    const query = searchQuery.toLowerCase();
-    return posts.filter(
-      (post) =>
-        post.title.toLowerCase().includes(query) || post.content.toLowerCase().includes(query),
-    );
-  }, [posts, searchQuery]);
-
-  const featuredPosts = filteredPosts.slice(0, 2);
-  const storyPosts = filteredPosts.slice(2, 4);
+  const visiblePostCount = posts.length;
 
   const contributorCards = useMemo(
     () =>
       topPosts.slice(0, 3).map((post, index) => ({
         name: post.author.name,
         subtitle: `${post.likes_count} lượt thích`,
-        avatar: stitchAssets.community.contributors[index],
+        avatar: post.author.avatar,
+        isPremium: post.author.isPremium ?? false,
         rank: index + 1,
       })),
     [topPosts],
@@ -230,9 +247,15 @@ export default function CommunityPage() {
             variants={motionTokens.stagger(0.08, 0.06)}
           >
             <section>
-              <div className="mb-8 flex items-end justify-between">
-                <h2 className="text-3xl">Thảo luận nổi bật</h2>
-                <div className="flex gap-2">
+              <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+                <div>
+                  <h2 className="text-3xl">Tin đăng cộng đồng</h2>
+                  <p className="mt-2 font-medium text-muted-foreground">
+                    Feed dọc kiểu cộng đồng thật, hiển thị 10 bài mỗi lượt và tiếp tục tải thêm
+                    khi bạn muốn xem sâu hơn.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
                   {Object.keys(filterMap).map((filter) => (
                     <Button
                       key={filter}
@@ -246,8 +269,25 @@ export default function CommunityPage() {
                 </div>
               </div>
 
-              <motion.div className="space-y-6" variants={motionTokens.stagger(0.08, 0.06)}>
-                {featuredPosts.map((post, index) => (
+              <div className="mb-6 flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  Đang hiển thị {Math.min(visiblePostCount, totalCount)} / {totalCount} bài đăng.
+                </span>
+                <span>
+                  {isFetchingNextPage
+                    ? "Đang tải thêm bài viết..."
+                    : isFetching
+                      ? "Đang làm mới feed..."
+                      : `Mỗi lượt tải ${POSTS_PER_PAGE} bài`}
+                </span>
+              </div>
+
+              <motion.div
+                className="space-y-6"
+                aria-label="Danh sách tin đăng cộng đồng"
+                variants={motionTokens.stagger(0.08, 0.06)}
+              >
+                {posts.map((post, index) => (
                   <motion.article
                     key={post.id}
                     role="button"
@@ -261,162 +301,107 @@ export default function CommunityPage() {
                         setSelectedPostId(post.id);
                       }
                     }}
-                    className="group w-full rounded-[28px] bg-surface-container-lowest p-8 text-left shadow-[0_10px_40px_rgba(40,43,81,0.04)] transition-all hover:shadow-[0_20px_60px_rgba(40,43,81,0.08)]"
+                    className="group overflow-hidden rounded-[32px] border border-surface-container bg-white text-left shadow-[0_10px_40px_rgba(40,43,81,0.04)] transition-all hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(40,43,81,0.08)]"
                     variants={motionTokens.revealScale(18, 0.98, index * 0.08)}
                   >
-                    {(() => {
-                      const media = getFeaturedMedia(
-                        post,
-                        stitchAssets.community.storyImages[index % stitchAssets.community.storyImages.length],
-                      );
-
-                      if (media.length === 1) {
-                        return (
-                          <div className="mb-6 overflow-hidden rounded-[24px] bg-surface-container-low p-3">
-                            <img
-                              src={media[0]}
-                              alt={post.title}
-                              className="h-auto max-h-[360px] w-full rounded-[18px] object-contain"
-                            />
+                    <div className="border-b border-surface-container-low px-6 py-6 sm:px-7">
+                      <div className="flex items-start gap-4">
+                        <PremiumAvatar isPremium={post.author.isPremium ?? false} className="h-12 w-12 shrink-0">
+                          <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />
+                          <AvatarFallback className="bg-gradient-to-br from-primary/15 to-secondary/20 font-semibold text-primary">
+                            {getUserInitials(post.author.name)}
+                          </AvatarFallback>
+                        </PremiumAvatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-display text-lg font-bold text-foreground">
+                              {post.author.name}
+                            </p>
+                            <Badge className="rounded-full bg-surface-container-low text-foreground shadow-none">
+                              {getPostBadgeLabel(post.type)}
+                            </Badge>
                           </div>
-                        );
-                      }
-
-                      return (
-                        <div className="mb-6 grid gap-3 sm:grid-cols-2">
-                          {media.slice(0, 3).map((image, imageIndex) => {
-                            const isLastVisible = imageIndex === 2;
-                            const extraImages = media.length - 3;
-
-                            return (
-                              <div
-                                key={`${post.id}-${image}-${imageIndex}`}
-                                className={`relative overflow-hidden rounded-[20px] bg-surface-container-low ${
-                                  imageIndex === 0 && media.length >= 3 ? "sm:col-span-2" : ""
-                                }`}
-                              >
-                                <img
-                                  src={image}
-                                  alt={`${post.title} - ảnh ${imageIndex + 1}`}
-                                  className={`w-full object-cover transition-transform duration-700 group-hover:scale-105 ${
-                                    imageIndex === 0 && media.length >= 3 ? "h-52" : "h-44"
-                                  }`}
-                                />
-                                {isLastVisible && extraImages > 0 ? (
-                                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/52">
-                                    <span className="text-base font-bold text-white">
-                                      +{extraImages} ảnh
-                                    </span>
-                                  </div>
-                                ) : null}
-                              </div>
-                            );
-                          })}
+                          <p className="text-sm text-muted-foreground">
+                            {post.author.role === "landlord" ? "Chủ nhà" : "Sinh viên"} •{" "}
+                            {getTimeAgo(post.created_at)}
+                          </p>
                         </div>
-                      );
-                    })()}
-
-                    <div className="mb-4 flex items-start gap-4">
-                      <img
-                        src={stitchAssets.community.discussionAvatars[index] || stitchAssets.community.discussionAvatars[0]}
-                        alt={post.author.name}
-                        className="h-12 w-12 rounded-full border-2 border-primary-container/20 object-cover"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-xl transition-colors group-hover:text-primary">
-                          {post.title}
-                        </h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Bởi <span className="font-bold text-primary">{post.author.name}</span> •{" "}
-                          {getTimeAgo(post.created_at)}
-                        </p>
                       </div>
-                      <Badge className="rounded-full bg-tertiary-container text-tertiary-container-foreground">
-                        {post.type === "qa" ? "Hỏi đáp" : post.type === "offer" ? "Ưu đãi" : "Chia sẻ"}
-                      </Badge>
+
+                      <h3 className="mt-5 text-2xl transition-colors group-hover:text-primary">
+                        {post.title}
+                      </h3>
+                      <p className="mt-3 line-clamp-4 whitespace-pre-line text-base leading-7 text-muted-foreground">
+                        {post.content}
+                      </p>
                     </div>
 
-                    <p className="mb-6 line-clamp-2 text-muted-foreground">{post.content}</p>
+                    {post.images.length > 0 ? (
+                      <div className="border-b border-surface-container-low bg-surface-container-low/35 p-3 sm:p-4">
+                        <img
+                          src={post.images[0]}
+                          alt={post.title}
+                          className="h-auto max-h-[420px] w-full rounded-[24px] bg-surface-container-lowest object-contain"
+                        />
+                      </div>
+                    ) : null}
 
-                    <div className="flex items-center gap-6 border-t border-surface-container-low pt-6 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
                       <button
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
                           toggleLikeMutation.mutate(post.id);
                         }}
-                        className="flex items-center gap-2 transition-colors hover:text-primary"
+                        className="inline-flex items-center gap-2 rounded-full bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-100"
                       >
-                        ❤️ <span className="font-bold">{post.likes_count}</span>
+                        <Heart className="h-4 w-4" />
+                        <span>{post.likes_count}</span>
                       </button>
-                      <span className="flex items-center gap-2">
-                        💬 <span className="font-bold">{post.comments_count}</span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-surface-container-low px-4 py-2 text-sm font-medium text-muted-foreground">
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{post.comments_count} bình luận</span>
                       </span>
-                      <span className="ml-auto">Mở chi tiết</span>
+                      <span className="ml-auto inline-flex items-center gap-2 text-sm font-bold text-primary">
+                        <Share2 className="h-4 w-4" />
+                        <span>Mở thảo luận</span>
+                      </span>
                     </div>
                   </motion.article>
                 ))}
-
-                {!isLoading && featuredPosts.length === 0 ? (
-                  <div className="rounded-[28px] bg-white p-8 text-center text-muted-foreground stitch-editorial-shadow">
-                    Chưa có bài viết phù hợp với bộ lọc hiện tại.
-                  </div>
-                ) : null}
               </motion.div>
-            </section>
 
-            <section>
-              <div className="mb-8">
-                <h2 className="text-3xl">Chuyện chúng mình</h2>
-                <p className="mt-2 font-medium text-muted-foreground">
-                  Những lát cắt chân thực về cuộc sống thuê trọ, chuyển nhà và ở ghép.
-                </p>
-              </div>
+              {!isLoading && posts.length === 0 ? (
+                <div className="mt-6 rounded-[28px] bg-white p-8 text-center text-muted-foreground stitch-editorial-shadow">
+                  Chưa có bài viết phù hợp với bộ lọc hiện tại.
+                </div>
+              ) : null}
 
-              <motion.div
-                className="grid gap-8 md:grid-cols-2"
-                variants={motionTokens.stagger(0.08, 0.06)}
-              >
-                {storyPosts.map((post, index) => (
-                  <motion.button
-                    key={post.id}
-                    type="button"
-                    initial="hidden"
-                    animate="show"
-                    onClick={() => setSelectedPostId(post.id)}
-                    className="group overflow-hidden rounded-[28px] bg-white text-left shadow-sm transition-all hover:shadow-xl"
-                    variants={motionTokens.revealScale(18, 0.98, index * 0.08)}
-                    whileTap={motionTokens.tap}
-                  >
-                    <div className="relative h-64 overflow-hidden">
-                      <img
-                        src={post.images[0] || stitchAssets.community.storyImages[index] || stitchAssets.community.storyImages[0]}
-                        alt={post.title}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
-                      <div className="absolute bottom-4 left-6">
-                        <span className="rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white">
-                          {post.type === "offer" ? "Ưu đãi" : "Phóng sự"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-8">
-                      <h4 className="mb-4 text-xl transition-colors group-hover:text-primary">
-                        {post.title}
-                      </h4>
-                      <p className="mb-6 line-clamp-3 text-muted-foreground">{post.content}</p>
-                      <span className="font-display text-sm font-bold text-primary">
-                        Đọc tiếp
-                      </span>
-                    </div>
-                  </motion.button>
-                ))}
-              </motion.div>
+              {posts.length > 0 ? (
+                <div className="mt-10 flex flex-col items-center gap-4">
+                  {hasNextPage ? (
+                    <Button
+                      type="button"
+                      className="rounded-full px-6"
+                      onClick={() => void fetchNextPage()}
+                      disabled={isFetchingNextPage}
+                    >
+                      {isFetchingNextPage ? "Đang tải thêm..." : "Xem thêm bài viết"}
+                    </Button>
+                  ) : totalCount > POSTS_PER_PAGE ? (
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Đã hiển thị hết {totalCount} bài đăng trong cộng đồng.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </section>
           </motion.div>
 
-          <motion.aside className="space-y-12 lg:col-span-4" variants={motionTokens.stagger(0.08, 0.08)}>
+          <motion.aside
+            className="space-y-12 lg:col-span-4"
+            variants={motionTokens.stagger(0.08, 0.08)}
+          >
             <motion.section
               className="rounded-[28px] bg-surface-container-low p-8"
               variants={motionTokens.revealScale(18)}
@@ -429,7 +414,7 @@ export default function CommunityPage() {
                 {events.map((event) => (
                   <div
                     key={event.title}
-                    className={`rounded-[24px] bg-white p-5 shadow-sm border-l-4 ${
+                    className={`rounded-[24px] border-l-4 bg-white p-5 shadow-sm ${
                       event.tone === "primary" ? "border-primary" : "border-tertiary"
                     }`}
                   >
@@ -447,7 +432,13 @@ export default function CommunityPage() {
                       <h4 className="font-display text-base font-bold">{event.title}</h4>
                     </div>
                     <p className="mb-4 text-sm text-muted-foreground">{event.meta}</p>
-                    <Button className={event.tone === "primary" ? "w-full rounded-full" : "w-full rounded-full bg-tertiary text-white hover:bg-tertiary/90"}>
+                    <Button
+                      className={
+                        event.tone === "primary"
+                          ? "w-full rounded-full"
+                          : "w-full rounded-full bg-tertiary text-white hover:bg-tertiary/90"
+                      }
+                    >
                       {event.cta}
                     </Button>
                   </div>
@@ -467,11 +458,12 @@ export default function CommunityPage() {
                 {contributorCards.map((contributor) => (
                   <div key={contributor.name} className="flex items-center gap-4">
                     <div className="relative">
-                      <img
-                        src={contributor.avatar}
-                        alt={contributor.name}
-                        className="h-12 w-12 rounded-full object-cover"
-                      />
+                      <PremiumAvatar isPremium={contributor.isPremium} className="h-12 w-12">
+                        <AvatarImage src={contributor.avatar || undefined} alt={contributor.name} />
+                        <AvatarFallback className="bg-gradient-to-br from-primary/15 to-secondary/20 font-semibold text-primary">
+                          {getUserInitials(contributor.name)}
+                        </AvatarFallback>
+                      </PremiumAvatar>
                       <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-white">
                         {contributor.rank}
                       </div>
