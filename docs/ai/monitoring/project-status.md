@@ -18,6 +18,23 @@ updated: 2026-04-14
 - **Motion direction:** Framer Motion only; shared motion foundation plus public and product polish are now active on `/`, `/login`, `/services`, `/community`, `/search`, `/messages`, and `/host`
 - **Hero accent direction:** Draftly-like layered illustration hero on landing/login; no runtime WebGL is active now
 
+## Latest Update (2026-04-14, become-landlord pending contrast fix)
+
+- Fixed the pending-host application screen where the main title and subtitle became too faint against the pale warning background.
+- Root cause:
+  - `packages/web/src/pages/become-landlord/components/BecomeLandlordPending.tsx` used `text-warning-foreground` and `text-warning-foreground/80`
+  - those foreground tokens are intended for strong warning surfaces, but this card uses a very light `bg-warning/5`
+  - the resulting contrast was too weak, especially on the centered pending-state heading block
+- Fix:
+  - kept the warning-tinted card, icon, and layout intact
+  - changed the title to `text-warning`
+  - changed the supporting description to `text-slate-600`
+  - no new UI copy, badges, or extra note content were added to the screen
+- Latest validation:
+  - `npx eslint packages/web/src/pages/become-landlord/components/BecomeLandlordPending.tsx`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npx ai-devkit@latest lint`: pass
+
 ## Latest Update (2026-04-14, community social feed with 10-post incremental loading)
 
 - Reworked the public `/community` page again after product feedback so `Tin đăng` behaves like a real social/community feed instead of a numbered blog archive.

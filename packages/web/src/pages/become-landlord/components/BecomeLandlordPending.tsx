@@ -31,8 +31,8 @@ export function BecomeLandlordPending({ submittedAt }: BecomeLandlordPendingProp
             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-warning/10 ring-8 ring-warning/5">
               <Clock className="h-10 w-10 text-warning" />
             </div>
-            <CardTitle className="text-2xl font-bold text-warning-foreground">Đơn host đang chờ duyệt</CardTitle>
-            <CardDescription className="mt-2 text-base text-warning-foreground/80">
+            <CardTitle className="text-2xl font-bold text-warning">Đơn host đang chờ duyệt</CardTitle>
+            <CardDescription className="mt-2 text-base text-slate-600">
               RommZ đang xem xét hồ sơ host của bạn.
             </CardDescription>
           </CardHeader>
