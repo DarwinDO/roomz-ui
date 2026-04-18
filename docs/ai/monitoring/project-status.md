@@ -18,6 +18,36 @@ updated: 2026-04-18
 - **Motion direction:** Framer Motion only; shared motion foundation plus public and product polish are now active on `/`, `/login`, `/services`, `/community`, `/search`, `/messages`, and `/host`
 - **Hero accent direction:** Draftly-like layered illustration hero on landing/login; no runtime WebGL is active now
 
+## Latest Update (2026-04-18, payment revenue exclusion controls)
+
+- Added a lightweight admin-only control to exclude specific paid premium-payment orders from revenue reporting without deleting the transaction and without introducing a refund / rollback flow.
+- Root cause:
+  - admin revenue stats in `packages/web/src/services/admin-payments.ts` summed every `payment_orders.status = 'paid'` row
+  - test or internal paid orders therefore inflated `Tổng doanh thu`
+  - deleting those rows would leave `subscriptions` and user premium cache inconsistent because successful payment processing already mutates subscription state elsewhere
+- Fix:
+  - added `supabase/migrations/20260418080439_add_payment_order_revenue_exclusion.sql`
+  - `payment_orders` now has `exclude_from_revenue boolean not null default false`
+  - added admin-readable policies for `payment_orders` and `manual_reviews`
+  - added admin-only RPC `set_payment_order_revenue_exclusion(...)` so the web client does not need broad direct update access
+  - updated `packages/web/src/services/admin-payments.ts` so `getRevenueStats()` excludes flagged paid orders while also surfacing `excludedRevenue` and `excludedPaidOrders`
+  - updated `packages/web/src/pages/admin/RevenuePage.tsx` so paid orders show `Đang tính` / `Đã loại` revenue state and admins can toggle `Loại khỏi doanh thu` or `Tính lại doanh thu`
+  - applied the migration live on Supabase project `vevnoxlgwisdottaifdn`; `supabase_migrations.schema_migrations.version = 20260418080439`
+  - excluded `7` known test orders from March-April 2026 by exact `order_code`, producing:
+    - `paid_revenue_gross = 640000`
+    - `excluded_paid_revenue = 151500`
+    - `paid_revenue_net = 488500`
+- Regression coverage:
+  - added `packages/web/src/services/admin-payments.test.ts` to verify revenue totals ignore excluded paid orders and the admin RPC payload stays correct
+- Latest validation:
+  - `npx eslint packages/web/src/services/admin-payments.ts packages/web/src/services/admin-payments.test.ts packages/web/src/pages/admin/RevenuePage.tsx`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/services/admin-payments.test.ts`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `mcp__supabase__apply_migration` on `vevnoxlgwisdottaifdn`: pass
+  - direct SQL verification on `vevnoxlgwisdottaifdn`: pass, the `exclude_from_revenue` column and `set_payment_order_revenue_exclusion(...)` RPC both exist
+  - direct SQL verification on `vevnoxlgwisdottaifdn`: pass, `7` target orders now have `exclude_from_revenue = true`
+  - `mcp__supabase__get_advisors` security scan: pre-existing unrelated warnings only
+
 ## Latest Update (2026-04-18, user-facing copy cleanup across ROMI and messaging surfaces)
 
 - Cleaned user-facing copy that still read like internal implementation notes across ROMI, inbox, host dashboard, search/location suggestion surfaces, and Local Passport.

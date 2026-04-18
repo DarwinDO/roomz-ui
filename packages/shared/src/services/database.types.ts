@@ -693,6 +693,7 @@ export type Database = {
                     amount: number
                     billing_cycle: string
                     created_at: string | null
+                    exclude_from_revenue: boolean
                     expires_at: string
                     id: string
                     order_code: string
@@ -709,6 +710,7 @@ export type Database = {
                     amount: number
                     billing_cycle?: string
                     created_at?: string | null
+                    exclude_from_revenue?: boolean
                     expires_at: string
                     id?: string
                     order_code: string
@@ -725,6 +727,7 @@ export type Database = {
                     amount?: number
                     billing_cycle?: string
                     created_at?: string | null
+                    exclude_from_revenue?: boolean
                     expires_at?: string
                     id?: string
                     order_code?: string
@@ -2294,6 +2297,10 @@ export type Database = {
                     p_resolution: string
                     p_review_id: string
                 }
+                Returns: undefined
+            }
+            set_payment_order_revenue_exclusion: {
+                Args: { p_exclude: boolean; p_order_id: string }
                 Returns: undefined
             }
             search_rooms: {

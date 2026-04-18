@@ -21,6 +21,7 @@ export interface PaymentOrder {
     paid_at?: string;
     created_at: string;
     updated_at: string;
+    exclude_from_revenue: boolean;
     // Joined fields
     user_email?: string;
     user_name?: string;
@@ -51,6 +52,8 @@ export interface RevenueStats {
     pendingOrders: number;
     expiredOrders: number;
     manualReviewOrders: number;
+    excludedRevenue: number;
+    excludedPaidOrders: number;
 }
 
 type PaymentOrderRow = Tables<'payment_orders'> & {
@@ -91,6 +94,7 @@ function mapPaymentOrder(order: PaymentOrderRow): PaymentOrder {
         paid_at: order.paid_at ?? undefined,
         created_at: order.created_at ?? order.updated_at ?? order.expires_at,
         updated_at: order.updated_at ?? order.created_at ?? order.expires_at,
+        exclude_from_revenue: order.exclude_from_revenue ?? false,
         user_email: order.user?.email ?? undefined,
         user_name: order.user?.full_name ?? undefined,
     };
@@ -194,38 +198,70 @@ export async function resolveManualReview(
 }
 
 /**
+ * Include or exclude a paid order from revenue stats
+ */
+export async function setPaymentOrderRevenueExclusion(orderId: string, exclude: boolean): Promise<void> {
+    const { error } = await supabase.rpc('set_payment_order_revenue_exclusion', {
+        p_order_id: orderId,
+        p_exclude: exclude,
+    });
+
+    if (error) throw error;
+}
+
+/**
  * Get revenue stats
  */
 export async function getRevenueStats(): Promise<RevenueStats> {
-    // Get paid orders total
-    const { data: paidOrders } = await supabase
+    const { data, error } = await supabase
         .from('payment_orders')
-        .select('amount')
-        .eq('status', 'paid');
+        .select('status, amount, exclude_from_revenue');
 
-    const totalRevenue = ((paidOrders || []) as Pick<Tables<'payment_orders'>, 'amount'>[])
-        .reduce((sum, order) => sum + (order.amount || 0), 0);
+    if (error) throw error;
 
-    // Get counts by status
-    const { data: allOrders } = await supabase
-        .from('payment_orders')
-        .select('status');
+    const orders = (data || []) as Pick<Tables<'payment_orders'>, 'status' | 'amount' | 'exclude_from_revenue'>[];
 
-    const ordersByStatus = ((allOrders || []) as Pick<Tables<'payment_orders'>, 'status'>[])
-        .reduce((acc, order) => {
+    const ordersByStatus = orders.reduce((acc, order) => {
         if (!order.status) {
             return acc;
         }
+
         acc[order.status] = (acc[order.status] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
 
+    const totalRevenue = orders.reduce((sum, order) => {
+        if (order.status !== 'paid' || order.exclude_from_revenue) {
+            return sum;
+        }
+
+        return sum + (order.amount || 0);
+    }, 0);
+
+    const excludedRevenue = orders.reduce((sum, order) => {
+        if (order.status !== 'paid' || !order.exclude_from_revenue) {
+            return sum;
+        }
+
+        return sum + (order.amount || 0);
+    }, 0);
+
+    const excludedPaidOrders = orders.reduce((count, order) => {
+        if (order.status === 'paid' && order.exclude_from_revenue) {
+            return count + 1;
+        }
+
+        return count;
+    }, 0);
+
     return {
         totalRevenue,
-        totalOrders: allOrders?.length || 0,
+        totalOrders: orders.length,
         paidOrders: ordersByStatus.paid || 0,
         pendingOrders: ordersByStatus.pending || 0,
         expiredOrders: ordersByStatus.expired || 0,
         manualReviewOrders: ordersByStatus.manual_review || 0,
+        excludedRevenue,
+        excludedPaidOrders,
     };
 }
