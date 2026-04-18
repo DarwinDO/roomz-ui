@@ -123,7 +123,7 @@ export function getAIChatSessionPreview(session: Pick<AIChatSession, "preview" |
     return summary;
   }
 
-  return session.preview?.trim() || summary || "Tiếp tục đúng ngữ cảnh đang hỏi.";
+  return session.preview?.trim() || summary || "Tiếp tục cuộc trò chuyện này.";
 }
 
 function normalizeRequest(
@@ -190,12 +190,12 @@ export async function* sendAIChatMessageStream(
   if (!response.ok) {
     const payload = (await response.clone().json().catch(() => null)) as ResponseErrorPayload | null;
     throw new Error(
-      formatDetailedError(payload, "Không thể mở luồng phản hồi của ROMI lúc này."),
+      formatDetailedError(payload, "ROMI đang bận nên chưa phản hồi được ngay lúc này."),
     );
   }
 
   if (!response.body) {
-    throw new Error("ROMI chưa trả về luồng dữ liệu hợp lệ.");
+    throw new Error("ROMI chưa phản hồi đúng cách. Bạn thử gửi lại giúp mình.");
   }
 
   const reader = response.body.getReader();

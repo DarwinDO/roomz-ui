@@ -12,6 +12,9 @@ export const searchRooms = (filters?: roomsService.RoomFilters) =>
 export const getRoomById = (id: string) =>
   roomsService.getRoomById(supabase, id);
 
+export const incrementRoomView = (id: string) =>
+  roomsService.incrementRoomView(supabase, id);
+
 export const createRoom = (data: roomsService.CreateRoomData) =>
   roomsService.createRoom(supabase, data);
 

@@ -167,13 +167,13 @@ export default function MessagesPage() {
         <Card className="rounded-[2rem] border-none bg-surface-container-lowest shadow-soft-lg">
           <CardContent className="flex flex-col gap-6 p-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">Messaging console</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">Hộp thư</p>
               <h1 className="mt-3 font-display text-4xl font-black tracking-[-0.05em] text-on-surface md:text-5xl">
                 Tin nhắn
               </h1>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
-              <InboxMetric label="Tổng thread" value={`${conversations.length}`} />
+              <InboxMetric label="Tổng trò chuyện" value={`${conversations.length}`} />
               <InboxMetric label="Chưa đọc" value={`${unreadCount}`} accent="primary" />
               <InboxMetric
                 label="Theo phòng"
@@ -303,7 +303,7 @@ function ConversationRail({
           ) : conversations.length === 0 ? (
             <EmptyInboxState
               title="Chưa có cuộc trò chuyện nào"
-              body="Khi bạn nhắn với chủ trọ hoặc người dùng khác, thread sẽ hiện ở đây theo đúng ngữ cảnh."
+              body="Khi bạn nhắn với chủ trọ hoặc người dùng khác, cuộc trò chuyện sẽ hiện ở đây."
             />
           ) : (
             conversations.map((conversation) => (
@@ -413,7 +413,7 @@ function ChatWorkspace({
         <CardContent className="flex min-h-[calc(100svh-20rem)] items-center justify-center p-8">
           <EmptyInboxState
             title="Chọn một cuộc trò chuyện"
-            body="RommZ sẽ hiện phần chat chính ở đây sau khi bạn chọn một thread từ hộp thư bên trái."
+            body="Chọn một cuộc trò chuyện ở cột bên trái để xem nội dung tại đây."
           />
         </CardContent>
       </Card>
@@ -540,7 +540,7 @@ function ChatPanel({
             </div>
           </div>
           <div className="rounded-full bg-surface px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
-            {typingUsers.length > 0 ? "Đang nhập..." : "Đồng bộ hội thoại"}
+            {typingUsers.length > 0 ? "Đang nhập..." : "Sẵn sàng trò chuyện"}
           </div>
         </div>
       </CardHeader>
@@ -554,7 +554,7 @@ function ChatPanel({
           ) : messages.length === 0 ? (
             <EmptyInboxState
               title="Bắt đầu cuộc trò chuyện"
-              body="Thread này đã sẵn ngữ cảnh. Bạn có thể nhắn trực tiếp mà không sợ bị lẫn với một cuộc trao đổi khác."
+              body="Bạn có thể nhắn ngay tại đây để bắt đầu trao đổi với người này."
             />
           ) : (
             messages.map((message) => (
@@ -625,7 +625,7 @@ function ChatPanel({
               value={draftMessage}
               onChange={(event) => onDraftChange(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Nhắn trực tiếp ngay trong thread này..."
+              placeholder="Nhắn ngay trong cuộc trò chuyện này..."
               className="rounded-[1.5rem] border-none bg-surface shadow-none transition-[height] duration-100"
               style={{ resize: "none", overflowY: "hidden" }}
               rows={1}
@@ -669,7 +669,7 @@ function ContextRail({
     >
       <Card className="rounded-[2rem] border-none bg-surface-container-lowest shadow-soft-lg">
         <CardHeader className="pb-4">
-          <CardTitle className="font-display text-xl font-extrabold tracking-[-0.03em]">Ngữ cảnh cuộc trò chuyện</CardTitle>
+          <CardTitle className="font-display text-xl font-extrabold tracking-[-0.03em]">Chi tiết cuộc trò chuyện</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {conversation.room ? (
@@ -685,7 +685,7 @@ function ContextRail({
                 <p className="font-semibold text-on-surface">{conversation.room.title}</p>
                 <div className="mt-3 flex items-start gap-2 text-sm leading-6 text-on-surface-variant">
                   <MapPin className="mt-1 h-4 w-4 shrink-0" />
-                  <span>{conversation.room.address || "Listing này đang được hỏi trực tiếp trong thread."}</span>
+                  <span>{conversation.room.address || "Tin phòng này đang được hỏi trực tiếp."}</span>
                 </div>
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <span className="text-sm text-on-surface-variant">Giá tham chiếu</span>
@@ -718,7 +718,7 @@ function ContextRail({
                 </div>
               </div>
               <div className="mt-5 rounded-[1.25rem] bg-surface-container p-4 text-sm leading-6 text-on-surface-variant">
-                Đây là thread trực tiếp không gắn với một listing cụ thể. Luồng này phù hợp cho trao đổi hồ sơ, kết nối ở ghép hoặc nhắn trực tiếp giữa hai người dùng.
+                Đây là cuộc trò chuyện trực tiếp, không gắn với một tin phòng cụ thể. Phù hợp cho trao đổi hồ sơ, tìm người ở ghép hoặc nhắn tin riêng giữa hai người dùng.
               </div>
             </div>
           )}
@@ -732,10 +732,10 @@ function ContextRail({
         <CardContent className="space-y-3">
           {[
             contextMeta.kind === "room_inquiry"
-              ? "Nếu đang chốt lịch xem phòng, giữ mọi trao đổi về chính listing này trong cùng thread."
-              : "Nếu đây là trao đổi trực tiếp, hãy chốt rõ mục tiêu trò chuyện để tránh nhầm context.",
+              ? "Nếu đang chốt lịch xem phòng, hãy giữ mọi trao đổi về tin phòng này trong cùng một cuộc trò chuyện."
+              : "Nếu đây là cuộc trò chuyện trực tiếp, hãy nói rõ mục đích để hai bên theo dõi dễ hơn.",
             "Trả lời ngắn gọn trước, gửi ảnh hoặc thông tin sâu sau khi hai bên đã thống nhất hướng nói chuyện.",
-            "Khi thread đã rõ ràng, bạn có thể dùng nó như nguồn sự thật duy nhất thay vì tách ra nhiều cuộc chat nhỏ.",
+            "Khi hai bên đã thống nhất nội dung chính, hãy tiếp tục ngay trong cuộc trò chuyện này để khỏi sót thông tin.",
           ].map((tip) => (
             <div key={tip} className="rounded-[1.25rem] bg-surface p-4 text-sm leading-6 text-on-surface-variant">
               {tip}
@@ -856,7 +856,7 @@ function getQuickReplies(conversation: Conversation, isHostView: boolean) {
     return isHostView
       ? [
           "Phòng này vẫn còn trống, bạn muốn chốt lịch xem vào khung nào?",
-          "Mình sẽ gửi thêm ảnh và thông tin chi tiết của listing này ngay trong thread này.",
+          "Mình sẽ gửi thêm ảnh và thông tin chi tiết của tin phòng này ngay tại đây.",
           "Nếu cần đổi lịch xem phòng, cứ nhắn lại tại đây để mình cập nhật.",
         ]
       : [
@@ -867,7 +867,7 @@ function getQuickReplies(conversation: Conversation, isHostView: boolean) {
   }
 
   return [
-    "Chào bạn, mình muốn trao đổi thêm một chút trong thread này.",
+    "Chào bạn, mình muốn trao đổi thêm một chút ngay tại đây.",
     "Mình đã xem hồ sơ của bạn và muốn hỏi thêm vài chi tiết.",
     "Nếu tiện, mình muốn chốt tiếp bước tiếp theo ngay tại đây.",
   ];

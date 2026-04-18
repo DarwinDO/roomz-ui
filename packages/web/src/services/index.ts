@@ -21,6 +21,7 @@ import { getStorageAdapter } from '@/adapters';
 import * as roomsShared from '@roomz/shared/services/rooms';
 export const searchRooms = (filters?: roomsShared.RoomFilters) => roomsShared.searchRooms(supabase, filters);
 export const getRoomById = (id: string) => roomsShared.getRoomById(supabase, id);
+export const incrementRoomView = (id: string) => roomsShared.incrementRoomView(supabase, id);
 export const createRoom = (data: roomsShared.CreateRoomData) => roomsShared.createRoom(supabase, data);
 export const updateRoom = (id: string, roomData: Partial<roomsShared.Room>, amenities?: Partial<roomsShared.RoomAmenity>) => roomsShared.updateRoom(supabase, id, roomData, amenities);
 export const updateRoomWithData = (id: string, data: roomsShared.UpdateRoomData) => roomsShared.updateRoomWithData(supabase, id, data);

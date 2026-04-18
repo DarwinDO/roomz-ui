@@ -2,7 +2,7 @@
 phase: monitoring
 title: Project Status Snapshot
 description: Living project memory for RoomZ product scope, architecture, roadmap, and current implementation state
-updated: 2026-04-14
+updated: 2026-04-18
 ---
 
 # RommZ Project Status
@@ -17,6 +17,78 @@ updated: 2026-04-14
 - **Current design direction:** `Stitch-first` Living Atlas direct port for eleven desktop routes
 - **Motion direction:** Framer Motion only; shared motion foundation plus public and product polish are now active on `/`, `/login`, `/services`, `/community`, `/search`, `/messages`, and `/host`
 - **Hero accent direction:** Draftly-like layered illustration hero on landing/login; no runtime WebGL is active now
+
+## Latest Update (2026-04-18, user-facing copy cleanup across ROMI and messaging surfaces)
+
+- Cleaned user-facing copy that still read like internal implementation notes across ROMI, inbox, host dashboard, search/location suggestion surfaces, and Local Passport.
+- Root cause:
+  - several public strings were written too close to internal product/state terminology during implementation
+  - labels like `thread`, `session`, `workspace`, `listing`, `room context`, `console`, `lane`, and `live` leaked into renter/host-facing UI
+  - shared ROMI journey summaries were built as bullet-separated state fragments instead of end-user-readable sentences
+- Fix:
+  - updated `packages/web/src/pages/RomiPage.tsx` to use end-user terms such as `cuộc trò chuyện`, `lịch sử trò chuyện`, and clearer explanatory / error copy
+  - updated `packages/shared/src/services/ai-chatbot/journey.ts` so `buildJourneySummary(...)` now produces natural Vietnamese sentences and no longer emits status-dump strings like `... • đang mở room`
+  - updated `packages/shared/src/services/ai-chatbot/api.ts` to soften ROMI preview/error fallbacks away from streaming/data-pipeline jargon
+  - updated `packages/web/src/pages/MessagesPage.tsx` and `packages/web/src/pages/LandlordDashboardPage.tsx` to remove `thread / listing / room context / console / lane / live` wording from user-facing surfaces
+  - updated `packages/web/src/pages/SearchPage.tsx`, `packages/web/src/pages/LocalPassportPage.tsx`, and `packages/web/src/components/listings/ListingLocationContext.tsx` to remove `nội bộ`, `Catalog nội bộ`, `Local context`, and other internal catalog wording
+- Regression coverage:
+  - `packages/web/src/services/romi.test.ts` now verifies ROMI summaries stay sentence-based and do not regress back to bullet-fragment state dumps
+- Latest validation:
+  - `npx eslint packages/shared/src/services/ai-chatbot/journey.ts packages/shared/src/services/ai-chatbot/api.ts packages/web/src/pages/RomiPage.tsx packages/web/src/pages/MessagesPage.tsx packages/web/src/pages/LandlordDashboardPage.tsx packages/web/src/pages/SearchPage.tsx packages/web/src/components/listings/ListingLocationContext.tsx packages/web/src/pages/LocalPassportPage.tsx packages/web/src/services/romi.test.ts`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/services/romi.test.ts`: pass
+  - `npx ai-devkit@latest lint`: pass
+
+## Latest Update (2026-04-18, room view count guard fix)
+
+- Fixed the host-side room view counter inflation where opening one listing could add `2` views and where admin / landlord previews were also counted as public views.
+- Root cause:
+  - `packages/shared/src/services/rooms.ts` incremented `view_count` inside `getRoomById(...)`
+  - that fetch helper is reused by the public detail page, landlord edit and preview flows, and post-create / post-update reloads
+  - because the mutation lived inside the fetch path, repeat query execution and non-public previews could still increment the listing counter
+- Fix:
+  - removed the `increment_view_count` RPC side effect from `getRoomById(...)`
+  - added a dedicated `incrementRoomView(...)` helper in the shared room service and exposed it through the web wrappers
+  - updated `packages/web/src/pages/RoomDetailPage.tsx` so room views are only counted when:
+    - auth state is resolved
+    - the room status is `active`
+    - the viewer is not an admin
+    - the viewer is not the landlord who owns the listing
+  - aligned `trackRoomViewed(...)` analytics with the same public-view guard so telemetry stays closer to the visible room counter
+- Regression coverage:
+  - `packages/web/src/services/rooms.shared.test.ts` now verifies `getRoomById(...)` no longer mutates `view_count` and `incrementRoomView(...)` is the only path that calls the RPC
+  - `packages/web/src/utils/roomViewTracking.test.ts` now verifies the guard for auth-loading, pending rooms, admin previews, landlord self-previews, and valid public views
+- Latest validation:
+  - `npx eslint packages/shared/src/services/rooms.ts packages/web/src/services/rooms.ts packages/web/src/services/index.ts packages/web/src/pages/RoomDetailPage.tsx packages/web/src/services/rooms.shared.test.ts packages/web/src/utils/roomViewTracking.ts packages/web/src/utils/roomViewTracking.test.ts`: pass
+  - `npx tsc -p packages/web/tsconfig.json --noEmit`: pass
+  - `npm run test:unit --workspace=@roomz/web -- src/services/rooms.shared.test.ts src/utils/roomViewTracking.test.ts`: pass
+
+## Latest Update (2026-04-14, outcome 1 mvp product brief)
+
+- Added a dedicated evaluator-facing product brief for `Outcome 1 / item 3` at [docs/features/outcome-1-mvp-product-brief.md](/e:/RoomZ/roomz-ui/docs/features/outcome-1-mvp-product-brief.md).
+- Why this was added:
+  - the repo already contained enough real product context to support a strong MVP brief, but the information was fragmented across lifecycle docs, README copy, premium entitlement notes, and ROMI audit material
+  - the team needed one defensible document that clearly states the current `persona / ICP`, `core value proposition`, and `core metrics dự kiến đo` without overclaiming future scope
+- What the brief now locks:
+  - the current Outcome 1 submission should be framed as a `web-first RommZ MVP`
+  - the primary ICP is students and young renters who need clearer room discovery and faster decision-making
+  - the current thesis is `Tìm phòng rõ hơn, chốt nhanh hơn`
+  - the recommended metric model now includes a North Star based on qualified housing decision actions plus core MVP metrics such as search activation, search-to-detail CTR, detail-to-contact conversion, ROMI action CTR, and D7 return
+- Submission artifact added:
+  - [docs/features/outcome-1-mvp-product-brief-submission.md](/e:/RoomZ/roomz-ui/docs/features/outcome-1-mvp-product-brief-submission.md) is now the short evaluator-facing version intended for direct submission
+  - [docs/features/outcome-1-mvp-product-brief.md](/e:/RoomZ/roomz-ui/docs/features/outcome-1-mvp-product-brief.md) remains the longer backing document for internal alignment and live Q&A support
+- Submission cleanup follow-up:
+  - removed template placeholders and non-final checklist sections from the short submission brief
+  - corrected the short brief so it no longer understates live surfaces such as ROMI and RommZ+
+  - normalized the short brief toward Vietnamese-first wording to reduce unnecessary English/Vietnamese mixing
+  - compressed the short brief further after review feedback so the scope reads more like a submission artifact and less like an internal note
+  - clarified the RommZ+ wording so live core entitlements and still-planned higher-tier benefits are separated more explicitly
+- Accuracy guardrails captured in the brief:
+  - do not present mobile parity as complete for Outcome 1
+  - do not present planned or not-yet-live premium benefits as current public promises
+  - do not present the proposed metrics as historical business results; they are the MVP measurement framework to track next
+- Latest validation:
+  - `npx ai-devkit@latest lint`: pass
 
 ## Latest Update (2026-04-14, become-landlord pending contrast fix)
 

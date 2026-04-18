@@ -1,5 +1,5 @@
 ﻿import { describe, expect, test } from 'vitest';
-import { getRoomContact, searchRooms } from '@roomz/shared/services/rooms';
+import { getRoomById, getRoomContact, incrementRoomView, searchRooms } from '@roomz/shared/services/rooms';
 
 describe('shared rooms search service', () => {
   test('passes geo filters through to the search_rooms RPC', async () => {
@@ -139,5 +139,112 @@ describe('shared rooms search service', () => {
       phone: '0912345678',
       isMasked: false,
     });
+  });
+
+  test('does not mutate view count as a side effect of fetching room details', async () => {
+    const rpcCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
+    const room = {
+      id: 'room-1',
+      landlord_id: 'landlord-1',
+      title: 'Studio room',
+      description: 'Nice place',
+      room_type: 'studio',
+      address: '123 Street',
+      district: 'District 1',
+      city: 'HCMC',
+      latitude: 10.1,
+      longitude: 106.1,
+      price_per_month: 5000000,
+      deposit_amount: 1000000,
+      area_sqm: 24,
+      bedroom_count: 1,
+      bathroom_count: 1,
+      max_occupants: 2,
+      furnished: true,
+      pet_allowed: false,
+      gender_restriction: null,
+      is_available: true,
+      is_verified: true,
+      has_360_photos: false,
+      view_count: 12,
+      favorite_count: 3,
+      status: 'active',
+      rejection_reason: null,
+      min_lease_term: 1,
+      available_from: '2026-04-20',
+      created_at: '2026-04-01T00:00:00.000Z',
+      updated_at: '2026-04-02T00:00:00.000Z',
+      deleted_at: null,
+      landlord: {
+        id: 'landlord-1',
+        full_name: 'Premium Host',
+        avatar_url: 'https://example.com/avatar.jpg',
+        phone: '0912345678',
+        email: 'host@example.com',
+        trust_score: 9.2,
+        is_premium: true,
+      },
+      images: [],
+      amenities: {
+        id: 'amenity-1',
+        room_id: 'room-1',
+        wifi: true,
+        air_conditioning: true,
+        parking: false,
+        washing_machine: false,
+        refrigerator: false,
+        heater: false,
+        security_camera: false,
+        balcony: false,
+      },
+    };
+    const supabase = {
+      rpc: async (name: string, args: Record<string, unknown>) => {
+        rpcCalls.push({ name, args });
+        return {
+          data: null,
+          error: null,
+        };
+      },
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            single: async () => ({
+              data: room,
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    };
+
+    const result = await getRoomById(supabase as never, 'room-1');
+
+    expect(result?.id).toBe('room-1');
+    expect(rpcCalls).toEqual([]);
+  });
+
+  test('increments view count only through the dedicated RPC helper', async () => {
+    const rpcCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
+    const supabase = {
+      rpc: async (name: string, args: Record<string, unknown>) => {
+        rpcCalls.push({ name, args });
+        return {
+          data: null,
+          error: null,
+        };
+      },
+    };
+
+    await incrementRoomView(supabase as never, 'room-123');
+
+    expect(rpcCalls).toEqual([
+      {
+        name: 'increment_view_count',
+        args: {
+          p_room_id: 'room-123',
+        },
+      },
+    ]);
   });
 });

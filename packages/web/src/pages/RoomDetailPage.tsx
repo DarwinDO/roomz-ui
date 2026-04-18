@@ -42,8 +42,9 @@ import { useRoom } from "@/hooks/useRooms";
 import { supabase } from "@/lib/supabase";
 import { stitchAssets } from "@/lib/stitchAssets";
 import { trackFeatureEvent, trackRoomViewed } from "@/services/analyticsTracking";
-import { searchRooms } from "@/services/rooms";
+import { incrementRoomView, searchRooms } from "@/services/rooms";
 import { getReviews } from "@/services/reviews";
+import { shouldTrackPublicRoomView } from "@/utils/roomViewTracking";
 import { formatPriceInMillions } from "@roomz/shared/utils/format";
 
 const InlineRoomMap = lazy(() =>
@@ -135,8 +136,8 @@ function buildHighlightItems(room: NonNullable<ReturnType<typeof useRoom>["data"
 export default function RoomDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
-  const trackedRoomViewId = useRef<string | null>(null);
+  const { user, profile, loading: authLoading } = useAuth();
+  const trackedPublicRoomViewId = useRef<string | null>(null);
 
   const { data: room, isLoading, error: queryError, refetch } = useRoom(id);
   const error = queryError instanceof Error ? queryError.message : null;
@@ -174,13 +175,27 @@ export default function RoomDetailPage() {
   const [isMapOpen, setIsMapOpen] = useState(false);
 
   useEffect(() => {
-    if (!room?.id || trackedRoomViewId.current === room.id) {
+    if (!room?.id || trackedPublicRoomViewId.current === room.id) {
       return;
     }
 
-    trackedRoomViewId.current = room.id;
+    if (
+      !shouldTrackPublicRoomView({
+        authLoading,
+        roomStatus: room.status,
+        roomLandlordId: room.landlord_id,
+        viewerId: user?.id ?? null,
+        viewerRole: profile?.role ?? null,
+        hasProfile: Boolean(profile),
+      })
+    ) {
+      return;
+    }
+
+    trackedPublicRoomViewId.current = room.id;
+    void incrementRoomView(room.id);
     void trackRoomViewed(user?.id ?? null, room.id, room.title, Number(room.price_per_month ?? 0));
-  }, [room, user?.id]);
+  }, [authLoading, profile, room, user?.id]);
 
   const roomImages = useMemo(
     () =>

@@ -312,17 +312,21 @@ export async function getRoomById(
         throw error;
     }
 
-    // Increment view count via RPC (non-blocking)
-    supabase.rpc('increment_view_count' as never, { p_room_id: id } as never).then(({ error: rpcError }) => {
-        if (rpcError && rpcError.code !== 'PGRST202' && rpcError.code !== '42501' && rpcError.code !== '42883') {
-            console.warn('Failed to increment view count:', rpcError.message);
-        }
-    });
-
     return {
         ...data,
         amenities: Array.isArray(data.amenities) ? data.amenities[0] : data.amenities,
     } as RoomWithDetails;
+}
+
+export async function incrementRoomView(
+    supabase: SupabaseClient,
+    id: string
+): Promise<void> {
+    const { error } = await supabase.rpc('increment_view_count' as never, { p_room_id: id } as never);
+
+    if (error && error.code !== 'PGRST202' && error.code !== '42501' && error.code !== '42883') {
+        console.warn('Failed to increment view count:', error.message);
+    }
 }
 
 /**

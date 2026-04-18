@@ -94,36 +94,36 @@ function getDashboardTabMeta(tab: DashboardTabValue) {
   switch (tab) {
     case "listings":
       return {
-        eyebrow: "Listing console",
+        eyebrow: "Quản lý tin",
         title: "Tin đăng chủ nhà",
         body:
-          "Giữ các listing rõ ràng, dễ duyệt và đủ tín hiệu tin cậy để chuyển lịch hẹn thành khách thật nhanh hơn.",
+          "Giữ các tin đăng rõ ràng, dễ duyệt và đủ tín hiệu tin cậy để chuyển lịch hẹn thành khách thật nhanh hơn.",
       };
     case "appointments":
       return {
-        eyebrow: "Appointment lane",
+        eyebrow: "Lịch hẹn",
         title: "Lịch hẹn chủ nhà",
         body:
           "Theo dõi các yêu cầu đang chờ, lịch sắp tới và nhịp xử lý trong cùng một màn hình có ngữ cảnh rõ hơn.",
       };
     case "messages":
       return {
-        eyebrow: "Inbox lane",
+        eyebrow: "Hộp thư",
         title: "Tin nhắn chủ nhà",
         body:
           "Ưu tiên các cuộc trò chuyện gần nhất, xem nhanh ai đang chờ phản hồi và mở hộp thư đầy đủ khi cần xử lý sâu.",
       };
     case "income":
       return {
-        eyebrow: "Revenue snapshot",
+        eyebrow: "Tổng quan thu nhập",
         title: "Thu nhập chủ nhà",
         body:
-          "Xem sức chứa doanh thu theo tin đang live, nhịp quan tâm của khách và các tín hiệu đang kéo hiệu suất lên hoặc xuống.",
+          "Xem sức chứa doanh thu theo tin đang hiển thị, nhịp quan tâm của khách và các tín hiệu đang kéo hiệu suất lên hoặc xuống.",
       };
     case "overview":
     default:
       return {
-        eyebrow: "Host console",
+        eyebrow: "Tổng quan",
         title: "Bảng điều khiển chủ nhà",
         body:
           "Theo dõi tin đăng, lịch hẹn và những việc cần xử lý trong cùng một nhịp. Giao diện này bám screen Stitch mới nhưng vẫn dùng dữ liệu thật và các hành động hiện có của RommZ.",
@@ -327,7 +327,7 @@ export default function LandlordDashboardPage() {
         ? {
             tone: "good" as const,
             title: "Không có tin chờ duyệt kéo dài",
-            detail: "Toàn bộ listing đang ở trạng thái hiển thị hoặc đã xử lý xong.",
+            detail: "Toàn bộ tin đang ở trạng thái hiển thị hoặc đã xử lý xong.",
           }
         : {
             tone: "warn" as const,
@@ -338,7 +338,7 @@ export default function LandlordDashboardPage() {
         ? {
             tone: "good" as const,
             title: "Ảnh và mô tả đang đủ lực chuyển đổi",
-            detail: "Các listing có đủ ảnh và phần mô tả để tránh cảm giác tin mỏng.",
+            detail: "Các tin đăng có đủ ảnh và phần mô tả để tránh cảm giác thông tin còn mỏng.",
           }
         : {
             tone: "warn" as const,
@@ -602,7 +602,7 @@ export default function LandlordDashboardPage() {
                         Quản lý tin đăng
                       </CardTitle>
                       <CardDescription className="mt-2 max-w-[52ch] text-sm leading-6">
-                        Dùng thẻ này để xem nhanh những listing quan trọng nhất, sau đó chuyển sang tab Tin đăng khi
+                        Dùng thẻ này để xem nhanh những tin đăng quan trọng nhất, sau đó chuyển sang tab Tin đăng khi
                         cần chỉnh sâu hơn.
                       </CardDescription>
                     </div>
@@ -629,7 +629,7 @@ export default function LandlordDashboardPage() {
                   <CardContent className="space-y-4 pt-6">
                     {overviewRooms.length === 0 ? (
                       <EmptyStateCard
-                        title="Chưa có listing để hiển thị"
+                        title="Chưa có tin để hiển thị"
                         body="Đăng tin đầu tiên để bắt đầu theo dõi hiệu suất và lịch hẹn tại đây."
                         actionLabel="Đăng tin mới"
                         onAction={() => navigate("/post-room")}
@@ -767,7 +767,7 @@ export default function LandlordDashboardPage() {
                               </div>
 
                               <p className="mt-3 text-sm leading-6 text-on-surface-variant">
-                                {booking.note?.trim() || "Khách muốn chốt lịch xem sớm và cần bạn phản hồi trong console."}
+                                {booking.note?.trim() || "Khách muốn chốt lịch xem sớm và cần bạn phản hồi ngay tại đây."}
                               </p>
 
                               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -806,7 +806,7 @@ export default function LandlordDashboardPage() {
                       Chất lượng nội dung
                     </CardTitle>
                     <CardDescription className="mt-2 text-sm leading-6">
-                      Những tín hiệu giúp listing giữ độ tin cậy và giảm vòng duyệt lại.
+                      Những tín hiệu giúp mỗi tin giữ độ tin cậy và giảm nguy cơ phải duyệt lại.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -944,18 +944,17 @@ export default function LandlordDashboardPage() {
               <Card className="rounded-[2rem] border-none bg-surface-container-lowest shadow-soft-lg">
                 <CardHeader className="pb-4">
                   <CardTitle className="font-display text-2xl font-extrabold tracking-[-0.03em]">
-                    Thu nhập dự kiến theo tin đang live
+                    Thu nhập dự kiến theo tin đang hiển thị
                   </CardTitle>
                   <CardDescription className="mt-2 text-sm leading-6">
-                    Bản port này chưa nối dữ liệu thanh toán thực nhận. Tạm thời card thu nhập phản ánh sức chứa doanh
-                    thu từ các listing đang hoạt động.
+                    Hiện thẻ thu nhập này đang ước tính theo sức chứa doanh thu của các tin đang hoạt động.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {incomeRows.length === 0 ? (
                     <EmptyStateCard
-                      title="Chưa có listing đang hiển thị"
-                      body="Khi có tin live, bảng này sẽ cho bạn thấy nhóm tin đang đóng góp doanh thu dự kiến."
+                      title="Chưa có tin đang hiển thị"
+                      body="Khi có tin đang hiển thị, bảng này sẽ cho bạn thấy nhóm tin đang đóng góp doanh thu dự kiến."
                     />
                   ) : (
                     incomeRows.map((room) => (
@@ -995,7 +994,7 @@ export default function LandlordDashboardPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <KpiRow label="Tin live" value={`${activeRooms.length} tin`} />
+                  <KpiRow label="Tin đang hiển thị" value={`${activeRooms.length} tin`} />
                   <KpiRow label="Khách đang chờ" value={`${pendingBookings.length} yêu cầu`} />
                   <KpiRow label="Lịch đã hoàn thành tháng này" value={`${currentMonthCompleted} buổi`} />
                   <KpiRow label="Điểm tin cậy" value={`${trustScore}/10`} />
@@ -1225,7 +1224,7 @@ function ListingsInsightStrip({
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_repeat(2,minmax(220px,0.55fr))]">
           <Card className="rounded-[2rem] border-none bg-gradient-to-br from-primary to-primary/70 text-white shadow-soft-lg">
             <CardContent className="p-7">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">Listing console</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">Quản lý tin</p>
               <h3 className="mt-4 font-display text-[2rem] font-black tracking-[-0.05em] text-white">
                 Xin chào, {hostName}!
               </h3>
@@ -1263,7 +1262,7 @@ function ListingsInsightStrip({
                 <p className="mt-3 text-sm leading-6 text-on-surface-variant">
                   {pendingRooms.length > 0
                     ? `${pendingRooms.length} tin đang chờ duyệt và cần giữ lực nội dung.`
-                    : "Toàn bộ nhịp listing hiện nghiêng về nhóm đang live."}
+                    : "Toàn bộ tin hiện nghiêng về nhóm đang hiển thị."}
                 </p>
               </div>
             </CardContent>
@@ -1309,7 +1308,7 @@ function ListingsInsightStrip({
               <div className="flex flex-wrap items-center gap-2">
                 {[
                   { value: "all", label: "Tất cả" },
-                  { value: "active", label: "Đang live" },
+                  { value: "active", label: "Đang hiển thị" },
                   { value: "pending", label: "Chờ duyệt" },
                   { value: "rejected", label: "Cần sửa" },
                 ].map((filterItem) => (
@@ -1334,7 +1333,7 @@ function ListingsInsightStrip({
             {filteredRooms.length === 0 ? (
               <EmptyCardCopy
                 icon={<Home className="h-8 w-8 text-muted-foreground/40" />}
-                body="Chưa có listing khớp với bộ lọc hiện tại. Hãy đăng thêm tin mới hoặc nới điều kiện tìm kiếm."
+                body="Chưa có tin nào khớp với bộ lọc hiện tại. Hãy đăng thêm tin mới hoặc nới điều kiện tìm kiếm."
               />
             ) : (
               <div className="space-y-4">
@@ -1472,7 +1471,7 @@ function ListingsInsightStrip({
             </p>
             <div className="mt-5 rounded-[1.25rem] bg-surface-container-lowest p-4">
               <KpiRow
-                label="Giá live trung bình"
+                label="Giá hiển thị trung bình"
                 value={averageLivePrice > 0 ? `${formatMillions(averageLivePrice)}/tháng` : "Đang cập nhật"}
               />
               <div className="mt-3" />
@@ -1647,7 +1646,7 @@ function AppointmentsOverviewStrip({
             {requestLane.length === 0 ? (
               <EmptyCardCopy
                 icon={<CalendarCheck className="h-8 w-8 text-muted-foreground/40" />}
-                body="Chưa có yêu cầu nào trong lane lịch hẹn của bạn."
+                body="Chưa có yêu cầu nào trong khung lịch hẹn của bạn."
               />
             ) : (
               requestLane.map((booking) => {
@@ -2003,7 +2002,7 @@ function MessagesOverviewStrip({
               <EmptyStateCard title="Không tải được hộp thư" body={error} actionLabel="Thử lại" onAction={refetchConversations} />
             ) : filteredConversations.length === 0 ? (
               <p className="text-sm leading-6 text-on-surface-variant">
-                Chưa có cuộc trò chuyện nào. Khi khách hỏi qua listing, lane này sẽ sáng lên ngay.
+                Chưa có cuộc trò chuyện nào. Khi khách hỏi về một tin phòng, khung này sẽ hiện lên ngay.
               </p>
             ) : (
               filteredConversations.slice(0, 8).map((conversation) => (
@@ -2055,7 +2054,7 @@ function MessagesOverviewStrip({
               Khung xem nhanh hội thoại
             </CardTitle>
             <CardDescription className="mt-2 text-sm leading-6">
-              Mỗi thread giờ gắn với đúng listing mà khách đang hỏi để host không bị lẫn ngữ cảnh giữa nhiều phòng.
+              Mỗi cuộc trò chuyện giờ gắn với đúng tin phòng khách đang hỏi để bạn không bị lẫn giữa nhiều phòng.
             </CardDescription>
           </div>
           <Button className="rounded-full px-5" onClick={() => onOpenInbox(selectedConversation?.id)}>
@@ -2129,8 +2128,8 @@ function MessagesOverviewStrip({
                 <div className="mt-6 rounded-[1.5rem] bg-surface-container-lowest p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-on-surface">Trả lời ngay trong host console</p>
-                      <span className="text-xs text-on-surface-variant">Thread theo phòng đang chọn</span>
+                      <p className="text-sm font-semibold text-on-surface">Trả lời ngay tại đây</p>
+                      <span className="text-xs text-on-surface-variant">Cuộc trò chuyện theo tin phòng đang chọn</span>
                     </div>
                     <Popover open={isQuickRepliesOpen} onOpenChange={setIsQuickRepliesOpen}>
                       <PopoverTrigger asChild>
@@ -2156,8 +2155,8 @@ function MessagesOverviewStrip({
                         <div className="flex max-h-56 flex-wrap gap-2 overflow-y-auto pr-1">
                           {[
                             "Phòng này vẫn còn trống, bạn muốn chốt lịch xem vào khung nào?",
-                            "Mình đã nhận được quan tâm của bạn cho listing này và sẽ phản hồi chi tiết ngay.",
-                            "Nếu cần đổi lịch xem phòng, cứ nhắn lại trong thread này để mình cập nhật.",
+                            "Mình đã nhận được quan tâm của bạn cho tin phòng này và sẽ phản hồi chi tiết ngay.",
+                            "Nếu cần đổi lịch xem phòng, cứ nhắn lại ngay tại đây để mình cập nhật.",
                           ].map((reply) => (
                             <button
                               key={reply}
@@ -2222,7 +2221,7 @@ function MessagesOverviewStrip({
                   <div className="rounded-[1.5rem] bg-surface-container p-4">
                     <p className="font-semibold text-on-surface">{selectedConversation.room.title}</p>
                     <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                      {selectedConversation.room.address || "Khách đang trao đổi về listing này."}
+                      {selectedConversation.room.address || "Khách đang trao đổi về tin phòng này."}
                     </p>
                     <div className="mt-4 flex items-center justify-between gap-3">
                       <span className="text-sm text-on-surface-variant">Giá tham chiếu</span>
@@ -2236,7 +2235,7 @@ function MessagesOverviewStrip({
                 </>
               ) : (
                 <div className="rounded-[1.5rem] bg-surface-container p-4 text-sm leading-6 text-on-surface-variant">
-                  Cuộc trò chuyện này chưa có room context đang hoạt động. RommZ sẽ ưu tiên gắn phòng ngay từ lúc khách bấm liên hệ.
+                  Cuộc trò chuyện này chưa xác định rõ khách đang hỏi phòng nào. RommZ sẽ cố gắng gắn đúng tin phòng ngay từ lúc khách bấm liên hệ.
                 </div>
               )}
 
@@ -2245,7 +2244,7 @@ function MessagesOverviewStrip({
                 <div className="mt-4 space-y-2">
                   {[
                     "Phòng vẫn còn trống, mình có thể gửi thêm ảnh hoặc chốt lịch xem ngay.",
-                    "Bạn đang hỏi đúng listing này, mình sẽ xác nhận khung giờ phù hợp trong thread này.",
+                    "Bạn đang hỏi đúng tin phòng này, mình sẽ xác nhận khung giờ phù hợp ngay tại đây.",
                     "Nếu cần đổi lịch xem phòng, cứ nhắn ngay tại đây để mình cập nhật.",
                   ].map((reply) => (
                     <button
@@ -2261,7 +2260,7 @@ function MessagesOverviewStrip({
               </div>
             </div>
           ) : (
-            <EmptyStateCard title="Chưa có room context" body="Chọn một hội thoại để xem khách đang quan tâm tới phòng nào." />
+            <EmptyStateCard title="Chưa xác định phòng được hỏi" body="Chọn một hội thoại để xem khách đang quan tâm tới phòng nào." />
           )}
         </CardContent>
       </Card>
@@ -2292,12 +2291,12 @@ function IncomeOverviewStrip({
             Tín hiệu kéo doanh thu
           </CardTitle>
           <CardDescription className="mt-2 text-sm leading-6">
-            Trước khi đào sâu báo cáo thu nhập, hãy nhìn xem nhịp listing và lịch hẹn đang đẩy hay đang ghìm sức chứa doanh thu.
+            Trước khi đào sâu báo cáo thu nhập, hãy nhìn xem nhịp tin đăng và lịch hẹn đang đẩy hay đang ghìm sức chứa doanh thu.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="rounded-[1.5rem] bg-surface-container p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface-variant">Giá live trung bình</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface-variant">Giá hiển thị trung bình</p>
             <p className="mt-3 font-display text-3xl font-black tracking-[-0.04em] text-on-surface">
               {averageTicket > 0 ? formatMillions(averageTicket) : "0"}
             </p>
@@ -2322,13 +2321,13 @@ function IncomeOverviewStrip({
 
       <Card className="rounded-[2rem] border-none bg-primary text-white shadow-soft-lg">
         <CardContent className="p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/75">Health score</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/75">Điểm sức khoẻ</p>
           <p className="mt-3 font-display text-4xl font-black tracking-[-0.04em] text-white">{trustScore}/10</p>
           <p className="mt-3 text-sm leading-6 text-white/80">
-            Khi điểm tin cậy, số listing live và lịch hẹn đi cùng nhau, phần thu nhập sẽ ổn định hơn mà không cần tăng giá gấp.
+            Khi điểm tin cậy, số tin đang hiển thị và lịch hẹn đi cùng nhau, phần thu nhập sẽ ổn định hơn mà không cần tăng giá gấp.
           </p>
           <div className="mt-5 rounded-[1.5rem] bg-white/10 p-4 text-sm leading-6 text-white/85">
-            Tập trung giữ listing đủ ảnh, phản hồi khách sớm và chốt các lịch đang treo để đà thu nhập không bị hụt.
+            Tập trung giữ tin đăng đủ ảnh, phản hồi khách sớm và chốt các lịch đang treo để đà thu nhập không bị hụt.
           </div>
         </CardContent>
       </Card>

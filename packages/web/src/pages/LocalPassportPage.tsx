@@ -369,7 +369,7 @@ export function LocalPassportContent({
             <div className="border-b border-[#d6e4f5] bg-[#0f172a] px-6 py-6 text-white lg:border-b-0 lg:border-r">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-100">
                 <MapPin className="h-3.5 w-3.5" />
-                Local context
+                Thông tin khu vực
               </div>
               <h2 className="text-2xl font-semibold leading-tight text-white">
                 Điểm mốc nổi bật
@@ -377,7 +377,7 @@ export function LocalPassportContent({
                 cho khu vực của bạn
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-300">
-                Local Passport không chỉ là ưu đãi. Nó cần biết bạn đang ở gần trường, ga bến hay landmark nào để gợi ý đối tác hợp lý hơn.
+                Local Passport không chỉ gợi ý ưu đãi. Trang này còn dựa trên các điểm mốc gần bạn như trường, ga bến hay landmark để đề xuất địa điểm phù hợp hơn.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <Badge className="rounded-full bg-white/10 text-white">Trường</Badge>
@@ -395,7 +395,7 @@ export function LocalPassportContent({
                   <p className="text-sm text-muted-foreground">
                     {position && !geoDenied
                       ? "Dựa trên vị trí hiện tại trong bán kính 6 km."
-                      : "Hiển thị từ location catalog đã được duyệt."}
+                      : "Hiển thị từ các điểm mốc đã được RoomZ chọn lọc."}
                   </p>
                 </div>
                 {geoLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
@@ -438,7 +438,7 @@ export function LocalPassportContent({
                         </div>
 
                         <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-                          <span>{location.source_name || "Catalog nội bộ"}</span>
+                          <span>{location.source_name || "Gợi ý của RoomZ"}</span>
                           <span className="font-medium text-foreground">
                             {location.distance_km !== null && location.distance_km !== undefined
                               ? formatDistance(location.distance_km)

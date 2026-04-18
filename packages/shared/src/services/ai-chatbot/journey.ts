@@ -1,5 +1,7 @@
 import type { RomiJourneyState, RomiViewerMode } from './types.ts';
 
+export const EMPTY_JOURNEY_SUMMARY = 'ROMI đang chờ bạn mô tả nhu cầu.';
+
 function uniq(values: string[] | undefined) {
   return [...new Set((values || []).filter(Boolean))];
 }
@@ -89,72 +91,133 @@ export function mergeJourneyState(
   };
 }
 
-export function buildJourneySummary(state: Partial<RomiJourneyState> | null | undefined) {
-  if (!state) return 'Chưa đủ dữ liệu để tóm tắt nhu cầu.';
+export function formatJourneyRoomTypeLabel(roomType: RomiJourneyState['roomType']) {
+  switch (roomType) {
+    case 'private':
+      return 'phòng riêng';
+    case 'shared':
+      return 'ở ghép';
+    case 'studio':
+      return 'studio';
+    case 'entire':
+      return 'căn hộ nguyên căn';
+    default:
+      return null;
+  }
+}
 
-  const fragments: string[] = [];
-
-  if (state.goal === 'find_room') {
-    fragments.push('Đang tìm phòng');
-  } else if (state.goal === 'find_service') {
-    fragments.push('Đang tìm dịch vụ');
-  } else if (state.goal === 'find_deal') {
-    fragments.push('Đang tìm ưu đãi');
-  } else if (state.goal === 'learn_product') {
-    fragments.push('Đang hỏi về sản phẩm');
+function formatBudgetDetail(state: Partial<RomiJourneyState>) {
+  if (typeof state.budgetMin !== 'number' && typeof state.budgetMax !== 'number') {
+    return null;
   }
 
+  const min = typeof state.budgetMin === 'number'
+    ? `${new Intl.NumberFormat('vi-VN').format(state.budgetMin)}đ`
+    : null;
+  const max = typeof state.budgetMax === 'number'
+    ? `${new Intl.NumberFormat('vi-VN').format(state.budgetMax)}đ`
+    : null;
+
+  if (min && max) {
+    return `với ngân sách ${min} - ${max}`;
+  }
+
+  if (max) {
+    return `với ngân sách tối đa ${max}`;
+  }
+
+  if (min) {
+    return `với ngân sách từ ${min}`;
+  }
+
+  return null;
+}
+
+function formatLocationDetail(state: Partial<RomiJourneyState>) {
   const location = [state.district, state.city].filter(Boolean).join(', ');
   if (location) {
-    fragments.push(`khu vực ${location}`);
-  } else if (state.poiHint) {
-    fragments.push(`gần ${state.poiHint}`);
-  } else if (state.areaHint) {
-    fragments.push(`gần ${state.areaHint}`);
+    return `ở ${location}`;
   }
 
-  if (typeof state.budgetMin === 'number' || typeof state.budgetMax === 'number') {
-    const min = typeof state.budgetMin === 'number'
-      ? `${new Intl.NumberFormat('vi-VN').format(state.budgetMin)}đ`
-      : null;
-    const max = typeof state.budgetMax === 'number'
-      ? `${new Intl.NumberFormat('vi-VN').format(state.budgetMax)}đ`
-      : null;
-
-    if (min && max) {
-      fragments.push(`ngân sách ${min} - ${max}`);
-    } else if (max) {
-      fragments.push(`ngân sách tối đa ${max}`);
-    } else if (min) {
-      fragments.push(`ngân sách từ ${min}`);
-    }
+  if (state.poiHint) {
+    return `gần ${state.poiHint}`;
   }
 
-  if (state.roomType) {
-    fragments.push(`loại phòng ${state.roomType}`);
+  if (state.areaHint) {
+    return `gần ${state.areaHint}`;
   }
 
-  if (state.serviceCategory) {
-    fragments.push(`dịch vụ ${state.serviceCategory}`);
+  return null;
+}
+
+function formatJourneyLead(state: Partial<RomiJourneyState>) {
+  if (state.goal === 'find_room') {
+    return 'Bạn đang tìm phòng';
   }
 
-  if (state.dealCategory) {
-    fragments.push(`deal ${state.dealCategory}`);
+  if (state.goal === 'find_service') {
+    return 'Bạn đang tìm dịch vụ';
   }
 
-  if (state.productTopic) {
-    fragments.push(`chủ đề ${state.productTopic}`);
+  if (state.goal === 'find_deal') {
+    return 'Bạn đang tìm ưu đãi';
   }
 
-  if (state.activeEntityType && state.activeEntityId) {
-    fragments.push(`đang mở ${state.activeEntityType}`);
+  if (state.goal === 'learn_product') {
+    return 'Bạn đang tìm hiểu về sản phẩm';
   }
 
-  if (!fragments.length) {
-    return 'Chưa đủ dữ liệu để tóm tắt nhu cầu.';
+  return null;
+}
+
+function formatActiveEntitySummary(state: Partial<RomiJourneyState>) {
+  if (!state.activeEntityType || !state.activeEntityId) {
+    return null;
   }
 
-  return fragments.join(' • ');
+  switch (state.activeEntityType) {
+    case 'room':
+      return 'ROMI cũng đang theo thông tin từ tin phòng bạn vừa mở.';
+    case 'deal':
+      return 'ROMI cũng đang theo thông tin từ ưu đãi bạn vừa mở.';
+    case 'service':
+      return 'ROMI cũng đang theo thông tin từ dịch vụ bạn vừa xem.';
+    case 'premium':
+      return 'ROMI cũng đang theo thông tin từ gói RommZ+ bạn vừa xem.';
+    case 'roommate':
+      return 'ROMI cũng đang theo thông tin từ hồ sơ ở ghép bạn vừa mở.';
+    case 'swap':
+      return 'ROMI cũng đang theo thông tin từ lượt đổi phòng bạn vừa mở.';
+    default:
+      return null;
+  }
+}
+
+export function buildJourneySummary(state: Partial<RomiJourneyState> | null | undefined) {
+  if (!state) return EMPTY_JOURNEY_SUMMARY;
+
+  const lead = formatJourneyLead(state);
+  const roomTypeLabel = formatJourneyRoomTypeLabel(state.roomType);
+  const details = [
+    formatLocationDetail(state),
+    formatBudgetDetail(state),
+    roomTypeLabel ? `ưu tiên ${roomTypeLabel}` : null,
+    state.serviceCategory ? `thuộc nhóm ${state.serviceCategory}` : null,
+    state.dealCategory ? `về ưu đãi ${state.dealCategory}` : null,
+    state.productTopic ? `liên quan đến ${state.productTopic}` : null,
+  ].filter(Boolean) as string[];
+  const activeEntitySummary = formatActiveEntitySummary(state);
+
+  if (!lead && details.length === 0 && !activeEntitySummary) {
+    return EMPTY_JOURNEY_SUMMARY;
+  }
+
+  const summaryLead = lead || 'ROMI đang theo nhu cầu bạn vừa nêu';
+  const summary = details.length > 0
+    ? `${summaryLead} ${details.join(', ')}.`
+    : `${summaryLead}.`;
+
+  return activeEntitySummary ? `${summary} ${activeEntitySummary}` : summary;
 }
 
 export function finalizeJourneyState(

@@ -1176,7 +1176,7 @@ export default function SearchPage() {
               <div className="mb-2 flex items-center justify-between px-2 pt-1">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  Gợi ý khu vực nội bộ
+                  Gợi ý khu vực
                 </div>
                 {isLocationSuggestionsLoading ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
@@ -1222,7 +1222,7 @@ export default function SearchPage() {
                 </div>
               ) : !isLocationSuggestionsLoading ? (
                 <p className="px-2 pb-2 text-sm text-muted-foreground">
-                  Chưa có điểm mốc nội bộ phù hợp. Bạn vẫn có thể chọn gợi ý từ Mapbox hoặc nhập địa chỉ tự do.
+                  Chưa có gợi ý phù hợp. Bạn vẫn có thể chọn gợi ý trên bản đồ hoặc nhập địa chỉ tự do.
                 </p>
               ) : null}
             </div>
@@ -1829,7 +1829,7 @@ export default function SearchPage() {
                     Bản đồ đầy đủ
                   </p>
                   <p className="mt-1 text-sm text-on-surface-variant">
-                    Chọn pin để đổi listing đang được ưu tiên trong flow tìm phòng.
+                    Chọn pin để đổi tin phòng đang được ưu tiên trong hành trình tìm phòng.
                   </p>
                 </div>
                 <Button type="button" variant="outline" onClick={() => setViewMode("list")} className="rounded-full px-5">
@@ -2145,7 +2145,7 @@ export default function SearchPage() {
               <div className="mb-2 flex items-center justify-between px-2 pt-1">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  Gợi ý khu vực nội bộ
+                  Gợi ý khu vực
                 </div>
                 {isLocationSuggestionsLoading && (
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
@@ -2192,7 +2192,7 @@ export default function SearchPage() {
               ) : (
                 !isLocationSuggestionsLoading && (
                   <p className="px-2 pb-2 text-sm text-muted-foreground">
-                    Chưa có điểm mốc nội bộ phù hợp. Bạn vẫn có thể chọn gợi ý từ Mapbox hoặc nhập địa chỉ tự do.
+                    Chưa có gợi ý phù hợp. Bạn vẫn có thể chọn gợi ý trên bản đồ hoặc nhập địa chỉ tự do.
                   </p>
                 )
               )}

@@ -42,6 +42,8 @@ import {
 } from "@/services/analyticsTracking";
 import {
   deleteAIChatSession,
+  EMPTY_JOURNEY_SUMMARY,
+  formatJourneyRoomTypeLabel,
   getAIChatMessages,
   getAIChatSessionPreview,
   getAIChatSessions,
@@ -53,7 +55,6 @@ import {
   type RomiViewerMode,
 } from "@roomz/shared/services/ai-chatbot";
 import {
-  ROMI_EXPERIENCE_VERSION,
   ROMI_GUEST_SUGGESTED_QUESTIONS,
   ROMI_NAME,
   ROMI_SUGGESTED_QUESTIONS,
@@ -78,7 +79,7 @@ function formatRelativeTime(value: string | null | undefined) {
 }
 
 function formatSessionTitle(session: AIChatSession | null | undefined) {
-  return session?.title?.trim() || "Luồng mới";
+  return session?.title?.trim() || "Cuộc trò chuyện mới";
 }
 
 function formatSessionPreview(session: AIChatSession) {
@@ -115,11 +116,9 @@ function buildGuestHistory(messages: RomiDisplayMessage[]): AIChatHistoryEntry[]
   }));
 }
 
-const DEFAULT_JOURNEY_SUMMARY = `${ROMI_NAME} đang chờ bạn mô tả nhu cầu.`;
-
 function hasMeaningfulJourneySummary(journeyState: RomiJourneyState) {
   const summary = journeyState.summary?.trim();
-  return Boolean(summary && summary !== DEFAULT_JOURNEY_SUMMARY);
+  return Boolean(summary && summary !== EMPTY_JOURNEY_SUMMARY);
 }
 
 function buildJourneyChips(journeyState: RomiJourneyState) {
@@ -130,7 +129,8 @@ function buildJourneyChips(journeyState: RomiJourneyState) {
   if (typeof journeyState.budgetMax === "number") {
     chips.push(`Tối đa ${new Intl.NumberFormat("vi-VN").format(journeyState.budgetMax)}đ`);
   }
-  if (journeyState.roomType) chips.push(journeyState.roomType);
+  const roomTypeLabel = formatJourneyRoomTypeLabel(journeyState.roomType);
+  if (roomTypeLabel) chips.push(roomTypeLabel);
 
   return chips;
 }
@@ -182,12 +182,12 @@ const SessionRail = memo(function SessionRail({
 }) {
   return (
     <aside className="flex min-h-0 flex-col rounded-[28px] border border-border bg-surface-container-lowest p-5 shadow-soft">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">History</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Lịch sử</p>
       <h2 className="mt-2 font-display text-2xl font-black tracking-[-0.04em] text-on-surface">
-        Lịch sử hội thoại
+        Lịch sử trò chuyện
       </h2>
       <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-        Mở lại thread cũ hoặc xoá những luồng bạn không cần nữa.
+        Xem lại các cuộc trò chuyện cũ hoặc xoá những cuộc trò chuyện bạn không cần nữa.
       </p>
 
       <div className="mt-4 rounded-[22px] bg-surface px-4 py-3">
@@ -196,7 +196,7 @@ const SessionRail = memo(function SessionRail({
           <Input
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Tìm session..."
+            placeholder="Tìm cuộc trò chuyện..."
             className="h-auto border-none bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0"
           />
         </div>
@@ -209,7 +209,7 @@ const SessionRail = memo(function SessionRail({
           ))
         ) : sessions.length === 0 ? (
           <div className="rounded-[22px] border border-dashed border-border bg-surface p-4 text-sm leading-6 text-on-surface-variant">
-            ROMI sẽ giữ lại session <span className="font-mono">{ROMI_EXPERIENCE_VERSION}</span> mới của bạn tại đây.
+            Những cuộc trò chuyện gần đây với ROMI sẽ hiện tại đây.
           </div>
         ) : (
           sessions.map((session) => (
@@ -406,7 +406,7 @@ export default function RomiPage() {
         });
       } catch (error) {
         console.error("Failed to load ROMI sessions:", error);
-        toast.error("Không thể tải session ROMI lúc này.");
+        toast.error("Chưa tải được lịch sử trò chuyện với ROMI lúc này.");
       } finally {
         if (!cancelled) {
           setSessionsLoading(false);
@@ -450,7 +450,7 @@ export default function RomiPage() {
         });
       } catch (error) {
         console.error("Failed to hydrate ROMI session:", error);
-        toast.error("Không thể tải nội dung session này.");
+        toast.error("Chưa tải được cuộc trò chuyện này.");
       } finally {
         if (!cancelled) {
           setMessagesLoading(false);
@@ -503,7 +503,7 @@ export default function RomiPage() {
     ? workspaceState.journeyState.summary?.trim()
     : viewerMode === "guest"
       ? "Mô tả khu vực, ngân sách hoặc câu hỏi sản phẩm để ROMI trả lời sát hơn."
-      : "Nói nhu cầu hiện tại, ROMI sẽ bám theo đúng thread này thay vì bày thêm các bảng phụ.";
+      : "Nói nhu cầu hiện tại để ROMI theo sát cuộc trò chuyện này và tư vấn liền mạch hơn.";
 
   function handleLogin() {
     navigate("/login", { state: { from: location } });
@@ -535,7 +535,7 @@ export default function RomiPage() {
       }
     } catch (error) {
       console.error("Failed to delete ROMI session:", error);
-      toast.error("Không thể xoá session này.");
+      toast.error("Chưa xoá được cuộc trò chuyện này.");
     } finally {
       setDeletingSessionId(null);
     }
@@ -715,7 +715,7 @@ export default function RomiPage() {
                     )}
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-                        {viewerMode === "guest" ? "Guest conversation" : activeSessionTitle ? "Thread đang mở" : "Chat workspace"}
+                        {viewerMode === "guest" ? "Tư vấn nhanh" : activeSessionTitle ? "Cuộc trò chuyện hiện tại" : "Trò chuyện với ROMI"}
                       </p>
                       <h2 className="mt-2 font-display text-3xl font-black tracking-[-0.04em] text-on-surface">
                         {ROMI_NAME}
@@ -761,7 +761,7 @@ export default function RomiPage() {
                     ) : (
                       <Button type="button" variant="outline" className="rounded-full" onClick={handleCreateConversation}>
                         <MessageSquarePlus className="h-4 w-4" />
-                        Luồng mới
+                        Cuộc trò chuyện mới
                       </Button>
                     )}
                   </div>
@@ -856,7 +856,7 @@ export default function RomiPage() {
                   />
                   <div className="mt-3 flex items-center justify-between gap-3">
                     <p className="text-xs text-on-surface-variant">
-                      ROMI sẽ ưu tiên hỏi bù khi thiếu context bắt buộc thay vì trả lời đoán.
+                      Nếu còn thiếu thông tin, ROMI sẽ hỏi thêm để trả lời chính xác hơn.
                     </p>
                     <Button
                       type="button"

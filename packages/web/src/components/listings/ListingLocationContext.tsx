@@ -136,7 +136,7 @@ export function ListingLocationContext({
                   </div>
 
                   <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-                    <span>{location.source_name || "Catalog nội bộ"}</span>
+                    <span>{location.source_name || "Gợi ý của RoomZ"}</span>
                     <span className="font-medium text-foreground">
                       {location.distance_km !== null && location.distance_km !== undefined
                         ? formatDistance(location.distance_km)

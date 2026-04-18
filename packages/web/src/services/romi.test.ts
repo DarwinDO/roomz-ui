@@ -39,7 +39,9 @@ describe("ROMI shared sources of truth", () => {
     expect(analysis.journeyState.areaHint).toContain("Bách Khoa");
     expect(analysis.journeyState.budgetMax).toBe(4000000);
     expect(analysis.clarification).toBeNull();
+    expect(buildJourneySummary(analysis.journeyState)).toContain("Bạn đang tìm phòng");
     expect(buildJourneySummary(analysis.journeyState)).toContain("Hà Nội");
+    expect(buildJourneySummary(analysis.journeyState)).not.toContain("•");
   });
 
   test("marks onboarding prompts so knowledge retrieval can stay focused", () => {
@@ -196,12 +198,28 @@ describe("ROMI shared sources of truth", () => {
     const preview = getAIChatSessionPreview({
       preview: "Ngân sách bạn muốn giữ ở khoảng nào mỗi tháng?",
       journeyState: {
-        summary: "Đang tìm phòng • khu vực Thành phố Thủ Đức • ngân sách tối đa 5.000.000đ",
+        summary: "Bạn đang tìm phòng ở Thành phố Thủ Đức với ngân sách tối đa 5.000.000đ.",
         resolutionOutcome: "repair_after_failed_extraction",
       },
     });
 
     expect(preview).toContain("Thành phố Thủ Đức");
     expect(preview).not.toContain("Ngân sách bạn muốn giữ");
+  });
+
+  test("summarizes active room context in natural language instead of state fragments", () => {
+    const summary = buildJourneySummary({
+      goal: "find_room",
+      district: "Thành phố Thủ Đức",
+      budgetMax: 5000000,
+      activeEntityType: "room",
+      activeEntityId: "room-123",
+    });
+
+    expect(summary).toContain("Bạn đang tìm phòng");
+    expect(summary).toContain("Thành phố Thủ Đức");
+    expect(summary).toContain("tin phòng bạn vừa mở");
+    expect(summary).not.toContain("•");
+    expect(summary).not.toContain("đang mở room");
   });
 });
